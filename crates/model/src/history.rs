@@ -128,6 +128,14 @@ impl History {
         self.entries.get(self.cursor).map(|e| e.label.as_str())
     }
 
+    /// Drops every entry: what was done can no longer be undone (the data underneath
+    /// changed, as after applying query edits). The model counts as unsaved.
+    pub fn forget(&mut self) {
+        self.entries.clear();
+        self.cursor = 0;
+        self.saved = None;
+    }
+
     pub fn mark_saved(&mut self) {
         self.saved = Some(self.cursor);
     }

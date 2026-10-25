@@ -43,8 +43,8 @@ pub fn check(path: &Path) -> CheckReport {
     }
 
     // Every query's source file must exist, and every table must have a query.
-    for q in &project.queries {
-        let p = charted_compiler::steps::resolve_path(&project.dir_str(), q.source.path());
+    for q in project.queries.iter().filter(|q| q.source.is_file()) {
+        let p = charted_compiler::steps::resolve_path(&project.dir_str(), &q.source.path());
         if !Path::new(&p).exists() {
             report.errors.push(format!(
                 "query \"{}\": source file {} does not exist",

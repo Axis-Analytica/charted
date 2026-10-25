@@ -5,6 +5,7 @@
 
 pub mod graph;
 pub mod interp;
+pub mod mformula;
 pub mod ossie;
 pub mod quote;
 pub mod steps;

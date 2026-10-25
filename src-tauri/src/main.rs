@@ -32,6 +32,7 @@ async fn blocking<T: Send + 'static>(
         .map_err(|e| ApiError {
             code: "internal".into(),
             message: e.to_string(),
+            detail: None,
         })?
 }
 
@@ -71,6 +72,7 @@ async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
     pick::pick(options).await.map_err(|message| ApiError {
         code: "portal".into(),
         message,
+        detail: None,
     })
 }
 

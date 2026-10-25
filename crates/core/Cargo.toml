@@ -22,6 +22,10 @@ toml.workspace = true
 notify.workspace = true
 ts-rs.workspace = true
 uuid = { version = "1", features = ["v4", "v5"] }
+# Excel sheets are read in pure Rust (no DuckDB extension, no network).
+calamine = "0.37"
+# PostgreSQL passwords live in the desktop keyring (Secret Service), not in projects.
+keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 arrow-ipc.workspace = true

@@ -11,3 +11,4 @@ duckdb.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 thiserror.workspace = true
+rust_xlsxwriter = { version = "0.101", default-features = false }

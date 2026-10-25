@@ -26,6 +26,14 @@ pub enum CoreError {
     Locked { pid: u32 },
     #[error("no project is open")]
     NoProject,
+    /// A source needs a DuckDB extension that must be downloaded first (its name).
+    #[error(
+        "this source needs DuckDB's {0} extension, which charted downloads from extensions.duckdb.org once you agree"
+    )]
+    Consent(String),
+    /// A database password isn't in the keyring (the connection, as user@host:port/db).
+    #[error("enter the password for {0}")]
+    Password(String),
 }
 
 impl CoreError {
@@ -40,6 +48,17 @@ impl CoreError {
             CoreError::Invalid(_) => "invalid",
             CoreError::Locked { .. } => "locked",
             CoreError::NoProject => "noProject",
+            CoreError::Consent(_) => "consent",
+            CoreError::Password(_) => "password",
+        }
+    }
+
+    /// What the error is about, when the UI needs it to offer a fix (the extension to
+    /// download, the connection needing a password).
+    pub fn detail(&self) -> Option<String> {
+        match self {
+            CoreError::Consent(x) | CoreError::Password(x) => Some(x.clone()),
+            _ => None,
         }
     }
 }
@@ -64,6 +83,7 @@ pub struct QuerySummary {
     pub table: String,
     pub source_path: String,
     pub sql: String,
+    pub definition: Query,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -138,10 +158,21 @@ pub fn now() -> u64 {
         .unwrap_or(0)
 }
 
-/// Loads one query's rows into its table.
+/// Loads one query's rows into its table. Only for queries that read a file directly
+/// (the sample); a session loads through `Session::load`.
 pub fn load_query(db: &Database, query: &Query, project_dir: &str) -> Result<u64, CoreError> {
-    let select = steps::to_sql(query, project_dir);
-    db.materialise(&query.table, &select).map_err(|e| {
+    let sheets = Default::default();
+    let ctx = steps::Ctx {
+        project_dir,
+        queries: std::slice::from_ref(query),
+        sheets: &sheets,
+    };
+    let select = steps::to_sql(query, &ctx).map_err(|e| CoreError::Invalid(e.to_string()))?;
+    materialise(db, query, &select)
+}
+
+fn materialise(db: &Database, query: &Query, select: &str) -> Result<u64, CoreError> {
+    db.materialise(&query.table, select).map_err(|e| {
         CoreError::Invalid(format!(
             "could not load \"{}\" from {}: {e}",
             query.name,
@@ -159,20 +190,63 @@ pub struct Session {
     /// What each calculated column was last computed from (expression, type, relationships).
     calc_state: std::collections::HashMap<String, String>,
     recovery: Option<RecoveryInfo>,
+    /// Extensions the user agreed to download (set by the `App`).
+    pub consent: crate::sources::Consent,
+    /// Each file source's stamp when it was last loaded, by query id.
+    stamps: crate::sources::Stamps,
+    /// Cached CSV copies of the Excel sheets the queries read.
+    sheets: std::collections::BTreeMap<String, String>,
     _lock: Lock,
 }
 
 impl Session {
     pub fn open(path: &Path) -> Result<Self, CoreError> {
+        Self::open_with(path, crate::sources::Consent::default())
+    }
+
+    /// Opens a project, loading any table whose data isn't cached yet.
+    pub fn open_with(path: &Path, consent: crate::sources::Consent) -> Result<Self, CoreError> {
         let project = Project::open(path)?;
         let lock = Lock::acquire(&project.cache_dir())?;
         let db = Database::open(Some(&project.database_path()), &db_options(&project))?;
         dataview::attach(&db)?;
+        let mut stamps = crate::sources::read_stamps(&project.cache_dir());
+        let missing: Vec<String> = project
+            .queries
+            .iter()
+            .filter(|q| !q.no_load && !db.table_exists(&q.table).unwrap_or(false))
+            .map(|q| q.id.clone())
+            .collect();
+        let dir = project.dir_str();
+        // Sources loaded before charted kept stamps count as current.
         for q in &project.queries {
-            if !db.table_exists(&q.table)? {
-                load_query(&db, q, &project.dir_str())?;
+            if !stamps.contains_key(&q.id)
+                && let Some(st) = crate::sources::stamp(&dir, &q.source)
+            {
+                stamps.insert(q.id.clone(), st);
             }
         }
+        let sheets = if missing.is_empty() {
+            crate::sources::prepare_sheets(&dir, &project.cache_dir(), &project.queries)
+                .unwrap_or_default()
+        } else {
+            let sheets = crate::sources::prepare(
+                &db,
+                &dir,
+                &project.cache_dir(),
+                &project.queries,
+                &consent,
+            )?;
+            for q in project.queries.iter().filter(|q| missing.contains(&q.id)) {
+                let select = crate::sources::query_sql(&dir, &project.queries, &sheets, q, None)?;
+                materialise(&db, q, &select)?;
+                if let Some(st) = crate::sources::stamp(&dir, &q.source) {
+                    stamps.insert(q.id.clone(), st);
+                }
+            }
+            sheets
+        };
+        crate::sources::write_stamps(&project.cache_dir(), &stamps);
         let recovery = read_recovery(&project).and_then(|r| {
             (r.generation == project.manifest.generation && r.model != project.model).then_some(
                 RecoveryInfo {
@@ -189,6 +263,9 @@ impl Session {
             schema,
             calc_state: Default::default(),
             recovery,
+            consent,
+            stamps,
+            sheets,
             _lock: lock,
         };
         session.refresh_calculated();
@@ -234,8 +311,16 @@ impl Session {
                     id: q.id.clone(),
                     name: q.name.clone(),
                     table: q.table.clone(),
-                    source_path: q.source.path().to_string(),
-                    sql: steps::to_sql(q, &self.project.dir_str()),
+                    source_path: q.source.path(),
+                    sql: crate::sources::query_sql(
+                        &self.project.dir_str(),
+                        &self.project.queries,
+                        &self.sheets,
+                        q,
+                        None,
+                    )
+                    .unwrap_or_else(|e| format!("-- {e}")),
+                    definition: q.clone(),
                 })
                 .collect(),
             warnings: self.project.warnings.clone(),
@@ -332,6 +417,348 @@ impl Session {
 
     /// Computes calculated columns whose expression, type or relationships changed,
     /// storing their values in a column of the table's data.
+    /// Gets the sources of a (draft) set of queries ready and returns the Excel sheets.
+    pub fn prepare_sources(
+        &self,
+        queries: &[Query],
+    ) -> Result<std::collections::BTreeMap<String, String>, CoreError> {
+        crate::sources::prepare(
+            &self.db,
+            &self.project.dir_str(),
+            &self.project.cache_dir(),
+            queries,
+            &self.consent,
+        )
+    }
+
+    /// A query (from a draft set) up to `upto` steps, ready for the query editor.
+    pub fn prepared(
+        &self,
+        query: &Query,
+        queries: &[Query],
+        upto: usize,
+    ) -> Result<crate::queryedit::Prepared, CoreError> {
+        let mut all: Vec<Query> = queries.to_vec();
+        if !all.iter().any(|q| q.id == query.id) {
+            all.push(query.clone());
+        }
+        let sheets = self.prepare_sources(&all)?;
+        let dir = self.project.dir_str();
+        let sql = crate::sources::query_sql(&dir, &all, &sheets, query, Some(upto))?;
+        let type_change = crate::queryedit::type_change_before(query, upto, || {
+            crate::sources::query_sql(&dir, &all, &sheets, query, Some(upto - 1))
+        })?;
+        Ok(crate::queryedit::Prepared {
+            db: self.db.clone(),
+            sql,
+            type_change,
+        })
+    }
+
+    /// Each file source compared with when it was last loaded.
+    pub fn source_status(&self) -> Vec<crate::sources::SourceStatus> {
+        crate::sources::status(&self.project.dir_str(), &self.project.queries, &self.stamps)
+    }
+
+    /// Replaces the project's queries (Close & Apply in the query editor): loads the
+    /// queries that changed (and those reading them), then brings the model's tables
+    /// and columns in line with the loaded data. The data can't be un-loaded, so the
+    /// undo history is cleared.
+    pub fn apply_queries(&mut self, queries: Vec<Query>) -> Result<(), CoreError> {
+        let old = self.project.queries.clone();
+        let mut ids: Vec<String> = queries
+            .iter()
+            .filter(|q| old.iter().find(|o| o.id == q.id) != Some(*q))
+            .map(|q| q.id.clone())
+            .collect();
+        // Queries that read a changed query (merges, appends) change with it.
+        loop {
+            let more: Vec<String> = queries
+                .iter()
+                .filter(|q| !ids.contains(&q.id))
+                .filter(|q| {
+                    q.steps
+                        .iter()
+                        .any(|s| s.references().iter().any(|r| ids.iter().any(|i| i == r)))
+                })
+                .map(|q| q.id.clone())
+                .collect();
+            if more.is_empty() {
+                break;
+            }
+            ids.extend(more);
+        }
+        let mut names = std::collections::HashSet::new();
+        for q in &queries {
+            if !names.insert(q.name.to_lowercase()) {
+                return Err(CoreError::Invalid(format!(
+                    "two queries are called \"{}\"",
+                    q.name
+                )));
+            }
+        }
+        let removed: Vec<Query> = old
+            .iter()
+            .filter(|o| !queries.iter().any(|q| q.id == o.id))
+            .cloned()
+            .collect();
+        self.load_into_model(&queries, &ids, &removed, "Apply query changes")
+    }
+
+    /// Loads every query again from its sources (Refresh).
+    pub fn refresh(&mut self) -> Result<(), CoreError> {
+        let queries = self.project.queries.clone();
+        let ids = queries.iter().map(|q| q.id.clone()).collect::<Vec<_>>();
+        self.load_into_model(&queries, &ids, &[], "Refresh")
+    }
+
+    fn load_into_model(
+        &mut self,
+        queries: &[Query],
+        ids: &[String],
+        removed: &[Query],
+        label: &str,
+    ) -> Result<(), CoreError> {
+        let dir = self.project.dir_str();
+        let sheets = self.prepare_sources(queries)?;
+        // Load into staging tables first, so a failure leaves everything as it was.
+        let mut staged = Vec::new();
+        let result = (|| {
+            for (i, q) in queries
+                .iter()
+                .filter(|q| ids.contains(&q.id) && !q.no_load)
+                .enumerate()
+            {
+                let select = crate::sources::query_sql(&dir, queries, &sheets, q, None)?;
+                let tmp = format!("__staging_{i}");
+                self.db.materialise(&tmp, &select).map_err(|e| {
+                    CoreError::Invalid(format!(
+                        "could not load \"{}\" from {}: {e}",
+                        q.name,
+                        q.source.path()
+                    ))
+                })?;
+                staged.push((tmp, q.table.clone()));
+            }
+            Ok::<(), CoreError>(())
+        })();
+        if let Err(e) = result {
+            for (tmp, _) in &staged {
+                let _ = self
+                    .db
+                    .execute(&format!("DROP TABLE IF EXISTS {}", sql::ident(tmp)));
+            }
+            return Err(e);
+        }
+        for (tmp, table) in &staged {
+            self.db.execute(&format!(
+                "DROP TABLE IF EXISTS {t}; ALTER TABLE {} RENAME TO {t}",
+                sql::ident(tmp),
+                t = sql::ident(table)
+            ))?;
+        }
+        let gone: Vec<&Query> = removed
+            .iter()
+            .chain(queries.iter().filter(|q| q.no_load))
+            .collect();
+        for q in &gone {
+            if !queries.iter().any(|x| x.table == q.table && !x.no_load) {
+                self.db
+                    .execute(&format!("DROP TABLE IF EXISTS {}", sql::ident(&q.table)))?;
+            }
+        }
+        let changes = self.model_sync(queries, ids, &gone)?;
+        self.project.queries = queries.to_vec();
+        self.sheets = sheets;
+        for q in queries.iter().filter(|q| ids.contains(&q.id)) {
+            match crate::sources::stamp(&dir, &q.source) {
+                Some(st) => self.stamps.insert(q.id.clone(), st),
+                None => self.stamps.remove(&q.id),
+            };
+        }
+        for q in removed {
+            self.stamps.remove(&q.id);
+        }
+        crate::sources::write_stamps(&self.project.cache_dir(), &self.stamps);
+        // The loaded tables are new: their views and calculated columns start again.
+        self.indexes = SharedIndexes::default();
+        self.calc_state.clear();
+        self.schema = crate::visualq::Schema::read(&self.db, &self.project.model);
+        if !changes.is_empty() {
+            self.commit(label, changes)?;
+        } else {
+            self.refresh_calculated();
+        }
+        self.history.forget();
+        self.write_recovery();
+        Ok(())
+    }
+
+    /// Changes bringing the model's tables in line with the loaded queries: new tables,
+    /// added and removed columns, changed types, renamed queries; tables of removed
+    /// queries go.
+    fn model_sync(
+        &self,
+        queries: &[Query],
+        ids: &[String],
+        gone: &[&Query],
+    ) -> Result<Vec<Change>, CoreError> {
+        use charted_model::{Column, ColumnProperty, Summarize, Table};
+        let model = &self.project.model;
+        let old = &self.project.queries;
+        let mut changes = Vec::new();
+        for q in gone {
+            if queries.iter().any(|x| x.table == q.table && !x.no_load) {
+                continue;
+            }
+            if let Some(t) = model.tables.iter().find(|t| t.source == q.table) {
+                changes.push(Change::RemoveTable {
+                    table: t.id.clone(),
+                });
+            }
+        }
+        let new_column = |name: &str, data_type| Column {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: name.to_string(),
+            data_type,
+            kind: ColumnKind::Data {
+                source_column: name.to_string(),
+            },
+            description: None,
+            format_string: None,
+            summarize_by: if name.ends_with("Key")
+                || name.ends_with("ID")
+                || name.ends_with("Id")
+                || name == "Year"
+            {
+                Summarize::None
+            } else {
+                Summarize::Default
+            },
+            data_category: None,
+            sort_by: None,
+            display_folder: None,
+            hidden: false,
+            is_key: false,
+            extras: Default::default(),
+        };
+        let mut taken: Vec<String> = model.tables.iter().map(|t| t.name.to_lowercase()).collect();
+        for q in queries.iter().filter(|q| ids.contains(&q.id) && !q.no_load) {
+            let cols = self.db.describe(&sql::ident(&q.table))?;
+            match model.tables.iter().find(|t| t.source == q.table) {
+                None => {
+                    let mut name = q.name.clone();
+                    let mut k = 2;
+                    while taken.contains(&name.to_lowercase()) {
+                        name = format!("{} {k}", q.name);
+                        k += 1;
+                    }
+                    taken.push(name.to_lowercase());
+                    changes.push(Change::AddTable {
+                        table: Table {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            name,
+                            description: None,
+                            source: q.table.clone(),
+                            columns: cols
+                                .iter()
+                                .map(|c| {
+                                    new_column(&c.name, crate::types::from_duckdb(&c.duckdb_type))
+                                })
+                                .collect(),
+                            measures: vec![],
+                            hidden: false,
+                            is_date_table: false,
+                            extras: Default::default(),
+                        },
+                        index: None,
+                    });
+                }
+                Some(t) => {
+                    // A renamed query renames its table.
+                    if let Some(o) = old.iter().find(|o| o.id == q.id)
+                        && o.name != q.name
+                        && t.name == o.name
+                        && !model
+                            .tables
+                            .iter()
+                            .any(|x| x.id != t.id && x.name.eq_ignore_ascii_case(&q.name))
+                    {
+                        changes.push(Change::RenameTable {
+                            table: t.id.clone(),
+                            name: q.name.clone(),
+                        });
+                    }
+                    let physical: Vec<(String, charted_model::DataType)> = cols
+                        .iter()
+                        .map(|c| (c.name.clone(), crate::types::from_duckdb(&c.duckdb_type)))
+                        .collect();
+                    for c in &t.columns {
+                        let ColumnKind::Data { source_column } = &c.kind else {
+                            continue;
+                        };
+                        match physical.iter().find(|(n, _)| n == source_column) {
+                            None => {
+                                // What uses the column goes first.
+                                for r in model
+                                    .relationships
+                                    .iter()
+                                    .filter(|r| r.from_column == c.id || r.to_column == c.id)
+                                {
+                                    if !changes.iter().any(|x| matches!(x, Change::RemoveRelationship { relationship } if *relationship == r.id)) {
+                                        changes.push(Change::RemoveRelationship { relationship: r.id.clone() });
+                                    }
+                                }
+                                for other in t
+                                    .columns
+                                    .iter()
+                                    .filter(|o| o.sort_by.as_deref() == Some(c.id.as_str()))
+                                {
+                                    changes.push(Change::SetColumn {
+                                        table: t.id.clone(),
+                                        column: other.id.clone(),
+                                        property: ColumnProperty::SortBy(None),
+                                    });
+                                }
+                                changes.push(Change::RemoveColumn {
+                                    table: t.id.clone(),
+                                    column: c.id.clone(),
+                                });
+                            }
+                            Some((_, ty))
+                                if *ty != c.data_type
+                                    && c.data_type != charted_model::DataType::Unknown =>
+                            {
+                                changes.push(Change::SetColumn {
+                                    table: t.id.clone(),
+                                    column: c.id.clone(),
+                                    property: ColumnProperty::DataType(*ty),
+                                });
+                            }
+                            _ => {}
+                        }
+                    }
+                    for (name, ty) in &physical {
+                        let known = t.columns.iter().any(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == name));
+                        if !known && !name.starts_with("__calc_") {
+                            let mut col = new_column(name, *ty);
+                            // Keep column names unique next to calculated columns.
+                            if t.columns.iter().any(|c| c.name.eq_ignore_ascii_case(name)) {
+                                col.name = format!("{name} (data)");
+                            }
+                            changes.push(Change::AddColumn {
+                                table: t.id.clone(),
+                                column: col,
+                                index: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        Ok(changes)
+    }
+
     fn refresh_calculated(&mut self) {
         let model = self.project.model.clone();
         let rels = serde_json::to_string(&model.relationships).unwrap_or_default();

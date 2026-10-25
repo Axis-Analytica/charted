@@ -1,6 +1,7 @@
 //! The request/response API. The desktop shell, the command line and the development
 //! WebSocket server all call `App::handle`, so they can never drift apart.
 
+use charted_compiler::steps::Query;
 use charted_compiler::visual::{QueryFilter, VisualQuery};
 use charted_engine::Database;
 use charted_model::{Change, Id, Projection};
@@ -58,6 +59,25 @@ pub enum Request {
     ImportOssie {
         path: String,
     },
+    /// Replaces the project's queries with the query editor's (Close & Apply): loads
+    /// what changed and brings the model's tables in line. Clears undo.
+    ApplyQueries {
+        queries: Vec<Query>,
+    },
+    /// Loads every query again from its sources. Clears undo.
+    Refresh,
+    /// Records the user's agreement to download a DuckDB extension (and downloads it).
+    AllowExtension {
+        name: String,
+    },
+    /// Stores a PostgreSQL password in the desktop keyring.
+    SetPassword {
+        host: String,
+        port: u16,
+        database: String,
+        user: String,
+        password: String,
+    },
     /// Sets the report theme from a Power BI theme file (one undoable step).
     ImportTheme {
         path: String,
@@ -87,12 +107,16 @@ pub struct AppState {
 pub struct ApiError {
     pub code: String,
     pub message: String,
+    /// What the error is about, when the UI can offer a fix (see `CoreError::detail`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
 }
 
 impl From<CoreError> for ApiError {
     fn from(e: CoreError) -> Self {
         Self {
             code: e.code().into(),
+            detail: e.detail(),
             message: e.to_string(),
         }
     }
@@ -192,6 +216,46 @@ pub enum DataRequest {
     ReadImage {
         path: String,
     },
+    /// The query editor's preview of a query at a step (Arrow, at most `limit` rows).
+    /// `queries` is the editor's draft set (merges and appends read them).
+    QueryPreview {
+        query: Query,
+        #[serde(default)]
+        queries: Vec<Query>,
+        upto: usize,
+        limit: u32,
+    },
+    /// Columns, SQL and M of a query at a step (JSON `QueryInfo`).
+    QueryInfo {
+        query: Query,
+        #[serde(default)]
+        queries: Vec<Query>,
+        upto: usize,
+    },
+    /// Column quality and distribution at a step (JSON `QueryProfile`): the first 1,000
+    /// rows, or all of them with `full`.
+    QueryProfile {
+        query: Query,
+        #[serde(default)]
+        queries: Vec<Query>,
+        upto: usize,
+        #[serde(default)]
+        full: bool,
+    },
+    /// A lookup made while adding a step (JSON; see `Analysis`).
+    QueryAnalyze {
+        query: Query,
+        #[serde(default)]
+        queries: Vec<Query>,
+        upto: usize,
+        analysis: crate::queryedit::Analysis,
+    },
+    /// The sheets of an Excel workbook (JSON list of names).
+    ExcelSheets {
+        path: String,
+    },
+    /// Each file source compared with when it was loaded (JSON `SourceStatus[]`).
+    SourceStatus,
     /// Key counts and a suggested cardinality for a prospective relationship (JSON
     /// `RelationshipCheck`).
     CheckRelationship {
@@ -208,13 +272,22 @@ fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> 
 
 /// A data request resolved against the open project, runnable without the `App`.
 pub enum DataJob {
-    View(Box<View>, DataRequest),
+    View(Box<View>, Box<DataRequest>),
     Arrow(Database, String),
+    /// Query editor work on a prepared query.
+    Query(Box<QueryJob>),
     /// A query that a later one with the same tag cancels.
     Tagged(Database, String, Running, String),
     FieldValues(Database, String),
     Relationship(Database, String),
     Ready(Vec<u8>),
+}
+
+pub enum QueryJob {
+    Preview(crate::queryedit::Prepared, u32),
+    Info(crate::queryedit::Prepared, Box<Query>, Vec<Query>),
+    Profile(crate::queryedit::Prepared, bool),
+    Analyze(crate::queryedit::Prepared, crate::queryedit::Analysis),
 }
 
 /// Data jobs running now, in every `App` (see `shutdown`).
@@ -263,6 +336,7 @@ impl DataJob {
             return Err(ApiError {
                 code: "cancelled".into(),
                 message: "charted is closing".into(),
+                detail: None,
             });
         }
         let (v, request) = match self {
@@ -288,6 +362,7 @@ impl DataJob {
                         ApiError {
                             code: "cancelled".into(),
                             message: "a newer request replaced this one".into(),
+                            detail: None,
                         }
                     } else {
                         CoreError::from(e).into()
@@ -297,9 +372,18 @@ impl DataJob {
             DataJob::FieldValues(db, sql) => return json(visualq::run_field_values(&db, &sql)),
             DataJob::Relationship(db, sql) => return json(crate::relcheck::run(&db, &sql)),
             DataJob::Ready(bytes) => return Ok(bytes),
+            DataJob::Query(job) => {
+                use crate::queryedit as qe;
+                return match *job {
+                    QueryJob::Preview(p, limit) => Ok(qe::preview(&p, limit)?),
+                    QueryJob::Info(p, q, all) => json(qe::info(&p, &q, &all)),
+                    QueryJob::Profile(p, full) => json(qe::profile(&p, full)),
+                    QueryJob::Analyze(p, a) => json(qe::analyze(&p, &a)),
+                };
+            }
         };
         let v = &*v;
-        match request {
+        match *request {
             DataRequest::Rows {
                 columns,
                 offset,
@@ -372,7 +456,7 @@ impl App {
     pub fn open(&mut self, path: &Path) -> Result<(), CoreError> {
         // Release the current project's lock before taking the next one.
         self.session = None;
-        let session = Session::open(path)?;
+        let session = Session::open_with(path, crate::sources::Consent::read(&self.state_dir))?;
         recent::remember(
             &self.state_dir,
             &session.project.manifest.name,
@@ -423,6 +507,28 @@ impl App {
                 crate::interop::export_ossie(&s.project.model, Path::new(&path))?;
             }
             Request::ImportOssie { path } => self.session_mut()?.import_ossie(Path::new(&path))?,
+            Request::ApplyQueries { queries } => self.session_mut()?.apply_queries(queries)?,
+            Request::Refresh => self.session_mut()?.refresh()?,
+            Request::AllowExtension { name } => {
+                let consent = crate::sources::Consent::allow(&self.state_dir, &name)?;
+                if let Ok(s) = self.session_mut() {
+                    s.consent = consent;
+                    s.database()
+                        .execute(&format!("INSTALL {}", charted_engine::sql::ident(&name)))
+                        .map_err(|e| {
+                            CoreError::Invalid(format!(
+                                "couldn't download DuckDB's {name} extension: {e}"
+                            ))
+                        })?;
+                }
+            }
+            Request::SetPassword {
+                host,
+                port,
+                database,
+                user,
+                password,
+            } => crate::sources::set_password(&host, port, &database, &user, &password)?,
             Request::ImportTheme { path } => {
                 let theme = crate::reporttheme::read(Path::new(&path))?;
                 self.session_mut()?.commit(
@@ -529,6 +635,57 @@ impl App {
                 return Ok(DataJob::Relationship(s.database().clone(), sql));
             }
             DataRequest::ReadImage { path } => return Ok(DataJob::Ready(read_image(path)?)),
+            DataRequest::QueryPreview {
+                query,
+                queries,
+                upto,
+                limit,
+            } => {
+                let p = s.prepared(query, queries, *upto)?;
+                return Ok(DataJob::Query(Box::new(QueryJob::Preview(p, *limit))));
+            }
+            DataRequest::QueryInfo {
+                query,
+                queries,
+                upto,
+            } => {
+                let p = s.prepared(query, queries, *upto)?;
+                return Ok(DataJob::Query(Box::new(QueryJob::Info(
+                    p,
+                    Box::new(query.clone()),
+                    queries.clone(),
+                ))));
+            }
+            DataRequest::QueryProfile {
+                query,
+                queries,
+                upto,
+                full,
+            } => {
+                let p = s.prepared(query, queries, *upto)?;
+                return Ok(DataJob::Query(Box::new(QueryJob::Profile(p, *full))));
+            }
+            DataRequest::QueryAnalyze {
+                query,
+                queries,
+                upto,
+                analysis,
+            } => {
+                let p = s.prepared(query, queries, *upto)?;
+                return Ok(DataJob::Query(Box::new(QueryJob::Analyze(
+                    p,
+                    analysis.clone(),
+                ))));
+            }
+            DataRequest::ExcelSheets { path } => {
+                let p = charted_compiler::steps::resolve_path(&s.project.dir_str(), path);
+                return Ok(DataJob::Ready(json(crate::sources::excel_sheets(
+                    Path::new(&p),
+                ))?));
+            }
+            DataRequest::SourceStatus => {
+                return Ok(DataJob::Ready(json(Ok::<_, CoreError>(s.source_status()))?));
+            }
             DataRequest::OssieDiff { path } => {
                 let d = crate::interop::import_diff(model, Path::new(path))
                     .map(|(_, d)| d)
@@ -543,7 +700,7 @@ impl App {
                 return Ok(DataJob::Ready(json(Ok::<_, CoreError>(check))?));
             }
         };
-        Ok(DataJob::View(Box::new(view), request))
+        Ok(DataJob::View(Box::new(view), Box::new(request)))
     }
 
     pub fn data(&self, request: DataRequest) -> Result<Vec<u8>, ApiError> {

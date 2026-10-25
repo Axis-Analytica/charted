@@ -10,4 +10,12 @@ name: string,
 /**
  * The DuckDB table the query loads into (the model table's `source`).
  */
-table: string, source: Source, steps: Array<Step>, };
+table: string, source: Source, steps: Array<Step>, 
+/**
+ * Display names given to steps, by index (Power Query's renamed steps).
+ */
+stepNames?: { [key in number]: string }, 
+/**
+ * A query that only feeds others (merges, appends) and loads no table.
+ */
+noLoad?: boolean, };

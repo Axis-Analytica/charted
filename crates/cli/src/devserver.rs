@@ -105,6 +105,7 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                         Err(e) => Err(ApiError {
                             code: "invalid".into(),
                             message: e.to_string(),
+                            detail: None,
                         }),
                     },
                     "data" => {
@@ -112,6 +113,7 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                             .map_err(|e| ApiError {
                                 code: "invalid".into(),
                                 message: e.to_string(),
+                                detail: None,
                             })
                             .and_then(|r| lock().data_job(r));
                         match job {
@@ -141,6 +143,7 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                     other => Err(ApiError {
                         code: "invalid".into(),
                         message: format!("unknown method {other}"),
+                        detail: None,
                     }),
                 };
                 let out = match reply {

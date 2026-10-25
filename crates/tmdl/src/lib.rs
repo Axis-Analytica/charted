@@ -12,7 +12,7 @@
 //! <Name>.Report/report.json
 //! ```
 
-use charted_compiler::steps::{Query, Source, Step};
+use charted_compiler::steps::{Query, Source};
 use charted_model::*;
 use serde_json::json;
 use std::fmt::Write;
@@ -79,120 +79,23 @@ fn prop(out: &mut String, indent: usize, key: &str, value: impl std::fmt::Displa
     let _ = writeln!(out, "{}{key}: {value}", "\t".repeat(indent));
 }
 
-/// An M string literal.
-fn m_string(s: &str) -> String {
-    format!("\"{}\"", s.replace('"', "\"\""))
-}
-
-/// An M identifier: `#"Changed Type"` when it needs quoting.
-fn m_ident(s: &str) -> String {
-    if s.chars().all(|c| c.is_alphanumeric() || c == '_') {
-        s.to_string()
-    } else {
-        format!("#{}", m_string(s))
-    }
-}
-
-fn m_type(t: DataType) -> &'static str {
-    match t {
-        DataType::String => "type text",
-        DataType::Int64 => "Int64.Type",
-        DataType::Double => "type number",
-        DataType::Decimal => "Currency.Type",
-        DataType::Boolean => "type logical",
-        DataType::Date => "type date",
-        DataType::Time => "type time",
-        DataType::DateTime => "type datetime",
-        DataType::DateTimeTz => "type datetimezone",
-        DataType::Binary | DataType::Unknown => "type any",
-    }
-}
+use charted_compiler::steps::{m_document, m_steps, m_string, m_type};
 
 /// The M query that loads a table, reading files relative to the `SourceFolder`
-/// parameter.
-pub fn m_query(q: &Query, table: Option<&Table>) -> String {
-    let mut steps: Vec<(String, String)> = Vec::new();
-    let file = |p: &str| {
-        if p.starts_with('/') {
-            format!("File.Contents({})", m_string(p))
-        } else {
-            format!("File.Contents(SourceFolder & {})", m_string(p))
-        }
-    };
-    match &q.source {
-        Source::Csv {
-            path,
-            delimiter,
-            header,
-            ..
-        } => {
-            let delim = delimiter.clone().unwrap_or_else(|| ",".into());
-            steps.push((
-                "Source".into(),
-                format!(
-                    "Csv.Document({}, [Delimiter={}, Encoding=65001, QuoteStyle=QuoteStyle.Csv])",
-                    file(path),
-                    m_string(&delim)
-                ),
-            ));
-            if *header {
-                steps.push((
-                    "Promoted Headers".into(),
-                    "Table.PromoteHeaders(Source, [PromoteAllScalars=true])".into(),
-                ));
-            }
-        }
-        Source::Parquet { path } => {
-            steps.push(("Source".into(), format!("Parquet.Document({})", file(path))))
-        }
-        Source::Json { path } => {
-            steps.push(("Source".into(), format!("Json.Document({})", file(path))));
-            steps.push(("To Table".into(), "Table.FromRecords(Source)".into()));
-        }
-    }
-    let prev = |steps: &Vec<(String, String)>| m_ident(&steps.last().unwrap().0);
-    for s in &q.steps {
-        let list = |xs: &[String]| {
-            format!(
-                "{{{}}}",
-                xs.iter()
-                    .map(|x| m_string(x))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            )
-        };
-        let (n, e) = match s {
-            Step::SelectColumns { columns } => (
-                "Chosen Columns".to_string(),
-                format!("Table.SelectColumns({}, {})", prev(&steps), list(columns)),
-            ),
-            Step::RemoveColumns { columns } => (
-                "Removed Columns".to_string(),
-                format!("Table.RemoveColumns({}, {})", prev(&steps), list(columns)),
-            ),
-            Step::RenameColumns { renames } => (
-                "Renamed Columns".to_string(),
-                format!(
-                    "Table.RenameColumns({}, {{{}}})",
-                    prev(&steps),
-                    renames
-                        .iter()
-                        .map(|(a, b)| format!("{{{}, {}}}", m_string(a), m_string(b)))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                ),
-            ),
-        };
-        let mut name = n.clone();
-        let mut k = 2;
-        while steps.iter().any(|(x, _)| *x == name) {
-            name = format!("{n} {k}");
-            k += 1;
-        }
-        steps.push((name, e));
-    }
-    // Text sources need their column types set; typed sources (Parquet) carry them.
-    if let (Some(t), Source::Csv { .. } | Source::Json { .. }) = (table, &q.source) {
+/// parameter. `queries` are the project's queries (merges and appends name them).
+pub fn m_query(q: &Query, table: Option<&Table>, queries: &[Query]) -> String {
+    let mut steps = m_steps(q, queries);
+    // Text sources need their column types set, unless the query already does it last;
+    // typed sources (Parquet, databases) carry them.
+    let typed_last = matches!(
+        q.steps.last(),
+        Some(charted_compiler::steps::Step::ChangeTypes { .. })
+    );
+    let text = matches!(
+        q.source,
+        Source::Csv { .. } | Source::Json { .. } | Source::Excel { .. } | Source::Folder { .. }
+    );
+    if let (Some(t), true, false) = (table, text, typed_last) {
         let types: Vec<String> = t
             .columns
             .iter()
@@ -206,26 +109,26 @@ pub fn m_query(q: &Query, table: Option<&Table>) -> String {
             })
             .collect();
         if !types.is_empty() {
+            let prev = charted_compiler::steps::m_ident(&steps.last().unwrap().0);
+            let mut name = "Changed Type".to_string();
+            let mut k = 2;
+            while steps.iter().any(|(x, _)| *x == name) {
+                name = format!("Changed Type {k}");
+                k += 1;
+            }
             steps.push((
-                "Changed Type".into(),
+                name,
                 format!(
-                    "Table.TransformColumnTypes({}, {{{}}})",
-                    prev(&steps),
+                    "Table.TransformColumnTypes({prev}, {{{}}})",
                     types.join(", ")
                 ),
             ));
         }
     }
-    let mut out = String::from("let\n");
-    for (i, (n, e)) in steps.iter().enumerate() {
-        let comma = if i + 1 < steps.len() { "," } else { "" };
-        let _ = writeln!(out, "    {} = {e}{comma}", m_ident(n));
-    }
-    let _ = write!(out, "in\n    {}", m_ident(&steps.last().unwrap().0));
-    out
+    m_document(&steps)
 }
 
-fn table_tmdl(t: &Table, query: Option<&Query>) -> String {
+fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
     let mut out = String::new();
     if let Some(d) = &t.description {
         for l in d.lines() {
@@ -312,7 +215,7 @@ fn table_tmdl(t: &Table, query: Option<&Query>) -> String {
         let _ = writeln!(out, "\tpartition {} = m", name(&t.name));
         prop(&mut out, 2, "mode", "import");
         let _ = writeln!(out, "\t\tsource =");
-        for l in m_query(q, Some(t)).lines() {
+        for l in m_query(q, Some(t), queries).lines() {
             let _ = writeln!(out, "\t\t\t\t{l}");
         }
     }
@@ -407,14 +310,20 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     } else {
         format!("{source_folder}/")
     };
-    files.push((
-        format!("{def}/expressions.tmdl"),
-        format!(
-            "/// The folder the data files are read from. Change it where the files live.\nexpression SourceFolder = {} meta [IsParameterQuery=true, Type=\"Text\", IsParameterQueryRequired=true]\n\tlineageTag: {}\n",
-            m_string(&folder),
-            "6f1d3c2a-8b8e-4f3c-9a51-50757263654f"
-        ),
-    ));
+    let mut expressions = format!(
+        "/// The folder the data files are read from. Change it where the files live.\nexpression SourceFolder = {} meta [IsParameterQuery=true, Type=\"Text\", IsParameterQueryRequired=true]\n\tlineageTag: {}\n",
+        m_string(&folder),
+        "6f1d3c2a-8b8e-4f3c-9a51-50757263654f"
+    );
+    // Queries that only feed merges and appends are shared expressions.
+    for q in queries.iter().filter(|q| q.no_load) {
+        let _ = writeln!(expressions, "\nexpression {} =", name(&q.name));
+        for l in m_query(q, None, queries).lines() {
+            let _ = writeln!(expressions, "\t\t{l}");
+        }
+        let _ = writeln!(expressions, "\tannotation PBI_ResultType = Table");
+    }
+    files.push((format!("{def}/expressions.tmdl"), expressions));
     if !model.relationships.is_empty() {
         files.push((
             format!("{def}/relationships.tmdl"),
@@ -425,7 +334,7 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
         let q = queries.iter().find(|q| q.table == t.source);
         files.push((
             format!("{def}/tables/{}.tmdl", file_name(&t.name)),
-            table_tmdl(t, q),
+            table_tmdl(t, q, queries),
         ));
     }
 

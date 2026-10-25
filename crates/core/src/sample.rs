@@ -50,6 +50,8 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
                 table: f.name.to_lowercase(),
                 source,
                 steps: vec![],
+                step_names: Default::default(),
+                no_load: false,
             }
         })
         .collect();

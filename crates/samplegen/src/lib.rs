@@ -125,7 +125,143 @@ pub fn generate(dir: &Path, scale: Scale) -> Result<Vec<SampleTable>, SampleErro
             rows,
         });
     }
+    write_stores_raw(&conn, dir)?;
+    write_targets_workbook(&conn, dir)?;
     Ok(out)
+}
+
+/// The messy inputs for practising in the query editor (not loaded by the sample):
+/// a store list exported from a "property register", with title rows above the
+/// header, padded and lower-case names, "City, Country" in one column, numbers with
+/// thousands separators, blank rows, a duplicated store and inconsistent formats.
+pub const STORES_RAW: &str = "stores_raw.csv";
+/// Monthly targets as a workbook: one sheet per year plus a notes sheet.
+pub const TARGETS_WORKBOOK: &str = "targets.xlsx";
+
+fn write_stores_raw(conn: &Connection, dir: &Path) -> Result<(), SampleError> {
+    let mut stmt = conn.prepare(
+        "SELECT StoreCode, Store, City, Country, SquareFeet, StoreKey FROM store WHERE Channel = 'Store' ORDER BY StoreKey",
+    )?;
+    let rows: Vec<(String, String, String, String, i32, i32)> = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get(0)?,
+                r.get(1)?,
+                r.get(2)?,
+                r.get(3)?,
+                r.get(4)?,
+                r.get(5)?,
+            ))
+        })?
+        .collect::<Result<_, _>>()?;
+    let managers = [
+        "Ana Ruiz",
+        "Ben Okafor",
+        "Chloe Martin",
+        "Dev Patel",
+        "Erin Walsh",
+        "Felix Braun",
+        "Grace Lee",
+        "Hugo Silva",
+        "Ines Novak",
+        "Jonah Reid",
+    ];
+    let mut text = String::from(
+        "Harbor & Pine property register,,,,,\nExported 2025-12-31 by Facilities; do not edit,,,,,\nstore code,store name,location,manager,format,square feet\n",
+    );
+    for (i, (code, name, city, country, sqft, key)) in rows.iter().enumerate() {
+        let manager = if key % 7 == 0 {
+            ""
+        } else {
+            managers[*key as usize % managers.len()]
+        };
+        let format = match (sqft, key % 3) {
+            (s, 0) if *s >= 24000 => "FLAGSHIP",
+            (s, _) if *s >= 24000 => "Flagship",
+            (s, 1) if *s < 12000 => "outlet",
+            (s, _) if *s < 12000 => "Outlet",
+            (_, 2) => "standard ",
+            _ => "Standard",
+        };
+        let shown = if key % 2 == 0 {
+            name.to_lowercase()
+        } else {
+            format!("  {name} ")
+        };
+        let line = format!(
+            "{code},{shown},\"{city}, {country}\",{manager},{format},\"{}\"\n",
+            thousands(*sqft)
+        );
+        text.push_str(&line);
+        if i == 5 {
+            // A store exported twice, and an empty line.
+            text.push_str(&line);
+            text.push_str(",,,,,\n");
+        }
+    }
+    text.push_str(",,,,,\n");
+    let path = dir.join(STORES_RAW);
+    std::fs::write(&path, text).map_err(|source| SampleError::Io { path, source })
+}
+
+fn thousands(n: i32) -> String {
+    let s = n.to_string();
+    let mut out = String::new();
+    for (i, c) in s.chars().enumerate() {
+        if i > 0 && (s.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
+}
+
+fn write_targets_workbook(conn: &Connection, dir: &Path) -> Result<(), SampleError> {
+    use rust_xlsxwriter::{DocProperties, ExcelDateTime, Format, Workbook};
+    let mut wb = Workbook::new();
+    // A fixed creation date keeps the file identical between runs.
+    if let Ok(created) = ExcelDateTime::from_ymd(2025, 12, 31) {
+        wb.set_properties(&DocProperties::new().set_creation_datetime(&created));
+    }
+    let date = Format::new().set_num_format("yyyy-mm-dd");
+    let bold = Format::new().set_bold();
+    for year in [2024, 2025] {
+        let sheet = wb.add_worksheet();
+        let _ = sheet.set_name(format!("Targets {year}"));
+        let _ = sheet.write_string_with_format(0, 0, "Store Code", &bold);
+        let _ = sheet.write_string_with_format(0, 1, "Month", &bold);
+        let _ = sheet.write_string_with_format(0, 2, "Target", &bold);
+        let mut stmt = conn.prepare(&format!(
+            "SELECT s.StoreCode, t.DateKey, CAST(t.TargetAmount AS DOUBLE) FROM targets t JOIN store s USING (StoreKey) WHERE t.DateKey // 10000 = {year} ORDER BY s.StoreCode, t.DateKey"
+        ))?;
+        let rows: Vec<(String, i32, f64)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?
+            .collect::<Result<_, _>>()?;
+        for (i, (code, key, amount)) in rows.iter().enumerate() {
+            let r = i as u32 + 1;
+            let _ = sheet.write_string(r, 0, code);
+            if let Ok(d) = ExcelDateTime::from_ymd(
+                (key / 10000) as u16,
+                (key / 100 % 100) as u8,
+                (key % 100) as u8,
+            ) {
+                let _ = sheet.write_datetime_with_format(r, 1, &d, &date);
+            }
+            let _ = sheet.write_number(r, 2, *amount);
+        }
+    }
+    let notes = wb.add_worksheet();
+    let _ = notes.set_name("Notes");
+    let _ = notes.write_string(
+        0,
+        0,
+        "Targets are 5% above the previous year's sales, rounded to the nearest 1,000.",
+    );
+    let path = dir.join(TARGETS_WORKBOOK);
+    wb.save(&path).map_err(|e| SampleError::Io {
+        path,
+        source: std::io::Error::other(e.to_string()),
+    })
 }
 
 fn create_date(conn: &Connection) -> duckdb::Result<()> {

@@ -12,12 +12,14 @@ pub mod env;
 pub mod ids;
 pub mod interop;
 pub mod project;
+pub mod queryedit;
 pub mod recent;
 pub mod relcheck;
 pub mod reportfile;
 pub mod reporttheme;
 pub mod sample;
 pub mod session;
+pub mod sources;
 mod types;
 pub mod visualq;
 

@@ -95,6 +95,8 @@ fn writes_a_power_bi_project() {
             steps: vec![Step::RenameColumns {
                 renames: vec![("Amount".into(), "Sales Amount".into())],
             }],
+            step_names: Default::default(),
+            no_load: false,
         },
         Query {
             id: "q2".into(),
@@ -107,6 +109,8 @@ fn writes_a_power_bi_project() {
                 encoding: None,
             },
             steps: vec![],
+            step_names: Default::default(),
+            no_load: false,
         },
     ];
     let files = charted_tmdl::pbip("Shop", &model, &queries, "/home/me/Shop");
