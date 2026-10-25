@@ -1,13 +1,10 @@
-# Handoff: milestone 1 (Data view) built; checkpoint review, then milestone 2
+# Handoff: milestone 2 (first report) built; checkpoint review, then milestone 3
 
-Read this first when picking up development. Last updated 2026-10-25, end of M1 build.
-**Status:** M1 is implemented and `bin/test` is green. The user has not yet reviewed
-the M1 checkpoint (`docs/demos/m1.md`, screenshots in `~/Work/charted-checkpoints/m1/`).
-Address their feedback before starting M2.
-The approved plan lives in `~/.claude/plans/then-get-to-planning-imperative-wave.md`
-(seven milestones, each ending in a visual checkpoint the user reviews before the next
-one starts). Background research: `~/Work/pbi-re/notes/00-blueprint.md` and `01–04`
-(Power BI Desktop architecture; build from these notes, never from decompiled code).
+Read this first when picking up development. Last updated 2026-10-25, end of M2 build.
+**Status:** M0 and M1 are approved. M2 is implemented, committed locally (not pushed)
+and `bin/test` is green. The user has not yet reviewed the M2 checkpoint
+(`docs/demos/m2.md`, screenshots in `~/Work/charted-checkpoints/m2/`). Address their
+feedback before starting M3.
 
 ## Decisions already made (do not re-litigate)
 
@@ -80,6 +77,41 @@ UI first rows paint in ~100 ms unsorted, ~170 ms after a one-key sort, 60 fps sc
 (`App::data_job` → `DataJob::run`), so pages load in parallel. Non-`Rows` data requests
 reply with JSON bytes (`dataJson` in the UI).
 
+M2 added:
+
+```
+crates/model/src/report.rs    Report > Page > Visual (roles of Projections by model id,
+                              filters, sort, format objects), ReportFilter/FilterKind;
+                              report Changes (Add/Remove/Set/MovePage, Add/Remove/Update
+                              Visual, SetReportFilters). The report lives in Model.report
+                              (one undo history); the Ossie mapping ignores it.
+crates/dax                    lexer, error-tolerant Pratt parser, binder (names → ids,
+                              supported-function checks with plain-English diagnostics)
+crates/compiler/src/graph.rs  active many-to-one reachability, ambiguity detection
+crates/compiler/src/visual.rs VisualQuery → SQL (see the module doc: one CTE per
+                              aggregated table, null-safe key joins, DAX blank rules,
+                              Top N via subquery, sort-by columns as hidden keys)
+crates/compiler/src/ossie.rs  OSSIE_SQL_2026 generation (written on save)
+crates/core/src/visualq.rs    Schema (physical types), report visual → query (roles →
+                              groups/values, report+page+visual filters, default sort and
+                              limits by type), field values, DAX checks, titles
+crates/core/src/reportfile.rs report/report.json, pages/<id>/page.json, visuals/<id>.json
+crates/core/examples/visualbench.rs   visual query timings on a project
+crates/cli                    `charted query --visual <title|id>` (+ tests/query_visual.rs)
+ui/src/report/                ReportView (toolbar, page tabs, shortcuts), Canvas
+                              (Moveable + Selecto), VisualContainer, registry.ts
+                              (capabilities: roles, format objects, sizes), data.ts
+                              (per-visual query cache), visuals/ (Card, Cartesian via
+                              ECharts, TableVisual), FieldsPane, VisualizationsPane (wells,
+                              generated format pane, page settings), FiltersPane,
+                              FormulaBar (+ quick measures), report.css
+ui/src/state/report.ts        view state (page, selection, panes, formula bar, pointer)
+                              and helpers that build Changes; `edit()` in state/app.ts
+```
+
+Measured (aarch64 VM, release): visual queries p95 17–43 ms on the 10M sample (a
+distinct count by Product: 386 ms), at most 43 ms on 1M. Budgets: 800 / 200 ms.
+
 Request flow: UI → `transport.rpc(Request)` → `App::handle` → returns full `AppState`
 (Rust is the source of truth; the UI replaces its mirror). Data (Arrow IPC bytes) goes
 through `transport.data(DataRequest)` separately. TypeScript types in
@@ -147,8 +179,25 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   project makes `charted open` of the same project fail with "already open". Kill it
   with `fuser -k 7420/tcp` before WebKit screenshots.
 - Commit labels (`commit("Change format", …)`) are not in the i18n catalogs: the string
-  checker only extracts `t("…")` and `label: "…"`, and unknown catalog keys fail the
-  check. Translating undo labels needs a small extractor change.
+  checker only extracts `t("…")`, `msg("…")` and `label: "…"`, and unknown catalog keys
+  fail the check. Wrap undo labels in `msg()` to translate them.
+- Strings shown through a variable (`t(role.label)`) must be marked where defined with
+  `msg("…")` (ui/src/i18n) or `label: "…"`, or the extractor misses them.
+- **Edits that depend on current state go through `useApp().edit(label, model => changes)`**,
+  not `commit`. It queues behind earlier edits and builds from the latest model; with
+  plain `commit`, ticking two fields quickly lost the first one.
+- **Moveable must live inside the scaled `.page`** with `zoom={1 / scale}`, and needs
+  `updateRect()` after positions change through the model. Outside the scaled element
+  its offsets were wildly wrong; its `bounds` option misbehaves under the transform, so
+  positions are clamped to the page when committed instead.
+- Charts under the zoomed canvas render with `devicePixelRatio × scale` (remounted on
+  zoom changes) to stay sharp.
+- HTML5 drag and drop in Playwright: `locator.dragTo` works; drops land asynchronously
+  (the commit round trip), so assert with auto-waiting expectations. Controlled
+  checkboxes that commit to the core change state after a round trip: use `click()`,
+  not `check()`.
+- The command line cannot open a project the app has open (DuckDB's single-writer
+  lock and charted's lock file). Tests that call the CLI close the `App` first.
 
 ## Deferred from M0 (do these when relevant)
 
@@ -170,17 +219,32 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - Server-side query cancellation: stale page requests are dropped before sending, but a
   sent query runs to completion (DuckDB `interrupt_handle` exists if needed).
 
-## Milestone 2: First report (after the M1 review)
+## Deferred from M2
 
-From the plan: canvas with pages, snap/multi-select/align, inserts under the pointer;
-Fields → role wells (drag and keyboard); capability registry; generated format pane;
-visuals card, clustered bar/column, line, table; **the DAX core parser starts here**
-(aggregates, arithmetic, DIVIDE, IF; stored as DAX + generated OSSIE_SQL; quick and
-implicit measures); filters pane (visual/page/report; basic/advanced/Top N);
-PBIR-lite report files; `charted query --visual … --json`. Starts with the deferred
-visual query IR → SQL with many-to-one star joins in `crates/compiler`.
+- Visual-level data reduction beyond row limits (Power BI's top 60 series is applied
+  client-side for the legend role; categories are capped by `LIMIT`).
+- Keyboard reordering of chips in field wells (drag works; Enter/Space add fields).
+- Copy/paste of visuals between pages; page reordering by drag (Alt+←/→ on a tab works).
+- Display names for projections (`displayName` exists; no UI to rename yet).
+- Measure properties beyond name/expression/format (description, folder, home table).
+- Value filters are visual-level only; report/page filters take columns.
+- Cross-filtering, highlighting, slicers, matrix and the other M4 visuals.
 
-Checkpoint: build the Overview page (card, column, line, table); create `Margin %`
-with `DIVIDE`; add a page filter Year=2025; align; save, reopen, identical.
-Write `docs/demos/m2.md` and `e2e/m2.spec.ts`, keep `bin/test` green, then
-`CHARTED_CHECKPOINT_NO_OPEN=1 bin/checkpoint m2`.
+## Milestone 3: Real modeling (after the M2 review)
+
+From the plan: Model view (elkjs in a worker; drag to create relationships;
+cardinality/cross-filter/active dialog; mark as date table); Monaco DAX editor powered
+by WASM (crates/wasm wrapping crates/dax: completion, signatures, hover, diagnostics,
+formatter); compiler: filter context and semi-join propagation, both directions where
+set, ambiguity errors; CALCULATE/FILTER/ALL*/REMOVEFILTERS/KEEPFILTERS/VALUES/
+SELECTEDVALUE/HASONEVALUE/ISINSCOPE/USERELATIONSHIP/RELATED, X iterators with context
+transition, IF/SWITCH/VAR; one CTE per context-changing measure; explicit diagnostics
+for unsupported functions linking a generated `docs/dax-support.md`; calculated
+columns; Ossie export/import round trip; TMDL/PBIP export (CLI + File → Export).
+The plan asks for ~150 DAX golden cases written before the compiler work and a
+reference interpreter for differential tests.
+
+Checkpoint: the star in the model view (ShipDate relationship dashed as inactive);
+create the Targets relationship, set Both; autocomplete + error squiggle;
+`USERELATIONSHIP` and `ALL` share measures in a table; a RELATED calculated column;
+export PBIP and view the `.tmdl`; `export ossie → import` shows 0 differences.

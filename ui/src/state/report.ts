@@ -10,6 +10,7 @@ import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
+import { msg } from "../i18n";
 import { type RoleDef, visualDef } from "../report/registry";
 
 export type View = "report" | "data";
@@ -66,12 +67,12 @@ export function fieldName(model: Model, f: FieldRef): string {
 }
 
 const AGG_LABEL: Record<Aggregation, string> = {
-  sum: "Sum",
-  average: "Average",
-  min: "Min",
-  max: "Max",
-  count: "Count",
-  distinctCount: "Count (distinct)",
+  sum: msg("Sum"),
+  average: msg("Average"),
+  min: msg("Min"),
+  max: msg("Max"),
+  count: msg("Count"),
+  distinctCount: msg("Count (distinct)"),
 };
 
 export function aggregationLabel(a: Aggregation): string {
@@ -88,15 +89,15 @@ export function projectionName(model: Model, p: Projection, t: (s: string, ...a:
 export const isGrouping = (p: Projection) => p.field.kind === "column" && !p.aggregation;
 
 /** A visual's title: its own, or "Values by Groups" (matches the core's). */
-export function visualTitle(model: Model, v: Visual, t?: (s: string, ...a: (string | number)[]) => string): string {
+export function visualTitle(model: Model, v: Visual, translate?: (s: string, ...a: (string | number)[]) => string): string {
   const own = (v.objects?.title as Record<string, unknown> | undefined)?.text;
   if (typeof own === "string" && own.trim()) return own;
-  const tr = t ?? ((s: string, ...a: (string | number)[]) => s.replace(/%(\d)/g, (_, i) => String(a[Number(i) - 1])));
+  const t = translate ?? ((s: string, ...a: (string | number)[]) => s.replace(/%(\d)/g, (_, i) => String(a[Number(i) - 1])));
   const groups: string[] = [];
   const values: string[] = [];
-  for (const ps of Object.values(v.roles)) for (const p of ps ?? []) (isGrouping(p) ? groups : values).push(projectionName(model, p, tr));
-  if (values.length && groups.length) return tr("%1 by %2", values.join(tr(" and ")), groups.join(tr(" and ")));
-  return (values.length ? values : groups).join(tr(" and "));
+  for (const ps of Object.values(v.roles)) for (const p of ps ?? []) (isGrouping(p) ? groups : values).push(projectionName(model, p, t));
+  if (values.length && groups.length) return t("%1 by %2", values.join(t(" and ")), groups.join(t(" and ")));
+  return (values.length ? values : groups).join(t(" and "));
 }
 
 /** The default summarisation of a column dropped as a value. */

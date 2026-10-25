@@ -73,6 +73,10 @@ export function tn(text: string, n: number, one?: string, ...args: (string | num
   return fill(english, args, n, locale);
 }
 
+/** Marks a string for translation where it is defined; it is translated with `t` where
+ * it is shown. (The string extractor finds `msg("…")` as well as `t("…")`.) */
+export const msg = (text: string) => text;
+
 /** Re-renders the calling component when the language changes. */
 export function useT() {
   useLanguage((s) => s.code);

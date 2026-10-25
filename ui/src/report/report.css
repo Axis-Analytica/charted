@@ -14,7 +14,7 @@
 .report-toolbar-label { min-width: 132px; color: var(--fg-faint); font-size: var(--text-sm); }
 
 /* Canvas */
-.canvas-scroller { position: relative; overflow: auto; display: grid; place-items: center; padding: 24px; background: var(--bg-sunken); outline: none; }
+.canvas-scroller { position: relative; overflow: auto; display: grid; place-items: center; padding: 16px; background: var(--bg-sunken); outline: none; }
 .page-frame { position: relative; flex: none; }
 .page { position: absolute; top: 0; left: 0; transform-origin: 0 0; background: var(--bg); box-shadow: 0 0 0 1px var(--border), var(--shadow); }
 .page-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--fg-faint); pointer-events: none; }
@@ -66,7 +66,7 @@
 .table-visual .is-num { text-align: end; }
 .table-visual.has-lines tbody tr + tr td { border-top: 1px solid var(--border); }
 .table-visual.is-banded tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--fg) 4%, transparent); }
-.table-visual tfoot td { position: sticky; bottom: 0; background: var(--bg-raised); font-weight: 600; border-top: 1px solid var(--border-strong); }
+.table-visual tfoot td { background: var(--bg-raised); font-weight: 600; border-top: 1px solid var(--border-strong); }
 
 /* Page tabs */
 .page-tabs { flex: none; display: flex; align-items: center; gap: 2px; height: 34px; padding-inline: 8px; border-top: 1px solid var(--border); background: var(--bg-raised); }
@@ -193,3 +193,12 @@
 .quick-measure { display: grid; gap: 12px; }
 .quick-measure .select { width: 100%; }
 .quick-dax { margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); white-space: pre-wrap; font-size: 12px; color: var(--fg-strong); }
+
+/* Narrow windows: one column of panes, switched by tabs. */
+.pane-stack { width: 272px; flex: none; display: flex; flex-direction: column; min-height: 0; border-inline-start: 1px solid var(--border); background: var(--bg-panel); }
+.pane-stack > .pane { flex: 1; width: auto; border-inline-start: 0; }
+.pane-stack .pane-head { display: none; }
+.pane-switch { display: flex; gap: 2px; padding: 4px 6px 0; border-bottom: 1px solid var(--border); flex: none; }
+.pane-switch button { flex: 1; height: 30px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--fg-muted); font-size: var(--text-sm); font-weight: 500; }
+.pane-switch button[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--fg-strong); }
+.report-body.is-compact .report-toolbar-label { min-width: 0; }

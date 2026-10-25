@@ -17,10 +17,10 @@ const walk = (d) => {
 walk(join(root, "ui/src"));
 
 const strings = new Map();
-const re = /\b(t|tn)\(\s*"((?:[^"\\]|\\.)*)"/g;
+const re = /\b(t|tn|msg)\(\s*"((?:[^"\\]|\\.)*)"/g;
 for (const f of files) {
   const src = readFileSync(f, "utf8");
-  for (const m of src.matchAll(re)) strings.set(JSON.parse(`"${m[2]}"`), m[1]);
+  for (const m of src.matchAll(re)) strings.set(JSON.parse(`"${m[2]}"`), m[1] === "tn" ? "tn" : "t");
 }
 // Shortcut labels and groups are translated where they are displayed.
 for (const f of files) {

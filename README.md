@@ -39,8 +39,8 @@ a React UI rendered by WebKitGTK. See `docs/` for performance notes and demos.
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Spine: shell, project format, Ossie I/O, sample data, Omarchy integration, CLI | Done |
-| M1 | Data view: virtual grid, sort/filter, column properties, statistics | In review |
-| M2 | First report: canvas, visuals, measures, filters | |
+| M1 | Data view: virtual grid, sort/filter, column properties, statistics | Done |
+| M2 | First report: canvas, visuals, measures, filters | In review |
 | M3 | Real modeling: relationships, DAX language service and compiler, Power BI export | |
 | M4 | Interactivity: cross-filter/highlight, slicers, matrix, themes | |
 | M5 | Query editor: applied steps, transforms, profiling, more sources | |

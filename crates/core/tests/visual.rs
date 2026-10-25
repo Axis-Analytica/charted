@@ -403,7 +403,11 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
     let page = m.report.pages[0].id.clone();
     let sales = m.table_by_name("Sales").unwrap();
     let product = m.table_by_name("Product").unwrap();
-    let total = sales.measures.iter().find(|x| x.name == "Total Sales").unwrap();
+    let total = sales
+        .measures
+        .iter()
+        .find(|x| x.name == "Total Sales")
+        .unwrap();
     let visual = Visual {
         id: "v-col".into(),
         visual_type: "columnChart".into(),

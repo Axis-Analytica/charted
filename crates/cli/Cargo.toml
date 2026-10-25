@@ -30,3 +30,6 @@ default = ["dev-server"]
 # `charted serve --dev`: the request API over a local WebSocket, so the UI can run in a
 # browser for end-to-end tests. Not built into release packages.
 dev-server = ["dep:tungstenite"]
+
+[dev-dependencies]
+tempfile = "3"

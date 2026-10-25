@@ -41,7 +41,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
     const el = scroller.current;
     if (!el) return;
     const fit = () => {
-      const s = Math.min((el.clientWidth - 48) / page.width, (el.clientHeight - 48) / page.height);
+      const s = Math.min((el.clientWidth - 32) / page.width, (el.clientHeight - 32) / page.height);
       setScale(Math.max(0.2, Math.min(4, Math.floor(s * 100) / 100)));
     };
     fit();

@@ -78,20 +78,20 @@ test("build the Overview page: card, column, line, table, a DIVIDE measure, a pa
   await expect(margin.locator(".card-value")).toHaveText(/^\d+\.\d%$/);
 
   // Clustered column: Total Sales by Category.
-  const column = await addVisual(page, "Clustered column chart", { x: 300, y: 380 });
+  const column = await addVisual(page, "Clustered column chart", { x: 300, y: 520 });
   await tick(page, "Product", "Category");
   await tick(page, "Sales", "Total Sales");
   await expect(column.locator(".visual-title")).toHaveText("Total Sales by Category");
   await expect(column.locator("canvas").first()).toBeVisible();
 
   // Line: Total Sales by YearMonth.
-  const line = await addVisual(page, "Line chart", { x: 900, y: 380 });
+  const line = await addVisual(page, "Line chart", { x: 900, y: 520 });
   await tick(page, "Date", "YearMonth");
   await tick(page, "Sales", "Total Sales");
   await expect(line.locator(".visual-title")).toHaveText("Total Sales by YearMonth");
 
   // Table: Region, Total Sales, Margin %.
-  const table = await addVisual(page, "Table", { x: 960, y: 110 });
+  const table = await addVisual(page, "Table", { x: 960, y: 180 });
   await tick(page, "Store", "Region");
   await tick(page, "Sales", "Total Sales");
   await tick(page, "Sales", "Margin %");

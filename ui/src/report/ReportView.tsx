@@ -139,6 +139,17 @@ export function ReportView({ model }: { model: Model }) {
   const signature = useMemo(() => modelSignature(model), [model]);
   const pageRef = useRef(page);
   pageRef.current = page;
+  // In narrow windows (a tiled half screen) the three panes share one tabbed column.
+  const body = useRef<HTMLDivElement>(null);
+  const [compact, setCompact] = useState(false);
+  const [paneTab, setPaneTab] = useState<"filters" | "visualizations" | "fields">("visualizations");
+  useEffect(() => {
+    const el = body.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setCompact(el.clientWidth < 1240));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (page && page.id !== pageId) set({ page: page.id });
@@ -225,14 +236,38 @@ export function ReportView({ model }: { model: Model }) {
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
       </div>
-      <div className="report-body">
+      <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
         <div className="report-center">
           <Canvas model={model} page={page} signature={signature} />
           <PageTabs model={model} page={page} />
         </div>
-        {panes.filters && <FiltersPane model={model} page={page} />}
-        {panes.visualizations && <VisualizationsPane model={model} page={page} />}
-        {panes.fields && <FieldsPane model={model} page={page} />}
+        {compact ? (
+          (panes.filters || panes.visualizations || panes.fields) && (
+            <div className="pane-stack">
+              <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
+                {(["filters", "visualizations", "fields"] as const)
+                  .filter((k) => panes[k])
+                  .map((k) => (
+                    <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === (["filters", "visualizations", "fields"] as const).find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
+                      {k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
+                    </button>
+                  ))}
+              </div>
+              {(() => {
+                const shown = panes[paneTab] ? paneTab : (["filters", "visualizations", "fields"] as const).find((x) => panes[x]);
+                if (shown === "filters") return <FiltersPane model={model} page={page} />;
+                if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
+                return <FieldsPane model={model} page={page} />;
+              })()}
+            </div>
+          )
+        ) : (
+          <>
+            {panes.filters && <FiltersPane model={model} page={page} />}
+            {panes.visualizations && <VisualizationsPane model={model} page={page} />}
+            {panes.fields && <FieldsPane model={model} page={page} />}
+          </>
+        )}
       </div>
     </div>
   );

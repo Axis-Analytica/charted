@@ -24,7 +24,15 @@ if [ "$m" != m0 ] && [ ! -e "$big/Harbor & Pine.charted" ]; then
 fi
 
 # Browser screenshots of the scripted flows (Chromium against the real core).
+e2e_tmp="${CHARTED_E2E_TMP:-/tmp/charted-e2e}"
 (cd ui && CHARTED_SHOTS="$out" CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium || true)}" pnpm exec playwright test "e2e/$m.spec.ts") || true
+# Keep the project the tests built, to see it in the real window too.
+built="$out/Harbor & Pine (built by the tests)"
+rm -rf "$built"
+if [ -d "$e2e_tmp/docs/charted/Harbor & Pine/report" ]; then
+  cp -r "$e2e_tmp/docs/charted/Harbor & Pine" "$built"
+  rm -f "$built/.cache/lock" "$built/.cache/recovery.json"
+fi
 
 # Real-window screenshots (WebKitGTK), using the live Omarchy theme.
 (cd ui && exec pnpm exec vite --port 1420 --strictPort >/dev/null 2>&1) &
@@ -36,6 +44,9 @@ CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open --screenshot "$out/
 CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$demo" --screenshot "$out/$m-window-project.png" >/dev/null
 if [ "$m" != m0 ]; then
   CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$big" --screenshot "$out/$m-window-10m.png" >/dev/null
+fi
+if [ -d "$built" ]; then
+  CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$built" --screenshot "$out/$m-window-built.png" >/dev/null
 fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0

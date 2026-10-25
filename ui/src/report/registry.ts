@@ -1,6 +1,7 @@
 // The capability registry: what each visual type accepts (data roles), how it can be
 // formatted (objects → generated format pane) and how big it starts. Every pane reads
 // this, so adding a visual type is one entry plus its renderer.
+import { msg } from "../i18n";
 import { ChartBarBig, ChartColumnBig, ChartLine, CreditCard, Table2, type LucideIcon } from "lucide-react";
 
 export type RoleKind = "grouping" | "value" | "any";
@@ -43,7 +44,7 @@ const title: ObjectDef = {
   toggle: "show",
   props: [
     { name: "show", label: "Show", type: "bool", default: true },
-    { name: "text", label: "Text", type: "text", default: "", placeholder: "Automatic" },
+    { name: "text", label: "Text", type: "text", default: "", placeholder: msg("Automatic") },
     { name: "fontSize", label: "Text size", type: "number", default: 13, min: 8, max: 40 },
     { name: "align", label: "Alignment", type: "select", default: "left", options: [{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }] },
   ],
@@ -127,28 +128,28 @@ export const VISUALS: VisualDef[] = [
     type: "columnChart",
     label: "Clustered column chart",
     icon: ChartColumnBig,
-    roles: cartesianRoles("X-axis"),
-    objects: [title, legend, axis("categoryAxis", "X-axis"), axis("valueAxis", "Y-axis"), dataLabels, colors, background],
+    roles: cartesianRoles(msg("X-axis")),
+    objects: [title, legend, axis("categoryAxis", msg("X-axis")), axis("valueAxis", msg("Y-axis")), dataLabels, colors, background],
     size: { width: 480, height: 300 },
   },
   {
     type: "barChart",
     label: "Clustered bar chart",
     icon: ChartBarBig,
-    roles: cartesianRoles("Y-axis"),
-    objects: [title, legend, axis("categoryAxis", "Y-axis"), axis("valueAxis", "X-axis"), dataLabels, colors, background],
+    roles: cartesianRoles(msg("Y-axis")),
+    objects: [title, legend, axis("categoryAxis", msg("Y-axis")), axis("valueAxis", msg("X-axis")), dataLabels, colors, background],
     size: { width: 480, height: 300 },
   },
   {
     type: "lineChart",
     label: "Line chart",
     icon: ChartLine,
-    roles: cartesianRoles("X-axis"),
+    roles: cartesianRoles(msg("X-axis")),
     objects: [
       title,
       legend,
-      axis("categoryAxis", "X-axis"),
-      axis("valueAxis", "Y-axis"),
+      axis("categoryAxis", msg("X-axis")),
+      axis("valueAxis", msg("Y-axis")),
       {
         name: "lines",
         label: "Lines",
