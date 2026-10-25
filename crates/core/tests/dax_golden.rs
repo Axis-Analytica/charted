@@ -744,3 +744,191 @@ fn compiler_agrees_with_the_reference_interpreter() {
         failures.join("\n\n")
     );
 }
+
+/// A small deterministic generator (no external crates needed).
+struct Rng(u64);
+
+impl Rng {
+    fn below(&mut self, n: usize) -> usize {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        ((self.0 >> 33) % n as u64) as usize
+    }
+
+    fn pick<'a>(&mut self, items: &[&'a str]) -> &'a str {
+        items[self.below(items.len())]
+    }
+}
+
+/// A random measure expression built from the constructs the compiler supports.
+fn random_expr(r: &mut Rng, depth: usize) -> String {
+    const AGGS: &[&str] = &[
+        "SUM ( Sales[Amount] )",
+        "SUM ( Sales[Qty] )",
+        "COUNTROWS ( Sales )",
+        "MAX ( Sales[Price] )",
+        "DISTINCTCOUNT ( Sales[ProductKey] )",
+        "SUM ( Targets[Target] )",
+        "COUNTROWS ( Product )",
+        "[Sales Amount]",
+        "[Quantity]",
+        "[Orders]",
+        "[Target]",
+    ];
+    const FILTERS: &[&str] = &[
+        "Product[Category] = \"Camping\"",
+        "Product[Category] <> \"Apparel\"",
+        "Date[Year] = 2024",
+        "Date[MonthNumber] <= 6",
+        "ALL ( Product )",
+        "ALL ( Date[Year] )",
+        "ALL ( Product[Category] )",
+        "REMOVEFILTERS ( Store )",
+        "KEEPFILTERS ( Product[Color] = \"Red\" )",
+        "Store[Region] <> \"North\"",
+        "USERELATIONSHIP ( Sales[ShipDateKey], Date[DateKey] )",
+        "VALUES ( Product[Category] )",
+        "ALLEXCEPT ( Product, Product[Category] )",
+        "Sales[Qty] > 2",
+        "FILTER ( ALL ( Product[ListPrice] ), Product[ListPrice] >= 100 )",
+        "ALLSELECTED ( Date[Year] )",
+    ];
+    const ITERS: &[&str] = &[
+        "SUMX ( VALUES ( Product[Category] ), {} )",
+        "AVERAGEX ( VALUES ( Date[Year] ), {} )",
+        "MAXX ( VALUES ( Store[Region] ), {} )",
+        "SUMX ( FILTER ( VALUES ( Product[Color] ), [Quantity] > 5 ), {} )",
+        "MINX ( VALUES ( Date[Quarter] ), {} )",
+    ];
+    if depth == 0 {
+        return r.pick(AGGS).to_string();
+    }
+    match r.below(7) {
+        0 | 1 => r.pick(AGGS).to_string(),
+        2 => {
+            let mut args = vec![random_expr(r, depth - 1)];
+            for _ in 0..=r.below(2) {
+                args.push(r.pick(FILTERS).to_string());
+            }
+            format!("CALCULATE ( {} )", args.join(", "))
+        }
+        3 => r.pick(ITERS).replace("{}", &random_expr(r, depth - 1)),
+        4 => {
+            let op = r.pick(&["+", "-", "*"]);
+            format!(
+                "( {} {op} {} )",
+                random_expr(r, depth - 1),
+                random_expr(r, depth - 1)
+            )
+        }
+        5 => format!(
+            "DIVIDE ( {}, {} )",
+            random_expr(r, depth - 1),
+            random_expr(r, depth - 1)
+        ),
+        _ => format!(
+            "IF ( {} > {}, {}, {} )",
+            random_expr(r, depth - 1),
+            r.below(500),
+            random_expr(r, depth - 1),
+            random_expr(r, depth - 1)
+        ),
+    }
+}
+
+#[test]
+fn random_measures_agree_with_the_reference_interpreter() {
+    let cases: usize = std::env::var("CHARTED_DAX_CASES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(256);
+    let mut f = fixture();
+    let schema_types: HashMap<(String, String), DataType> = f
+        .model
+        .tables
+        .iter()
+        .flat_map(|t| {
+            t.columns.iter().filter_map(move |c| match &c.kind {
+                ColumnKind::Data { source_column } => {
+                    Some(((t.source.clone(), source_column.clone()), c.data_type))
+                }
+                _ => None,
+            })
+        })
+        .collect();
+    let schema = |source: &str, column: &str| {
+        schema_types
+            .get(&(source.to_string(), column.to_string()))
+            .copied()
+    };
+    let seed = std::env::var("CHARTED_DAX_SEED")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(42);
+    let mut r = Rng(seed);
+    let mut failures = Vec::new();
+    for i in 0..cases {
+        let expr = random_expr(&mut r, 3);
+        let id = format!("m:random{i}");
+        f.model.table_mut("Sales").unwrap().measures.push(Measure {
+            id: id.clone(),
+            name: format!("Random {i}"),
+            expression: expr.clone(),
+            language: ExpressionLanguage::Dax,
+            description: None,
+            format_string: None,
+            display_folder: None,
+            hidden: false,
+            extras: Default::default(),
+        });
+        let all = shapes(&f.model);
+        let (shape, base) = all[r.below(all.len())].clone();
+        let q = VisualQuery {
+            values: vec![Projection {
+                field: FieldRef::Measure {
+                    table: "Sales".into(),
+                    measure: id,
+                },
+                aggregation: None,
+                display_name: None,
+            }],
+            ..base
+        };
+        let expected = match interp::run(&f.model, &f.data, &q) {
+            Ok(rows) => canonical(rows),
+            Err(e) => {
+                failures.push(format!("{expr} / {shape}: the interpreter failed: {e}"));
+                continue;
+            }
+        };
+        let got = visual::compile(&f.model, &schema, &q)
+            .map_err(|e| e.to_string())
+            .and_then(|c| f.db.arrow(&c.sql).map_err(|e| format!("{e}\n{}", c.sql)))
+            .map(|b| canonical(arrow_values(b)));
+        match got {
+            Err(e) => failures.push(format!("{expr} / {shape}: {e}")),
+            Ok(got) => {
+                let ok = got.len() == expected.len()
+                    && got
+                        .iter()
+                        .zip(&expected)
+                        .all(|(a, b)| a.iter().zip(b).all(|(x, y)| same(x, y)));
+                if !ok {
+                    failures.push(format!(
+                        "{expr} / {shape}:\n  expected:\n    {}\n  got:\n    {}",
+                        show(&expected).replace('\n', "\n    "),
+                        show(&got).replace('\n', "\n    ")
+                    ));
+                }
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {cases} random cases differ:\n\n{}",
+        failures.len(),
+        failures.join("\n\n")
+    );
+}

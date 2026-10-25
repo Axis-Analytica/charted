@@ -2125,34 +2125,47 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
             let name = c.ctes[i].name.clone();
             let exact = c.ctes[i].exact;
             let missing: Vec<&String> = key_names.iter().filter(|k| !ck.contains(k)).collect();
-            let mut part = if missing.is_empty() {
-                format!(
-                    "SELECT {} FROM {name} AS x",
-                    key_names
-                        .iter()
-                        .map(|k| format!("x.{k}"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            } else {
-                let dom = c.domain()?;
-                let cols: Vec<String> = key_names
+            // Keys the CTE lacks come from each table's key domain: joined on the keys
+            // of that table it has (a sort-by column follows its column), crossed when
+            // it has none of them.
+            let mut part = format!(
+                "SELECT {} FROM {name} AS x",
+                key_names
                     .iter()
-                    .map(|k| {
-                        if ck.contains(k) {
-                            format!("x.{k}")
-                        } else {
-                            format!("d.{k}")
-                        }
-                    })
-                    .collect();
-                let missing_cols: Vec<String> = missing.iter().map(|k| k.to_string()).collect();
-                format!(
-                    "SELECT {} FROM {name} AS x CROSS JOIN (SELECT DISTINCT {} FROM {dom}) AS d",
-                    cols.join(", "),
-                    missing_cols.join(", ")
-                )
-            };
+                    .map(|k| format!("{{{k}}}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            let mut source: Vec<(String, String)> =
+                ck.iter().map(|k| (k.clone(), format!("x.{k}"))).collect();
+            if !missing.is_empty() {
+                for (j, (_, dk, names)) in c.key_domains()?.into_iter().enumerate() {
+                    let lacking: Vec<&String> = names.iter().filter(|n| !ck.contains(n)).collect();
+                    if lacking.is_empty() {
+                        continue;
+                    }
+                    let alias = format!("d{j}");
+                    let shared: Vec<&String> = names.iter().filter(|n| ck.contains(n)).collect();
+                    if shared.is_empty() {
+                        part.push_str(&format!(" CROSS JOIN {dk} AS {alias}"));
+                    } else {
+                        part.push_str(&format!(
+                            " JOIN {dk} AS {alias} ON {}",
+                            shared
+                                .iter()
+                                .map(|n| format!("{alias}.{n} IS NOT DISTINCT FROM x.{n}"))
+                                .collect::<Vec<_>>()
+                                .join(" AND ")
+                        ));
+                    }
+                    for n in lacking {
+                        source.push((n.clone(), format!("{alias}.{n}")));
+                    }
+                }
+            }
+            for (k, e) in &source {
+                part = part.replace(&format!("{{{k}}}"), e);
+            }
             // A context the visual doesn't have (CALCULATE replaced a filter) can produce
             // combinations the visual's own filters exclude: keep the existing ones.
             if !exact {

@@ -119,6 +119,7 @@ struct Filter {
     table: Id,
     columns: Vec<Id>,
     tuples: HashSet<Tuple>,
+    /// A visual grouping or an iterator's row (what ALLSELECTED removes).
     grouping: bool,
 }
 
@@ -451,7 +452,7 @@ impl<'a> Interp<'a> {
                     table: r.table.clone(),
                     columns: vec![col.clone()],
                     tuples: HashSet::from([vec![v.key()]]),
-                    grouping: false,
+                    grouping: true,
                 });
             }
         }
