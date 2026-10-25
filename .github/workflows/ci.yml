@@ -70,7 +70,16 @@ jobs:
       - run: pnpm exec tsc --noEmit
         working-directory: ui
       - run: node tools/i18n-strings.mjs --check
-      - run: cargo build -p charted-cli
+      - name: Build the dev server
+        run: |
+          cargo build -p charted-cli
+          # The Rust cache can drop DuckDB's downloaded library while keeping the build
+          # script's result; fetch it again if so.
+          if [ -z "$(find target -name libduckdb.so -print -quit)" ]; then
+            cargo clean -p libduckdb-sys
+            cargo build -p charted-cli
+          fi
+          echo "LD_LIBRARY_PATH=$(dirname "$(find "$PWD/target" -name libduckdb.so -print -quit)")" >> "$GITHUB_ENV"
       - run: pnpm exec playwright install --with-deps chromium
         working-directory: ui
       - run: pnpm exec playwright test
