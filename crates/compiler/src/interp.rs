@@ -190,9 +190,20 @@ impl<'a> Interp<'a> {
                 to: r.from_table.clone(),
                 to_col: r.from_column.clone(),
             };
+            let both = r.cross_filter == charted_model::CrossFilter::Both;
             match (r.from_cardinality, r.to_cardinality) {
-                (Cardinality::Many, Cardinality::One) => out.push(fwd),
-                (Cardinality::One, Cardinality::Many) => out.push(back),
+                (Cardinality::Many, Cardinality::One) => {
+                    out.push(fwd);
+                    if both {
+                        out.push(back);
+                    }
+                }
+                (Cardinality::One, Cardinality::Many) => {
+                    out.push(back);
+                    if both {
+                        out.push(fwd);
+                    }
+                }
                 (Cardinality::One, Cardinality::One) => {
                     out.push(fwd);
                     out.push(back);
@@ -274,29 +285,108 @@ impl<'a> Interp<'a> {
         Ok(Some((table, values)))
     }
 
+    /// Rows of `to` whose `to_col` equals `key`.
+    fn related_rows(&self, to: &str, to_col: &str, key: &str) -> Result<Vec<&'a Vec<Value>>> {
+        let t = self.table(to)?;
+        let ci = t.col(to_col).ok_or("bad relationship column")?;
+        Ok(t.rows
+            .iter()
+            .filter(|r| r[ci].key().as_deref() == Some(key))
+            .collect())
+    }
+
+    /// A row is visible when some combination of its related rows (following the
+    /// relationships left-join style, as SQL does) satisfies every filter that reaches
+    /// it. With single-direction relationships there is one combination.
     fn row_visible(&self, ctx: &Ctx, table: &str, row: &[Value]) -> Result<bool> {
-        for f in &ctx.filters {
-            let target: Option<Vec<Value>> = if f.table == table {
-                Some(row.to_vec())
-            } else if let Some(hops) = self.path(ctx, table, &f.table) {
-                self.follow(table, row, &hops)?.map(|(_, r)| r)
-            } else {
-                continue;
-            };
-            let ft = self.table(&f.table)?;
-            let tuple: Tuple = f
-                .columns
-                .iter()
-                .map(|c| match &target {
-                    Some(r) => ft.col(c).and_then(|i| r[i].key()),
-                    None => None,
-                })
-                .collect();
-            if !f.tuples.contains(&tuple) {
-                return Ok(false);
+        // Breadth-first tree of relationships from `table`.
+        let edges = self.edges(ctx);
+        let mut order: Vec<usize> = Vec::new();
+        let mut reached: Vec<Id> = vec![table.to_string()];
+        let mut i = 0;
+        while i < reached.len() {
+            let t = reached[i].clone();
+            for (j, e) in edges.iter().enumerate() {
+                if e.from == t && !reached.contains(&e.to) {
+                    reached.push(e.to.clone());
+                    order.push(j);
+                }
+            }
+            i += 1;
+        }
+        let filters: Vec<&Filter> = ctx
+            .filters
+            .iter()
+            .filter(|f| reached.contains(&f.table))
+            .collect();
+        // Only the edges on the way to filtered tables matter.
+        let mut needed: Vec<usize> = Vec::new();
+        for f in &filters {
+            let mut t = f.table.clone();
+            while t != table {
+                let Some(&j) = order.iter().find(|&&j| edges[j].to == t) else {
+                    break;
+                };
+                if !needed.contains(&j) {
+                    needed.push(j);
+                }
+                t = edges[j].from.clone();
             }
         }
-        Ok(true)
+        let mut combos: Vec<HashMap<Id, Option<Vec<Value>>>> =
+            vec![HashMap::from([(table.to_string(), Some(row.to_vec()))])];
+        for &j in order.iter().filter(|j| needed.contains(j)) {
+            let e = &edges[j];
+            let mut next = Vec::new();
+            for c in combos {
+                let key = match c.get(&e.from) {
+                    Some(Some(r)) => self
+                        .table(&e.from)?
+                        .col(&e.from_col)
+                        .and_then(|i| r[i].key()),
+                    _ => None,
+                };
+                let related = match key {
+                    Some(k) => self.related_rows(&e.to, &e.to_col, &k)?,
+                    None => Vec::new(),
+                };
+                if related.is_empty() {
+                    let mut n = c.clone();
+                    n.insert(e.to.clone(), None);
+                    next.push(n);
+                } else {
+                    for r in related {
+                        let mut n = c.clone();
+                        n.insert(e.to.clone(), Some(r.clone()));
+                        next.push(n);
+                    }
+                }
+            }
+            combos = next;
+        }
+        for c in combos {
+            let mut ok = true;
+            for f in &filters {
+                let ft = self.table(&f.table)?;
+                let target = c.get(&f.table).cloned().flatten();
+                let tuple: Tuple = f
+                    .columns
+                    .iter()
+                    .map(|col| match &target {
+                        Some(r) => ft.col(col).and_then(|i| r[i].key()),
+                        None => None,
+                    })
+                    .collect();
+                if !f.tuples.contains(&tuple) {
+                    ok = false;
+                    break;
+                }
+            }
+            if ok {
+                return Ok(true);
+            }
+        }
+        Ok(false)
     }
 
     /// Whether rows of another table refer to keys `table` lacks, which gives `table`

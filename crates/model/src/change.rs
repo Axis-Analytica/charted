@@ -125,6 +125,8 @@ pub enum ColumnProperty {
     Hidden(bool),
     IsKey(bool),
     DataType(DataType),
+    /// A calculated column's DAX expression.
+    Expression(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize, TS)]
@@ -432,6 +434,16 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 ColumnProperty::DataType(v) => {
                     ColumnProperty::DataType(std::mem::replace(&mut c.data_type, v))
                 }
+                ColumnProperty::Expression(v) => match &mut c.kind {
+                    ColumnKind::Calculated { expression, .. } => {
+                        ColumnProperty::Expression(std::mem::replace(expression, v))
+                    }
+                    ColumnKind::Data { .. } => {
+                        return Err(ChangeError::Invalid {
+                            message: "only calculated columns have an expression".into(),
+                        });
+                    }
+                },
             };
             Ok(vec![Change::SetColumn {
                 table,

@@ -2,7 +2,7 @@
 
 use charted_compiler::steps::{self, Query};
 use charted_engine::{Database, DbError, DbOptions, sql};
-use charted_model::{Change, ChangeError, ColumnProperty, History, Model};
+use charted_model::{Change, ChangeError, ColumnKind, ColumnProperty, History, Model};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -156,6 +156,8 @@ pub struct Session {
     db: Database,
     indexes: SharedIndexes,
     schema: crate::visualq::Schema,
+    /// What each calculated column was last computed from (expression, type, relationships).
+    calc_state: std::collections::HashMap<String, String>,
     recovery: Option<RecoveryInfo>,
     _lock: Lock,
 }
@@ -179,15 +181,18 @@ impl Session {
             )
         });
         let schema = crate::visualq::Schema::read(&db, &project.model);
-        Ok(Self {
+        let mut session = Self {
             project,
             history: History::with_limit(500),
             db,
             indexes: SharedIndexes::default(),
             schema,
+            calc_state: Default::default(),
             recovery,
             _lock: lock,
-        })
+        };
+        session.refresh_calculated();
+        Ok(session)
     }
 
     pub fn database(&self) -> &Database {
@@ -239,23 +244,157 @@ impl Session {
     }
 
     pub fn commit(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
+        let changes = self.prepare(changes)?;
         self.check_against_data(&changes)?;
+        self.check_model(&changes)?;
         self.history
             .commit(&mut self.project.model, label, changes)?;
+        self.refresh_calculated();
         self.write_recovery();
         Ok(())
     }
 
     pub fn undo(&mut self) -> Result<(), CoreError> {
         self.history.undo(&mut self.project.model)?;
+        self.refresh_calculated();
         self.write_recovery();
         Ok(())
     }
 
     pub fn redo(&mut self) -> Result<(), CoreError> {
         self.history.redo(&mut self.project.model)?;
+        self.refresh_calculated();
         self.write_recovery();
         Ok(())
+    }
+
+    /// Fills in what the client cannot know: a new calculated column's type.
+    fn prepare(&self, mut changes: Vec<Change>) -> Result<Vec<Change>, CoreError> {
+        for c in &mut changes {
+            if let Change::AddColumn { table, column, .. } = c
+                && let ColumnKind::Calculated { expression, .. } = &column.kind
+                && column.data_type == charted_model::DataType::Unknown
+            {
+                let (_, ty) = charted_compiler::visual::calculated_column(
+                    &self.project.model,
+                    &self.schema,
+                    table,
+                    expression,
+                )
+                .map_err(|e| CoreError::Invalid(e.to_string()))?;
+                column.data_type = charted_compiler::visual::value_type_to_data_type(ty);
+            }
+        }
+        Ok(changes)
+    }
+
+    /// Model rules that need the whole model: no new ambiguous filter paths, and
+    /// calculated columns that compile.
+    fn check_model(&self, changes: &[Change]) -> Result<(), CoreError> {
+        let mut after = self.project.model.clone();
+        charted_model::apply_all(&mut after, changes)?;
+        let before = charted_compiler::graph::ambiguities(&self.project.model);
+        if let Some((a, b)) = charted_compiler::graph::ambiguities(&after)
+            .into_iter()
+            .find(|x| !before.contains(x))
+        {
+            let name = |id: &str| after.table(id).map(|t| t.name.clone()).unwrap_or_default();
+            return Err(CoreError::Invalid(format!(
+                "this would give filters two active paths from '{}' to '{}'; make one of the relationships inactive or filter in a single direction",
+                name(&b),
+                name(&a)
+            )));
+        }
+        for c in changes {
+            let (table, column) = match c {
+                Change::AddColumn { table, column, .. } => (table, column.id.clone()),
+                Change::SetColumn {
+                    table,
+                    column,
+                    property: ColumnProperty::Expression(_),
+                } => (table, column.clone()),
+                _ => continue,
+            };
+            if let Some(col) = after.table(table).and_then(|t| t.column(&column))
+                && let ColumnKind::Calculated { expression, .. } = &col.kind
+            {
+                charted_compiler::visual::calculated_column(
+                    &after,
+                    &self.schema,
+                    table,
+                    expression,
+                )
+                .map_err(|e| CoreError::Invalid(format!("{}: {e}", col.name)))?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Computes calculated columns whose expression, type or relationships changed,
+    /// storing their values in a column of the table's data.
+    fn refresh_calculated(&mut self) {
+        let model = self.project.model.clone();
+        let rels = serde_json::to_string(&model.relationships).unwrap_or_default();
+        let mut pending: Vec<(
+            &charted_model::Table,
+            &charted_model::Column,
+            String,
+            String,
+        )> = Vec::new();
+        for t in &model.tables {
+            for c in &t.columns {
+                if let ColumnKind::Calculated { expression, .. } = &c.kind {
+                    let sig = format!("{expression}\u{0}{:?}\u{0}{rels}", c.data_type);
+                    if self.calc_state.get(&c.id) != Some(&sig) {
+                        pending.push((t, c, expression.clone(), sig));
+                    }
+                }
+            }
+        }
+        // Columns that use other calculated columns wait for them: retry while progressing.
+        let mut changed = false;
+        loop {
+            let mut progress = false;
+            let mut rest = Vec::new();
+            for (t, c, expression, sig) in pending {
+                match charted_compiler::visual::calculated_column(
+                    &model,
+                    &self.schema,
+                    &t.id,
+                    &expression,
+                ) {
+                    Ok((select, _)) => {
+                        let col = sql::ident(&charted_compiler::calc_column_name(&c.id));
+                        let src = sql::ident(&t.source);
+                        let ty = charted_compiler::sqltype(c.data_type).unwrap_or("VARCHAR");
+                        let script = format!(
+                            "ALTER TABLE {src} DROP COLUMN IF EXISTS {col}; ALTER TABLE {src} ADD COLUMN {col} {ty}; \
+                             UPDATE {src} SET {col} = TRY_CAST(s.v AS {ty}) FROM ({select}) AS s WHERE {src}.rowid = s.rid;"
+                        );
+                        match self.db.execute(&script) {
+                            Ok(()) => {
+                                self.calc_state.insert(c.id.clone(), sig);
+                                // Later columns see this one.
+                                self.schema = crate::visualq::Schema::read(&self.db, &model);
+                                progress = true;
+                                changed = true;
+                            }
+                            Err(e) => {
+                                tracing::warn!("could not compute {}[{}]: {e}", t.name, c.name)
+                            }
+                        }
+                    }
+                    Err(_) => rest.push((t, c, expression, sig)),
+                }
+            }
+            pending = rest;
+            if !progress || pending.is_empty() {
+                break;
+            }
+        }
+        if changed {
+            self.schema = crate::visualq::Schema::read(&self.db, &model);
+        }
     }
 
     pub fn is_dirty(&self) -> bool {
@@ -277,6 +416,7 @@ impl Session {
         let changes = whole_model_changes(&self.project.model, &r.model);
         self.history
             .commit(&mut self.project.model, "Restore unsaved changes", changes)?;
+        self.refresh_calculated();
         self.recovery = None;
         self.write_recovery();
         Ok(())

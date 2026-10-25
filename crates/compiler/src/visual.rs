@@ -146,8 +146,9 @@ pub struct Compiled {
 }
 
 /// What an aggregate over a table sees: its grouping keys (with their SQL), its
-/// filter predicates and its FROM clause.
-type Scope = (Vec<(Key, String)>, Vec<String>, String);
+/// filter predicates, its FROM clause, and whether the joins can repeat its rows
+/// (a both-directions relationship crossed from the one side).
+type Scope = (Vec<(Key, String)>, Vec<String>, String, bool);
 
 /// A frame column holding a column's value for the current frame row.
 #[derive(Debug, Clone, PartialEq)]
@@ -750,7 +751,7 @@ impl<'a> Compiler<'a> {
     }
 
     /// `source AS alias` for `base`, left-joined to every table in `needed` along its path.
-    fn joins(&self, reach: &Reach, base: &str, needed: &[Id]) -> Result<String> {
+    fn joins(&self, reach: &Reach, base: &str, needed: &[Id]) -> Result<(String, bool)> {
         let model = self.model;
         let src = |id: &str| -> Result<String> {
             Ok(format!(
@@ -761,6 +762,7 @@ impl<'a> Compiler<'a> {
         };
         let mut joined: Vec<Id> = vec![base.to_string()];
         let mut sql = src(base)?;
+        let mut expands = false;
         for t in needed {
             if reach.is_ambiguous(t) {
                 return Err(CompileError::Ambiguous {
@@ -781,9 +783,10 @@ impl<'a> Compiler<'a> {
                     col(&hop.to, &hop.to_column)?
                 ));
                 joined.push(hop.to.clone());
+                expands |= hop.expands;
             }
         }
-        Ok(sql)
+        Ok((sql, expands))
     }
 
     /// SQL that is true when another table refers to keys `t` lacks: `t` then has a blank
@@ -890,7 +893,7 @@ impl<'a> Compiler<'a> {
                 )));
             }
         }
-        let mut from = self.joins(&reach, base, &needed)?;
+        let (mut from, expands) = self.joins(&reach, base, &needed)?;
         let mut out_keys: Vec<(Key, String)> = keys
             .iter()
             .map(|k| Ok((k.clone(), self.column_sql(&k.table, &k.column)?.0)))
@@ -930,7 +933,7 @@ impl<'a> Compiler<'a> {
                 preds.push(p);
             }
         }
-        Ok((out_keys, preds, from))
+        Ok((out_keys, preds, from, expands))
     }
 
     fn add_cte(&mut self, sql: String, keys: Vec<String>, exact: bool) -> usize {
@@ -998,7 +1001,7 @@ impl<'a> Compiler<'a> {
             related_refs(c, &mut related);
         }
         let extra: Vec<Id> = related.iter().map(|(t, _)| t.clone()).collect();
-        let (keys, mut preds, from) = self.scope(&base, ctx, &extra, apply_ctx)?;
+        let (keys, mut preds, from, expands) = self.scope(&base, ctx, &extra, apply_ctx)?;
         for c in &conds {
             preds.push(bool_of(&self.row(c, None)?));
         }
@@ -1013,6 +1016,35 @@ impl<'a> Compiler<'a> {
         };
         let key_names: Vec<String> = keys.iter().map(|(k, _)| k.name.clone()).collect();
         let sql = match distinct {
+            // Joins that can repeat the base rows: each base row counts once per key.
+            None if expands => {
+                let mut inner: Vec<String> = key_exprs
+                    .iter()
+                    .map(|(e, n)| format!("{e} AS {n}"))
+                    .collect();
+                inner.push(format!("{}.rowid AS rid", alias(self.model, &base)));
+                let row = match arg {
+                    Some(a) => {
+                        let (x, ty) = self.row(a, None)?;
+                        inner.push(format!("{x} AS a"));
+                        Some(("a".to_string(), ty))
+                    }
+                    None => None,
+                };
+                let (agg, _) = agg_sql(func, row);
+                let mut sql = format!(
+                    "SELECT {}{agg} AS v FROM (SELECT DISTINCT {} FROM {from}{wh}) AS t",
+                    key_names
+                        .iter()
+                        .map(|n| format!("{n}, "))
+                        .collect::<String>(),
+                    inner.join(", ")
+                );
+                if !keys.is_empty() {
+                    sql.push_str(&format!(" GROUP BY {}", key_names.join(", ")));
+                }
+                sql
+            }
             None => {
                 let row = match arg {
                     Some(a) => Some(self.row(a, None)?),
@@ -1174,7 +1206,7 @@ impl<'a> Compiler<'a> {
             }
         }
         for (i, t) in tables.iter().enumerate() {
-            let (_, preds, from) = self.scope(t, &ctx, std::slice::from_ref(t), true)?;
+            let (_, preds, from, _) = self.scope(t, &ctx, std::slice::from_ref(t), true)?;
             let keys: Vec<Key> = self
                 .top_keys
                 .iter()
@@ -1314,7 +1346,7 @@ impl<'a> Compiler<'a> {
     /// The values of some columns visible in a context (VALUES), as a value set
     /// filter: one row per visible tuple and per key of the context the table reaches.
     fn value_set(&mut self, table_id: &str, columns: &[Id], outer: &Ctx) -> Result<CFilter> {
-        let (keys, preds, from) = self.scope(table_id, outer, &[table_id.to_string()], true)?;
+        let (keys, preds, from, _) = self.scope(table_id, outer, &[table_id.to_string()], true)?;
         let mut select = Vec::new();
         for (k, e) in &keys {
             select.push(format!("{e} AS {}", k.name));
@@ -1538,7 +1570,7 @@ impl<'a> Compiler<'a> {
             related_refs(c, &mut related);
         }
         let extra: Vec<Id> = related.iter().map(|(tb, _)| tb.clone()).collect();
-        let (keys, mut preds, from) = self.scope(&t, ctx, &extra, apply_ctx)?;
+        let (keys, mut preds, from, _) = self.scope(&t, ctx, &extra, apply_ctx)?;
         // Keys of the outer frame this table reaches join the rows to the frame.
         let reach_keys: Vec<(Key, String)> = keys
             .iter()
@@ -2317,4 +2349,63 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         sql.push_str(&format!(" LIMIT {n}"));
     }
     Ok(Compiled { sql, value_types })
+}
+
+/// The SQL that computes a calculated column: one row per row of its table, with the
+/// table's `rowid` as `rid` and the value as `v`, and the value's type. Calculated
+/// columns may use the row's columns, RELATED lookups and scalar functions.
+pub fn calculated_column(
+    model: &Model,
+    catalog: &dyn Catalog,
+    table_id: &str,
+    expression: &str,
+) -> Result<(String, ValueType)> {
+    let (bound, diags) = charted_dax::check_in(model, expression, Some(table_id));
+    let bound = bound.ok_or_else(|| {
+        CompileError::Field(
+            diags
+                .first()
+                .map(|d| d.message.clone())
+                .unwrap_or_else(|| "the expression has an error".into()),
+        )
+    })?;
+    if !row_pure(&bound) {
+        return Err(CompileError::Unsupported(
+            "measures, aggregates and CALCULATE in calculated columns".into(),
+        ));
+    }
+    let mut c = Compiler {
+        model,
+        catalog,
+        ctes: Vec::new(),
+        vars: Vec::new(),
+        stack: Vec::new(),
+        top_keys: Vec::new(),
+        top_filters: Vec::new(),
+        dom: None,
+        dks: Vec::new(),
+        counter: 0,
+    };
+    let mut related = Vec::new();
+    related_refs(&bound, &mut related);
+    let extra: Vec<Id> = related.into_iter().map(|(t, _)| t).collect();
+    let (_, _, from, _) = c.scope(table_id, &Ctx::default(), &extra, false)?;
+    let (v, ty) = c.row(&bound, None)?;
+    Ok((
+        format!(
+            "SELECT {}.rowid AS rid, {v} AS v FROM {from}",
+            alias(model, table_id)
+        ),
+        ty,
+    ))
+}
+
+/// The model type a calculated column's values get.
+pub fn value_type_to_data_type(t: ValueType) -> DataType {
+    match t {
+        ValueType::Number => DataType::Double,
+        ValueType::Text => DataType::String,
+        ValueType::Bool => DataType::Boolean,
+        ValueType::Date => DataType::Date,
+    }
 }

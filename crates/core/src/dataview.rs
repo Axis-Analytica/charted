@@ -273,10 +273,12 @@ impl View {
             .collect();
         let mut columns = Vec::new();
         for c in &table.columns {
-            // Calculated columns arrive with the DAX engine (M3).
-            let ColumnKind::Data { source_column } = &c.kind else {
-                continue;
+            // Calculated columns are stored next to the loaded ones once computed.
+            let source_column = match &c.kind {
+                ColumnKind::Data { source_column } => source_column.clone(),
+                ColumnKind::Calculated { .. } => charted_compiler::calc_column_name(&c.id),
             };
+            let source_column = &source_column;
             let Some(ptype) = physical.get(source_column) else {
                 continue;
             };

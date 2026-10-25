@@ -491,3 +491,166 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
     assert_eq!(app.session().unwrap().project.model.report, report_before);
     assert_eq!(data(&app), before);
 }
+
+#[test]
+fn calculated_columns_and_ambiguous_relationships() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(dir.path().join("state"));
+    app.handle(Request::OpenSample {
+        dir: Some(dir.path().join("p").display().to_string()),
+    })
+    .unwrap();
+    let m = app.session().unwrap().project.model.clone();
+    let sales = m.table_by_name("Sales").unwrap().id.clone();
+    let column = Column {
+        id: "c-list-value".into(),
+        name: "List Value".into(),
+        data_type: DataType::Unknown,
+        kind: ColumnKind::Calculated {
+            expression: "Sales[Quantity] * RELATED ( Product[ListPrice] )".into(),
+            language: ExpressionLanguage::Dax,
+        },
+        description: None,
+        format_string: None,
+        summarize_by: Summarize::Default,
+        data_category: None,
+        sort_by: None,
+        display_folder: None,
+        hidden: false,
+        is_key: false,
+        extras: Default::default(),
+    };
+    app.handle(Request::Commit {
+        label: "New column".into(),
+        changes: vec![Change::AddColumn {
+            table: sales.clone(),
+            column,
+            index: None,
+        }],
+    })
+    .unwrap();
+    let model = app.session().unwrap().project.model.clone();
+    let col = model
+        .table(&sales)
+        .unwrap()
+        .column("c-list-value")
+        .unwrap()
+        .clone();
+    assert_eq!(col.data_type, DataType::Double, "the type is inferred");
+
+    let by_cat = |app: &App| {
+        let m = app.session().unwrap().project.model.clone();
+        let product = m.table_by_name("Product").unwrap();
+        let q = VisualQuery {
+            groups: vec![Projection {
+                field: FieldRef::Column {
+                    table: product.id.clone(),
+                    column: product.column_by_name("Category").unwrap().id.clone(),
+                },
+                aggregation: None,
+                display_name: None,
+            }],
+            values: vec![Projection {
+                field: FieldRef::Column {
+                    table: sales.clone(),
+                    column: "c-list-value".into(),
+                },
+                aggregation: Some(Aggregation::Sum),
+                display_name: None,
+            }],
+            ..Default::default()
+        };
+        arrow_rows(app.data(DataRequest::Visual { query: q }).unwrap())
+    };
+    let expected = arrow_rows(
+        app.session()
+            .unwrap()
+            .database()
+            .arrow("SELECT p.Category, sum(s.Quantity * p.ListPrice)::DOUBLE FROM sales s LEFT JOIN product p ON s.ProductKey = p.ProductKey GROUP BY 1 ORDER BY 1 NULLS FIRST")
+            .unwrap(),
+    );
+    assert_eq!(rounded(by_cat(&app)), rounded(expected.clone()));
+
+    // The Data view shows it.
+    let page = arrow_rows(
+        app.data(DataRequest::Rows {
+            view: charted_core::dataview::ViewSpec {
+                table: sales.clone(),
+                sort: vec![],
+                filters: vec![],
+            },
+            columns: Some(vec!["c-list-value".into()]),
+            offset: 0,
+            limit: 3,
+        })
+        .unwrap(),
+    );
+    assert_eq!(page.len(), 3);
+    assert!(page[0][0].parse::<f64>().unwrap() > 0.0);
+
+    // Editing the expression recomputes it; undo and redo too.
+    app.handle(Request::Commit {
+        label: "Edit column".into(),
+        changes: vec![Change::SetColumn {
+            table: sales.clone(),
+            column: "c-list-value".into(),
+            property: ColumnProperty::Expression(
+                "Sales[Quantity] * RELATED ( Product[ListPrice] ) * 2".into(),
+            ),
+        }],
+    })
+    .unwrap();
+    let doubled: f64 = by_cat(&app)
+        .iter()
+        .map(|r| r[1].parse::<f64>().unwrap())
+        .sum();
+    let single: f64 = expected.iter().map(|r| r[1].parse::<f64>().unwrap()).sum();
+    assert!((doubled - 2.0 * single).abs() < 1e-3 * single);
+    app.handle(Request::Undo).unwrap();
+    assert_eq!(rounded(by_cat(&app)), rounded(expected));
+
+    // Bad expressions are refused.
+    let err = app
+        .handle(Request::Commit {
+            label: "Edit column".into(),
+            changes: vec![Change::SetColumn {
+                table: sales.clone(),
+                column: "c-list-value".into(),
+                property: ColumnProperty::Expression("[Total Sales]".into()),
+            }],
+        })
+        .unwrap_err();
+    assert!(err.message.contains("List Value"), "{}", err.message);
+
+    // Targets → Store is fine; making it filter both ways is ambiguous.
+    let targets = model.table_by_name("Targets").unwrap();
+    let store = model.table_by_name("Store").unwrap();
+    let mut rel = Relationship {
+        id: "r-targets-store".into(),
+        from_table: targets.id.clone(),
+        from_column: targets.column_by_name("StoreKey").unwrap().id.clone(),
+        to_table: store.id.clone(),
+        to_column: store.column_by_name("StoreKey").unwrap().id.clone(),
+        from_cardinality: Cardinality::Many,
+        to_cardinality: Cardinality::One,
+        cross_filter: CrossFilter::Single,
+        active: true,
+        extras: Default::default(),
+    };
+    app.handle(Request::Commit {
+        label: "New relationship".into(),
+        changes: vec![Change::AddRelationship {
+            relationship: rel.clone(),
+            index: None,
+        }],
+    })
+    .unwrap();
+    rel.cross_filter = CrossFilter::Both;
+    let err = app
+        .handle(Request::Commit {
+            label: "Edit relationship".into(),
+            changes: vec![Change::UpdateRelationship { relationship: rel }],
+        })
+        .unwrap_err();
+    assert!(err.message.contains("two active paths"), "{}", err.message);
+}

@@ -3,7 +3,7 @@
 //! Filters on a reachable table restrict rows of the starting table, as in Power BI's
 //! single-direction cross-filtering.
 
-use charted_model::{Cardinality, Id, Model, Relationship};
+use charted_model::{Cardinality, CrossFilter, Id, Model, Relationship};
 use std::collections::{BTreeMap, VecDeque};
 
 /// One hop: join `to` from `from` on `from_column = to_column`.
@@ -13,6 +13,9 @@ pub struct Hop {
     pub from_column: Id,
     pub to: Id,
     pub to_column: Id,
+    /// Goes from the one side to the many side (a both-directions relationship), so a
+    /// row can have many related rows.
+    pub expands: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -29,20 +32,47 @@ fn hops(r: &Relationship) -> Vec<Hop> {
         from_column: r.from_column.clone(),
         to: r.to_table.clone(),
         to_column: r.to_column.clone(),
+        expands: false,
     };
     let backward = Hop {
         from: r.to_table.clone(),
         from_column: r.to_column.clone(),
         to: r.from_table.clone(),
         to_column: r.from_column.clone(),
+        expands: false,
     };
-    match (r.from_cardinality, r.to_cardinality) {
+    let mut out = match (r.from_cardinality, r.to_cardinality) {
         (Cardinality::Many, Cardinality::One) => vec![forward],
         (Cardinality::One, Cardinality::Many) => vec![backward],
-        (Cardinality::One, Cardinality::One) => vec![forward, backward],
+        (Cardinality::One, Cardinality::One) => return vec![forward, backward],
         // Many-to-many relationships do not propagate filters here.
-        (Cardinality::Many, Cardinality::Many) => vec![],
+        (Cardinality::Many, Cardinality::Many) => return vec![],
+    };
+    // Both directions: the many side filters the one side too.
+    if r.cross_filter == CrossFilter::Both {
+        let reverse = Hop {
+            from: out[0].to.clone(),
+            from_column: out[0].to_column.clone(),
+            to: out[0].from.clone(),
+            to_column: out[0].from_column.clone(),
+            expands: true,
+        };
+        out.push(reverse);
     }
+    out
+}
+
+/// Pairs of tables with more than one active filter path between them: (from, to)
+/// where `to`'s filters reach `from` two ways.
+pub fn ambiguities(model: &Model) -> Vec<(Id, Id)> {
+    let mut out = Vec::new();
+    for t in &model.tables {
+        let r = Reach::from(model, &t.id);
+        for a in &r.ambiguous {
+            out.push((t.id.clone(), a.clone()));
+        }
+    }
+    out
 }
 
 impl Reach {

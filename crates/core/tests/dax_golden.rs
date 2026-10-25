@@ -932,3 +932,102 @@ fn random_measures_agree_with_the_reference_interpreter() {
         failures.join("\n\n")
     );
 }
+
+#[test]
+fn both_directions_agree_with_the_reference_interpreter() {
+    let mut f = fixture();
+    // Sales filters Product too: products follow the sales a visual shows.
+    f.model
+        .relationships
+        .iter_mut()
+        .find(|r| r.id == "r-product")
+        .unwrap()
+        .cross_filter = CrossFilter::Both;
+    assert!(charted_compiler::graph::ambiguities(&f.model).is_empty());
+    let schema_types: HashMap<(String, String), DataType> = f
+        .model
+        .tables
+        .iter()
+        .flat_map(|t| {
+            t.columns.iter().filter_map(move |c| match &c.kind {
+                ColumnKind::Data { source_column } => {
+                    Some(((t.source.clone(), source_column.clone()), c.data_type))
+                }
+                _ => None,
+            })
+        })
+        .collect();
+    let schema = |source: &str, column: &str| {
+        schema_types
+            .get(&(source.to_string(), column.to_string()))
+            .copied()
+    };
+    let extra = [
+        ("Products In View", "COUNTROWS ( Product )"),
+        ("Colors In View", "DISTINCTCOUNT ( Product[Color] )"),
+        ("Max List In View", "MAX ( Product[ListPrice] )"),
+    ];
+    let mut failures = Vec::new();
+    let names: Vec<(String, String)> = MEASURES
+        .iter()
+        .map(|(n, _)| (n.to_string(), format!("m:{n}")))
+        .chain(extra.iter().enumerate().map(|(i, (n, e))| {
+            f.model.table_mut("Sales").unwrap().measures.push(Measure {
+                id: format!("m:both{i}"),
+                name: n.to_string(),
+                expression: e.to_string(),
+                language: ExpressionLanguage::Dax,
+                description: None,
+                format_string: None,
+                display_folder: None,
+                hidden: false,
+                extras: Default::default(),
+            });
+            (n.to_string(), format!("m:both{i}"))
+        }))
+        .collect();
+    for (name, id) in names {
+        for (shape, base) in shapes(&f.model) {
+            let q = VisualQuery {
+                values: vec![Projection {
+                    field: FieldRef::Measure {
+                        table: "Sales".into(),
+                        measure: id.clone(),
+                    },
+                    aggregation: None,
+                    display_name: None,
+                }],
+                ..base
+            };
+            let expected = interp::run(&f.model, &f.data, &q).map(canonical);
+            let got = visual::compile(&f.model, &schema, &q)
+                .map_err(|e| e.to_string())
+                .and_then(|c| f.db.arrow(&c.sql).map_err(|e| e.to_string()))
+                .map(|b| canonical(arrow_values(b)));
+            match (expected, got) {
+                (Ok(e), Ok(g)) => {
+                    let ok = g.len() == e.len()
+                        && g.iter()
+                            .zip(&e)
+                            .all(|(a, b)| a.iter().zip(b).all(|(x, y)| same(x, y)));
+                    if !ok {
+                        failures.push(format!(
+                            "{name} / {shape}:\n  expected:\n    {}\n  got:\n    {}",
+                            show(&e).replace('\n', "\n    "),
+                            show(&g).replace('\n', "\n    ")
+                        ));
+                    }
+                }
+                (e, g) => {
+                    failures.push(format!("{name} / {shape}: {:?} vs {:?}", e.err(), g.err()))
+                }
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n\n{}",
+        failures.len(),
+        failures.join("\n\n")
+    );
+}
