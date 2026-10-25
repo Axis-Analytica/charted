@@ -51,11 +51,11 @@ if [ -d "$built" ]; then
 fi
 if [ "$m" = m3 ] && [ -d "$built" ]; then
   # The model view and the DAX editor in the real window (WebKitGTK).
-  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_SCRIPT='window.dispatchEvent(new KeyboardEvent("keydown", { key: "3", ctrlKey: true, bubbles: true }))' \
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_SCRIPT='document.querySelector("[aria-label=\"Model view\"]").click()' \
     ./target/debug/charted open "$built" --screenshot "$out/m3-window-model.png" >/dev/null
   CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_SCRIPT='(async () => {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "2", ctrlKey: true, bubbles: true }));
+      document.querySelector("[aria-label=\"Data view\"]").click();
       await sleep(800);
       const item = [...document.querySelectorAll("[role=tree] [role=treeitem]")].find((e) => e.querySelector(".tree-label")?.textContent === "Sales");
       item.querySelector(".tree-label").click();
