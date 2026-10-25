@@ -12,6 +12,8 @@
   min-height: 0;
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
   background-color: var(--bg);
   background-image: radial-gradient(color-mix(in srgb, var(--fg-faint) 35%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;

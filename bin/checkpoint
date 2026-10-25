@@ -49,6 +49,22 @@ fi
 if [ -d "$built" ]; then
   CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$built" --screenshot "$out/$m-window-built.png" >/dev/null
 fi
+if [ "$m" = m3 ] && [ -d "$built" ]; then
+  # The model view and the DAX editor in the real window (WebKitGTK).
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_SCRIPT='window.dispatchEvent(new KeyboardEvent("keydown", { key: "3", ctrlKey: true, bubbles: true }))' \
+    ./target/debug/charted open "$built" --screenshot "$out/m3-window-model.png" >/dev/null
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_SCRIPT='(async () => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "2", ctrlKey: true, bubbles: true }));
+      await sleep(800);
+      const item = [...document.querySelectorAll("[role=tree] [role=treeitem]")].find((e) => e.querySelector(".tree-label")?.textContent === "Sales");
+      item.querySelector(".tree-label").click();
+      await sleep(600);
+      if (item.getAttribute("aria-expanded") !== "true") item.querySelector(".tree-chevron").click();
+      await sleep(600);
+      [...item.querySelectorAll(".tree-leaf")].find((e) => e.querySelector(".tree-label")?.textContent === "List Value").click();
+    })()' ./target/debug/charted open "$built" --screenshot "$out/m3-window-column-formula.png" >/dev/null
+fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."

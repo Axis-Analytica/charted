@@ -1,10 +1,11 @@
-# Handoff: milestone 2 (first report) built; checkpoint review, then milestone 3
+# Handoff: milestone 3 (real modeling) built; checkpoint review, then milestone 4
 
-Read this first when picking up development. Last updated 2026-10-25, end of M2 build.
-**Status:** M0 and M1 are approved. M2 is implemented, committed locally (not pushed)
-and `bin/test` is green. The user has not yet reviewed the M2 checkpoint
-(`docs/demos/m2.md`, screenshots in `~/Work/charted-checkpoints/m2/`). Address their
-feedback before starting M3.
+Read this first when picking up development. Last updated 2026-10-25, end of M3 build.
+**Status:** M0 and M1 are approved; the user liked M2 ("looking outstanding") and is
+trying a standalone M2 build (`~/.local/opt/charted-m2`, launcher "charted (M2
+preview)"). M3 is implemented, committed locally (not pushed) and `bin/test` is green.
+The user has not yet reviewed the M3 checkpoint (`docs/demos/m3.md`, screenshots in
+`~/Work/charted-checkpoints/m3/`). Address their feedback before starting M4.
 
 ## Decisions already made (do not re-litigate)
 
@@ -41,7 +42,7 @@ ui/               Vite + React: bridge/ (Transport: Tauri | WebSocket), design/ 
                   i18n/, kit/, app/ (App, shortcuts registry, overlays, kit gallery), views/ (Welcome,
                   ProjectView, TablesPanel, TablePreview, StatusBar), format/ (format strings), spike/
 i18n/             da.json, ar.json (English-keyed); tools/i18n-strings.mjs extracts/checks strings
-bin/              env, setup, dev, test, checkpoint
+bin/              env, setup, dev, test, checkpoint, wasm (M3)
 docs/             perf.md (WebKitGTK spike numbers), demos/m0.md, demos/m1.md, this file
 .github/workflows/ci.yml   x86_64 + arm64 Rust, UI + Playwright e2e
 ```
@@ -112,6 +113,49 @@ ui/src/state/report.ts        view state (page, selection, panes, formula bar, p
 Measured (aarch64 VM, release): visual queries p95 17–43 ms on the 10M sample (a
 distinct count by Product: 386 ms), at most 43 ms on 1M. Budgets: 800 / 200 ms.
 
+M3 added:
+
+```
+crates/dax/src/bind.rs        full binder: Bound (scalar), TableExpr, FilterArg, VAR/RETURN,
+                              SWITCH, IN, info functions, row contexts; bind_in for
+                              calculated columns (row context on their table)
+crates/dax/src/catalog.rs     signatures + descriptions of 129 functions (42 evaluated);
+                              generates docs/dax-support.md (a test keeps it current)
+crates/dax/src/ide.rs         completion, signature help, hover, formatter (keeps comments)
+crates/wasm                   wasm-bindgen wrapper (UTF-16 offsets, JSON results); built by
+                              bin/wasm into ui/src/dax/pkg (gitignored). 170 KB gz
+crates/compiler/src/visual.rs filter context per aggregate (keys, filters, USERELATIONSHIP),
+                              one CTE per context; frames for context transition; VALUES
+                              sets; blank member; key domains for auto-exist; Both hops
+                              counted once per base row; calculated_column() SQL
+crates/compiler/src/interp.rs reference interpreter (test oracle)
+crates/compiler/src/graph.rs  Both-direction hops (flagged `expands`), ambiguities()
+crates/tmdl                   PBIP/TMDL writer: tables, measures, calculated columns,
+                              relationships, M partitions from steps, SourceFolder parameter
+crates/core/src/interop.rs    export PBIP / Ossie, import Ossie, model diff
+crates/core/src/relcheck.rs   key counts + suggested cardinality for a relationship
+crates/core/src/session.rs    commit: prepare (infer calculated column types), check_model
+                              (no new ambiguous paths; calculated columns compile);
+                              refresh_calculated() materialises `__calc_<id>` columns
+                              (ALTER + UPDATE … FROM by rowid) on open/commit/undo/redo
+crates/core/tests/dax_golden.rs  71 measures × 7 shapes golden snapshot, random
+                              differential tests (CHARTED_DAX_CASES, CHARTED_DAX_SEED),
+                              Both-direction differential test
+ui/src/model/                 ModelView (pan/zoom canvas, cards, SVG relationships,
+                              drag-to-relate, card drag → SetDiagram), layout.ts (elkjs
+                              in its own worker, star arrangement), RelationshipDialog
+ui/src/dax/                   DaxEditor (Monaco), monaco.ts (language, providers, theme
+                              from tokens), service.ts + dax.worker.ts (WASM client)
+ui/src/views/data/ColumnFormulaBar.tsx   calculated columns in the Data view
+ui/src/app/FileMenu.tsx       File menu: export PBIP / Ossie, import Ossie with diff preview
+ui/src/kit/Menu.tsx           menu button (react-aria)
+```
+
+Report gains `diagram` (model view card positions; saved in report/report.json, kept by
+an Ossie import). New Changes: `SetDiagram`, `ColumnProperty::Expression`. New
+requests: `ExportPbip`, `ExportOssie`, `ImportOssie`; data requests `OssieDiff`,
+`CheckRelationship`. CLI: `export pbip|ossie`, `import [--dry-run]`.
+
 Request flow: UI → `transport.rpc(Request)` → `App::handle` → returns full `AppState`
 (Rust is the source of truth; the UI replaces its mirror). Data (Arrow IPC bytes) goes
 through `transport.data(DataRequest)` separately. TypeScript types in
@@ -125,7 +169,13 @@ bin/test                  # fmt, clippy -D warnings, tests, wasm32 check, i18n, 
 bin/dev                   # vite + debug app
 bin/checkpoint m1         # screenshots to ~/Work/charted-checkpoints/m1 + live demo
 CHARTED_CHECKPOINT_NO_OPEN=1 bin/checkpoint m1   # non-interactive (for the agent)
-target/debug/charted open <project> --screenshot out.png   # WebKitGTK snapshot; delay via CHARTED_SCREENSHOT_DELAY_MS
+bin/wasm                  # builds the DAX language service into ui/src/dax/pkg (skips if current)
+target/debug/charted open <project> --screenshot out.png   # WebKitGTK snapshot; delay via CHARTED_SCREENSHOT_DELAY_MS,
+                          # CHARTED_SCREENSHOT_SCRIPT runs JS first (then CHARTED_SCREENSHOT_AFTER_MS)
+target/debug/charted-headless export pbip|ossie <project> <out>; import <project> <file> [--dry-run]
+CHARTED_DAX_CASES=3000 cargo test -p charted-core --test dax_golden random   # longer differential run
+CHARTED_UPDATE_DOCS=1 cargo test -p charted-dax   # regenerate docs/dax-support.md
+INSTA_UPDATE=always cargo test -p charted-core --test dax_golden   # then review the .snap diff
 target/debug/charted-headless serve --port 7420 --state-dir <dir>   # dev WebSocket server
 ```
 
@@ -153,7 +203,11 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - ts-rs: annotate `u64` fields `#[ts(type = "number")]` or they become `bigint`; enums
   with struct variants need `rename_all_fields = "camelCase"`.
 - Monaco imports use the export map: `monaco-editor/editor/editor.api`,
-  `monaco-editor/editor/editor.worker?worker`.
+  `monaco-editor/editor/editor.worker?worker`. **The bare API has no editor features**:
+  import `monaco-editor/features/<name>/register` for each (see ui/src/dax/monaco.ts),
+  and the suggest widget needs `monaco-editor/editor/contrib/suggest/browser/suggestController`
+  too (no feature module imports it). Create editors with `editContext: false`:
+  WebKitGTK has no EditContext, and Chromium's EditContext input breaks Playwright `fill`.
 - Glide Data Grid 6.0.3 declares React ≤18 as a peer; it works with React 19 (verified).
 - notify watcher: watch stable parent dirs once; only re-arm the replaced theme dir.
   Re-watching the same path races with inotify's IN_IGNORED and drops later events.
@@ -198,6 +252,17 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   not `check()`.
 - The command line cannot open a project the app has open (DuckDB's single-writer
   lock and charted's lock file). Tests that call the CLI close the `App` first.
+- **elkjs:** don't import `elk.bundled.js` inside your own worker: it detects the worker
+  scope and installs its own message handler. Use `elk-api.js` with
+  `workerFactory: () => new Worker(elkWorkerUrl)` (`elk-worker.min.js?url`).
+- **Pointer drags on canvases must `preventDefault` on pointerdown** (and the area needs
+  `user-select: none`): otherwise a text selection left by an earlier drag turns the
+  next drag into a native drag, which fires `pointercancel` and ends the pointer stream.
+- wasm-bindgen-cli must match the `wasm-bindgen` crate version in Cargo.lock (0.2.129;
+  `bin/setup` installs it). `bin/wasm` runs before vite (pnpm dev/build), tests and
+  checkpoints; a fresh clone without it fails to import `ui/src/dax/pkg`.
+- DAX semantics are pinned by the reference interpreter: change the compiler and the
+  interpreter together, and run a long random differential run before committing.
 
 ## Deferred from M0 (do these when relevant)
 
@@ -211,7 +276,6 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 ## Deferred from M1
 
-- Calculated columns are skipped by the Data view (they arrive with the DAX engine, M3).
 - Find compares raw values (as text), not formatted text.
 - Column order changes (drag) and freezing are not implemented; widths are view state
   and not saved with the project.
@@ -230,7 +294,23 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - Value filters are visual-level only; report/page filters take columns.
 - Cross-filtering, highlighting, slicers, matrix and the other M4 visuals.
 
-## Milestone 3: Real modeling (after the M2 review)
+## Deferred from M3
+
+- Calculated columns: row expressions with RELATED and scalar functions only (no
+  aggregates, measures or CALCULATE; no EARLIER). Recomputed whole on change.
+- FILTER over measures as a CALCULATE filter argument; many-to-many relationships do not
+  filter; time intelligence functions (recognised, not evaluated).
+- Measures that are never blank follow "rows with data" (Power BI shows all
+  combinations for some).
+- Relationship dialog: no "Assume referential integrity" or "Apply security filter in
+  both directions" options yet.
+- Model view: no keyboard moving of cards; relationships are editable from the list
+  (Enter) and the diagram (double-click).
+- PBIP export writes an empty report shell (pages only); visuals map to PBIR in M6.
+- New measures get no format string (Power BI shows General too); undo labels are not
+  translated (see the gotcha on commit labels).
+
+## Milestone 3: Real modeling (done; kept for reference)
 
 From the plan: Model view (elkjs in a worker; drag to create relationships;
 cardinality/cross-filter/active dialog; mark as date table); Monaco DAX editor powered
@@ -248,3 +328,17 @@ Checkpoint: the star in the model view (ShipDate relationship dashed as inactive
 create the Targets relationship, set Both; autocomplete + error squiggle;
 `USERELATIONSHIP` and `ALL` share measures in a table; a RELATED calculated column;
 export PBIP and view the `.tmdl`; `export ossie → import` shows 0 differences.
+
+## Milestone 4: Interactivity (after the M3 review)
+
+From the plan: cross-filter store (scope-identity tuples, Ctrl-click union, an
+interaction matrix, cancellation of stale queries); highlight via
+`agg FILTER (WHERE sel)` in the same query; edit-interactions mode; slicers
+(list/dropdown/between/relative date); matrix with GROUPING SETS subtotals and
+expand/collapse; pie/donut, stacked bar/column, scatter, text/image/shape; themes
+(Omarchy live by default, Power BI theme JSON import, gallery); focus mode, show as
+table, export CSV.
+
+Checkpoint: click a column → the line highlights, the matrix filters, the card updates;
+Ctrl-click; slicers; set an interaction to "none"; expand the matrix; switch themes,
+including a live Omarchy switch; import a Power BI theme JSON.

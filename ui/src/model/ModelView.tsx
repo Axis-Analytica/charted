@@ -214,6 +214,7 @@ export function ModelView({ model }: { model: Model }) {
   const linkStart = (e: ReactPointerEvent, tbl: Table, column: string) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    e.preventDefault();
     canvas.current?.setPointerCapture(e.pointerId);
     const p = toPlane(e);
     setDrag({ kind: "link", table: tbl.id, column, from: p, to: p });
@@ -240,6 +241,8 @@ export function ModelView({ model }: { model: Model }) {
           className={`model-canvas ${drag?.kind === "pan" ? "is-panning" : ""} ${drag?.kind === "link" ? "is-linking" : ""}`}
           onPointerDown={(e) => {
             if (e.button !== 0 && e.button !== 1) return;
+            // No text selection or native drag: they would cancel the pointer stream.
+            e.preventDefault();
             setSelected(null);
             canvas.current?.setPointerCapture(e.pointerId);
             setDrag({ kind: "pan", start: { x: e.clientX, y: e.clientY }, origin: { x: view.x, y: view.y } });
@@ -313,6 +316,7 @@ export function ModelView({ model }: { model: Model }) {
                       onPointerDown={(e) => {
                         if (e.button !== 0) return;
                         e.stopPropagation();
+                        e.preventDefault();
                         canvas.current?.setPointerCapture(e.pointerId);
                         setDrag({ kind: "card", table: tbl.id, start: toPlane(e), origin: p });
                       }}

@@ -12,6 +12,11 @@ async function openSample(page: Page) {
   await expect(page.locator(".report-view")).toBeVisible({ timeout: 30_000 });
 }
 
+async function save(page: Page) {
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+}
+
 async function shot(page: Page, name: string) {
   if (shots) await page.screenshot({ path: `${shots}/${name}.png` });
 }
@@ -88,6 +93,19 @@ test("model view: the star, a new relationship, Both refused as ambiguous", asyn
   await expect(edit.getByRole("alert")).toContainText("two active paths");
   await shot(page, "03-both-refused");
   await edit.getByRole("button", { name: "Cancel" }).click();
+  await expect(edit).toBeHidden();
+
+  // Moved cards stay where they are put, saved with the report.
+  const head = page.locator('.model-card[aria-label="Targets"] .model-card-title');
+  const box = (await head.boundingBox())!;
+  await page.mouse.move(box.x + 20, box.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 20, box.y + 140, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.getByRole("button", { name: "Undo Move table" })).toBeVisible();
+  await save(page);
+  const report = JSON.parse(readFileSync(`${tmp}/docs/charted/Harbor & Pine/report/report.json`, "utf8"));
+  expect(Object.keys(report.diagram ?? {})).toHaveLength(6);
 });
 
 test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and ALL side by side", async ({ page }) => {
@@ -136,6 +154,7 @@ test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and A
   expect(new Set(all).size, "ALL ( 'Date' ) ignores the year").toBe(1);
   expect(await cells(3)).not.toEqual(await cells(2));
   await shot(page, "07-userelationship-and-all");
+  await save(page);
 });
 
 test("a RELATED calculated column, PBIP export and an Ossie round trip", async ({ page }) => {
@@ -189,4 +208,5 @@ test("a RELATED calculated column, PBIP export and an Ossie round trip", async (
   await expect(dialog).toContainText("0 differences");
   await shot(page, "10-ossie-round-trip");
   await dialog.getByRole("button", { name: "Cancel" }).click();
+  await save(page);
 });

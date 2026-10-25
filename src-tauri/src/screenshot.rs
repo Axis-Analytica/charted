@@ -14,6 +14,18 @@ pub fn schedule(handle: AppHandle, file: PathBuf) {
             .and_then(|v| v.parse().ok())
             .unwrap_or(4000);
         std::thread::sleep(Duration::from_millis(delay));
+        // CHARTED_SCREENSHOT_SCRIPT: JavaScript to run first (e.g. to open a view), then
+        // wait CHARTED_SCREENSHOT_AFTER_MS before the snapshot.
+        if let Ok(script) = std::env::var("CHARTED_SCREENSHOT_SCRIPT") {
+            if let Some(window) = handle.get_webview_window("main") {
+                let _ = window.eval(&script);
+            }
+            let after = std::env::var("CHARTED_SCREENSHOT_AFTER_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(3000);
+            std::thread::sleep(Duration::from_millis(after));
+        }
         let h = handle.clone();
         let _ = handle.run_on_main_thread(move || {
             let Some(window) = h.get_webview_window("main") else {
