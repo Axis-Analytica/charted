@@ -13,6 +13,8 @@ with a report of anything that doesn't come across.
 > with drill-down, drill-through and bookmarks, and move projects to and from Power BI.
 > See [Install](#install).
 
+![charted showing a Trends page: sales against last year, year to date, and a column chart drilled into 2024's quarters](docs/screenshot.png)
+
 ## Install
 
 On Omarchy or any Arch-based system, from a checkout:
