@@ -1,0 +1,36 @@
+# Packages the release build from this checkout (bin/build), for bin/install.
+# The AUR packages are ../PKGBUILD (from source) and ../PKGBUILD-bin (release tarball).
+pkgname=charted
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A local-first Power BI Desktop alternative: load data, model it, build interactive reports"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Axis-Analytica/charted"
+license=('Apache-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'dbus' 'xdg-desktop-portal' 'hicolor-icon-theme' 'shared-mime-info' 'desktop-file-utils')
+optdepends=('xdg-desktop-portal-gtk: file dialogs'
+            'gnome-keyring: PostgreSQL passwords (any Secret Service keyring)')
+provides=('charted')
+conflicts=('charted-bin')
+options=('!strip' '!debug')
+
+_root="$(cd "$startdir/../.." && pwd)"
+
+pkgver() {
+  grep -m1 '^version' "$_root/Cargo.toml" | cut -d'"' -f2
+}
+
+package() {
+  local arch_triple="${CARCH}-unknown-linux-gnu"
+  install -Dm755 "$_root/target/release/charted" "$pkgdir/usr/bin/charted"
+  install -Dm644 "$_root/target/duckdb-download/$arch_triple/v2.0.0/libduckdb.so" "$pkgdir/usr/lib/charted/libduckdb.so"
+  install -Dm644 "$_root/pkgbuild/charted.desktop" "$pkgdir/usr/share/applications/charted.desktop"
+  install -Dm644 "$_root/pkgbuild/charted.xml" "$pkgdir/usr/share/mime/packages/charted.xml"
+  install -Dm644 "$_root/pkgbuild/charted.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/charted.svg"
+  for s in 32 64 128 256; do
+    install -Dm644 "$_root/pkgbuild/icons/${s}.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/charted.png"
+  done
+  install -Dm644 "$_root/LICENSE" "$pkgdir/usr/share/licenses/charted/LICENSE"
+  install -Dm644 "$_root/NOTICE" "$pkgdir/usr/share/licenses/charted/NOTICE"
+  install -Dm644 "$_root/skill/SKILL.md" "$pkgdir/usr/share/charted/skill/SKILL.md"
+}

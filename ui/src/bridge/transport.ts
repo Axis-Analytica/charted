@@ -25,6 +25,8 @@ export interface Transport {
   /** Paths passed on the command line (`charted open <path>`), consumed once. */
   initialPath(): Promise<string | null>;
   quit(): Promise<void>;
+  /** Opens a new GitHub issue for charted (a crash report) in the browser. */
+  openIssue(url: string): Promise<void>;
 }
 
 export interface ApiError {

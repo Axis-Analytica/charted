@@ -85,6 +85,16 @@ if [ "$m" = m5 ] && [ -d "$built" ]; then
       [...document.querySelectorAll(".qe-query")].find((e) => e.textContent.includes("stores_raw"))?.click();
     })()' ./target/debug/charted open "$built" --screenshot "$out/m5-window-editor.png" >/dev/null
 fi
+if [ "$m" = m6 ] && [ -d "$built" ]; then
+  # The Trends page (last year, year to date, a drilled column chart) in the real window.
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=4000 CHARTED_SCREENSHOT_SCRIPT='[...document.querySelectorAll("[role=tab]")].find((e) => e.textContent === "Trends")?.click()' \
+    ./target/debug/charted open "$built" --screenshot "$out/m6-window-trends.png" >/dev/null
+  # The release build, serving its own UI (no dev server), as the package installs it.
+  kill $VITE 2>/dev/null || true
+  if [ -x target/release/charted ]; then
+    CHARTED_SCREENSHOT_DELAY_MS=4000 ./target/release/charted open "$built" --screenshot "$out/m6-window-release.png" >/dev/null
+  fi
+fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."

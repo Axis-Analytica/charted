@@ -76,6 +76,28 @@ async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
     })
 }
 
+/// Opens a new GitHub issue for charted in the browser (a crash report the user
+/// reads and sends themselves). No other page can be opened.
+#[tauri::command]
+fn open_issue(url: String) -> Result<(), ApiError> {
+    if !charted_core::crash::is_issue_url(&url) {
+        return Err(ApiError {
+            code: "invalid".into(),
+            message: "only charted's GitHub issues can be opened".into(),
+            detail: None,
+        });
+    }
+    std::process::Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| ApiError {
+            code: "invalid".into(),
+            message: format!("couldn't open the browser: {e}"),
+            detail: None,
+        })
+}
+
 #[tauri::command]
 fn quit(handle: tauri::AppHandle) {
     handle.exit(0);
@@ -84,6 +106,10 @@ fn quit(handle: tauri::AppHandle) {
 /// Spike command used by the WebKitGTK performance page (`?spike`).
 #[tauri::command]
 async fn spike_arrow(rows: u64) -> Result<Response, String> {
+    // The WebKitGTK performance spike (docs/perf.md); not part of release builds.
+    if !cfg!(debug_assertions) {
+        return Err("not available in release builds".into());
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let conn = duckdb::Connection::open_in_memory().map_err(|e| e.to_string())?;
         let sql = format!(
@@ -113,6 +139,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
     // .desktop file so Hyprland and the launcher associate the window with charted.
     glib::set_prgname(Some("charted"));
     let initial = path.map(|p| std::fs::canonicalize(&p).unwrap_or(p).display().to_string());
+    charted_core::crash::install_hook(state_dir());
     let app = Arc::new(Mutex::new(App::new(state_dir())));
     let shared = Shared {
         app: app.clone(),
@@ -129,6 +156,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
             initial_path,
             pick,
             quit,
+            open_issue,
             spike_arrow
         ])
         .setup(move |tauri_app| {

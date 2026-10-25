@@ -8,7 +8,7 @@ import type { Change } from "../../bridge/generated/Change";
 import type { Column } from "../../bridge/generated/Column";
 import type { Model } from "../../bridge/generated/Model";
 import type { Table } from "../../bridge/generated/Table";
-import { DaxEditor, type DaxEditorHandle } from "../../dax/DaxEditor";
+import { DaxEditor, type DaxEditorHandle } from "../../dax/LazyDaxEditor";
 import { splitFormula } from "../../dax/service";
 import { useT } from "../../i18n";
 import { IconButton } from "../../kit/Button";

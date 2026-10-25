@@ -22,4 +22,5 @@ export const tauriTransport: Transport = {
   pick: (options: PickOptions) => invoke<string | null>("pick", { options }),
   initialPath: () => invoke<string | null>("initial_path"),
   quit: () => invoke("quit"),
+  openIssue: (url) => invoke("open_issue", { url }),
 };

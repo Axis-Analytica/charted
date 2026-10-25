@@ -8,6 +8,7 @@ pub mod api;
 mod atomic;
 pub mod bundle;
 pub mod check;
+pub mod crash;
 pub mod dataview;
 pub mod env;
 pub mod ids;

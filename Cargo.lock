@@ -864,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "charted"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ashpd",
  "cairo-rs",
@@ -886,7 +886,7 @@ dependencies = [
 
 [[package]]
 name = "charted-cli"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-core",
  "charted-engine",
@@ -901,7 +901,7 @@ dependencies = [
 
 [[package]]
 name = "charted-compiler"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-dax",
  "charted-model",
@@ -914,7 +914,7 @@ dependencies = [
 
 [[package]]
 name = "charted-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "arrow-cast",
  "arrow-ipc",
@@ -942,7 +942,7 @@ dependencies = [
 
 [[package]]
 name = "charted-dax"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-model",
  "insta",
@@ -952,7 +952,7 @@ dependencies = [
 
 [[package]]
 name = "charted-engine"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "arrow-ipc",
  "duckdb",
@@ -962,7 +962,7 @@ dependencies = [
 
 [[package]]
 name = "charted-model"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "proptest",
  "serde",
@@ -973,7 +973,7 @@ dependencies = [
 
 [[package]]
 name = "charted-ossie"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-model",
  "insta",
@@ -986,7 +986,7 @@ dependencies = [
 
 [[package]]
 name = "charted-samplegen"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "duckdb",
  "rand 0.10.3",
@@ -997,7 +997,7 @@ dependencies = [
 
 [[package]]
 name = "charted-tmdl"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-compiler",
  "charted-model",
@@ -1011,7 +1011,7 @@ dependencies = [
 
 [[package]]
 name = "charted-wasm"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "charted-dax",
  "charted-model",

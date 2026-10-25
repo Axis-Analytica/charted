@@ -1,0 +1,13 @@
+#!/bin/bash
+# bin/install — builds charted (bin/build) and installs it as a pacman package
+# (makepkg -fsi asks for your password), so it appears in the launcher (Super+Space),
+# opens .charted, .chartedz and .pbip files, and updates like any other package.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+bin/build
+# makepkg works in a temporary folder: some filesystems (shared folders) can't hold
+# the package's file permissions.
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+cd pkgbuild/local
+BUILDDIR="$work" PKGDEST="$work" SRCDEST="$work" makepkg -fsi "$@"

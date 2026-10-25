@@ -5,12 +5,25 @@ A lightweight, local-first Power BI Desktop alternative for [Omarchy](https://om
 Load data, build a semantic model with relationships and DAX measures, explore it in a
 fast data grid, and design interactive reports, all on your own machine. Models are
 stored as [Apache Ossie](https://ossie.apache.org/) documents and export to Power BI
-projects (PBIP/TMDL), so your work is never locked in.
+projects (PBIP/TMDL/PBIR), so your work is never locked in. Power BI projects import,
+with a report of anything that doesn't come across.
 
-> **Status:** in active development. Milestones 0–5 are built: you can get and shape
-> data, model it, write DAX and build interactive reports. Still to come are Power BI
-> import, time intelligence, packaging and a 1.0 release (M6); see the
-> [roadmap](#roadmap). There is no packaged release yet.
+> **Status:** 1.0 release candidate. All seven milestones are built: get and shape
+> data, model it, write DAX (time intelligence included), build interactive reports
+> with drill-down, drill-through and bookmarks, and move projects to and from Power BI.
+> See [Install](#install).
+
+## Install
+
+On Omarchy or any Arch-based system, from a checkout:
+
+```sh
+bin/install        # builds a release and installs it as a pacman package
+```
+
+charted then appears in the launcher (Super+Space) and opens `.charted` projects,
+`.chartedz` bundles and Power BI `.pbip` files. AUR packages (`charted`, `charted-bin`)
+follow the 1.0 release.
 
 ## What works today
 
@@ -45,14 +58,16 @@ projects (PBIP/TMDL), so your work is never locked in.
 - Drag one column onto another to relate them; charted counts the keys and suggests the
   cardinality.
 - Both-direction filtering, refused (as Power BI does) where it would create two paths.
-- Mark a table as a date table.
+- Mark a table as a date table, or generate one (years, quarters, months, weekdays, a
+  fiscal year) related to your date columns.
 
 **DAX**
 - A Monaco editor with autocomplete, parameter hints, hover help, errors as you type and
   a formatter, running in WebAssembly.
 - A compiler from DAX to DuckDB SQL covering filter context, `CALCULATE` and its filter
-  functions, iterators with context transition, `USERELATIONSHIP`, variables and
-  `SWITCH`. It is checked against an independent reference interpreter with hundreds of
+  functions, iterators with context transition, `USERELATIONSHIP`, variables,
+  `SWITCH` and time intelligence (`SAMEPERIODLASTYEAR`, `DATEADD`, `PARALLELPERIOD`,
+  `TOTALYTD`/`QTD`/`MTD` with fiscal years, `PREVIOUS…`/`NEXT…`). It is checked against an independent reference interpreter with hundreds of
   fixed cases and thousands of random ones. [docs/dax-support.md](docs/dax-support.md)
   lists what is supported.
 
@@ -64,16 +79,25 @@ projects (PBIP/TMDL), so your work is never locked in.
   box, image and shape.
 - Cross-filtering and highlighting between visuals, Ctrl-click to add to a selection, and
   per-visual interaction settings (filter, highlight or none).
+- Drill down, up and through hierarchies (Year → Quarter → Month), drill-through pages
+  that open filtered to the data point you right-clicked, and bookmarks you step through
+  with the keyboard.
 - Focus mode, show as a table, and export a visual's data to CSV.
 - Themes: follow the Omarchy desktop theme live, choose a built-in theme, or import a
   Power BI theme file.
 
 **Interop and scripting**
-- Export to a Power BI project (PBIP with TMDL: tables, measures, calculated columns,
-  relationships, Power Query partitions), and export or import Apache Ossie with a diff
-  preview.
+- Export to a Power BI project: PBIP with the model in TMDL (tables, measures,
+  calculated columns, relationships, Power Query partitions) and the report in PBIR
+  (pages, visuals, filters, drill-through, themes), checked against Microsoft's schemas.
+- Import Power BI projects (TMDL or `model.bim`, PBIR or the older `report.json`): the
+  model, the Power Query that reads files, and the report, with an import report of what
+  charted can't use yet. An export imports back unchanged.
+- `.chartedz` bundles: a whole project in one file to share. Export or import Apache
+  Ossie with a diff preview.
 - A command line for scripts and agents, all with `--json`: `charted check`,
   `charted query` (including `--visual`), `charted export pbip|ossie`, `charted import`,
+  `charted import-pbip`,
   `charted sample create` and `charted skill install`.
 - The "Harbor & Pine Outfitters" sample: a deterministic retail star schema at any scale
   up to 10 million rows (`charted sample create <dir> [--scale 10m]`).
@@ -84,7 +108,8 @@ projects (PBIP/TMDL), so your work is never locked in.
 bin/setup          # one-time: Rust, pnpm, wasm-bindgen and UI dependencies via mise
 bin/dev            # run the app with hot reload
 bin/test           # full suite: Rust, DAX differential tests, WebAssembly, TypeScript, i18n, end-to-end
-bin/checkpoint m4  # milestone review: screenshots plus a live demo (docs/demos/)
+bin/checkpoint m6  # milestone review: screenshots plus a live demo (docs/demos/)
+bin/build          # release build; bin/install packages and installs it
 ```
 
 charted is a Tauri 2 app: a Rust core (DuckDB, the semantic model, the DAX compiler) and
@@ -100,8 +125,8 @@ and the DAX support list, and `docs/HANDOFF.md` for the architecture.
 | M2 | First report: canvas, visuals, measures, filters | Done |
 | M3 | Real modeling: relationships, DAX language service and compiler, Power BI export | Done |
 | M4 | Interactivity: cross-filter/highlight, slicers, matrix, themes | Done |
-| M5 | Query editor: applied steps, transforms, profiling, more sources | In review |
-| M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | |
+| M5 | Query editor: applied steps, transforms, profiling, more sources | Done |
+| M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | In review |
 
 ## License
 

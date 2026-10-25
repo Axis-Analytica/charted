@@ -1,22 +1,25 @@
 import { ChartColumnBig, ChartPie, Command, Keyboard, Network, Redo2, Save, Sheet, Undo2, Workflow, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import { useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
-import { Banner } from "../kit/misc";
+import { Banner, Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
 import { toast } from "../state/toasts";
 import { useShortcut } from "../app/shortcuts";
+import { cycleRegion } from "../app/regions";
+import { preloadDaxEditor } from "../dax/LazyDaxEditor";
 import { StatusBar } from "./StatusBar";
-import { DataView } from "./data/DataView";
+// The data, model and query views load on first use, keeping the initial download small.
+const DataView = lazy(() => import("./data/DataView").then((m) => ({ default: m.DataView })));
 import { useDataView } from "../state/dataview";
 import { type View, useReport } from "../state/report";
 import { ReportView } from "../report/ReportView";
 import { TablesPanel } from "./TablesPanel";
 import { FileMenu } from "../app/FileMenu";
 import { ImportReportDialog } from "../app/ImportReport";
-import { ModelView } from "../model/ModelView";
-import { QueryEditor } from "../query/QueryEditor";
+const ModelView = lazy(() => import("../model/ModelView").then((m) => ({ default: m.ModelView })));
+const QueryEditor = lazy(() => import("../query/QueryEditor").then((m) => ({ default: m.QueryEditor })));
 import { SourceBanner } from "../query/SourceBanner";
 
 export function ProjectView({ project }: { project: ProjectSnapshot }) {
@@ -40,6 +43,11 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const close = () => (project.dirty ? toast({ kind: "info", title: t("Save or undo your changes before closing") }) : rpc({ type: "closeProject" }));
   const undo = () => rpc({ type: "undo" });
   const redo = () => rpc({ type: "redo" });
+  useEffect(preloadDaxEditor, []);
+  useShortcut(
+    { id: "next-region", keys: "F6", label: "Next region", group: "View", global: true, run: () => cycleRegion(false) },
+    { id: "previous-region", keys: "Shift+F6", label: "Previous region", group: "View", global: true, run: () => cycleRegion(true) },
+  );
   useShortcut(
     { id: "save", keys: "Ctrl+S", label: "Save", group: "File", run: save, global: true },
     // The query editor has its own undo for its draft.
@@ -105,11 +113,15 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
           </main>
         ) : view === "model" ? (
           <main className="main">
-            <ModelView model={project.model} />
+            <Suspense fallback={<ViewLoading />}>
+              <ModelView model={project.model} />
+            </Suspense>
           </main>
         ) : view === "query" ? (
           <main className="main">
-            <QueryEditor project={project} />
+            <Suspense fallback={<ViewLoading />}>
+              <QueryEditor project={project} />
+            </Suspense>
           </main>
         ) : (
           <>
@@ -122,11 +134,23 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
                 useDataView.getState().select(tableId, column);
               }}
             />
-            <main className="main">{table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}</main>
+            <main className="main">
+              <Suspense fallback={<ViewLoading />}>
+                {table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}
+              </Suspense>
+            </main>
           </>
         )}
       </div>
       <StatusBar project={project} table={view === "data" ? table : null} />
+    </div>
+  );
+}
+
+function ViewLoading() {
+  return (
+    <div className="main-empty">
+      <Spinner size={18} />
     </div>
   );
 }

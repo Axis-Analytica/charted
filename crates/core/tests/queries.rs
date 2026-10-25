@@ -633,6 +633,9 @@ fn clean_the_store_list_merge_it_into_store_and_apply() {
         "{}",
         status(&fx)
     );
+    // A same-size edit is only noticed once the modification time moves on (some
+    // filesystems keep whole seconds).
+    std::thread::sleep(std::time::Duration::from_millis(1100));
     std::fs::write(&raw_path, text.replace("Ben Okafor", "Bea Okafor")).unwrap();
     let s = status(&fx);
     let changed: Vec<&str> = s

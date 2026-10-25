@@ -12,7 +12,7 @@ import { Dialog } from "../kit/Dialog";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { newId, useReport } from "../state/report";
-import { DaxEditor, type DaxEditorHandle } from "../dax/DaxEditor";
+import { DaxEditor, type DaxEditorHandle } from "../dax/LazyDaxEditor";
 import { splitFormula } from "../dax/service";
 
 const FORMATS = [

@@ -76,5 +76,6 @@ export function wsTransport(): Transport {
     },
     initialPath: async () => params.get("open"),
     quit: () => call("quit"),
+    openIssue: async (url) => void window.open(url, "_blank", "noopener"),
   };
 }

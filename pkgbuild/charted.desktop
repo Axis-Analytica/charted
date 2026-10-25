@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=charted
+GenericName=Business intelligence
+GenericName[da]=Business intelligence
+GenericName[ar]=ذكاء الأعمال
+Comment=Load data, model it, and build interactive reports. Locally.
+Comment[da]=Indlæs data, modellér dem, og byg interaktive rapporter. Lokalt.
+Comment[ar]=حمّل البيانات، وابنِ نموذجها، وأنشئ تقارير تفاعلية. محليًا.
+Keywords=Power BI;report;dashboard;DAX;data;model;chart;
+Keywords[da]=Power BI;rapport;dashboard;DAX;data;model;diagram;
+Keywords[ar]=Power BI;تقرير;لوحة;DAX;بيانات;نموذج;مخطط;
+Exec=charted open %f
+Icon=charted
+Terminal=false
+Categories=Office;Development;Database;
+MimeType=application/x-charted;application/x-charted-bundle;application/x-powerbi-project;
+StartupWMClass=charted

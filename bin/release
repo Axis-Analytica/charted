@@ -1,0 +1,25 @@
+#!/bin/bash
+# bin/release — the release tarball for this machine's architecture, laid out as the
+# installed files (charted-bin unpacks it into /):
+#   target/dist/charted-<version>-<arch>.tar.gz  and  SHA256SUMS
+set -euo pipefail
+cd "$(dirname "$0")/.."
+bin/build
+version="$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)"
+arch="$(uname -m)"
+root="target/dist/charted-$version"
+rm -rf "$root" && mkdir -p "$root"
+install -Dm755 target/release/charted "$root/usr/bin/charted"
+install -Dm644 "target/duckdb-download/$arch-unknown-linux-gnu/v2.0.0/libduckdb.so" "$root/usr/lib/charted/libduckdb.so"
+install -Dm644 pkgbuild/charted.desktop "$root/usr/share/applications/charted.desktop"
+install -Dm644 pkgbuild/charted.xml "$root/usr/share/mime/packages/charted.xml"
+install -Dm644 pkgbuild/charted.svg "$root/usr/share/icons/hicolor/scalable/apps/charted.svg"
+for s in 32 64 128 256; do
+  install -Dm644 "pkgbuild/icons/$s.png" "$root/usr/share/icons/hicolor/${s}x${s}/apps/charted.png"
+done
+install -Dm644 LICENSE NOTICE -t "$root/usr/share/licenses/charted/"
+install -Dm644 skill/SKILL.md "$root/usr/share/charted/skill/SKILL.md"
+out="target/dist/charted-$version-$arch.tar.gz"
+tar -C target/dist -czf "$out" "charted-$version"
+(cd target/dist && sha256sum "charted-$version-$arch.tar.gz" >> SHA256SUMS)
+ls -la "$out"

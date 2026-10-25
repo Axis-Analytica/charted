@@ -2,12 +2,13 @@
 // import (the core keeps it until it's dismissed).
 import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import type { ImportReport } from "../bridge/generated/ImportReport";
-import { useT } from "../i18n";
+import { msg, useT } from "../i18n";
 import { Button } from "../kit/Button";
 import { Dialog } from "../kit/Dialog";
 import { useApp } from "../state/app";
 
-const KIND_ORDER = ["data", "query", "table", "measure", "column", "relationship", "hierarchy", "visual", "field", "role", "perspective", "culture"];
+// The kinds of things an import can skip, in the order they're listed (also their labels).
+const KIND_ORDER = [msg("data"), msg("query"), msg("table"), msg("measure"), msg("column"), msg("relationship"), msg("hierarchy"), msg("visual"), msg("field"), msg("role"), msg("perspective"), msg("culture")];
 
 export function ImportReportDialog({ report }: { report: ImportReport }) {
   const { t } = useT();

@@ -1,0 +1,57 @@
+# Maintainer: Axis Analytica <https://github.com/Axis-Analytica>
+# AUR: charted — built from source. (charted-bin installs the release build.)
+pkgname=charted
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="A local-first Power BI Desktop alternative: load data, model it, build interactive reports"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Axis-Analytica/charted"
+license=('Apache-2.0')
+depends=('webkit2gtk-4.1' 'gtk3' 'dbus' 'xdg-desktop-portal' 'hicolor-icon-theme' 'shared-mime-info' 'desktop-file-utils')
+makedepends=('rust' 'rust-wasm' 'nodejs' 'pnpm' 'git')
+optdepends=('xdg-desktop-portal-gtk: file dialogs'
+            'gnome-keyring: PostgreSQL passwords (any Secret Service keyring)')
+provides=('charted')
+conflicts=('charted-bin')
+options=('!lto' '!debug')
+_duckdb=2.0.0
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+source_x86_64=("duckdb-$_duckdb-amd64.tar.gz::https://github.com/duckdb/duckdb/releases/download/v$_duckdb/duckdb-shared-libs-linux-amd64.tar.gz")
+source_aarch64=("duckdb-$_duckdb-arm64.tar.gz::https://github.com/duckdb/duckdb/releases/download/v$_duckdb/duckdb-shared-libs-linux-arm64.tar.gz")
+noextract=("duckdb-$_duckdb-amd64.tar.gz" "duckdb-$_duckdb-arm64.tar.gz")
+sha256sums=('SKIP')
+sha256sums_x86_64=('993ad89e7dfca66cd6da994c2cad090c2fc160ddf9f550498a098ab4bb13cfb1')
+sha256sums_aarch64=('c60eecf91143ca6bbac55c4f4d40dc22520488b0ac257c86e0fe9a2b451cf2b7')
+
+prepare() {
+  mkdir -p "$srcdir/duckdb"
+  tar -xzf "$srcdir"/duckdb-$_duckdb-*.tar.gz -C "$srcdir/duckdb"
+  cd "$pkgname-$pkgver"
+  # The DAX editor's WebAssembly needs the wasm-bindgen matching the crate's version.
+  cargo install --locked --root "$srcdir/tools" wasm-bindgen-cli --version 0.2.129
+  cargo fetch --locked
+  (cd ui && pnpm install --frozen-lockfile)
+}
+
+build() {
+  cd "$pkgname-$pkgver"
+  export PATH="$srcdir/tools/bin:$PATH"
+  # Link the DuckDB library from source=() instead of downloading it during the build.
+  export DUCKDB_LIB_DIR="$srcdir/duckdb" DUCKDB_INCLUDE_DIR="$srcdir/duckdb" DUCKDB_DOWNLOAD_LIB=0
+  (cd ui && pnpm build)
+  cargo build --frozen --release -p charted --features custom-protocol
+}
+
+package() {
+  cd "$pkgname-$pkgver"
+  install -Dm755 target/release/charted "$pkgdir/usr/bin/charted"
+  install -Dm644 "$srcdir/duckdb/libduckdb.so" "$pkgdir/usr/lib/charted/libduckdb.so"
+  install -Dm644 pkgbuild/charted.desktop "$pkgdir/usr/share/applications/charted.desktop"
+  install -Dm644 pkgbuild/charted.xml "$pkgdir/usr/share/mime/packages/charted.xml"
+  install -Dm644 pkgbuild/charted.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/charted.svg"
+  for s in 32 64 128 256; do
+    install -Dm644 "pkgbuild/icons/$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/charted.png"
+  done
+  install -Dm644 LICENSE NOTICE -t "$pkgdir/usr/share/licenses/charted/"
+  install -Dm644 skill/SKILL.md "$pkgdir/usr/share/charted/skill/SKILL.md"
+}

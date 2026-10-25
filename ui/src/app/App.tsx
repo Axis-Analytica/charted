@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CrashNotice } from "./CrashNotice";
 import { transport } from "../bridge";
 import { applyTokens, deriveTokens } from "../design/theme";
 import { useLanguage, useT } from "../i18n";
@@ -88,6 +89,7 @@ export function App() {
       ) : (
         <Welcome state={state} />
       )}
+      {state?.crash && <CrashNotice crash={state.crash} />}
       {busy && (
         <div className="busy" role="status">
           <Spinner size={18} />

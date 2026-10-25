@@ -144,3 +144,4 @@
 .import-report-kind { width: 1%; white-space: nowrap; color: var(--fg-faint) !important; text-transform: capitalize; }
 .import-report-name { color: var(--fg) !important; font-weight: 550; overflow-wrap: anywhere; min-width: 140px; }
 .dialog-body:has(.import-report) { max-height: 60vh; overflow: auto; }
+.crash-path { margin: 8px 0 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-faint); overflow-wrap: anywhere; }

@@ -38,6 +38,7 @@ import { toast } from "../state/toasts";
 import { type VisualData, useVisualData } from "./data";
 import { prop, visualDef } from "./registry";
 import { CanvasScale } from "./scale";
+import { VisualBoundary } from "./VisualBoundary";
 import { Card } from "./visuals/Card";
 import { fmt, projectionFormat } from "./visuals/common";
 import { Cartesian } from "./visuals/Cartesian";
@@ -222,7 +223,9 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
           {title}
         </div>
       )}
-      <div className="visual-body">{body()}</div>
+      <div className="visual-body">
+        <VisualBoundary resetKey={`${signature}:${JSON.stringify(visual)}`}>{body()}</VisualBoundary>
+      </div>
       {loading && hasFields && (
         <span className="visual-loading">
           <Spinner size={12} />

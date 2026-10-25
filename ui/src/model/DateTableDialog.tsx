@@ -5,14 +5,14 @@ import { useEffect, useMemo, useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { ColumnStats } from "../bridge/generated/ColumnStats";
 import type { Model } from "../bridge/generated/Model";
-import { useT } from "../i18n";
+import { msg, useT } from "../i18n";
 import { Button } from "../kit/Button";
 import { Dialog } from "../kit/Dialog";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import "../query/query.css";
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const MONTHS = [msg("January"), msg("February"), msg("March"), msg("April"), msg("May"), msg("June"), msg("July"), msg("August"), msg("September"), msg("October"), msg("November"), msg("December")];
 
 /** The year of a statistic's value: ISO text, epoch milliseconds or epoch days. */
 function yearOf(v: unknown): number | null {

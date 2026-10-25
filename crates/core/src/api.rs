@@ -68,6 +68,8 @@ pub enum Request {
     },
     /// Hides the import report.
     DismissImportReport,
+    /// Marks the last crash as seen.
+    DismissCrash,
     /// Writes the project as a .chartedz bundle (saved first if needed).
     SaveBundle {
         path: String,
@@ -123,6 +125,9 @@ pub struct AppState {
     pub project: Option<ProjectSnapshot>,
     pub recent: Vec<RecentProject>,
     pub version: String,
+    /// charted crashed last time (until dismissed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub crash: Option<crate::crash::CrashInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -506,6 +511,7 @@ impl App {
             project: self.session.as_ref().map(Session::snapshot).transpose()?,
             recent: recent::list(&self.state_dir),
             version: env!("CARGO_PKG_VERSION").into(),
+            crash: crate::crash::pending(&self.state_dir),
         })
     }
 
@@ -563,6 +569,7 @@ impl App {
                 self.import_powerbi(Path::new(&path), &parent)?;
             }
             Request::DismissImportReport => self.session_mut()?.import_report = None,
+            Request::DismissCrash => crate::crash::dismiss(&self.state_dir),
             Request::SaveBundle { path } => {
                 let s = self.session_mut()?;
                 s.save()?;

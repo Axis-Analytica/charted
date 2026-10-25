@@ -1,0 +1,14 @@
+#!/bin/bash
+# bin/build — a release build: the UI (with the DAX WebAssembly), then the charted
+# binary serving it, linked against DuckDB's prebuilt library. Output:
+#   target/release/charted
+#   target/duckdb-download/<arch>/v2.0.0/libduckdb.so  (installed to /usr/lib/charted)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+(cd ui && pnpm install --frozen-lockfile >/dev/null && pnpm build)
+cargo build --release -p charted --features custom-protocol
+arch="$(uname -m)-unknown-linux-gnu"
+lib="target/duckdb-download/$arch/v2.0.0/libduckdb.so"
+test -f "$lib" || { echo "bin/build: $lib is missing" >&2; exit 1; }
+ls -la target/release/charted "$lib"

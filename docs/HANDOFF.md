@@ -1,11 +1,12 @@
-# Handoff: milestone 5 (query editor) built; checkpoint review, then milestone 6
+# Handoff: milestone 6 (interop, polish, release) built; review, then tag v1.0.0
 
-Read this first when picking up development. Last updated 2026-10-26, end of M5 build.
-**Status:** M0–M4 are done (the user moved on from M3 and M4 without separate feedback;
-the README and CI fixes for M3/M4 are pushed, CI green at 02de7c8). M5 is implemented
-and committed locally (not pushed); `bin/test` is green. The user has not yet reviewed
-the M5 checkpoint (`docs/demos/m5.md`, screenshots in `~/Work/charted-checkpoints/m5/`).
-Address their feedback before starting M6.
+Read this first when picking up development. Last updated 2026-10-26, end of M6 build.
+**Status:** M0–M5 are done and pushed (CI green). M6 is implemented and committed
+locally (not pushed); `bin/test` is green. Waiting on the user's M6 review
+(`docs/demos/m6.md`, screenshots in `~/Work/charted-checkpoints/m6/`). Then, only with
+the user's go-ahead (each is outward-facing): push, tag `v1.0.0` (the release workflow
+builds both architectures' tarballs into a draft release), fill the checksums into
+`pkgbuild/PKGBUILD-bin`, publish the AUR packages and open the omarchy-pkgs PR.
 
 ## Decisions already made (do not re-litigate)
 
@@ -240,6 +241,40 @@ Request flow: UI → `transport.rpc(Request)` → `App::handle` → returns full
 through `transport.data(DataRequest)` separately. TypeScript types in
 `ui/src/bridge/generated/` are written by ts-rs when `cargo test` runs; commit them.
 
+M6 added:
+
+```
+crates/dax/src/bind.rs        TableExpr::Dates {table, column, op: DateOp} (Shift, Parallel, Previous,
+                              Next, ToDate with a fiscal year end); TOTALxTD bind to CALCULATE;
+                              FIRSTDATE/LASTDATE as MIN/MAX; YEAR/MONTH/DAY/QUARTER scalars
+crates/compiler/src/visual.rs date_set: a value-set CTE of dates per outer key (joined to the
+                              column's own dates); on a date table (marked, or joined on the
+                              column) CALCULATE clears the table's other filters and keys
+crates/compiler/src/interp.rs the same in the reference interpreter (mod cal: civil-day maths)
+crates/model/src/report.rs    Visual.drill: Vec<DrillStep> (Into{keys}|Next|Expand), drill_role(),
+                              Visual::drill_levels(); PageSettings.drillthrough + keep_all_filters;
+                              Report.bookmarks: Vec<Bookmark{page, filters, visuals: VisualState}>;
+                              Change::SetBookmarks
+crates/core/src/visualq.rs    drilled hierarchies show levels start..=depth, filtered to members
+crates/core/src/session.rs    create_date_table (Source::Calendar query, marked, sorted, related)
+crates/tmdl/src/read.rs       TMDL tree parser + model.bim (TMSL) → Model, queries, Skipped list
+crates/tmdl/src/mquery.rs     M recogniser: Csv/Excel/Parquet/Json + PromoteHeaders, TransformColumnTypes,
+                              Remove/Select/RenameColumns, Skip, FirstN, Distinct; else reported
+crates/tmdl/src/pbir.rs       PBIR export (schemas vendored in crates/tmdl/schema/pbir, validated in
+                              tests) and import of PBIR and legacy report.json; chartedVisual /
+                              chartedPage / chartedReport annotations make charted's exports exact
+crates/core/src/pbimport.rs   import(): locate .pbip/.bim, read, rebase SourceFolder paths, find data
+                              files next to the project, load, empty tables for the rest, DAX check
+crates/core/src/bundle.rs     .chartedz zip (no .cache); OpenProject unpacks bundles, imports .pbip
+crates/core/src/crash.rs      panic hook → crash-<t>.log; AppState.crash; prefilled issue URL
+crates/core/tests/fixtures/Contoso   a Power BI Desktop-style PBIP with things charted skips
+ui/src/state/drill.ts, drillthrough.ts; ui/src/report/BookmarksPane.tsx, VisualBoundary.tsx
+ui/src/model/DateTableDialog.tsx; ui/src/app/ImportReport.tsx, CrashNotice.tsx, regions.ts (F6)
+ui/src/dax/LazyDaxEditor.tsx  Monaco and the Data/Model/Query views load lazily (473 KB initial JS)
+bin/build, bin/install, bin/release; pkgbuild/{PKGBUILD,PKGBUILD-bin,local/PKGBUILD,charted.desktop,
+charted.xml,icons}; .github/workflows/release.yml (tag v* → draft release with tarballs)
+```
+
 ## Commands
 
 ```sh
@@ -374,6 +409,18 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - Row order: steps that depend on it (remove top rows, promote headers, fill down, index,
   remove duplicates) number rows with `row_number() OVER ()`, which follows file order.
 
+- (M6) e2e runs `target/debug/charted-headless serve`: rebuild it (`cargo build -p
+  charted-cli`) after adding a Request variant, or the UI gets "unknown variant".
+- (M6) Release builds need `--features custom-protocol` (bin/build does it), or the
+  binary still loads the UI from the Vite dev URL. `charted-cli` is a dependency without
+  default features there, so release builds have no WebSocket server.
+- (M6) makepkg can't set permissions on /mnt/mac: bin/install builds in a temp dir
+  (BUILDDIR/PKGDEST). Installing asks for the user's sudo password: they run it.
+- (M6) The jsonschema crate can't resolve `#/definitions/DecomposedTree<…>` in the
+  bookmark schema; the PBIR test renames that definition when loading.
+- (M6) A zustand selector must return stable references (drillFilters returns a shared
+  empty array), or React re-renders forever.
+
 ## Deferred from M0 (do these when relevant)
 
 - Visual query IR → SQL with many-to-one star joins (`crates/compiler`): start of M2.
@@ -464,6 +511,25 @@ Power BI.
   undo history (the data can't be un-loaded), like Power BI.
 - Source watching polls every 3 s while a project is open (no inotify on /mnt/mac).
 
+## Deferred from M6
+
+- Time intelligence: DATESBETWEEN, DATESINPERIOD (rolling windows), OPENING/CLOSINGBALANCE,
+  STARTOF…/ENDOF…, SAMEPERIOD on DateTime columns with times; date sets only as
+  CALCULATE filters (not iterated). PREVIOUSYEAR takes no year-end argument.
+- Drill: charts' axis and pie legend only (the matrix keeps expand/collapse); drill state
+  is saved with the visual and undoable (Power BI doesn't undo it). No cross-report
+  drill-through; drill-through filters are view state.
+- Bookmarks keep data state only (no visibility/spotlight, selection or "current page"
+  options); showing one is an undoable edit.
+- Import: hierarchies, calculation groups, roles, perspectives, translations,
+  calculated tables, field parameters, dynamic format strings and M beyond the file
+  shapes in mquery.rs are reported, not imported. Visual formatting from Power BI is
+  limited to titles and text boxes; PBIR export writes `themeCollection: {}` unless the
+  report has a custom theme. Neither direction has been opened in Power BI Desktop
+  itself — only checked against the published schemas.
+- Idle memory: 234 MB private in the charted process (DuckDB's cache) plus WebKit's own
+  process; see docs/perf.md.
+
 ## Milestone 3: Real modeling (done; kept for reference)
 
 From the plan: Model view (elkjs in a worker; drag to create relationships;
@@ -506,7 +572,7 @@ credentials; source watching with Refresh / Locate…. Checkpoint: clean stores_
 split + conditional column; merge with Store; reorder/delete/undo steps; Close & Apply
 updates the report slicer; Get Data → Excel.
 
-## Milestone 6: Interop, polish, release v1.0.0 (after the M5 review)
+## Milestone 6: Interop, polish, release v1.0.0 (built; kept for reference)
 
 From the plan: time intelligence (TOTALYTD, DATESYTD, SAMEPERIODLASTYEAR, DATEADD,
 PARALLELPERIOD, a date table wizard); drill-down and drill-through; bookmarks;
