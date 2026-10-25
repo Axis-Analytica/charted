@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (61 functions)
+## Evaluated (65 functions)
 
 ### Aggregation
 
@@ -23,6 +23,15 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `MINX ( Table, Expression )` | The smallest value of an expression evaluated for each row. |
 | `SUM ( Column )` | The sum of a column's numbers. |
 | `SUMX ( Table, Expression )` | The sum of an expression evaluated for each row of a table. |
+
+### Date and time
+
+| Function | Description |
+|---|---|
+| `DAY ( Date )` | The day of the month. |
+| `MONTH ( Date )` | The month, 1 to 12. |
+| `QUARTER ( Date )` | The quarter, 1 to 4. |
+| `YEAR ( Date )` | The year of a date. |
 
 ### Filter
 
@@ -116,8 +125,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **FILTER over measures** used as a CALCULATE filter argument is not supported yet; FILTER over columns is.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (74)
+## Recognised, not yet evaluated (70)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATE`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATE`, `DATEDIFF`, `DATESBETWEEN`, `DATESINPERIOD`, `DATEVALUE`, `DAY`, `EARLIER`, `EDATE`, `EOMONTH`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `FORMAT`, `GENERATE`, `HOUR`, `IFERROR`, `INT`, `ISERROR`, `LASTNONBLANK`, `LEFT`, `LEN`, `LN`, `LOG`, `LOOKUPVALUE`, `LOWER`, `MAXA`, `MEDIAN`, `MEDIANX`, `MID`, `MINA`, `MINUTE`, `MOD`, `MONTH`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `QUARTER`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `RIGHT`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUBSTITUTE`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TREATAS`, `TRIM`, `TRUNC`, `UPPER`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEAR`, `YEARFRAC`
+`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATE`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATE`, `DATEDIFF`, `DATESBETWEEN`, `DATESINPERIOD`, `DATEVALUE`, `EARLIER`, `EDATE`, `EOMONTH`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `FORMAT`, `GENERATE`, `HOUR`, `IFERROR`, `INT`, `ISERROR`, `LASTNONBLANK`, `LEFT`, `LEN`, `LN`, `LOG`, `LOOKUPVALUE`, `LOWER`, `MAXA`, `MEDIAN`, `MEDIANX`, `MID`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `RIGHT`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUBSTITUTE`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TREATAS`, `TRIM`, `TRUNC`, `UPPER`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`

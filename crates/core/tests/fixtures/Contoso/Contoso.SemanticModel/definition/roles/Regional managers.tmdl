@@ -1,0 +1,4 @@
+role 'Regional managers'
+	modelPermission: read
+
+	tablePermission Orders = [Region] = USERPRINCIPALNAME()

@@ -1,4 +1,4 @@
-import { FileDown, FileUp, FolderOutput, Save, X } from "lucide-react";
+import { FileArchive, FileDown, FileInput, FileUp, FolderOutput, Save, X } from "lucide-react";
 import { useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { ModelDiff } from "../bridge/generated/ModelDiff";
@@ -13,6 +13,14 @@ import { toast } from "../state/toasts";
 import { useShortcut } from "./shortcuts";
 
 const OSSIE = [{ name: "Apache Ossie", extensions: ["yaml", "yml"] }];
+export const POWER_BI = [{ name: "Power BI project", extensions: ["pbip", "bim"] }];
+const BUNDLE = [{ name: "charted bundle", extensions: ["chartedz"] }];
+
+/** Imports a Power BI project as a new charted project (shown with its import report). */
+export async function importPowerBi(t: (s: string) => string) {
+  const path = await transport.pick({ title: t("Import a Power BI project"), filters: POWER_BI });
+  if (path) await useApp.getState().rpc({ type: "importPowerBi", path, dir: null }, t("Importing…"));
+}
 
 /** File commands: save, export (Power BI project, Apache Ossie), import, close. */
 export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapshot; onSave(): void; onClose(): void }) {
@@ -41,6 +49,11 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
       toast({ kind: "error", title: errorMessage(e) });
     }
   };
+  const saveBundle = async () => {
+    const path = await transport.pick({ title: t("Save as a bundle to share"), saveAs: `${project.name}.chartedz`, filters: BUNDLE });
+    if (!path) return;
+    if (await rpc({ type: "saveBundle", path }, t("Saving…"))) toast({ kind: "success", title: t("Saved a bundle"), detail: path });
+  };
   const apply = async () => {
     if (!pending) return;
     const { path } = pending;
@@ -52,6 +65,8 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
     { id: "export-pbip", keys: "", label: "Export Power BI project…", group: "File", run: exportPbip },
     { id: "export-ossie", keys: "", label: "Export Apache Ossie model…", group: "File", run: exportOssie },
     { id: "import-ossie", keys: "", label: "Import Apache Ossie model…", group: "File", run: importOssie },
+    { id: "import-pbip", keys: "", label: "Import Power BI project…", group: "File", run: () => importPowerBi(t) },
+    { id: "save-bundle", keys: "", label: "Save as bundle…", group: "File", run: saveBundle },
   );
 
   const diff = pending?.diff;
@@ -62,7 +77,9 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
         trigger={t("File")}
         items={[
           { id: "save", label: t("Save"), icon: <Save size={14} />, shortcut: "Ctrl+S", disabled: !project.dirty, run: onSave },
+          { id: "save-bundle", label: t("Save as bundle…"), icon: <FileArchive size={14} />, run: saveBundle },
           null,
+          { id: "import-pbip", label: t("Import Power BI project…"), icon: <FileInput size={14} />, run: () => importPowerBi(t) },
           { id: "export-pbip", label: t("Export Power BI project…"), icon: <FolderOutput size={14} />, run: exportPbip },
           { id: "export-ossie", label: t("Export Apache Ossie model…"), icon: <FileDown size={14} />, run: exportOssie },
           { id: "import-ossie", label: t("Import Apache Ossie model…"), icon: <FileUp size={14} />, run: importOssie },

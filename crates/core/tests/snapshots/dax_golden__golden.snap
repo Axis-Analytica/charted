@@ -1,6 +1,6 @@
 ---
 source: crates/core/tests/dax_golden.rs
-assertion_line: 808
+assertion_line: 813
 expression: golden
 ---
 ## Sales Amount — card
@@ -722,6 +722,24 @@ expression: golden
 "Apparel" | 38
 "Camping" | 30
 "Footwear" | 14
+
+## Latest Year — card
+2025
+
+## Latest Year — by category
+∅ | 2025
+"Apparel" | 2025
+"Camping" | 2025
+"Footwear" | 2025
+
+## Quarter Days — card
+6887
+
+## Quarter Days — by category
+∅ | 6887
+"Apparel" | 6887
+"Camping" | 6887
+"Footwear" | 6887
 
 ## Target LY — card
 34200

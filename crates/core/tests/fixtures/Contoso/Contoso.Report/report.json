@@ -1,0 +1,103 @@
+{
+  "config": "{\"version\": \"5.59\", \"themeCollection\": {\"baseTheme\": {\"name\": \"CY24SU10\", \"version\": \"5.61\", \"type\": 2}}}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "config": "{}",
+      "displayName": "Overview",
+      "displayOption": 1,
+      "filters": "[{\"name\": \"Filter1\", \"filter\": {\"Version\": 2, \"From\": [{\"Name\": \"p\", \"Entity\": \"Product\", \"Type\": 0}], \"Where\": [{\"Condition\": {\"In\": {\"Expressions\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"p\"}}, \"Property\": \"Category\"}}], \"Values\": [[{\"Literal\": {\"Value\": \"'Camping'\"}}], [{\"Literal\": {\"Value\": \"'Footwear'\"}}]]}}}]}, \"type\": \"Categorical\", \"howCreated\": 1, \"expression\": {\"Column\": {\"Expression\": {\"SourceRef\": {\"Entity\": \"Product\"}}, \"Property\": \"Category\"}}}]",
+      "height": 720,
+      "name": "ReportSection",
+      "ordinal": 0,
+      "visualContainers": [
+        {
+          "config": "{\"name\": \"a1b2c3d4e5f6a7b8c9d0\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 40, \"y\": 40, \"z\": 0, \"width\": 260, \"height\": 140, \"tabOrder\": 0}}], \"singleVisual\": {\"visualType\": \"card\", \"projections\": {\"Values\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true, \"vcObjects\": {\"title\": [{\"properties\": {\"text\": {\"expr\": {\"Literal\": {\"Value\": \"'Total sales'\"}}}}}]}}}",
+          "filters": "[]",
+          "height": 140,
+          "width": 260,
+          "x": 40,
+          "y": 40,
+          "z": 0
+        },
+        {
+          "config": "{\"name\": \"b2c3d4e5f6a7b8c9d0e1\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 320, \"y\": 40, \"z\": 1000, \"width\": 560, \"height\": 300, \"tabOrder\": 1000}}], \"singleVisual\": {\"visualType\": \"clusteredColumnChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Product.Category\"}], \"Y\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"p\", \"Entity\": \"Product\", \"Type\": 0}, {\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"p\"}}, \"Property\": \"Category\"}, \"Name\": \"Product.Category\", \"NativeReferenceName\": \"Category\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 300,
+          "width": 560,
+          "x": 320,
+          "y": 40,
+          "z": 1000
+        },
+        {
+          "config": "{\"name\": \"c3d4e5f6a7b8c9d0e1f2\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 40, \"y\": 360, \"z\": 2000, \"width\": 560, \"height\": 320, \"tabOrder\": 2000}}], \"singleVisual\": {\"visualType\": \"tableEx\", \"projections\": {\"Values\": [{\"queryRef\": \"Product.Product\"}, {\"queryRef\": \"Orders.Total Sales\"}, {\"queryRef\": \"Orders.Orders\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"p\", \"Entity\": \"Product\", \"Type\": 0}, {\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"p\"}}, \"Property\": \"Product\"}, \"Name\": \"Product.Product\", \"NativeReferenceName\": \"Product\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Orders\"}, \"Name\": \"Orders.Orders\", \"NativeReferenceName\": \"Orders\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 320,
+          "width": 560,
+          "x": 40,
+          "y": 360,
+          "z": 2000
+        },
+        {
+          "config": "{\"name\": \"d4e5f6a7b8c9d0e1f2a3\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 900, \"y\": 40, \"z\": 3000, \"width\": 300, \"height\": 300, \"tabOrder\": 3000}}], \"singleVisual\": {\"visualType\": \"slicer\", \"projections\": {\"Values\": [{\"queryRef\": \"Orders.Region\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Region\"}, \"Name\": \"Orders.Region\", \"NativeReferenceName\": \"Region\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 300,
+          "width": 300,
+          "x": 900,
+          "y": 40,
+          "z": 3000
+        },
+        {
+          "config": "{\"name\": \"e5f6a7b8c9d0e1f2a3b4\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 640, \"y\": 360, \"z\": 4000, \"width\": 560, \"height\": 320, \"tabOrder\": 4000}}], \"singleVisual\": {\"visualType\": \"map\", \"projections\": {\"Category\": [{\"queryRef\": \"Orders.Region\"}], \"Size\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Region\"}, \"Name\": \"Orders.Region\", \"NativeReferenceName\": \"Region\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 320,
+          "width": 560,
+          "x": 640,
+          "y": 360,
+          "z": 4000
+        }
+      ],
+      "width": 1280
+    },
+    {
+      "config": "{}",
+      "displayName": "Trend",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "ReportSection1",
+      "ordinal": 1,
+      "visualContainers": [
+        {
+          "config": "{\"name\": \"f6a7b8c9d0e1f2a3b4c5\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 40, \"y\": 40, \"z\": 0, \"width\": 1180, \"height\": 400, \"tabOrder\": 0}}], \"singleVisual\": {\"visualType\": \"lineChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Orders.OrderDate\"}], \"Y\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"OrderDate\"}, \"Name\": \"Orders.OrderDate\", \"NativeReferenceName\": \"OrderDate\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 400,
+          "width": 1180,
+          "x": 40,
+          "y": 40,
+          "z": 0
+        },
+        {
+          "config": "{\"name\": \"a7b8c9d0e1f2a3b4c5d6\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 40, \"y\": 460, \"z\": 1000, \"width\": 400, \"height\": 240, \"tabOrder\": 1000}}], \"singleVisual\": {\"visualType\": \"pieChart\", \"projections\": {\"Category\": [{\"queryRef\": \"Orders.Region\"}], \"Y\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Column\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Region\"}, \"Name\": \"Orders.Region\", \"NativeReferenceName\": \"Region\"}, {\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 240,
+          "width": 400,
+          "x": 40,
+          "y": 460,
+          "z": 1000
+        },
+        {
+          "config": "{\"name\": \"b8c9d0e1f2a3b4c5d6e7\", \"layouts\": [{\"id\": 0, \"position\": {\"x\": 460, \"y\": 460, \"z\": 2000, \"width\": 300, \"height\": 240, \"tabOrder\": 2000}}], \"singleVisual\": {\"visualType\": \"kpi\", \"projections\": {\"Indicator\": [{\"queryRef\": \"Orders.Total Sales\"}]}, \"prototypeQuery\": {\"Version\": 2, \"From\": [{\"Name\": \"o\", \"Entity\": \"Orders\", \"Type\": 0}], \"Select\": [{\"Measure\": {\"Expression\": {\"SourceRef\": {\"Source\": \"o\"}}, \"Property\": \"Total Sales\"}, \"Name\": \"Orders.Total Sales\", \"NativeReferenceName\": \"Total Sales\"}]}, \"drillFilterOtherVisuals\": true}}",
+          "filters": "[]",
+          "height": 240,
+          "width": 300,
+          "x": 460,
+          "y": 460,
+          "z": 2000
+        }
+      ],
+      "width": 1280
+    }
+  ]
+}

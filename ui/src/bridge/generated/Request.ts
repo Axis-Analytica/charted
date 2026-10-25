@@ -3,7 +3,7 @@ import type { Change } from "./Change";
 import type { Query } from "./Query";
 import type { QueryFilter } from "./QueryFilter";
 
-export type Request = { "type": "state" } | { "type": "openProject", path: string, } | { "type": "openSample", dir: string | null, } | { "type": "closeProject" } | { "type": "commit", label: string, changes: Array<Change>, } | { "type": "undo" } | { "type": "redo" } | { "type": "save" } | { "type": "restoreRecovery" } | { "type": "discardRecovery" } | { "type": "forgetRecent", path: string, } | { "type": "exportPbip", dir: string, } | { "type": "exportOssie", path: string, } | { "type": "importOssie", path: string, } | { "type": "applyQueries", queries: Array<Query>, } | { "type": "refresh" } | { "type": "createDateTable", name: string, 
+export type Request = { "type": "state" } | { "type": "openProject", path: string, } | { "type": "openSample", dir: string | null, } | { "type": "closeProject" } | { "type": "commit", label: string, changes: Array<Change>, } | { "type": "undo" } | { "type": "redo" } | { "type": "save" } | { "type": "restoreRecovery" } | { "type": "discardRecovery" } | { "type": "forgetRecent", path: string, } | { "type": "exportPbip", dir: string, } | { "type": "exportOssie", path: string, } | { "type": "importOssie", path: string, } | { "type": "importPowerBi", path: string, dir: string | null, } | { "type": "dismissImportReport" } | { "type": "saveBundle", path: string, } | { "type": "applyQueries", queries: Array<Query>, } | { "type": "refresh" } | { "type": "createDateTable", name: string, 
 /**
  * ISO dates (YYYY-MM-DD).
  */

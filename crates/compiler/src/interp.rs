@@ -900,6 +900,24 @@ impl<'a> Interp<'a> {
                     ScalarFunc::Or => Value::Bool(a[0].truthy() || a[1].truthy()),
                     ScalarFunc::Not => Value::Bool(!a[0].truthy()),
                     ScalarFunc::IsBlank => Value::Bool(a[0].is_blank()),
+                    ScalarFunc::Year
+                    | ScalarFunc::Month
+                    | ScalarFunc::Day
+                    | ScalarFunc::Quarter => match &a[0] {
+                        Value::Text(t) => match cal::parse(t) {
+                            Some(z) => {
+                                let (y, m, d) = cal::civil(z);
+                                Value::Num(match func {
+                                    ScalarFunc::Year => y as f64,
+                                    ScalarFunc::Month => m as f64,
+                                    ScalarFunc::Day => d as f64,
+                                    _ => ((m - 1) / 3 + 1) as f64,
+                                })
+                            }
+                            None => Value::Blank,
+                        },
+                        _ => Value::Blank,
+                    },
                 }
             }
             Bound::Info {

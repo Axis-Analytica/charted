@@ -83,6 +83,16 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// Import a Power BI project (.pbip, its folder, or a model.bim) as a new charted
+    /// project, and report what didn't come across.
+    ImportPbip {
+        input: PathBuf,
+        /// The folder to create the project in (default: Documents/charted).
+        #[arg(long)]
+        into: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
     /// Install the bundled agent skill so coding agents can drive charted.
     Skill {
         #[command(subcommand)]
@@ -125,6 +135,42 @@ pub const SKILL: &str = include_str!("../../../skill/SKILL.md");
 fn fail(msg: impl std::fmt::Display) -> i32 {
     eprintln!("charted: {msg}");
     1
+}
+
+fn import_pbip(input: &Path, into: Option<PathBuf>, json: bool) -> i32 {
+    let parent = into.unwrap_or_else(charted_core::api::projects_dir);
+    let (dir, report) = match charted_core::pbimport::import(input, &parent) {
+        Ok(r) => r,
+        Err(e) => return fail(e),
+    };
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({ "project": dir, "report": report }))
+                .unwrap()
+        );
+        return 0;
+    }
+    println!("Imported {} into {}", input.display(), dir.display());
+    println!(
+        "  {} tables ({} with data), {} measures, {} relationships, {} pages, {} visuals",
+        report.tables,
+        report.loaded,
+        report.measures,
+        report.relationships,
+        report.pages,
+        report.visuals
+    );
+    for n in &report.notes {
+        println!("  note: {n}");
+    }
+    if !report.skipped.is_empty() {
+        println!("Not imported, or only partly ({}):", report.skipped.len());
+        for s in &report.skipped {
+            println!("  {} {}: {}", s.kind, s.name, s.reason);
+        }
+    }
+    0
 }
 
 /// Runs a display-free command and returns the process exit code.
@@ -205,6 +251,7 @@ pub fn run(command: Command) -> i32 {
             dry_run,
             json,
         } => import(&project, &file, dry_run, json),
+        Command::ImportPbip { input, into, json } => import_pbip(&input, into, json),
         Command::Skill {
             action: SkillAction::Show,
         } => {

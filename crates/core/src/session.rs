@@ -110,6 +110,9 @@ pub struct ProjectSnapshot {
     pub queries: Vec<QuerySummary>,
     pub warnings: Vec<String>,
     pub recovery: Option<RecoveryInfo>,
+    /// What a Power BI import just brought across (shown once, until dismissed).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub import_report: Option<crate::pbimport::ImportReport>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -190,6 +193,7 @@ pub struct Session {
     /// What each calculated column was last computed from (expression, type, relationships).
     calc_state: std::collections::HashMap<String, String>,
     recovery: Option<RecoveryInfo>,
+    pub import_report: Option<crate::pbimport::ImportReport>,
     /// Extensions the user agreed to download (set by the `App`).
     pub consent: crate::sources::Consent,
     /// Each file source's stamp when it was last loaded, by query id.
@@ -263,6 +267,7 @@ impl Session {
             schema,
             calc_state: Default::default(),
             recovery,
+            import_report: None,
             consent,
             stamps,
             sheets,
@@ -325,6 +330,7 @@ impl Session {
                 .collect(),
             warnings: self.project.warnings.clone(),
             recovery: self.recovery.clone(),
+            import_report: self.import_report.clone(),
         })
     }
 

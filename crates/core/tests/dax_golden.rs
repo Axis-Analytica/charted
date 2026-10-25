@@ -576,6 +576,11 @@ const MEASURES: &[(&str, &str)] = &[
         "Keep LY",
         "CALCULATE ( [Quantity], KEEPFILTERS ( SAMEPERIODLASTYEAR ( Date[Date] ) ) )",
     ),
+    ("Latest Year", "MAXX ( 'Date', YEAR ( 'Date'[Date] ) )"),
+    (
+        "Quarter Days",
+        "SUMX ( VALUES ( 'Date'[Date] ), QUARTER ( 'Date'[Date] ) * 100 + MONTH ( 'Date'[Date] ) + DAY ( 'Date'[Date] ) )",
+    ),
     (
         "Target LY",
         "CALCULATE ( [Target], SAMEPERIODLASTYEAR ( Date[Date] ) )",

@@ -6,11 +6,13 @@
 
 pub mod api;
 mod atomic;
+pub mod bundle;
 pub mod check;
 pub mod dataview;
 pub mod env;
 pub mod ids;
 pub mod interop;
+pub mod pbimport;
 pub mod project;
 pub mod queryedit;
 pub mod recent;

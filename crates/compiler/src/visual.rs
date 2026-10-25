@@ -500,6 +500,18 @@ fn call_sql(func: ScalarFunc, a: &[(String, ValueType)]) -> (String, ValueType) 
             ValueType::Bool,
         ),
         ScalarFunc::IsBlank => (format!("(({}) IS NULL)", a[0].0), ValueType::Bool),
+        ScalarFunc::Year | ScalarFunc::Month | ScalarFunc::Day | ScalarFunc::Quarter => {
+            let part = match func {
+                ScalarFunc::Year => "year",
+                ScalarFunc::Month => "month",
+                ScalarFunc::Day => "day",
+                _ => "quarter",
+            };
+            (
+                format!("CAST({part}(TRY_CAST({} AS TIMESTAMP)) AS BIGINT)", a[0].0),
+                num,
+            )
+        }
     }
 }
 

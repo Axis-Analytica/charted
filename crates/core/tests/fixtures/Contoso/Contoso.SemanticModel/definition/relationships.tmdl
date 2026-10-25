@@ -1,0 +1,12 @@
+relationship 6c5f9a0e-3b51-4a8d-9e23-1c1f0b8e5d71
+	fromColumn: Orders.ProductKey
+	toColumn: Product.ProductKey
+
+relationship 9d1e4f2a-7c66-4f0b-8a3e-5b2d9c7e1f04
+	fromColumn: Orders.OrderDate
+	toColumn: Date.Date
+
+relationship 2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a5
+	joinOnDateBehavior: datePartOnly
+	fromColumn: Product.LaunchDate
+	toColumn: LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4.Date

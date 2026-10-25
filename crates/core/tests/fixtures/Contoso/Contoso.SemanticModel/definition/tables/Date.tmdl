@@ -1,0 +1,26 @@
+table Date
+	lineageTag: 8e1b3a5c-4f8d-4c2a-9d6e-8f3b6c2e4cf0
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: Long Date
+		lineageTag: 9f2c4b6d-5a9e-4d3b-8e7f-9a4c7d3f5d00
+		summarizeBy: none
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year = YEAR ( 'Date'[Date] )
+		formatString: 0
+		lineageTag: 0a3d5c7e-6b0f-4e4c-9f8a-0b5d8e4a6e10
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = calculated
+		mode: import
+		source = CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2025, 12, 31 ) )
+
+	annotation PBI_Id = 4c2b1f0e8d7a6b5c4d3e2f1a0b9c8d7e

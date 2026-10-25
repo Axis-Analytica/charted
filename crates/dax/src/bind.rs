@@ -32,6 +32,11 @@ pub enum ScalarFunc {
     Or,
     Not,
     IsBlank,
+    /// YEAR, MONTH, DAY and QUARTER of a date.
+    Year,
+    Month,
+    Day,
+    Quarter,
 }
 
 /// Facts about the filter context.
@@ -235,7 +240,6 @@ pub const KNOWN: &[&str] = &[
     "DATESBETWEEN",
     "DATESINPERIOD",
     "DATEVALUE",
-    "DAY",
     "EARLIER",
     "EDATE",
     "EOMONTH",
@@ -263,13 +267,11 @@ pub const KNOWN: &[&str] = &[
     "MINA",
     "MINUTE",
     "MOD",
-    "MONTH",
     "NOW",
     "PERCENTILE.INC",
     "POWER",
     "PRODUCT",
     "PRODUCTX",
-    "QUARTER",
     "RANKX",
     "RELATEDTABLE",
     "REPLACE",
@@ -294,7 +296,6 @@ pub const KNOWN: &[&str] = &[
     "VALUE",
     "WEEKDAY",
     "WEEKNUM",
-    "YEAR",
     "YEARFRAC",
 ];
 
@@ -319,6 +320,7 @@ pub const SUPPORTED: &[&str] = &[
     "DATESMTD",
     "DATESQTD",
     "DATESYTD",
+    "DAY",
     "DISTINCT",
     "DISTINCTCOUNT",
     "DIVIDE",
@@ -336,6 +338,7 @@ pub const SUPPORTED: &[&str] = &[
     "MAXX",
     "MIN",
     "MINX",
+    "MONTH",
     "NEXTDAY",
     "NEXTMONTH",
     "NEXTQUARTER",
@@ -347,6 +350,7 @@ pub const SUPPORTED: &[&str] = &[
     "PREVIOUSMONTH",
     "PREVIOUSQUARTER",
     "PREVIOUSYEAR",
+    "QUARTER",
     "RELATED",
     "REMOVEFILTERS",
     "ROUND",
@@ -361,6 +365,7 @@ pub const SUPPORTED: &[&str] = &[
     "TRUE",
     "USERELATIONSHIP",
     "VALUES",
+    "YEAR",
 ];
 
 /// Binds `expr`.
@@ -1192,6 +1197,10 @@ impl<'a> Binder<'a> {
                     "OR" => (ScalarFunc::Or, 2, 2),
                     "NOT" => (ScalarFunc::Not, 1, 1),
                     "ISBLANK" => (ScalarFunc::IsBlank, 1, 1),
+                    "YEAR" => (ScalarFunc::Year, 1, 1),
+                    "MONTH" => (ScalarFunc::Month, 1, 1),
+                    "DAY" => (ScalarFunc::Day, 1, 1),
+                    "QUARTER" => (ScalarFunc::Quarter, 1, 1),
                     "MIN" | "MAX" => {
                         return self.err(span, format!("{upper} of two values isn't supported yet"));
                     }

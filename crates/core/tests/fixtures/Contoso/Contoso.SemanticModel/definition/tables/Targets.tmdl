@@ -1,0 +1,33 @@
+table Targets
+	lineageTag: 1b4e6d8f-7c1a-4f5d-8a9b-1c6e9f5b7f20
+
+	measure Target = SUM ( Targets[Target] )
+		formatString: \$#,0
+		lineageTag: 2c5f7e9a-8d2b-4a6e-9b0c-2d7f0a6c8030
+
+	column Region
+		dataType: string
+		lineageTag: 3d6a8f0b-9e3c-4b7f-8c1d-3e8a1b7d9140
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column Target
+		dataType: double
+		lineageTag: 4e7b9a1c-0f4d-4c8a-9d2e-4f9b2c8ea250
+		summarizeBy: sum
+		sourceColumn: Target
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Targets = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("sql.contoso.example", "Planning"),
+				    dbo_Targets = Source{[Schema="dbo",Item="Targets"]}[Data]
+				in
+				    dbo_Targets
+
+	annotation PBI_ResultType = Table

@@ -1,5 +1,6 @@
 ---
 source: crates/tmdl/tests/pbip.rs
+assertion_line: 121
 expression: all
 ---
 === Shop.pbip
@@ -69,7 +70,6 @@ table Sales
 	column DateKey
 		dataType: int64
 		lineageTag: c-sdk
-		summarizeBy: sum
 		sourceColumn: DateKey
 
 		annotation SummarizationSetBy = Automatic
@@ -78,7 +78,6 @@ table Sales
 		dataType: decimal
 		formatString: \$#,0.00
 		lineageTag: c-amount
-		summarizeBy: sum
 		sourceColumn: Sales Amount
 
 		annotation SummarizationSetBy = Automatic
@@ -86,9 +85,10 @@ table Sales
 	column 'Month Of Sale' = RELATED ( 'Date'[Month Name] )
 		dataType: string
 		lineageTag: c-rel
-		summarizeBy: none
 
 		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q1","name":"Sales","table":"sales","source":{"kind":"parquet","path":"data/sales.parquet"},"steps":[{"op":"renameColumns","renames":[["Amount","Sales Amount"]]}]}
 
 	partition Sales = m
 		mode: import
@@ -108,7 +108,6 @@ table Date
 		dataType: int64
 		isKey
 		lineageTag: c-dk
-		summarizeBy: none
 		sourceColumn: DateKey
 
 		annotation SummarizationSetBy = Automatic
@@ -116,7 +115,6 @@ table Date
 	column 'Month Name'
 		dataType: string
 		lineageTag: c-month
-		summarizeBy: none
 		sourceColumn: Month Name
 		sortByColumn: MonthNumber
 
@@ -125,10 +123,11 @@ table Date
 	column MonthNumber
 		dataType: int64
 		lineageTag: c-mnum
-		summarizeBy: sum
 		sourceColumn: MonthNumber
 
 		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q2","name":"Date","table":"date","source":{"kind":"csv","path":"data/date.csv","header":true},"steps":[]}
 
 	partition Date = m
 		mode: import
@@ -142,7 +141,7 @@ table Date
 
 === Shop.Report/definition.pbir
 {
-  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/1.0.0/schema.json",
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
   "datasetReference": {
     "byPath": {
       "path": "../Shop.SemanticModel"
@@ -151,21 +150,45 @@ table Date
   "version": "4.0"
 }
 
-=== Shop.Report/report.json
+=== Shop.Report/definition/version.json
 {
-  "config": "{\"themeCollection\":{},\"version\":\"5.37\"}",
-  "layoutOptimization": 0,
-  "resourcePackages": [],
-  "sections": [
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
+  "version": "2.0.0"
+}
+
+=== Shop.Report/definition/report.json
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/2.1.0/schema.json",
+  "annotations": [
     {
-      "config": "{}",
-      "displayName": "Page 1",
-      "displayOption": 1,
-      "filters": "[]",
-      "height": 720,
-      "name": "ReportSection",
-      "visualContainers": [],
-      "width": 1280
+      "name": "chartedReport",
+      "value": "{\"bookmarks\":[],\"filters\":[],\"theme\":null}"
     }
+  ],
+  "themeCollection": {}
+}
+
+=== Shop.Report/definition/pages/pages.json
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
+  "activePageName": "Page1",
+  "pageOrder": [
+    "Page1"
   ]
+}
+
+=== Shop.Report/definition/pages/Page1/page.json
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.0.0/schema.json",
+  "annotations": [
+    {
+      "name": "chartedPage",
+      "value": "{\"name\":\"Page 1\",\"width\":1280,\"height\":720,\"filters\":[]}"
+    }
+  ],
+  "displayName": "Page 1",
+  "displayOption": "FitToPage",
+  "height": 720,
+  "name": "Page1",
+  "width": 1280
 }

@@ -1,4 +1,4 @@
-import { ChartColumnBig, Clock, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
+import { ChartColumnBig, Clock, FileInput, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
 import { transport } from "../bridge";
 import type { AppState } from "../bridge/generated/AppState";
 import { useT } from "../i18n";
@@ -25,6 +25,10 @@ export function Welcome({ state }: { state: AppState }) {
     const path = await transport.pick({ title: t("Open project"), directory: true });
     if (path) await rpc({ type: "openProject", path }, t("Opening project…"));
   };
+  const openFile = async () => {
+    const path = await transport.pick({ title: t("Open a file"), filters: [{ name: t("charted bundle or Power BI project"), extensions: ["chartedz", "pbip", "bim"] }] });
+    if (path) await rpc({ type: "openProject", path }, t("Opening…"));
+  };
   const openSample = () => rpc({ type: "openSample", dir: null }, t("Preparing the Harbor & Pine sample…"));
   useShortcut(
     { id: "open", keys: "Ctrl+O", label: "Open project", group: "File", run: openDialog },
@@ -44,6 +48,9 @@ export function Welcome({ state }: { state: AppState }) {
         <div className="welcome-actions">
           <Button variant="primary" size="lg" icon={<FolderOpen size={17} />} onPress={openDialog}>
             {t("Open project…")}
+          </Button>
+          <Button size="lg" icon={<FileInput size={17} />} onPress={openFile}>
+            {t("Open a bundle or Power BI project…")}
           </Button>
           <Button size="lg" icon={<Sparkles size={17} />} onPress={openSample}>
             {t("Explore the sample")}

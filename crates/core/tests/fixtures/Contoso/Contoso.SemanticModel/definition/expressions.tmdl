@@ -1,0 +1,4 @@
+expression SourceFolder = "C:\Users\Analyst\Documents\Contoso\" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 0f3c2b8e-6e1b-4c43-8b8d-2f0f6c1d9a10
+
+	annotation PBI_ResultType = Text

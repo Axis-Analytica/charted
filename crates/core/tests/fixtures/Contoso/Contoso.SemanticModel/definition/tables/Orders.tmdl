@@ -1,0 +1,111 @@
+table Orders
+	lineageTag: 3a6f0c1e-1b5d-4f8e-9c2a-6e4d8b7f1a20
+
+	/// Sales in dollars, before returns.
+	measure 'Total Sales' = SUM(Orders[Amount])
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		displayFolder: Sales
+		lineageTag: 5b8e2d4f-3c6a-4e1b-8f9d-7a2c5e1b3d40
+
+	measure Orders = COUNTROWS ( Orders )
+		formatString: 0
+		lineageTag: 7c1f3e5a-4d8b-4a2e-9b6c-8d3f6a2c4e50
+
+	measure 'Avg Order' =
+			DIVIDE (
+			    [Total Sales],
+			    [Orders]
+			)
+		lineageTag: 8d2a4f6b-5e9c-4b3f-8c7d-9e4a7b3d5f60
+
+		formatStringDefinition = IF ( [Avg Order] > 1000, "\$#,0,K", "\$#,0" )
+
+	measure 'Sales Rank' = RANKX ( ALL ( Product[Category] ), [Total Sales] )
+		formatString: 0
+		lineageTag: 9e3b5a7c-6f0d-4c4a-9d8e-0f5b8c4e6a70
+
+	measure 'Sales LY' = CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		lineageTag: 1f4c6b8d-7a1e-4d5b-8e9f-1a6c9d5f7b80
+
+	column OrderID
+		dataType: int64
+		formatString: 0
+		lineageTag: 2a5d7c9e-8b2f-4e6c-9f0a-2b7d0e6a8c90
+		summarizeBy: none
+		sourceColumn: OrderID
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderDate
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 3b6e8d0f-9c3a-4f7d-8a1b-3c8e1f7b9da0
+		summarizeBy: none
+		sourceColumn: OrderDate
+
+		variation Variation
+			isDefault
+			relationship: 9d1e4f2a-7c66-4f0b-8a3e-5b2d9c7e1f04
+			defaultHierarchy: LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column ProductKey
+		dataType: int64
+		formatString: 0
+		lineageTag: 4c7f9e1a-0d4b-4a8e-9b2c-4d9f2a8cae10
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: 5d8a0f2b-1e5c-4b9f-8c3d-5e0a3b9dbf20
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quantity
+		dataType: int64
+		formatString: 0
+		lineageTag: 6e9b1a3c-2f6d-4c0a-9d4e-6f1b4c0ec030
+		summarizeBy: sum
+		sourceColumn: Quantity
+
+		annotation SummarizationSetBy = Automatic
+
+	column Amount
+		dataType: decimal
+		formatString: \$#,0.00;(\$#,0.00);\$#,0.00
+		lineageTag: 7f0c2b4d-3a7e-4d1b-8e5f-7a2c5d1fd140
+		summarizeBy: sum
+		sourceColumn: Amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column 'Big Order' = IF ( Orders[Amount] > 300, "Big", "Small" )
+		lineageTag: 8a1d3c5e-4b8f-4e2c-9f6a-8b3d6e2ae250
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Orders = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(SourceFolder & "data\orders.csv"),[Delimiter=",", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.None]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"OrderID", Int64.Type}, {"OrderDate", type date}, {"ProductKey", Int64.Type}, {"Region", type text}, {"Quantity", Int64.Type}, {"Amount", Currency.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation

@@ -87,6 +87,10 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 ScalarFunc::Or => format!("({} OR {})", a[0], a[1]),
                 ScalarFunc::Not => format!("(NOT {})", a[0]),
                 ScalarFunc::IsBlank => format!("({} IS NULL)", a[0]),
+                ScalarFunc::Year => format!("EXTRACT(YEAR FROM {})", a[0]),
+                ScalarFunc::Month => format!("EXTRACT(MONTH FROM {})", a[0]),
+                ScalarFunc::Day => format!("EXTRACT(DAY FROM {})", a[0]),
+                ScalarFunc::Quarter => format!("EXTRACT(QUARTER FROM {})", a[0]),
             }
         }
         Bound::Unary { op, expr } => {

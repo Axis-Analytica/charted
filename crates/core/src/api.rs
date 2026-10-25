@@ -59,6 +59,19 @@ pub enum Request {
     ImportOssie {
         path: String,
     },
+    /// Imports a Power BI project (.pbip, or a model.bim) as a new project in a new
+    /// folder under `dir` (the documents folder's charted folder by default), and opens
+    /// it with its import report.
+    ImportPowerBi {
+        path: String,
+        dir: Option<String>,
+    },
+    /// Hides the import report.
+    DismissImportReport,
+    /// Writes the project as a .chartedz bundle (saved first if needed).
+    SaveBundle {
+        path: String,
+    },
     /// Replaces the project's queries with the query editor's (Close & Apply): loads
     /// what changed and brings the model's tables in line. Clears undo.
     ApplyQueries {
@@ -477,6 +490,17 @@ impl App {
         Ok(())
     }
 
+    /// Imports a Power BI project as a new project under `parent` and opens it with
+    /// its import report.
+    fn import_powerbi(&mut self, path: &Path, parent: &Path) -> Result<(), CoreError> {
+        let (project, report) = crate::pbimport::import(path, parent)?;
+        self.open(&project)?;
+        if let Some(s) = self.session.as_mut() {
+            s.import_report = Some(report);
+        }
+        Ok(())
+    }
+
     pub fn state(&self) -> Result<AppState, CoreError> {
         Ok(AppState {
             project: self.session.as_ref().map(Session::snapshot).transpose()?,
@@ -493,7 +517,23 @@ impl App {
     fn apply(&mut self, request: Request) -> Result<(), CoreError> {
         match request {
             Request::State => {}
-            Request::OpenProject { path } => self.open(Path::new(&path))?,
+            Request::OpenProject { path } => {
+                // A bundle opens as a new folder; a Power BI project is imported.
+                let p = Path::new(&path);
+                match p
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .map(str::to_ascii_lowercase)
+                    .as_deref()
+                {
+                    Some(crate::bundle::EXTENSION) => {
+                        let dir = crate::bundle::unpack(p, &projects_dir())?;
+                        self.open(&dir)?;
+                    }
+                    Some("pbip" | "bim") => self.import_powerbi(p, &projects_dir())?,
+                    _ => self.open(p)?,
+                }
+            }
             Request::OpenSample { dir } => {
                 let dir = dir.map(PathBuf::from).unwrap_or_else(default_sample_dir);
                 if crate::project::locate(&dir).is_err() {
@@ -518,6 +558,16 @@ impl App {
                 crate::interop::export_ossie(&s.project.model, Path::new(&path))?;
             }
             Request::ImportOssie { path } => self.session_mut()?.import_ossie(Path::new(&path))?,
+            Request::ImportPowerBi { path, dir } => {
+                let parent = dir.map(PathBuf::from).unwrap_or_else(projects_dir);
+                self.import_powerbi(Path::new(&path), &parent)?;
+            }
+            Request::DismissImportReport => self.session_mut()?.import_report = None,
+            Request::SaveBundle { path } => {
+                let s = self.session_mut()?;
+                s.save()?;
+                crate::bundle::write(&s.project.dir, Path::new(&path))?;
+            }
             Request::ApplyQueries { queries } => self.session_mut()?.apply_queries(queries)?,
             Request::Refresh => self.session_mut()?.refresh()?,
             Request::CreateDateTable {
@@ -757,6 +807,14 @@ fn read_image(path: &str) -> Result<Vec<u8>, CoreError> {
         )));
     }
     std::fs::read(p).map_err(|e| CoreError::Invalid(format!("couldn't read {path}: {e}")))
+}
+
+/// Where new projects go: `$XDG_DOCUMENTS_DIR/charted`.
+pub fn projects_dir() -> PathBuf {
+    default_sample_dir()
+        .parent()
+        .map(Path::to_path_buf)
+        .unwrap_or_default()
 }
 
 /// `$XDG_DOCUMENTS_DIR/charted/Harbor & Pine`, falling back to `~/Documents`.

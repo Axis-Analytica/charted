@@ -1,0 +1,22 @@
+table 'Time Calculations'
+	lineageTag: 5f8c0b2d-1a5e-4d9b-8e3f-5a0c3d9fb360
+
+	calculationGroup
+
+		calculationItem Current = SELECTEDMEASURE()
+
+		calculationItem YTD = CALCULATE ( SELECTEDMEASURE(), DATESYTD ( 'Date'[Date] ) )
+
+	column Name
+		dataType: string
+		lineageTag: 6a9d1c3e-2b6f-4e0c-9f4a-6b1d4e0ac470
+		summarizeBy: none
+		sourceColumn: Name
+		sortByColumn: Ordinal
+
+	column Ordinal
+		dataType: int64
+		isHidden
+		lineageTag: 7b0e2d4f-3c7a-4f1d-8a5b-7c2e5f1bd580
+		summarizeBy: sum
+		sourceColumn: Ordinal

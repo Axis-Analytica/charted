@@ -1,0 +1,17 @@
+table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4
+	isHidden
+	showAsVariationsOnly
+	lineageTag: 8c1f3e5a-4d8b-4a2e-9b6c-8d3f6a2ce690
+
+	column Date
+		dataType: dateTime
+		isHidden
+		lineageTag: 9d2a4f6b-5e9c-4b3f-8c7d-9e4a7b3df7a0
+		dataCategory: PaddedDateTableDates
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+	partition LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4 = calculated
+		mode: import
+		source = Calendar(Date(Year(MIN('Product'[LaunchDate])), 1, 1), Date(Year(MAX('Product'[LaunchDate])), 12, 31))

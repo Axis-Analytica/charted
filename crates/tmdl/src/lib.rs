@@ -9,8 +9,12 @@
 //! <Name>.SemanticModel/definition/{database,model,relationships,expressions}.tmdl
 //! <Name>.SemanticModel/definition/tables/<Table>.tmdl
 //! <Name>.Report/definition.pbir
-//! <Name>.Report/report.json
+//! <Name>.Report/definition/…            the report as PBIR (see `pbir`)
 //! ```
+
+pub mod mquery;
+pub mod pbir;
+pub mod read;
 
 use charted_compiler::steps::{Query, Source};
 use charted_model::*;
@@ -45,8 +49,9 @@ fn data_type(t: DataType) -> &'static str {
     }
 }
 
-fn summarize(c: &Column) -> &'static str {
-    match c.summarize_by {
+/// `summarizeBy`, unless it is the default (Power BI's own: numbers sum).
+fn summarize(c: &Column) -> Option<&'static str> {
+    Some(match c.summarize_by {
         Summarize::None => "none",
         Summarize::Sum => "sum",
         Summarize::Average => "average",
@@ -54,10 +59,8 @@ fn summarize(c: &Column) -> &'static str {
         Summarize::Max => "max",
         Summarize::Count => "count",
         Summarize::DistinctCount => "distinctCount",
-        // Power BI's own default: numbers sum, everything else is not summarised.
-        Summarize::Default if c.data_type.is_numeric() && !c.is_key => "sum",
-        Summarize::Default => "none",
-    }
+        Summarize::Default => return None,
+    })
 }
 
 /// A DAX expression after `=`: inline when it is one line, otherwise on the following
@@ -186,6 +189,7 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         if c.hidden {
             let _ = writeln!(out, "\t\tisHidden");
         }
+        let default_format = c.format_string.is_none() && c.data_type == DataType::Date;
         match (&c.format_string, c.data_type) {
             (Some(f), _) => prop(&mut out, 2, "formatString", f),
             (None, DataType::Date) => prop(&mut out, 2, "formatString", "Short Date"),
@@ -198,7 +202,9 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             prop(&mut out, 2, "dataCategory", cat);
         }
         prop(&mut out, 2, "lineageTag", &c.id);
-        prop(&mut out, 2, "summarizeBy", summarize(c));
+        if let Some(s) = summarize(c) {
+            prop(&mut out, 2, "summarizeBy", s);
+        }
         if let ColumnKind::Data { source_column } = &c.kind {
             prop(&mut out, 2, "sourceColumn", source_column);
         }
@@ -209,8 +215,29 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         }
         out.push('\n');
         let _ = writeln!(out, "\t\tannotation SummarizationSetBy = Automatic");
+        // Power BI has one date/time type: keep charted's exact one.
+        if c.data_type.is_temporal() {
+            let _ = writeln!(
+                out,
+                "\t\tannotation chartedDataType = {}",
+                serde_json::to_value(c.data_type)
+                    .ok()
+                    .and_then(|v| v.as_str().map(str::to_string))
+                    .unwrap_or_default()
+            );
+        }
+        if default_format {
+            let _ = writeln!(out, "\t\tannotation chartedDefaultFormat = true");
+        }
     }
     if let Some(q) = query {
+        out.push('\n');
+        // charted's own query, so importing this file brings it back exactly.
+        let _ = writeln!(
+            out,
+            "\tannotation chartedQuery = {}",
+            serde_json::to_string(q).unwrap_or_default()
+        );
         out.push('\n');
         let _ = writeln!(out, "\tpartition {} = m", name(&t.name));
         prop(&mut out, 2, "mode", "import");
@@ -322,6 +349,11 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
             let _ = writeln!(expressions, "\t\t{l}");
         }
         let _ = writeln!(expressions, "\tannotation PBI_ResultType = Table");
+        let _ = writeln!(
+            expressions,
+            "\tannotation chartedQuery = {}",
+            serde_json::to_string(q).unwrap_or_default()
+        );
     }
     files.push((format!("{def}/expressions.tmdl"), expressions));
     if !model.relationships.is_empty() {
@@ -341,47 +373,14 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     files.push((
         format!("{rp}/definition.pbir"),
         pretty(&json!({
-            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/1.0.0/schema.json",
+            "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
             "version": "4.0",
             "datasetReference": { "byPath": { "path": format!("../{sm}") } }
         })),
     ));
-    // A report with the pages (visuals follow when report export arrives).
-    let sections: Vec<serde_json::Value> = model
-        .report
-        .pages
-        .iter()
-        .enumerate()
-        .map(|(i, p)| {
-            json!({
-                "config": "{}",
-                "displayName": p.settings.name,
-                "displayOption": 1,
-                "filters": "[]",
-                "height": p.settings.height,
-                "name": format!("ReportSection{i}"),
-                "ordinal": i,
-                "visualContainers": [],
-                "width": p.settings.width,
-            })
-        })
-        .collect();
-    let sections = if sections.is_empty() {
-        vec![
-            json!({"config": "{}", "displayName": "Page 1", "displayOption": 1, "filters": "[]", "height": 720, "name": "ReportSection", "visualContainers": [], "width": 1280}),
-        ]
-    } else {
-        sections
-    };
-    files.push((
-        format!("{rp}/report.json"),
-        pretty(&json!({
-            "config": json!({"version": "5.37", "themeCollection": {}}).to_string(),
-            "layoutOptimization": 0,
-            "resourcePackages": [],
-            "sections": sections,
-        })),
-    ));
+    for (path, text) in pbir::report_files(model) {
+        files.push((format!("{rp}/{path}"), text));
+    }
     files
 }
 

@@ -14,6 +14,7 @@ import { type View, useReport } from "../state/report";
 import { ReportView } from "../report/ReportView";
 import { TablesPanel } from "./TablesPanel";
 import { FileMenu } from "../app/FileMenu";
+import { ImportReportDialog } from "../app/ImportReport";
 import { ModelView } from "../model/ModelView";
 import { QueryEditor } from "../query/QueryEditor";
 import { SourceBanner } from "../query/SourceBanner";
@@ -90,6 +91,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
       )}
       {project.warnings.length > 0 && <Banner tone="info">{t("Some parts of the model were imported with warnings: %1", project.warnings.join("; "))}</Banner>}
       <SourceBanner project={project} />
+      {project.importReport && <ImportReportDialog report={project.importReport} />}
       <div className={`workspace ${view === "report" ? "is-report" : ""} ${view === "model" ? "is-model" : ""} ${view === "query" ? "is-query" : ""}`}>
         <nav className="rail" aria-label={t("Views")}>
           <IconButton label={t("Report view")} shortcut="Ctrl+1" icon={<ChartPie size={18} />} pressed={view === "report"} onPress={() => setView("report")} />

@@ -19,6 +19,8 @@ use std::path::{Path, PathBuf};
 use crate::atomic;
 
 pub const MANIFEST_EXT: &str = "charted";
+/// Loaded data, recovery and the lock: rebuilt from the project, never shared.
+pub const CACHE_DIR: &str = ".cache";
 pub const MODEL_FILE: &str = "model.ossie.yaml";
 pub const FORMAT_VERSION: u32 = 1;
 
@@ -141,7 +143,7 @@ impl Project {
     }
 
     pub fn cache_dir(&self) -> PathBuf {
-        self.dir.join(".cache")
+        self.dir.join(CACHE_DIR)
     }
 
     pub fn database_path(&self) -> PathBuf {

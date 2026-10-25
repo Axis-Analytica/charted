@@ -222,3 +222,51 @@ test("a Trends page: last year and year to date, drill down and up, drill throug
   await page.getByRole("button", { name: "Save" }).click();
   await expect(page.locator(".dirty-dot")).toHaveCount(0);
 });
+
+const pick = (page: Page, path: string) => page.evaluate((p) => ((window as unknown as { __chartedPick: () => string }).__chartedPick = () => p), path);
+const tmp = process.env.CHARTED_E2E_TMP ?? "/tmp/charted-e2e";
+const contoso = new URL("../../crates/core/tests/fixtures/Contoso/Contoso.pbip", import.meta.url).pathname;
+
+async function fileMenu(page: Page, item: string) {
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: item }).click();
+}
+
+test("import a Power BI project, see what didn't come across, export and import it again, share a bundle", async ({ page }) => {
+  await openSample(page);
+  await pick(page, contoso);
+  await fileMenu(page, "Import Power BI project…");
+  const report = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
+  await expect(report).toBeVisible({ timeout: 30_000 });
+  await expect(report).toContainText("4 tables (2 with data)");
+  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map", "kpi", "RANKX"]) await expect(report).toContainText(s);
+  await shot(page, "m6-05-import-report");
+  await report.getByRole("button", { name: "Done" }).click();
+  await expect(report).toBeHidden();
+  await expect(page.getByRole("tab", { name: "Overview" })).toHaveAttribute("aria-selected", "true");
+  await expect(visuals(page)).toHaveCount(4);
+  await expect(visuals(page).filter({ has: page.locator(".card-value") }).locator(".card-value")).toHaveText(/\$/);
+  await shot(page, "m6-06-imported");
+
+  // Export for Power BI, and import that: only the measure charted can't evaluate.
+  await pick(page, `${tmp}/export`);
+  await fileMenu(page, "Export Power BI project…");
+  await expect(page.locator(".toast", { hasText: "Exported a Power BI project" })).toBeVisible();
+  await pick(page, `${tmp}/export/Contoso.pbip`);
+  await fileMenu(page, "Import Power BI project…");
+  const again = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
+  await expect(again).toContainText("Not imported, or only partly (1)", { timeout: 30_000 });
+  await expect(again).toContainText("Sales Rank");
+  await again.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("tab", { name: "Trend" })).toBeVisible();
+
+  // A bundle to share, opened from the welcome screen.
+  await pick(page, `${tmp}/Shared.chartedz`);
+  await fileMenu(page, "Save as bundle…");
+  await expect(page.locator(".toast", { hasText: "Saved a bundle" })).toBeVisible();
+  await fileMenu(page, "Close project");
+  await pick(page, `${tmp}/Shared.chartedz`);
+  await page.getByRole("button", { name: "Open a bundle or Power BI project…" }).click();
+  await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({ timeout: 30_000 });
+  await expect(visuals(page)).toHaveCount(4);
+});

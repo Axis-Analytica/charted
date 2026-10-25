@@ -120,3 +120,330 @@ fn writes_a_power_bi_project() {
         .collect();
     insta::assert_snapshot!(all);
 }
+
+/// A model with one of every kind of report object, for the schema and round-trip tests.
+fn reported() -> Model {
+    let mut cat = col("c-cat", "Category", DataType::String);
+    cat.sort_by = None;
+    let mut model = Model {
+        name: "Shop".into(),
+        tables: vec![Table {
+            id: "t-sales".into(),
+            name: "Sales".into(),
+            description: None,
+            source: "sales".into(),
+            columns: vec![
+                cat,
+                col("c-amt", "Amount", DataType::Double),
+                col("c-day", "Day", DataType::Date),
+                col("c-year", "Year", DataType::Int64),
+            ],
+            measures: vec![Measure {
+                id: "m-total".into(),
+                name: "Total".into(),
+                expression: "SUM ( Sales[Amount] )".into(),
+                language: ExpressionLanguage::Dax,
+                description: None,
+                format_string: None,
+                display_folder: None,
+                hidden: false,
+                extras: Default::default(),
+            }],
+            hidden: false,
+            is_date_table: false,
+            extras: Default::default(),
+        }],
+        ..Default::default()
+    };
+    let c = |id: &str| Projection {
+        field: FieldRef::Column {
+            table: "t-sales".into(),
+            column: id.into(),
+        },
+        aggregation: None,
+        display_name: None,
+    };
+    let m = Projection {
+        field: FieldRef::Measure {
+            table: "t-sales".into(),
+            measure: "m-total".into(),
+        },
+        aggregation: None,
+        display_name: Some("Sales".into()),
+    };
+    let sum = Projection {
+        aggregation: Some(Aggregation::Sum),
+        ..c("c-amt")
+    };
+    let basic =
+        |id: &str, field: Projection, values: Vec<Option<&str>>, exclude: bool| ReportFilter {
+            id: id.into(),
+            field,
+            filter: FilterKind::Basic {
+                values: values.into_iter().map(|v| v.map(str::to_string)).collect(),
+                exclude,
+            },
+        };
+    let types = [
+        ("card", vec![("values", vec![m.clone()])]),
+        (
+            "columnChart",
+            vec![
+                ("category", vec![c("c-year"), c("c-cat")]),
+                ("values", vec![m.clone(), sum.clone()]),
+            ],
+        ),
+        (
+            "barChart",
+            vec![("category", vec![c("c-cat")]), ("values", vec![m.clone()])],
+        ),
+        (
+            "stackedColumnChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("series", vec![c("c-cat")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        (
+            "stackedBarChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("series", vec![c("c-cat")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        (
+            "lineChart",
+            vec![("category", vec![c("c-day")]), ("values", vec![m.clone()])],
+        ),
+        (
+            "pieChart",
+            vec![("legend", vec![c("c-cat")]), ("values", vec![m.clone()])],
+        ),
+        (
+            "donutChart",
+            vec![("legend", vec![c("c-cat")]), ("values", vec![m.clone()])],
+        ),
+        (
+            "scatterChart",
+            vec![
+                ("details", vec![c("c-cat")]),
+                ("x", vec![sum.clone()]),
+                ("y", vec![m.clone()]),
+            ],
+        ),
+        ("table", vec![("columns", vec![c("c-cat"), m.clone()])]),
+        (
+            "matrix",
+            vec![
+                ("rows", vec![c("c-cat")]),
+                ("columns", vec![c("c-year")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        ("slicer", vec![("field", vec![c("c-cat")])]),
+        ("textbox", vec![]),
+        ("image", vec![]),
+        ("shape", vec![]),
+    ];
+    let visuals: Vec<Visual> = types
+        .iter()
+        .enumerate()
+        .map(|(i, (t, roles))| Visual {
+            id: format!("v{i}"),
+            visual_type: t.to_string(),
+            position: Position {
+                x: 10.0 * i as f64,
+                y: 20.0,
+                width: 300.0,
+                height: 200.0,
+                z: i as i32,
+            },
+            roles: roles
+                .iter()
+                .map(|(r, ps)| (r.to_string(), ps.clone()))
+                .collect(),
+            filters: if *t == "barChart" {
+                vec![basic("f-v", c("c-cat"), vec![Some("Tents"), None], true)]
+            } else {
+                vec![]
+            },
+            sort: (*t == "barChart").then(|| VisualSort {
+                role: "values".into(),
+                index: 0,
+                descending: true,
+            }),
+            objects: match *t {
+                "textbox" => serde_json::from_value(
+                    serde_json::json!({ "text": { "content": "Hello\nworld" } }),
+                )
+                .unwrap(),
+                "card" => serde_json::from_value(
+                    serde_json::json!({ "title": { "show": true, "text": "Sales, all time" } }),
+                )
+                .unwrap(),
+                _ => Default::default(),
+            },
+            selection: (*t == "slicer").then(|| FilterKind::Basic {
+                values: vec![Some("Tents".into())],
+                exclude: false,
+            }),
+            drill: if *t == "columnChart" {
+                vec![DrillStep::Into {
+                    keys: vec![Some("2024".into())],
+                }]
+            } else {
+                vec![]
+            },
+        })
+        .collect();
+    let mut overview = PageSettings::named("Overview");
+    overview.filters = vec![
+        basic("f-p", c("c-year"), vec![Some("2024"), Some("2025")], false),
+        ReportFilter {
+            id: "f-adv".into(),
+            field: c("c-amt"),
+            filter: FilterKind::Advanced {
+                conditions: vec![Condition {
+                    op: FilterOp::Greater,
+                    value: Some("10".into()),
+                    value2: None,
+                }],
+                or: false,
+            },
+        },
+    ];
+    let mut detail = PageSettings::named("Detail");
+    detail.drillthrough = vec![c("c-cat")];
+    detail.keep_all_filters = false;
+    model.report = Report {
+        pages: vec![
+            Page {
+                id: "p-overview".into(),
+                settings: overview,
+                visuals,
+            },
+            Page {
+                id: "p-detail".into(),
+                settings: detail,
+                visuals: vec![],
+            },
+        ],
+        filters: vec![basic("f-r", c("c-day"), vec![Some("2024-03-01")], false)],
+        diagram: Default::default(),
+        theme: Some(ReportTheme {
+            name: "Harbor".into(),
+            json: serde_json::json!({ "name": "Harbor", "dataColors": ["#123456"] }),
+        }),
+        bookmarks: vec![Bookmark {
+            id: "b-1".into(),
+            name: "Only tents".into(),
+            page: "p-overview".into(),
+            report_filters: vec![],
+            page_filters: vec![],
+            visuals: Default::default(),
+        }],
+    };
+    model
+}
+
+/// Every PBIR file validates against Microsoft's schema it names (vendored in
+/// `schema/pbir`, references resolved there).
+#[test]
+fn the_report_matches_the_pbir_schemas() {
+    use std::path::Path;
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("schema/pbir");
+    const BASE: &str =
+        "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/";
+    struct Local(std::path::PathBuf);
+    impl jsonschema::Retrieve for Local {
+        fn retrieve(
+            &self,
+            uri: &jsonschema::Uri<String>,
+        ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+            let rel = uri
+                .as_str()
+                .strip_prefix(BASE)
+                .ok_or_else(|| format!("unexpected schema {uri}"))?;
+            let rel = rel.replace("schema.embedded.json", "schema-embedded.json");
+            Ok(serde_json::from_str(&load(&self.0.join(rel)))?)
+        }
+    }
+    // The bookmark schema names a definition `DecomposedTree<…>`, which isn't a valid
+    // URI fragment for the validator.
+    fn load(p: &Path) -> String {
+        std::fs::read_to_string(p).unwrap().replace(
+            "DecomposedTree<QueryExpressionContainer>",
+            "DecomposedTree_QueryExpressionContainer",
+        )
+    }
+    let files = charted_tmdl::pbip("Shop", &reported(), &[], "/data");
+    let mut checked = 0;
+    for (path, text) in files
+        .iter()
+        .filter(|(p, _)| p.starts_with("Shop.Report/definition/"))
+    {
+        let doc: serde_json::Value = serde_json::from_str(text).unwrap();
+        let url = doc["$schema"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{path} names no schema"));
+        let rel = url.strip_prefix(BASE).unwrap();
+        let schema: serde_json::Value = serde_json::from_str(&load(&root.join(rel))).unwrap();
+        let v = jsonschema::options()
+            .with_retriever(Local(root.clone()))
+            .build(&schema)
+            .unwrap_or_else(|e| panic!("{rel}: {e}"));
+        let errors: Vec<String> = v
+            .iter_errors(&doc)
+            .map(|e| format!("{e} at {}", e.instance_path()))
+            .collect();
+        assert!(errors.is_empty(), "{path}:\n{}", errors.join("\n"));
+        checked += 1;
+    }
+    assert!(checked >= 20, "only {checked} files checked");
+}
+
+/// Exporting and importing again gives the same model and report.
+#[test]
+fn the_project_comes_back_from_its_export() {
+    let model = reported();
+    let queries = vec![Query {
+        id: "q1".into(),
+        name: "Sales".into(),
+        table: "sales".into(),
+        source: Source::Parquet {
+            path: "data/sales.parquet".into(),
+        },
+        steps: vec![],
+        step_names: Default::default(),
+        no_load: false,
+    }];
+    let files = charted_tmdl::pbip("Shop", &model, &queries, "/data");
+    let def: std::collections::BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(p, t)| {
+            Some((
+                p.strip_prefix("Shop.SemanticModel/definition/")?
+                    .to_string(),
+                t.clone(),
+            ))
+        })
+        .collect();
+    let mut back = charted_tmdl::read::from_tmdl(&def, "Shop");
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
+    assert_eq!(back.queries, queries);
+    let report: std::collections::BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(p, t)| Some((p.strip_prefix("Shop.Report/")?.to_string(), t.clone())))
+        .collect();
+    let mut skipped = Vec::new();
+    back.model.report = charted_tmdl::pbir::read_pbir(&back.model, &report, &mut skipped).unwrap();
+    assert!(skipped.is_empty(), "{skipped:?}");
+    assert_eq!(
+        serde_json::to_value(&back.model.tables).unwrap(),
+        serde_json::to_value(&model.tables).unwrap()
+    );
+    assert_eq!(back.model.report, model.report);
+    assert_eq!(back.model.name, model.name);
+}

@@ -937,6 +937,7 @@ dependencies = [
  "tracing",
  "ts-rs",
  "uuid",
+ "zip",
 ]
 
 [[package]]
@@ -1001,7 +1002,11 @@ dependencies = [
  "charted-compiler",
  "charted-model",
  "insta",
+ "jsonschema",
+ "serde",
  "serde_json",
+ "ts-rs",
+ "uuid",
 ]
 
 [[package]]

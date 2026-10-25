@@ -1,6 +1,6 @@
 [package]
 name = "charted-tmdl"
-description = "Writes charted models as Power BI TMDL and PBIP projects"
+description = "Reads and writes Power BI projects: TMDL, TMSL (model.bim) and PBIR"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,11 @@ repository.workspace = true
 [dependencies]
 charted-model.workspace = true
 charted-compiler.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+ts-rs.workspace = true
+uuid = { version = "1", features = ["v5"] }
 
 [dev-dependencies]
+jsonschema.workspace = true
 insta.workspace = true
