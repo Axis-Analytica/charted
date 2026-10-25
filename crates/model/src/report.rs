@@ -19,6 +19,17 @@ pub struct Report {
     /// Filters on all pages.
     #[serde(default)]
     pub filters: Vec<ReportFilter>,
+    /// Where each table's card sits in the model view, by table id. Tables without a
+    /// position are laid out automatically.
+    #[serde(default)]
+    pub diagram: std::collections::BTreeMap<Id, DiagramPosition>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
+#[ts(export)]
+pub struct DiagramPosition {
+    pub x: f64,
+    pub y: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

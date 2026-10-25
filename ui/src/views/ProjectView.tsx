@@ -1,4 +1,4 @@
-import { ChartColumnBig, ChartPie, Command, Keyboard, Redo2, Save, Sheet, Undo2, X } from "lucide-react";
+import { ChartColumnBig, ChartPie, Command, Keyboard, Network, Redo2, Save, Sheet, Undo2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import { useT } from "../i18n";
@@ -13,11 +13,13 @@ import { useDataView } from "../state/dataview";
 import { useReport } from "../state/report";
 import { ReportView } from "../report/ReportView";
 import { TablesPanel } from "./TablesPanel";
+import { FileMenu } from "../app/FileMenu";
+import { ModelView } from "../model/ModelView";
 
 export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const { t } = useT();
   const view = useReport((s) => s.view);
-  const setView = (v: "report" | "data") => useReport.getState().set({ view: v });
+  const setView = (v: "report" | "data" | "model") => useReport.getState().set({ view: v });
   const rpc = useApp((s) => s.rpc);
   const [selected, setSelected] = useState<string | null>(project.model.tables[0]?.id ?? null);
   useEffect(() => {
@@ -32,6 +34,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const save = async () => {
     if (await rpc({ type: "save" })) toast({ kind: "success", title: t("Saved %1", project.name) });
   };
+  const close = () => (project.dirty ? toast({ kind: "info", title: t("Save or undo your changes before closing") }) : rpc({ type: "closeProject" }));
   const undo = () => rpc({ type: "undo" });
   const redo = () => rpc({ type: "redo" });
   useShortcut(
@@ -40,6 +43,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
     { id: "redo", keys: "Ctrl+Shift+Z", label: "Redo", group: "Edit", run: redo, enabled: () => !!useApp.getState().state?.project?.redoLabel },
     { id: "report-view", keys: "Ctrl+1", label: "Report view", group: "View", run: () => setView("report"), global: true },
     { id: "data-view", keys: "Ctrl+2", label: "Data view", group: "View", run: () => setView("data"), global: true },
+    { id: "model-view", keys: "Ctrl+3", label: "Model view", group: "View", run: () => setView("model"), global: true },
     { id: "close", keys: "Ctrl+W", label: "Close project", group: "File", run: () => rpc({ type: "closeProject" }), enabled: () => !useApp.getState().state?.project?.dirty },
   );
 
@@ -51,6 +55,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
           <ChartColumnBig size={18} className="topbar-mark" />
           <span className="project-name">{project.name}</span>
           {project.dirty && <span className="dirty-dot" title={t("Unsaved changes")} aria-label={t("Unsaved changes")} />}
+          <FileMenu project={project} onSave={save} onClose={close} />
         </div>
         <div className="topbar-actions">
           <IconButton label={project.undoLabel ? t("Undo %1", t(project.undoLabel)) : t("Undo")} shortcut="Ctrl+Z" icon={<Undo2 size={16} />} isDisabled={!project.undoLabel} onPress={undo} />
@@ -59,7 +64,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
           <span className="topbar-sep" />
           <IconButton label={t("Command palette")} shortcut="Ctrl+K" icon={<Command size={16} />} onPress={() => window.dispatchEvent(new Event("charted:palette"))} />
           <IconButton label={t("Keyboard shortcuts")} shortcut="?" icon={<Keyboard size={16} />} onPress={() => window.dispatchEvent(new Event("charted:help"))} />
-          <IconButton label={t("Close project")} shortcut="Ctrl+W" icon={<X size={16} />} onPress={() => (project.dirty ? toast({ kind: "info", title: t("Save or undo your changes before closing") }) : rpc({ type: "closeProject" }))} />
+          <IconButton label={t("Close project")} shortcut="Ctrl+W" icon={<X size={16} />} onPress={close} />
         </div>
       </header>
       {project.recovery && (
@@ -80,14 +85,19 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
         </Banner>
       )}
       {project.warnings.length > 0 && <Banner tone="info">{t("Some parts of the model were imported with warnings: %1", project.warnings.join("; "))}</Banner>}
-      <div className={`workspace ${view === "report" ? "is-report" : ""}`}>
+      <div className={`workspace ${view === "report" ? "is-report" : ""} ${view === "model" ? "is-model" : ""}`}>
         <nav className="rail" aria-label={t("Views")}>
           <IconButton label={t("Report view")} shortcut="Ctrl+1" icon={<ChartPie size={18} />} pressed={view === "report"} onPress={() => setView("report")} />
           <IconButton label={t("Data view")} shortcut="Ctrl+2" icon={<Sheet size={18} />} pressed={view === "data"} onPress={() => setView("data")} />
+          <IconButton label={t("Model view")} shortcut="Ctrl+3" icon={<Network size={18} />} pressed={view === "model"} onPress={() => setView("model")} />
         </nav>
         {view === "report" ? (
           <main className="main">
             <ReportView model={project.model} />
+          </main>
+        ) : view === "model" ? (
+          <main className="main">
+            <ModelView model={project.model} />
           </main>
         ) : (
           <>

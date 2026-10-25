@@ -2,7 +2,7 @@
 // (used by end-to-end tests and screenshots). Text frames carry JSON; data replies are
 // binary frames: an 8-byte little-endian request id followed by Arrow IPC bytes.
 import type { EnvSnapshot } from "./generated/EnvSnapshot";
-import type { Transport } from "./transport";
+import type { PickOptions, Transport } from "./transport";
 
 interface Pending {
   resolve(v: unknown): void;
@@ -69,7 +69,11 @@ export function wsTransport(): Transport {
       void connect();
       return () => envListeners.delete(cb);
     },
-    pick: (options) => call("pick", options),
+    // End-to-end tests answer file dialogs by setting window.__chartedPick.
+    pick: (options) => {
+      const fake = (window as { __chartedPick?: (o: PickOptions) => string | null }).__chartedPick;
+      return fake ? Promise.resolve(fake(options)) : call("pick", options);
+    },
     initialPath: async () => params.get("open"),
     quit: () => call("quit"),
   };

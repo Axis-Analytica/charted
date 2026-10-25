@@ -19,9 +19,33 @@ pub struct PickOptions {
     pub directory: bool,
     #[serde(default)]
     pub filters: Vec<Filter>,
+    /// Choose where to save a new file, suggesting this name.
+    #[serde(default)]
+    pub save_as: Option<String>,
 }
 
 pub async fn pick(options: PickOptions) -> Result<Option<String>, String> {
+    if let Some(name) = &options.save_as {
+        let mut request = SelectedFiles::save_file()
+            .title(options.title.as_str())
+            .modal(true)
+            .current_name(name.as_str());
+        for f in &options.filters {
+            let mut filter = FileFilter::new(&f.name);
+            for ext in &f.extensions {
+                filter = filter.glob(&format!("*.{ext}"));
+            }
+            request = request.filter(filter);
+        }
+        let response = request
+            .send()
+            .await
+            .map_err(|e| {
+                format!("the file chooser is unavailable: {e}. Is xdg-desktop-portal running?")
+            })?
+            .response();
+        return chosen(response);
+    }
     let mut request = SelectedFiles::open_file()
         .title(options.title.as_str())
         .modal(true)
@@ -41,6 +65,10 @@ pub async fn pick(options: PickOptions) -> Result<Option<String>, String> {
             format!("the file chooser is unavailable: {e}. Is xdg-desktop-portal running?")
         })?
         .response();
+    chosen(response)
+}
+
+fn chosen(response: ashpd::Result<SelectedFiles>) -> Result<Option<String>, String> {
     match response {
         Ok(files) => Ok(files
             .uris()

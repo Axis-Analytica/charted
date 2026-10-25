@@ -127,3 +127,7 @@
 .frame-hud strong { font-size: var(--text-md); color: var(--success); }
 .frame-hud.is-warn strong { color: var(--warning); }
 .frame-hud.is-bad strong { color: var(--danger); }
+
+.import-diff-list { margin: 12px 0 0; padding: 8px 12px 8px 28px; max-height: 280px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); font-size: var(--text-sm); line-height: 1.7; }
+.import-diff-warning { margin: 8px 0 0; color: var(--warning); font-size: var(--text-sm); }
+.workspace.is-model { grid-template-columns: 44px 1fr; }

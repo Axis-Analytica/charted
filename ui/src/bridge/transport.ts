@@ -12,6 +12,8 @@ export interface PickOptions {
   /** Offer to create a new folder (used by "New project here"). */
   create?: boolean;
   filters?: { name: string; extensions: string[] }[];
+  /** Choose where to save a new file, suggesting this name. */
+  saveAs?: string;
 }
 
 export interface Transport {

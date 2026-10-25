@@ -67,6 +67,7 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
                     visuals: vec![],
                 }],
                 filters: vec![],
+                diagram: Default::default(),
             },
             ..Default::default()
         },

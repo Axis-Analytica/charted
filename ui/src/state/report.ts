@@ -13,7 +13,7 @@ import type { Visual } from "../bridge/generated/Visual";
 import { msg } from "../i18n";
 import { type RoleDef, visualDef } from "../report/registry";
 
-export type View = "report" | "data";
+export type View = "report" | "data" | "model";
 
 interface ReportStore {
   view: View;

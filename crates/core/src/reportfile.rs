@@ -24,6 +24,8 @@ struct ReportFile {
     pages: Vec<String>,
     #[serde(default)]
     filters: Vec<ReportFilter>,
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    diagram: std::collections::BTreeMap<String, charted_model::DiagramPosition>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -84,6 +86,7 @@ pub fn read(project_dir: &Path) -> Result<Report, ProjectError> {
     let mut report = Report {
         pages: Vec::new(),
         filters: file.filters,
+        diagram: file.diagram,
     };
     for id in file.pages.iter().filter(|id| safe(id)) {
         let pdir = dir.join("pages").join(id);
@@ -155,6 +158,7 @@ pub fn write(project_dir: &Path, report: &Report) -> Result<(), ProjectError> {
             format: REPORT_FORMAT,
             pages: report.pages.iter().map(|p| p.id.clone()).collect(),
             filters: report.filters.clone(),
+            diagram: report.diagram.clone(),
         },
     )
 }

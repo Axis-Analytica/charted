@@ -109,6 +109,10 @@ pub enum Change {
     SetReportFilters {
         filters: Vec<ReportFilter>,
     },
+    /// Replaces the model view's card positions.
+    SetDiagram {
+        positions: std::collections::BTreeMap<Id, DiagramPosition>,
+    },
 }
 
 /// A single column property, so one change type covers the whole properties pane.
@@ -661,6 +665,10 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
         Change::SetReportFilters { filters } => {
             let old = std::mem::replace(&mut model.report.filters, filters);
             Ok(vec![Change::SetReportFilters { filters: old }])
+        }
+        Change::SetDiagram { positions } => {
+            let old = std::mem::replace(&mut model.report.diagram, positions);
+            Ok(vec![Change::SetDiagram { positions: old }])
         }
     }
 }
