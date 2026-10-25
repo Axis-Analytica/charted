@@ -4,12 +4,19 @@
 //! WebAssembly (the editor uses it to preview generated SQL).
 
 pub mod graph;
+pub mod interp;
 pub mod ossie;
 pub mod quote;
 pub mod steps;
 pub mod visual;
 
 use charted_model::DataType;
+
+/// The physical column a calculated column's values are stored in, next to the loaded
+/// columns of its table.
+pub fn calc_column_name(id: &str) -> String {
+    format!("__calc_{id}")
+}
 
 /// DuckDB's name for a model data type.
 pub fn sqltype(t: DataType) -> Option<&'static str> {

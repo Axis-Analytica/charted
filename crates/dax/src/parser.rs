@@ -30,6 +30,8 @@ pub enum BinaryOp {
     Ge,
     And,
     Or,
+    /// `x IN { … }`
+    In,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,6 +59,15 @@ pub enum ExprKind {
         left: Box<Expr>,
         right: Box<Expr>,
     },
+    /// `VAR name = value` … `RETURN body` (one variable per node, nested).
+    Var {
+        name: String,
+        name_span: Span,
+        value: Box<Expr>,
+        body: Box<Expr>,
+    },
+    /// A table constructor `{ a, b, c }` (one column).
+    List(Vec<Expr>),
     Error,
 }
 
@@ -139,6 +150,7 @@ fn infix(t: &Tok) -> Option<(u8, BinaryOp)> {
         Tok::Le => (4, BinaryOp::Le),
         Tok::Gt => (4, BinaryOp::Gt),
         Tok::Ge => (4, BinaryOp::Ge),
+        Tok::Ident(s) if s.eq_ignore_ascii_case("IN") => (4, BinaryOp::In),
         Tok::Amp => (5, BinaryOp::Concat),
         Tok::Plus => (6, BinaryOp::Add),
         Tok::Minus => (6, BinaryOp::Sub),
@@ -223,6 +235,34 @@ impl Parser {
                 return e;
             }
             Tok::Bracket(name) => ExprKind::Ref { table: None, name },
+            Tok::LBrace => {
+                let mut items = Vec::new();
+                if !matches!(self.peek(), Tok::RBrace) {
+                    loop {
+                        items.push(self.expr(0));
+                        if matches!(self.peek(), Tok::Comma) {
+                            self.bump();
+                            continue;
+                        }
+                        break;
+                    }
+                }
+                let end = if matches!(self.peek(), Tok::RBrace) {
+                    self.bump().span
+                } else {
+                    let at = self.span();
+                    let found = describe(self.peek());
+                    self.error(
+                        at,
+                        &format!("expected \"}}\" to close the list, found {found}"),
+                    );
+                    at
+                };
+                return Expr {
+                    kind: ExprKind::List(items),
+                    span: span.to(end),
+                };
+            }
             Tok::Quoted(table) => return self.after_table(table, span),
             Tok::Ident(name) => {
                 let upper = name.to_ascii_uppercase();
@@ -230,6 +270,7 @@ impl Parser {
                     return self.call(name, span);
                 }
                 match upper.as_str() {
+                    "VAR" => return self.var(span),
                     "TRUE" => ExprKind::Bool(true),
                     "FALSE" => ExprKind::Bool(false),
                     "NOT" => {
@@ -258,6 +299,68 @@ impl Parser {
             }
         };
         Expr { kind, span }
+    }
+
+    /// `VAR name = value` (more VARs) `RETURN body`; called after the `VAR` keyword.
+    fn var(&mut self, start: Span) -> Expr {
+        let (name, name_span) = match self.peek().clone() {
+            Tok::Ident(n) => (n, self.bump().span),
+            other => {
+                let at = self.span();
+                self.error(
+                    at,
+                    &format!(
+                        "expected a variable name after VAR, found {}",
+                        describe(&other)
+                    ),
+                );
+                return Expr {
+                    kind: ExprKind::Error,
+                    span: start.to(at),
+                };
+            }
+        };
+        if matches!(self.peek(), Tok::Eq) {
+            self.bump();
+        } else {
+            let at = self.span();
+            let found = describe(self.peek());
+            self.error(
+                at,
+                &format!("expected \"=\" after VAR {name}, found {found}"),
+            );
+        }
+        let value = self.expr(0);
+        let body = match self.peek().clone() {
+            Tok::Ident(k) if k.eq_ignore_ascii_case("VAR") => {
+                let s = self.bump().span;
+                self.var(s)
+            }
+            Tok::Ident(k) if k.eq_ignore_ascii_case("RETURN") => {
+                self.bump();
+                self.expr(0)
+            }
+            other => {
+                let at = self.span();
+                self.error(
+                    at,
+                    &format!("expected RETURN or another VAR, found {}", describe(&other)),
+                );
+                Expr {
+                    kind: ExprKind::Error,
+                    span: at,
+                }
+            }
+        };
+        Expr {
+            span: start.to(body.span),
+            kind: ExprKind::Var {
+                name,
+                name_span,
+                value: Box::new(value),
+                body: Box::new(body),
+            },
+        }
     }
 
     /// A table name, optionally followed by `[Column]`.
@@ -345,6 +448,13 @@ mod tests {
             ExprKind::Binary { op, left, right } => {
                 format!("({} {op:?} {})", show(left), show(right))
             }
+            ExprKind::Var {
+                name, value, body, ..
+            } => format!("(var {name} = {} in {})", show(value), show(body)),
+            ExprKind::List(items) => format!(
+                "{{{}}}",
+                items.iter().map(show).collect::<Vec<_>>().join(", ")
+            ),
             ExprKind::Error => "!".into(),
         }
     }
@@ -375,6 +485,23 @@ mod tests {
         );
         assert_eq!(ok("BLANK()"), "BLANK()");
         assert_eq!(ok("Sales[Qty] * 2"), "(Sales[Qty] Mul 2)");
+    }
+
+    #[test]
+    fn variables_lists_and_in() {
+        assert_eq!(
+            ok("VAR a = 1 VAR b = a + 1 RETURN a * b"),
+            "(var a = 1 in (var b = (table a Add 1) in (table a Mul table b)))"
+        );
+        assert_eq!(
+            ok("Product[Color] IN { \"Red\", \"Blue\" }"),
+            "(Product[Color] In {\"Red\", \"Blue\"})"
+        );
+        assert!(
+            parse("VAR a = 1 a").diagnostics[0]
+                .message
+                .contains("expected RETURN")
+        );
     }
 
     #[test]

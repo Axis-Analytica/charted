@@ -48,10 +48,29 @@ fn hops(r: &Relationship) -> Vec<Hop> {
 impl Reach {
     /// Breadth-first from `start` along active relationships.
     pub fn from(model: &Model, start: &str) -> Self {
+        Self::with(model, start, &[])
+    }
+
+    /// Like `from`, with relationships switched on by USERELATIONSHIP: each replaces the
+    /// active relationship between the same two tables.
+    pub fn with(model: &Model, start: &str, use_rels: &[Id]) -> Self {
+        let on = |r: &Relationship| {
+            if use_rels.contains(&r.id) {
+                return true;
+            }
+            let overridden = use_rels.iter().any(|u| {
+                u != &r.id
+                    && model.relationship(u).is_some_and(|o| {
+                        (o.from_table == r.from_table && o.to_table == r.to_table)
+                            || (o.from_table == r.to_table && o.to_table == r.from_table)
+                    })
+            });
+            r.active && !overridden
+        };
         let edges: Vec<Hop> = model
             .relationships
             .iter()
-            .filter(|r| r.active)
+            .filter(|r| on(r))
             .flat_map(hops)
             .collect();
         let mut reach = Reach::default();

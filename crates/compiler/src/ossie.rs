@@ -3,7 +3,7 @@
 //! referenced measures are expanded inline (Ossie metrics cannot refer to each other).
 //! Measures that cannot be expressed this way get no generated expression.
 
-use charted_dax::{AggFunc, BinaryOp, Bound, ScalarFunc, UnaryOp};
+use charted_dax::{AggFunc, BinaryOp, Bound, ScalarFunc, TableExpr, UnaryOp};
 use charted_model::{Id, Model};
 
 use crate::quote::{ident, string};
@@ -42,7 +42,12 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
         Bound::Blank => "NULL".into(),
         Bound::Column { table, column: c } => column(model, table, c)?,
         Bound::Measure { measure, .. } => format!("({})", expand(model, measure, stack)?),
-        Bound::Aggregate { func, arg, .. } => {
+        // Only aggregates over a whole table translate; filter context changes do not.
+        Bound::Aggregate {
+            func,
+            arg,
+            source: TableExpr::Table(_),
+        } => {
             let x = match arg {
                 Some(a) => sql(model, a, stack)?,
                 None => "*".into(),
@@ -81,6 +86,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 ScalarFunc::And => format!("({} AND {})", a[0], a[1]),
                 ScalarFunc::Or => format!("({} OR {})", a[0], a[1]),
                 ScalarFunc::Not => format!("(NOT {})", a[0]),
+                ScalarFunc::IsBlank => format!("({} IS NULL)", a[0]),
             }
         }
         Bound::Unary { op, expr } => {
@@ -91,6 +97,14 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 UnaryOp::Not => format!("(NOT {e})"),
             }
         }
+        Bound::Related { .. }
+        | Bound::Var(_)
+        | Bound::Let { .. }
+        | Bound::Aggregate { .. }
+        | Bound::Calculate { .. }
+        | Bound::Info { .. }
+        | Bound::Switch { .. }
+        | Bound::In { .. } => return None,
         Bound::Binary { op, left, right } => {
             let (l, r) = (sql(model, left, stack)?, sql(model, right, stack)?);
             let sym = match op {
@@ -108,6 +122,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 BinaryOp::Ge => ">=",
                 BinaryOp::And => "AND",
                 BinaryOp::Or => "OR",
+                BinaryOp::In => return None,
             };
             format!("({l} {sym} {r})")
         }

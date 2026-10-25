@@ -772,6 +772,7 @@ dependencies = [
  "charted-model",
  "charted-ossie",
  "charted-samplegen",
+ "insta",
  "notify",
  "serde",
  "serde_json",

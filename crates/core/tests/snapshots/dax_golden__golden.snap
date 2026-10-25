@@ -1,0 +1,624 @@
+---
+source: crates/core/tests/dax_golden.rs
+expression: golden
+---
+## Sales Amount — card
+23413
+
+## Sales Amount — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Quantity — card
+269
+
+## Quantity — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Orders — card
+90
+
+## Orders — by category
+∅ | 1
+"Apparel" | 38
+"Camping" | 29
+"Footwear" | 22
+
+## Avg Price — card
+101.7222
+
+## Avg Price — by category
+∅ | 27
+"Apparel" | 70.5789
+"Camping" | 152.3448
+"Footwear" | 92.1818
+
+## Min Price — card
+20
+
+## Min Price — by category
+∅ | 27
+"Apparel" | 20
+"Camping" | 32
+"Footwear" | 48
+
+## Max Price — card
+300
+
+## Max Price — by category
+∅ | 27
+"Apparel" | 200
+"Camping" | 300
+"Footwear" | 150
+
+## Products Sold — card
+9
+
+## Products Sold — by category
+∅ | 1
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 2
+
+## Amounts — card
+82
+
+## Amounts — by category
+∅ | 1
+"Apparel" | 34
+"Camping" | 27
+"Footwear" | 20
+
+## Missing Amounts — card
+8
+
+## Missing Amounts — by category
+"Apparel" | 4
+"Camping" | 2
+"Footwear" | 2
+
+## Target — card
+68400
+
+## Target — by category
+∅ | 68400
+"Apparel" | 68400
+"Camping" | 68400
+"Footwear" | 68400
+
+## Product Count — card
+8
+
+## Product Count — by category
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 2
+
+## Colors — card
+5
+
+## Colors — by category
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## Max List Price — card
+300
+
+## Max List Price — by category
+"Apparel" | 200
+"Camping" | 300
+"Footwear" | 150
+
+## Gap — card
+-44987
+
+## Gap — by category
+∅ | -68319
+"Apparel" | -61725
+"Camping" | -58262
+"Footwear" | -61881
+
+## Price Per Unit — card
+87.0372
+
+## Price Per Unit — by category
+∅ | 27
+"Apparel" | 60.1351
+"Camping" | 123.6341
+"Footwear" | 89.3014
+
+## Vs Target — card
+0.3423
+
+## Vs Target — by category
+∅ | 0.0012
+"Apparel" | 0.0976
+"Camping" | 0.1482
+"Footwear" | 0.0953
+
+## Double Qty — card
+538
+
+## Double Qty — by category
+∅ | 6
+"Apparel" | 222
+"Camping" | 164
+"Footwear" | 146
+
+## Neg Qty — card
+-269
+
+## Neg Qty — by category
+∅ | -3
+"Apparel" | -111
+"Camping" | -82
+"Footwear" | -73
+
+## Qty Squared — card
+72361
+
+## Qty Squared — by category
+∅ | 9
+"Apparel" | 12321
+"Camping" | 6724
+"Footwear" | 5329
+
+## Rounded PPU — card
+87
+
+## Rounded PPU — by category
+∅ | 27
+"Apparel" | 60.1
+"Camping" | 123.6
+"Footwear" | 89.3
+
+## Abs Gap — card
+44987
+
+## Abs Gap — by category
+∅ | 68319
+"Apparel" | 61725
+"Camping" | 58262
+"Footwear" | 61881
+
+## Sales Or Target — card
+23413
+
+## Sales Or Target — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Plus Blank — card
+23413
+
+## Plus Blank — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Big — card
+"High"
+
+## Big — by category
+∅ | "Low"
+"Apparel" | "High"
+"Camping" | "High"
+"Footwear" | "High"
+
+## Big Or Blank — card
+269
+
+## Big Or Blank — by category
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Tier — card
+"A"
+
+## Tier — by category
+∅ | "C"
+"Apparel" | "A"
+"Camping" | "A"
+"Footwear" | "A"
+
+## Has Missing — card
+1
+
+## Has Missing — by category
+∅ | 0
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## And Or — card
+1
+
+## And Or — by category
+∅ | 0
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## In List — card
+"many"
+
+## In List — by category
+∅ | "few"
+"Apparel" | "many"
+"Camping" | "many"
+"Footwear" | "many"
+
+## Var Ratio — card
+8703.7175
+
+## Var Ratio — by category
+∅ | 2700
+"Apparel" | 6013.5135
+"Camping" | 12363.4146
+"Footwear" | 8930.137
+
+## Line Total — card
+25708
+
+## Line Total — by category
+∅ | 81
+"Apparel" | 7620
+"Camping" | 11278
+"Footwear" | 6729
+
+## Avg Line — card
+285.6444
+
+## Avg Line — by category
+∅ | 81
+"Apparel" | 200.5263
+"Camping" | 388.8966
+"Footwear" | 305.8636
+
+## Max Line — card
+1500
+
+## Max Line — by category
+∅ | 81
+"Apparel" | 1000
+"Camping" | 1500
+"Footwear" | 675
+
+## List Value — card
+28205
+
+## List Value — by category
+"Apparel" | 8225
+"Camping" | 12180
+"Footwear" | 7800
+
+## Discount — card
+2497
+
+## Discount — by category
+∅ | -81
+"Apparel" | 605
+"Camping" | 902
+"Footwear" | 1071
+
+## Big Lines — card
+38
+
+## Big Lines — by category
+"Apparel" | 16
+"Camping" | 10
+"Footwear" | 12
+
+## Green Qty — card
+52
+
+## Green Qty — by category
+"Camping" | 52
+
+## Counted Lines — card
+82
+
+## Counted Lines — by category
+∅ | 1
+"Apparel" | 34
+"Camping" | 27
+"Footwear" | 20
+
+## Avg Per Category — card
+5853.25
+
+## Avg Per Category — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Best Product — card
+41
+
+## Best Product — by category
+∅ | 3
+"Apparel" | 41
+"Camping" | 30
+"Footwear" | 38
+
+## Months With Sales — card
+10
+
+## Months With Sales — by category
+∅ | 1
+"Apparel" | 9
+"Camping" | 10
+"Footwear" | 9
+
+## Sum Of Max — card
+800
+
+## Sum Of Max — by category
+∅ | 27
+"Apparel" | 580
+"Camping" | 720
+"Footwear" | 420
+
+## Per Product — card
+266
+
+## Per Product — by category
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Camping Sales — card
+10138
+
+## Camping Sales — by category
+∅ | 10138
+"Apparel" | 10138
+"Camping" | 10138
+"Footwear" | 10138
+
+## Not Camping — card
+13275
+
+## Not Camping — by category
+∅ | 13275
+"Apparel" | 13275
+"Camping" | 13275
+"Footwear" | 13275
+
+## All Products — card
+23413
+
+## All Products — by category
+∅ | 23413
+"Apparel" | 23413
+"Camping" | 23413
+"Footwear" | 23413
+
+## Share Of Category — card
+1
+
+## Share Of Category — by category
+∅ | 0.0035
+"Apparel" | 0.2851
+"Camping" | 0.433
+"Footwear" | 0.2784
+
+## All Sales — card
+23413
+
+## All Sales — by category
+∅ | 23413
+"Apparel" | 23413
+"Camping" | 23413
+"Footwear" | 23413
+
+## All Years — card
+269
+
+## All Years — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Year 2024 — card
+82
+
+## Year 2024 — by category
+"Apparel" | 38
+"Camping" | 30
+"Footwear" | 14
+
+## Keep 2024 — card
+82
+
+## Keep 2024 — by category
+"Apparel" | 38
+"Camping" | 30
+"Footwear" | 14
+
+## Green Or Red — card
+122
+
+## Green Or Red — by category
+"Apparel" | 70
+"Camping" | 52
+
+## Two Filters — card
+58
+
+## Two Filters — by category
+∅ | 58
+"Apparel" | 58
+"Camping" | 58
+"Footwear" | 58
+
+## Big Orders Sales — card
+18664.5
+
+## Big Orders Sales — by category
+∅ | 81
+"Apparel" | 5572.5
+"Camping" | 7260
+"Footwear" | 5751
+
+## Filter Table — card
+123
+
+## Filter Table — by category
+"Apparel" | 30
+"Camping" | 55
+"Footwear" | 38
+
+## Filter Rows — card
+114
+
+## Filter Rows — by category
+"Apparel" | 30
+"Camping" | 46
+"Footwear" | 38
+
+## Except Category — card
+269
+
+## Except Category — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## By Ship Date — card
+269
+
+## By Ship Date — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Ship Orders — card
+90
+
+## Ship Orders — by category
+∅ | 1
+"Apparel" | 38
+"Camping" | 29
+"Footwear" | 22
+
+## Restore Values — card
+269
+
+## Restore Values — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## All Selected — card
+269
+
+## All Selected — by category
+∅ | 269
+"Apparel" | 269
+"Camping" | 269
+"Footwear" | 269
+
+## Nested Calc — card
+269
+
+## Nested Calc — by category
+∅ | 269
+"Apparel" | 269
+"Camping" | 269
+"Footwear" | 269
+
+## Target All Stores — card
+68400
+
+## Target All Stores — by category
+∅ | 68400
+"Apparel" | 68400
+"Camping" | 68400
+"Footwear" | 68400
+
+## Calc Var — card
+1
+
+## Calc Var — by category
+∅ | 0.0112
+"Apparel" | 0.4126
+"Camping" | 0.3048
+"Footwear" | 0.2714
+
+## Transition Sum — card
+269
+
+## Transition Sum — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Iterate Calc — card
+23413
+
+## Iterate Calc — by category
+∅ | 23413
+"Apparel" | 23413
+"Camping" | 23413
+"Footwear" | 23413
+
+## Selected Category — card
+"Many"
+
+## Selected Category — by category
+"Apparel" | "Apparel"
+"Camping" | "Camping"
+"Footwear" | "Footwear"
+
+## One Year — card
+"many"
+
+## One Year — by category
+∅ | "many"
+"Apparel" | "many"
+"Camping" | "many"
+"Footwear" | "many"
+
+## Category In Scope — card
+0
+
+## Category In Scope — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Year Filtered — card
+0
+
+## Year Filtered — by category
+∅ | 0
+"Apparel" | 0
+"Camping" | 0
+"Footwear" | 0
+
+## Scoped Share — card
+∅
+
+## Scoped Share — by category
+∅ | 0.0035
+"Apparel" | 0.2851
+"Camping" | 0.433
+"Footwear" | 0.2784

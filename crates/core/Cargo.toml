@@ -25,5 +25,6 @@ uuid = { version = "1", features = ["v4", "v5"] }
 [dev-dependencies]
 arrow-ipc.workspace = true
 arrow-cast.workspace = true
+insta.workspace = true
 notify.workspace = true
 tempfile = "3"

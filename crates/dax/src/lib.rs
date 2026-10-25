@@ -9,7 +9,7 @@ pub mod parser;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-pub use bind::{AggFunc, Bound, ScalarFunc, bind};
+pub use bind::{AggFunc, Bound, FilterArg, InfoFunc, ScalarFunc, TableExpr, bind, bind_in};
 pub use parser::{BinaryOp, Expr, ExprKind, Parsed, UnaryOp, parse};
 
 /// A byte range in the formula text.
@@ -52,9 +52,18 @@ impl Diagnostic {
 
 /// Parses and binds a formula, returning every problem found.
 pub fn check(model: &charted_model::Model, src: &str) -> (Option<Bound>, Vec<Diagnostic>) {
+    check_in(model, src, None)
+}
+
+/// Parses and binds a formula evaluated per row of `row_table` (a calculated column).
+pub fn check_in(
+    model: &charted_model::Model,
+    src: &str,
+    row_table: Option<&str>,
+) -> (Option<Bound>, Vec<Diagnostic>) {
     let parsed = parse(src);
     if !parsed.diagnostics.is_empty() {
         return (None, parsed.diagnostics);
     }
-    bind(model, &parsed.expr)
+    bind_in(model, &parsed.expr, row_table)
 }
