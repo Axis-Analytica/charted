@@ -75,7 +75,10 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                                 code: "invalid".into(),
                                 message: e.to_string(),
                             })
-                            .and_then(|r| lock().data(r));
+                            .and_then(|r| {
+                                let job = lock().data_job(r)?;
+                                job.run()
+                            });
                         match result {
                             Ok(bytes) => {
                                 let mut frame = id.to_le_bytes().to_vec();

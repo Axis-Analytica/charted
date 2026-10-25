@@ -1,6 +1,9 @@
-# Handoff: starting milestone 1 (Data view)
+# Handoff: milestone 1 (Data view) built; checkpoint review, then milestone 2
 
-Read this first when picking up development. Last updated 2026-10-25, end of M0.
+Read this first when picking up development. Last updated 2026-10-25, end of M1 build.
+**Status:** M1 is implemented and `bin/test` is green. The user has not yet reviewed
+the M1 checkpoint (`docs/demos/m1.md`, screenshots in `~/Work/charted-checkpoints/m1/`).
+Address their feedback before starting M2.
 The approved plan lives in `~/.claude/plans/then-get-to-planning-imperative-wave.md`
 (seven milestones, each ending in a visual checkpoint the user reviews before the next
 one starts). Background research: `~/Work/pbi-re/notes/00-blueprint.md` and `01–04`
@@ -42,9 +45,40 @@ ui/               Vite + React: bridge/ (Transport: Tauri | WebSocket), design/ 
                   ProjectView, TablesPanel, TablePreview, StatusBar), format/ (format strings), spike/
 i18n/             da.json, ar.json (English-keyed); tools/i18n-strings.mjs extracts/checks strings
 bin/              env, setup, dev, test, checkpoint
-docs/             perf.md (WebKitGTK spike numbers), demos/m0.md, this file
+docs/             perf.md (WebKitGTK spike numbers), demos/m0.md, demos/m1.md, this file
 .github/workflows/ci.yml   x86_64 + arm64 Rust, UI + Playwright e2e
 ```
+
+M1 added:
+
+```
+crates/core/src/dataview.rs   ViewSpec {table, sort, filters} -> View: rows (Arrow), count,
+                              distinct values, column stats, find; type-change and sort-by
+                              checks against the data (Session::commit runs them)
+crates/core/tests/dataview.rs integration tests on the demo sample
+crates/engine/examples/sqltime.rs   `sqltime DB "SQL"…` timing tool (release build;
+                              LD_LIBRARY_PATH=target/duckdb-download/<arch>/v2.0.0)
+ui/src/state/dataview.ts      view state per table (sort, filters, widths, selection);
+                              reset when the project path changes
+ui/src/views/data/            DataView (orchestrator, copy, shortcuts), DataGrid (Glide,
+                              custom header drawing, Lucide header sprites), blocks.ts
+                              (block LRU), FilterMenu, ColumnProperties, StatsDrawer,
+                              FindBar, data.css
+ui/src/format/                hardened engine + format.test.ts (Vitest, `pnpm test`)
+ui/src/app/FrameMeter.tsx     FrameHud (Ctrl+Alt+P): fps, p50/p95, first-rows time
+ui/e2e/m1.spec.ts
+```
+
+**Paging (deviation from the plan, better):** no OFFSET and no keyset paging. An
+unsorted, unfiltered table is read by rowid range (rowids of a materialised table are
+dense; checked once per table). Any sort or filter materialises the row order once as
+an "index" table of source rowids in an attached in-memory database `charted_view`
+(LRU of 8); a page is the index's rowid range joined back to the source. Measured on
+9.8M rows (aarch64 VM): index build 60–360 ms, any page ~10 ms at any offset; in the
+UI first rows paint in ~100 ms unsorted, ~170 ms after a one-key sort, 60 fps scroll.
+`DataRequest` jobs are resolved under the `App` lock and run without it
+(`App::data_job` → `DataJob::run`), so pages load in parallel. Non-`Rows` data requests
+reply with JSON bytes (`dataJson` in the UI).
 
 Request flow: UI → `transport.rpc(Request)` → `App::handle` → returns full `AppState`
 (Rust is the source of truth; the UI replaces its mirror). Data (Arrow IPC bytes) goes
@@ -99,6 +133,23 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - WebKit's first load can race Vite's dependency optimisation; screenshots need a
   warm Vite (curl `/src/main.tsx` first) and a delay of 5–7 s.
 
+- **React StrictMode double-mounts in dev**: effects run cleanup then run again with the
+  same memoised objects. Anything closed in a cleanup must be reopenable (BlockCache.open).
+- Glide's offscreen accessibility table is not rendered here, so e2e tests cannot read
+  grid cells from the DOM. Read values through Copy (clipboard permission granted in
+  m1.spec.ts) and open column menus with `Alt+↓` (selected column) instead of clicking
+  canvas coordinates.
+- Keyboard handlers that `preventDefault` on plain arrows (the Tables tree) swallow
+  global shortcuts such as `Alt+ArrowDown`: let modified keys through.
+- The sample's ids are deterministic, so two sample projects share table ids. Key any
+  per-table UI by project path too (DataView is keyed `${project.path}\n${table.id}`).
+- The project lock is per process: a running `charted-headless serve` that opened a
+  project makes `charted open` of the same project fail with "already open". Kill it
+  with `fuser -k 7420/tcp` before WebKit screenshots.
+- Commit labels (`commit("Change format", …)`) are not in the i18n catalogs: the string
+  checker only extracts `t("…")` and `label: "…"`, and unknown catalog keys fail the
+  check. Translating undo labels needs a small extractor change.
+
 ## Deferred from M0 (do these when relevant)
 
 - Visual query IR → SQL with many-to-one star joins (`crates/compiler`): start of M2.
@@ -109,30 +160,27 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - CI: green on the M0 push (Rust on x86_64 and arm64, UI + e2e). Check `gh run list
   -R Axis-Analytica/charted` after each push.
 
-## Milestone 1: Data view (next)
+## Deferred from M1
 
-Goal: a fast, beautiful data grid that beats Power BI's. Deliverables (from the plan):
+- Calculated columns are skipped by the Data view (they arrive with the DAX engine, M3).
+- Find compares raw values (as text), not formatted text.
+- Column order changes (drag) and freezing are not implemented; widths are view state
+  and not saved with the project.
+- Copy caps at 1,000,000 rows; formatted with the column's format string.
+- Server-side query cancellation: stale page requests are dropped before sending, but a
+  sent query runs to completion (DuckDB `interrupt_handle` exists if needed).
 
-1. Glide grid backed by the core: `DataRequest::Rows { table, columns, offset, limit,
-   sort, filters }` → Arrow; 200-row blocks, LRU of 64 blocks, `AbortController` on fast
-   scroll; stable order `ORDER BY …, rowid`; keyset paging beyond offset 1M. Row count
-   request for the scroll height.
-2. Header type icons, multi-column sort (Shift-click), per-column filter menu (value
-   checklist over the top 1,000 distinct values with search; text/number/date
-   conditions), clear filters. Filters/sort are view state, not undoable model changes.
-3. Status bar: rows, filtered rows, distinct count of the selected column.
-4. Column properties panel: name, data type, format string with live preview,
-   summarize-by, data category, sort-by-column (verify 1:1 with COUNT DISTINCT), hidden,
-   description; each a typed `Change` (`SetColumn`/`RenameColumn`) → undoable, persisted
-   to Ossie.
-5. Statistics drawer (Ctrl+I): count, distinct, nulls, min/max/mean/median/stddev/
-   p25/p75, zeros, date span, mini histogram (one aggregate query + binning).
-6. Copy cell/selection/column as TSV; Ctrl+F find value.
-7. Format-string engine hardening (`ui/src/format/`) with Vitest tables (add Vitest).
-8. Rail gets a Data view (Ctrl+2); M0's preview becomes the Data view.
+## Milestone 2: First report (after the M1 review)
 
-Checkpoint (docs/demos/m1.md to write): fast scroll with a frame HUD (Ctrl+Alt+P),
-multi-sort, filter, stats drawer, format change + undo, TSV copy, and the 10M-row
-sample (`charted sample create <dir> --scale 10m`) painting in under 300 ms.
-Add `e2e/m1.spec.ts`, keep `bin/test` green, then `CHARTED_CHECKPOINT_NO_OPEN=1
-bin/checkpoint m1` and show the user the screenshots before moving on.
+From the plan: canvas with pages, snap/multi-select/align, inserts under the pointer;
+Fields → role wells (drag and keyboard); capability registry; generated format pane;
+visuals card, clustered bar/column, line, table; **the DAX core parser starts here**
+(aggregates, arithmetic, DIVIDE, IF; stored as DAX + generated OSSIE_SQL; quick and
+implicit measures); filters pane (visual/page/report; basic/advanced/Top N);
+PBIR-lite report files; `charted query --visual … --json`. Starts with the deferred
+visual query IR → SQL with many-to-one star joins in `crates/compiler`.
+
+Checkpoint: build the Overview page (card, column, line, table); create `Margin %`
+with `DIVIDE`; add a page filter Year=2025; align; save, reopen, identical.
+Write `docs/demos/m2.md` and `e2e/m2.spec.ts`, keep `bin/test` green, then
+`CHARTED_CHECKPOINT_NO_OPEN=1 bin/checkpoint m2`.

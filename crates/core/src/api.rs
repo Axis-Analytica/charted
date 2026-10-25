@@ -1,11 +1,12 @@
 //! The request/response API. The desktop shell, the command line and the development
 //! WebSocket server all call `App::handle`, so they can never drift apart.
 
-use charted_model::Change;
+use charted_model::{Change, Id};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
+use crate::dataview::{View, ViewSpec};
 use crate::recent::{self, RecentProject};
 use crate::session::{CoreError, ProjectSnapshot, Session};
 
@@ -68,7 +69,10 @@ impl From<CoreError> for ApiError {
     }
 }
 
-/// Requests for binary data (Arrow IPC), kept separate so large results skip JSON.
+/// Requests that read data, kept apart from `Request` so large results skip JSON and
+/// slow queries never hold up model edits. `Rows` answers with Arrow IPC; the others
+/// answer with JSON bytes (`ViewCount`, `DistinctValues`, `ColumnStats`,
+/// `FindResult | null`).
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(
     tag = "type",
@@ -77,7 +81,82 @@ impl From<CoreError> for ApiError {
 )]
 #[ts(export)]
 pub enum DataRequest {
-    Preview { table: String, limit: u32 },
+    Rows {
+        view: ViewSpec,
+        /// Only these columns (all when omitted).
+        #[serde(default)]
+        columns: Option<Vec<Id>>,
+        #[ts(type = "number")]
+        offset: u64,
+        limit: u32,
+    },
+    Count {
+        view: ViewSpec,
+        #[serde(default)]
+        column: Option<Id>,
+    },
+    Distinct {
+        view: ViewSpec,
+        column: Id,
+        #[serde(default)]
+        search: Option<String>,
+        limit: u32,
+    },
+    Stats {
+        view: ViewSpec,
+        column: Id,
+    },
+    Find {
+        view: ViewSpec,
+        text: String,
+        #[serde(default)]
+        columns: Option<Vec<Id>>,
+        /// Search after this row (before it when `backwards`); from the start if omitted.
+        #[serde(default)]
+        #[ts(type = "number | null")]
+        after: Option<u64>,
+        #[serde(default)]
+        backwards: bool,
+    },
+}
+
+fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> {
+    Ok(serde_json::to_vec(&value?).unwrap_or_default())
+}
+
+/// A data request resolved against the open project, runnable without the `App`.
+pub struct DataJob {
+    view: View,
+    request: DataRequest,
+}
+
+impl DataJob {
+    pub fn run(self) -> Result<Vec<u8>, ApiError> {
+        let v = &self.view;
+        match self.request {
+            DataRequest::Rows {
+                columns,
+                offset,
+                limit,
+                ..
+            } => Ok(v.rows(columns.as_deref(), offset, limit)?),
+            DataRequest::Count { column, .. } => json(v.count(column.as_deref())),
+            DataRequest::Distinct {
+                column,
+                search,
+                limit,
+                ..
+            } => json(v.distinct(&column, search.as_deref(), limit)),
+            DataRequest::Stats { column, .. } => json(v.stats(&column)),
+            DataRequest::Find {
+                text,
+                columns,
+                after,
+                backwards,
+                ..
+            } => json(v.find(&text, columns.as_deref(), after, backwards)),
+        }
+    }
 }
 
 pub struct App {
@@ -155,11 +234,21 @@ impl App {
         Ok(())
     }
 
-    pub fn data(&self, request: DataRequest) -> Result<Vec<u8>, ApiError> {
+    /// Resolves a data request; run the job after releasing any lock on the `App`.
+    pub fn data_job(&self, request: DataRequest) -> Result<DataJob, ApiError> {
         let s = self.session.as_ref().ok_or(CoreError::NoProject)?;
-        match request {
-            DataRequest::Preview { table, limit } => Ok(s.preview(&table, limit.min(10_000))?),
-        }
+        let view = match &request {
+            DataRequest::Rows { view, .. }
+            | DataRequest::Count { view, .. }
+            | DataRequest::Distinct { view, .. }
+            | DataRequest::Stats { view, .. }
+            | DataRequest::Find { view, .. } => s.view(view)?,
+        };
+        Ok(DataJob { view, request })
+    }
+
+    pub fn data(&self, request: DataRequest) -> Result<Vec<u8>, ApiError> {
+        self.data_job(request)?.run()
     }
 }
 

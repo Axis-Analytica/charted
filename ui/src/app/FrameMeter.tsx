@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useDataView } from "../state/dataview";
 
 export interface FrameStats {
   p50: number;
@@ -40,5 +41,23 @@ export function FrameMeter() {
     <span className="meter" data-testid="frame-meter">
       frame p50 {s.p50.toFixed(1)} ms · p95 {s.p95.toFixed(1)} ms · max {s.max.toFixed(0)} ms · &gt;33ms {s.long}/240
     </span>
+  );
+}
+
+/** Ctrl+Alt+P: a small always-on-top frame-time readout for checking scroll smoothness. */
+export function FrameHud() {
+  const s = useFrameStats(120);
+  const fps = s.p50 ? Math.min(999, 1000 / s.p50) : 0;
+  const tone = s.p95 > 25 ? "bad" : s.p95 > 18 ? "warn" : "good";
+  const firstRows = useDataView((d) => d.firstRows);
+  return (
+    <div className={`frame-hud is-${tone}`} data-testid="frame-hud" aria-hidden>
+      <strong className="tabular">{fps.toFixed(0)} fps</strong>
+      <span className="tabular">p50 {s.p50.toFixed(1)} ms</span>
+      <span className="tabular">p95 {s.p95.toFixed(1)} ms</span>
+      <span className="tabular">max {s.max.toFixed(0)} ms</span>
+      <span className="tabular">&gt;33 ms: {s.long}</span>
+      {firstRows !== null && <span className="tabular">first rows {firstRows} ms</span>}
+    </div>
   );
 }

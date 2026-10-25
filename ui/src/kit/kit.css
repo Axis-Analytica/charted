@@ -165,6 +165,24 @@
   color: var(--fg);
 }
 .input:focus-visible, .input[data-focused] { border-color: var(--accent); outline: none; }
+textarea.input { height: auto; min-height: 56px; padding: 6px 10px; resize: vertical; font: inherit; line-height: 1.4; }
+.input.is-invalid { border-color: var(--danger); }
+.select {
+  height: 30px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken) no-repeat right 9px center / 10px 6px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--fg-faint) 50%), linear-gradient(-45deg, transparent 50%, var(--fg-faint) 50%);
+  background-size: 5px 5px, 5px 5px;
+  background-position: right 13px center, right 8px center;
+  color: var(--fg);
+  appearance: none;
+}
+.select:focus-visible { border-color: var(--accent); outline: none; }
+.select option { background: var(--bg-raised); color: var(--fg); }
+.check { display: inline-flex; align-items: center; gap: 8px; color: var(--fg); cursor: default; }
+.check input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
 
 @keyframes fade { from { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }

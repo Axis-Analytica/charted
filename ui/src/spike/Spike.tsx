@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowSpike } from "./ArrowSpike";
 import { ChartSpike } from "./ChartSpike";
 import { EditorSpike } from "./EditorSpike";
-import { FrameMeter } from "./FrameMeter";
+import { FrameMeter } from "../app/FrameMeter";
 import { GridSpike } from "./GridSpike";
 import "./spike.css";
 

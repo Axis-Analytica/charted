@@ -5,6 +5,7 @@ import type { Table } from "../bridge/generated/Table";
 import { formatNumber, useT } from "../i18n";
 import { useApp } from "../state/app";
 import { useShortcut } from "../app/shortcuts";
+import { useDataView } from "../state/dataview";
 import { ColumnIcon, MeasureIcon } from "./icons";
 
 function RenameInput({ initial, onDone }: { initial: string; onDone(name: string | null): void }) {
@@ -32,7 +33,18 @@ function RenameInput({ initial, onDone }: { initial: string; onDone(name: string
   );
 }
 
-export function TablesPanel({ project, selected, onSelect }: { project: ProjectSnapshot; selected: string | null; onSelect(id: string): void }) {
+export function TablesPanel({
+  project,
+  selected,
+  onSelect,
+  onSelectColumn,
+}: {
+  project: ProjectSnapshot;
+  selected: string | null;
+  onSelect(id: string): void;
+  onSelectColumn(table: string, column: string): void;
+}) {
+  const selectedColumns = useDataView((s) => s.selected);
   const { t } = useT();
   const commit = useApp((s) => s.commit);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -68,6 +80,7 @@ export function TablesPanel({ project, selected, onSelect }: { project: ProjectS
         aria-label={t("Tables")}
         tabIndex={0}
         onKeyDown={(e) => {
+          if (e.altKey || e.ctrlKey || e.metaKey) return;
           if (e.key === "ArrowDown") (e.preventDefault(), move(1));
           if (e.key === "ArrowUp") (e.preventDefault(), move(-1));
           if (e.key === "ArrowRight" && selected) setExpanded((s) => new Set(s).add(selected));
@@ -115,7 +128,13 @@ export function TablesPanel({ project, selected, onSelect }: { project: ProjectS
                     </li>
                   ))}
                   {table.columns.map((c) => (
-                    <li key={c.id} role="treeitem" className={`tree-row tree-leaf ${c.hidden ? "is-hidden" : ""}`}>
+                    <li
+                      key={c.id}
+                      role="treeitem"
+                      aria-selected={selected === table.id && selectedColumns[table.id] === c.id}
+                      className={`tree-row tree-leaf ${c.hidden ? "is-hidden" : ""} ${selected === table.id && selectedColumns[table.id] === c.id ? "is-current" : ""}`}
+                      onClick={() => onSelectColumn(table.id, c.id)}
+                    >
                       <span className="tree-icon"><ColumnIcon column={c} /></span>
                       <span className="tree-label">{c.name}</span>
                       {c.isKey && <span className="tree-tag">{t("Key")}</span>}

@@ -16,6 +16,7 @@ rust-version = "1.90"
 duckdb = { version = "1.20000.0" }
 # Must match the arrow major version duckdb re-exports as `duckdb::arrow`.
 arrow-ipc = "60"
+arrow-cast = "60"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml_ng = "0.10"

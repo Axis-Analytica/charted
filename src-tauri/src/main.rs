@@ -44,7 +44,12 @@ async fn rpc(state: tauri::State<'_, Shared>, request: Request) -> Result<AppSta
 #[tauri::command]
 async fn data(state: tauri::State<'_, Shared>, request: DataRequest) -> Result<Response, ApiError> {
     let app = state.app.clone();
-    blocking(move || lock(&app).data(request).map(Response::new)).await
+    blocking(move || {
+        // Resolve under the lock, query without it, so pages load in parallel.
+        let job = lock(&app).data_job(request)?;
+        job.run().map(Response::new)
+    })
+    .await
 }
 
 #[tauri::command]

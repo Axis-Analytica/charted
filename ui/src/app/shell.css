@@ -63,6 +63,7 @@
 .tree-row.is-selected { background: var(--accent-soft); color: var(--fg-strong); }
 .tree-leaf { padding-inline-start: 26px; color: var(--fg-muted); }
 .tree-leaf.is-hidden { opacity: 0.5; }
+.tree-leaf.is-current { background: var(--bg-active); color: var(--fg-strong); }
 .tree-chevron { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; background: transparent; color: var(--fg-faint); }
 .tree-chevron svg { transition: transform var(--motion); }
 .tree-chevron.is-open svg { transform: rotate(90deg); }
@@ -120,3 +121,9 @@
 .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 18px; }
 .swatch { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--fg-muted); }
 .swatch-chip { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm); flex: none; }
+
+/* Frame-time readout (Ctrl+Alt+P) */
+.frame-hud { position: fixed; top: 48px; inset-inline-end: 12px; z-index: 160; display: flex; gap: 10px; align-items: baseline; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--bg-overlay) 88%, transparent); color: var(--fg-muted); font: 500 var(--text-xs) / 1.2 var(--font-mono); pointer-events: none; }
+.frame-hud strong { font-size: var(--text-md); color: var(--success); }
+.frame-hud.is-warn strong { color: var(--warning); }
+.frame-hud.is-bad strong { color: var(--danger); }

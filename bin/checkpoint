@@ -16,6 +16,12 @@ cargo build -q -p charted -p charted-cli
 demo="$HOME/Work/charted-checkpoints/Harbor & Pine"
 rm -rf "$demo"
 ./target/debug/charted-headless sample create "$demo"
+# The Data view is judged on the 10-million-row sample too (kept between runs; ~1 min to make).
+big="$HOME/Work/charted-checkpoints/Harbor & Pine 10M"
+if [ "$m" != m0 ] && [ ! -e "$big/Harbor & Pine.charted" ]; then
+  rm -rf "$big"
+  ./target/debug/charted-headless sample create "$big" --scale 10m
+fi
 
 # Browser screenshots of the scripted flows (Chromium against the real core).
 (cd ui && CHARTED_SHOTS="$out" CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium || true)}" pnpm exec playwright test "e2e/$m.spec.ts") || true
@@ -28,6 +34,9 @@ for _ in $(seq 1 40); do curl -s -o /dev/null localhost:1420/ && break; sleep 0.
 curl -s -o /dev/null localhost:1420/src/main.tsx
 CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open --screenshot "$out/$m-window-welcome.png" >/dev/null
 CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$demo" --screenshot "$out/$m-window-project.png" >/dev/null
+if [ "$m" != m0 ]; then
+  CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$big" --screenshot "$out/$m-window-10m.png" >/dev/null
+fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."

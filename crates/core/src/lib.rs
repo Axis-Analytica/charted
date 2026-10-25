@@ -7,6 +7,7 @@
 pub mod api;
 mod atomic;
 pub mod check;
+pub mod dataview;
 pub mod env;
 pub mod ids;
 pub mod project;

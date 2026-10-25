@@ -2,13 +2,14 @@
 
 use charted_compiler::steps::{self, Query};
 use charted_engine::{Database, DbError, DbOptions, sql};
-use charted_model::{Change, ChangeError, History, Model};
+use charted_model::{Change, ChangeError, ColumnProperty, History, Model};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use ts_rs::TS;
 
 use crate::atomic;
+use crate::dataview::{self, SharedIndexes, View, ViewSpec};
 use crate::project::{Project, ProjectError};
 
 #[derive(Debug, thiserror::Error)]
@@ -153,6 +154,7 @@ pub struct Session {
     pub project: Project,
     history: History,
     db: Database,
+    indexes: SharedIndexes,
     recovery: Option<RecoveryInfo>,
     _lock: Lock,
 }
@@ -162,6 +164,7 @@ impl Session {
         let project = Project::open(path)?;
         let lock = Lock::acquire(&project.cache_dir())?;
         let db = Database::open(Some(&project.database_path()), &db_options(&project))?;
+        dataview::attach(&db)?;
         for q in &project.queries {
             if !db.table_exists(&q.table)? {
                 load_query(&db, q, &project.dir_str())?;
@@ -178,6 +181,7 @@ impl Session {
             project,
             history: History::with_limit(500),
             db,
+            indexes: SharedIndexes::default(),
             recovery,
             _lock: lock,
         })
@@ -227,6 +231,7 @@ impl Session {
     }
 
     pub fn commit(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
+        self.check_against_data(&changes)?;
         self.history
             .commit(&mut self.project.model, label, changes)?;
         self.write_recovery();
@@ -274,18 +279,43 @@ impl Session {
         self.recovery = None;
     }
 
-    /// Up to `limit` rows of a model table, as Arrow IPC.
-    pub fn preview(&self, table_id: &str, limit: u32) -> Result<Vec<u8>, CoreError> {
+    /// Resolves a Data view over a model table. The result runs its queries without
+    /// borrowing the session, so callers can release their locks first.
+    pub fn view(&self, spec: &ViewSpec) -> Result<View, CoreError> {
         let t = self
             .project
             .model
-            .table(table_id)
-            .ok_or_else(|| CoreError::Invalid(format!("unknown table {table_id}")))?;
-        let source = sql::ident(&t.source);
-        Ok(self.db.arrow(&format!(
-            "SELECT {} FROM {source} LIMIT {limit}",
-            display_columns(&self.db, &source)?
-        ))?)
+            .table(&spec.table)
+            .ok_or_else(|| CoreError::Invalid(format!("unknown table {}", spec.table)))?;
+        View::new(self.db.clone(), self.indexes.clone(), t, spec)
+    }
+
+    /// Changes that are valid for the model but not for the loaded data: a type the
+    /// values don't convert to, or a sort-by column that isn't one value per value.
+    fn check_against_data(&self, changes: &[Change]) -> Result<(), CoreError> {
+        for c in changes {
+            let Change::SetColumn {
+                table,
+                column,
+                property,
+            } = c
+            else {
+                continue;
+            };
+            let view = || {
+                self.view(&ViewSpec {
+                    table: table.clone(),
+                    sort: Vec::new(),
+                    filters: Vec::new(),
+                })
+            };
+            match property {
+                ColumnProperty::DataType(t) => view()?.check_type_change(column, *t)?,
+                ColumnProperty::SortBy(Some(by)) => view()?.check_sort_by(column, by)?,
+                _ => {}
+            }
+        }
+        Ok(())
     }
 
     /// Runs read-only SQL for the command line and agents.
@@ -310,25 +340,6 @@ impl Session {
             tracing::warn!("could not write recovery file {}: {e}", path.display());
         }
     }
-}
-
-/// A select list that casts types the webview cannot decode cheaply (DECIMAL, HUGEINT)
-/// to DOUBLE. Display only: models and measures keep exact types.
-fn display_columns(db: &Database, relation: &str) -> Result<String, CoreError> {
-    let cols = db.describe(relation)?;
-    Ok(cols
-        .iter()
-        .map(|c| {
-            let id = sql::ident(&c.name);
-            let t = c.duckdb_type.to_ascii_uppercase();
-            if t.starts_with("DECIMAL") || t == "HUGEINT" || t == "UHUGEINT" {
-                format!("CAST({id} AS DOUBLE) AS {id}")
-            } else {
-                id
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(", "))
 }
 
 fn db_options(project: &Project) -> DbOptions {

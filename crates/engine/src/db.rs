@@ -102,7 +102,7 @@ impl Database {
 
     /// Runs `sql` and returns each row as a JSON object (via DuckDB's `to_json`).
     pub fn json_rows(&self, sql: &str, limit: Option<u64>) -> Result<Vec<String>, DbError> {
-        let conn = self.lock();
+        let conn = self.connection()?;
         let limit = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
         let mut stmt = conn.prepare(&format!(
             "SELECT to_json(q)::VARCHAR FROM ({sql}) AS q{limit}"
