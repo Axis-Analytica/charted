@@ -1,6 +1,6 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { tableFromIPC } from "apache-arrow";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Result {
   rows: number;
@@ -33,6 +33,10 @@ export function ArrowSpike() {
       setBusy(false);
     }
   };
+  useEffect(() => {
+    if (import.meta.env.VITE_SPIKE_AUTO === "1" && isTauri()) void run(1_000_000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   if (!isTauri()) return <p className="note">Arrow IPC needs the Tauri shell (run bin/dev).</p>;
   return (
     <div className="pad">

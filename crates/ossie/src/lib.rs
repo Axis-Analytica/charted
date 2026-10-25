@@ -29,6 +29,11 @@ pub fn read_str(text: &str) -> Result<(Model, Vec<Warning>), OssieError> {
     Ok(from_document(&doc)?)
 }
 
+/// Parses YAML into a JSON value (for schema validation).
+pub fn yaml_to_json(text: &str) -> Result<serde_json::Value, serde_yaml_ng::Error> {
+    serde_yaml_ng::from_str(text)
+}
+
 /// Serialises `model` as an Ossie YAML document.
 pub fn write_string(model: &Model, generated: &GeneratedDialects) -> String {
     let doc = to_document(model, generated);

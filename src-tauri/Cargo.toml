@@ -10,8 +10,20 @@ repository.workspace = true
 tauri-build.workspace = true
 
 [dependencies]
+charted-core.workspace = true
+charted-cli = { path = "../crates/cli" }
 charted-engine.workspace = true
 duckdb.workspace = true
 tauri.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+clap.workspace = true
+tracing.workspace = true
+ashpd = { version = "0.13", default-features = false, features = ["tokio", "file_chooser"] }
+url = "2"
+# Must match the GTK stack Tauri links (see Cargo.lock): used to set the Wayland app id
+# and to snapshot the webview for `--screenshot`.
+glib = "0.18"
+gtk = "0.18"
+webkit2gtk = "2.0"
+cairo-rs = { version = "0.18", features = ["png"] }

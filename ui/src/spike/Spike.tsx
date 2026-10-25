@@ -11,7 +11,7 @@ type Tab = keyof typeof tabs;
 
 /** Throwaway page that de-risks the UI stack on WebKitGTK before the real shell exists. */
 export function Spike() {
-  const initial = (new URLSearchParams(location.search).get("tab") as Tab | null) ?? "grid";
+  const initial = ((new URLSearchParams(location.search).get("tab") ?? import.meta.env.VITE_SPIKE_TAB) as Tab | undefined) ?? "grid";
   const [tab, setTab] = useState<Tab>(initial in tabs ? initial : "grid");
   const View = tabs[tab];
   return (

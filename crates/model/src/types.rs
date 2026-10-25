@@ -100,7 +100,7 @@ pub enum Summarize {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[ts(export)]
 pub enum ColumnKind {
     /// A physical column of the source table.

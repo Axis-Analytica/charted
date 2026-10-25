@@ -1,8 +1,12 @@
 //! DuckDB-backed execution engine.
 //!
-//! Query results cross into the UI as Arrow IPC stream bytes, which the
-//! webview decodes without a JSON step.
+//! Query results cross into the UI as Arrow IPC stream bytes, which the webview decodes
+//! without a JSON step. Nothing here downloads DuckDB extensions on its own: automatic
+//! installation is disabled, and network-backed sources are opt-in elsewhere.
 
 mod arrow;
+mod db;
+pub mod sql;
 
 pub use arrow::{query_arrow_ipc, ArrowError};
+pub use db::{ColumnInfo, Database, DbError, DbOptions, InterruptHandle};

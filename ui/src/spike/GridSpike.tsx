@@ -1,6 +1,6 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-import { DataEditor, type GridCell, GridCellKind, type GridColumn, type Item } from "@glideapps/glide-data-grid";
-import { useCallback, useMemo } from "react";
+import { DataEditor, type DataEditorRef, type GridCell, GridCellKind, type GridColumn, type Item } from "@glideapps/glide-data-grid";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const ROWS = 1_000_000;
 const columns: GridColumn[] = [
@@ -18,14 +18,40 @@ const products = ["Trail Runner 2", "Alpine Shell Jacket", "Merino Base Layer", 
 
 // Cheap deterministic pseudo-random value per (row, salt).
 function hash(row: number, salt: number): number {
-  let x = (row * 2654435761 + salt * 40503) >>> 0;
+  let x = (Math.imul(row, 2654435761) + Math.imul(salt, 40503)) >>> 0;
   x ^= x >>> 15;
   x = Math.imul(x, 2246822519) >>> 0;
   x ^= x >>> 13;
   return x / 4294967295;
 }
 
+/** Scrolls through all rows over a few seconds so the frame meter measures real work. */
+function useAutoScroll(ref: React.RefObject<DataEditorRef | null>, enabled: boolean) {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    let frame = 0;
+    let raf = 0;
+    const step = () => {
+      frame++;
+      const row = Math.min(ROWS - 1, frame * 1500 + (frame % 7) * 13);
+      ref.current?.scrollTo(frame % 8, row, "both", 0, 0, { vAlign: "start" });
+      if (row < ROWS - 1) raf = requestAnimationFrame(step);
+      else setDone(true);
+    };
+    const t = setTimeout(() => (raf = requestAnimationFrame(step)), 800);
+    return () => {
+      clearTimeout(t);
+      cancelAnimationFrame(raf);
+    };
+  }, [enabled, ref]);
+  return done;
+}
+
 export function GridSpike() {
+  const ref = useRef<DataEditorRef>(null);
+  const auto = import.meta.env.VITE_SPIKE_AUTO === "1";
+  const done = useAutoScroll(ref, auto);
   const fmt = useMemo(() => new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }), []);
   const getCellContent = useCallback(
     ([col, row]: Item): GridCell => {
@@ -62,7 +88,8 @@ export function GridSpike() {
   );
   return (
     <div className="fill">
-      <DataEditor columns={columns} rows={ROWS} getCellContent={getCellContent} rowMarkers="number" smoothScrollX smoothScrollY width="100%" height="100%" />
+      {auto && <p className="note" data-testid="autoscroll">{done ? "auto-scroll finished (1M rows)" : "auto-scrolling…"}</p>}
+      <DataEditor ref={ref} columns={columns} rows={ROWS} getCellContent={getCellContent} rowMarkers="number" smoothScrollX smoothScrollY width="100%" height="100%" />
     </div>
   );
 }

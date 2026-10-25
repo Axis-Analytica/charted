@@ -11,3 +11,10 @@ duckdb.workspace = true
 arrow-ipc.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+
+[features]
+default = ["duckdb-download"]
+# Link DuckDB's official prebuilt shared library (fast builds; used for development).
+duckdb-download = ["duckdb/download-lib"]
+# Compile DuckDB from source with the Parquet and JSON readers built in.
+duckdb-bundled = ["duckdb/bundled", "duckdb/parquet", "duckdb/json"]
