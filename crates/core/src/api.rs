@@ -217,8 +217,54 @@ pub enum DataJob {
     Ready(Vec<u8>),
 }
 
+/// Data jobs running now, in every `App` (see `shutdown`).
+static IN_FLIGHT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// Tagged queries of every `App` in the process, so `shutdown` can interrupt them.
+static RUNNING: std::sync::LazyLock<Running> = std::sync::LazyLock::new(Running::default);
+
+/// Prepares the process to exit: interrupts running tagged queries and waits (up to
+/// `timeout`) for every data job to finish. DuckDB's static data is destroyed when the
+/// process exits, so a query still binding on another thread at that moment crashes.
+pub fn shutdown(timeout: std::time::Duration) {
+    SHUTTING_DOWN.store(true, std::sync::atomic::Ordering::SeqCst);
+    for (_, handle) in RUNNING.lock().values() {
+        handle.interrupt();
+    }
+    let start = std::time::Instant::now();
+    while IN_FLIGHT.load(std::sync::atomic::Ordering::SeqCst) > 0 && start.elapsed() < timeout {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+}
+
+/// Set by `shutdown`: no new data jobs start.
+static SHUTTING_DOWN: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Counts a data job as in flight while it lives.
+struct InFlight;
+
+impl InFlight {
+    fn new() -> Self {
+        IN_FLIGHT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Self
+    }
+}
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        IN_FLIGHT.fetch_sub(1, std::sync::atomic::Ordering::AcqRel);
+    }
+}
+
 impl DataJob {
     pub fn run(self) -> Result<Vec<u8>, ApiError> {
+        let _in_flight = InFlight::new();
+        if SHUTTING_DOWN.load(std::sync::atomic::Ordering::SeqCst) {
+            return Err(ApiError {
+                code: "cancelled".into(),
+                message: "charted is closing".into(),
+            });
+        }
         let (v, request) = match self {
             DataJob::View(v, r) => (v, r),
             DataJob::Arrow(db, sql) => return Ok(db.arrow(&sql).map_err(CoreError::from)?),
@@ -307,7 +353,7 @@ impl App {
         Self {
             session: None,
             state_dir,
-            running: Running::default(),
+            running: RUNNING.clone(),
         }
     }
 

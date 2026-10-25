@@ -151,8 +151,15 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
                 let _ = window.emit("close-requested", ());
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running charted");
+        .build(tauri::generate_context!())
+        .expect("error while building charted")
+        .run(|_, event| {
+            // Let queries still running on other threads finish (or stop) before the
+            // process exits and DuckDB's static data goes away.
+            if let tauri::RunEvent::Exit = event {
+                charted_core::api::shutdown(std::time::Duration::from_secs(3));
+            }
+        });
 }
 
 fn main() {

@@ -1,11 +1,12 @@
-# Handoff: milestone 3 (real modeling) built; checkpoint review, then milestone 4
+# Handoff: milestone 4 (interactivity) built; checkpoint review, then milestone 5
 
-Read this first when picking up development. Last updated 2026-10-25, end of M3 build.
-**Status:** M0 and M1 are approved; the user liked M2 ("looking outstanding") and is
-trying a standalone M2 build (`~/.local/opt/charted-m2`, launcher "charted (M2
-preview)"). M3 is implemented, committed locally (not pushed) and `bin/test` is green.
-The user has not yet reviewed the M3 checkpoint (`docs/demos/m3.md`, screenshots in
-`~/Work/charted-checkpoints/m3/`). Address their feedback before starting M4.
+Read this first when picking up development. Last updated 2026-10-25, end of M4 build.
+**Status:** M0–M2 are approved; the user liked M2 ("looking outstanding") and has a
+standalone M2 build (`~/.local/opt/charted-m2`, launcher "charted (M2 preview)"). M3 was
+delivered and the user said to move on without separate feedback. M4 is implemented,
+committed locally (not pushed) and `bin/test` is green. The user has not yet reviewed
+the M4 checkpoint (`docs/demos/m4.md`, screenshots in
+`~/Work/charted-checkpoints/m4/`). Address their feedback before starting M5.
 
 ## Decisions already made (do not re-litigate)
 
@@ -151,6 +152,51 @@ ui/src/app/FileMenu.tsx       File menu: export PBIP / Ossie, import Ossie with 
 ui/src/kit/Menu.tsx           menu button (react-aria)
 ```
 
+M4 added:
+
+```
+crates/model/src/report.rs    Page.interactions (source → target: filter/highlight/none,
+                              only where it differs from the default), Page::interaction,
+                              Visual.selection (a slicer's choice, a FilterKind),
+                              FilterKind::RelativeDate, Report.theme (Power BI theme JSON,
+                              kept whole), Change::SetTheme
+crates/compiler/src/visual.rs VisualQuery.keys (each group's value as text, `k0…`, as
+                              filters compare it), relative_range() for relative dates
+crates/core/src/visualq.rs    report_visual_sql(): slicer filters from the page (through its
+                              interactions), `key:role:i` columns, highlight (`hl:role:i`:
+                              the same query with the selection's filters, LEFT JOINed on
+                              the groups, in one statement), matrix (one compiled query per
+                              row × column level, UNION ALL with `level:rows`,
+                              `level:columns`, `order`), slicer values or min/max,
+                              `captions` names (CSV, CLI)
+crates/core/src/reporttheme.rs  Power BI theme file checks
+crates/core/src/api.rs        ReportVisual {highlight, tag}: a newer request with the same
+                              tag interrupts the running one (DataJob::Tagged, `Running`;
+                              the UI ignores code "cancelled"); ReadImage; ImportTheme,
+                              ExportVisualCsv (written to `.part`, then renamed)
+crates/core/tests/interactivity.rs  slicers + interactions, highlight, matrix subtotals,
+                              relative dates, cancellation, themes, CSV
+crates/cli/src/devserver.rs   data requests run on threads (like Tauri) and desktop theme
+                              changes are pushed as `env` events (polled every 400 ms)
+ui/src/state/selection.ts     the data selection (page, source visual, fields, tuples of
+                              keys), Ctrl-click union, interaction defaults (mirror the
+                              core), selection → filters or highlight per target
+ui/src/report/visuals/        Cartesian (clustered/stacked column and bar, line; highlight
+                              drawn as solid part + faded rest in one stack), Pie (pie and
+                              donut), Scatter, Matrix (+ useExpansion view state), Slicer
+                              (list, dropdown, between, relative date), Decor (text box,
+                              image, shape), interact.ts
+ui/src/report/themes.ts       built-in themes, Power BI theme JSON → page tokens
+ui/src/report/VisualContainer.tsx  interaction picker (edit interactions), focus mode,
+                              Show as a table (DataTable), Export data, matrix menu
+ui/src/report/ReportView.tsx  Edit interactions toggle, Themes menu, FocusView
+ui/e2e/m4.spec.ts
+```
+
+Measured (aarch64 VM, release, 10M rows): matrix Category/Subcategory × Year with all
+subtotals 131 ms p50; a highlighted column chart 30 ms; a cross-filtered line 12 ms; a
+Region slicer 94 ms (`cargo run --release -p charted-core --example visualbench`).
+
 Report gains `diagram` (model view card positions; saved in report/report.json, kept by
 an Ossie import). New Changes: `SetDiagram`, `ColumnProperty::Expression`. New
 requests: `ExportPbip`, `ExportOssie`, `ImportOssie`; data requests `OssieDiff`,
@@ -264,6 +310,23 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - DAX semantics are pinned by the reference interpreter: change the compiler and the
   interpreter together, and run a long random differential run before committing.
 
+- Playwright runs `target/debug/charted-headless` as built: after changing Rust, run
+  `cargo build -p charted-cli` before running one spec on its own (`bin/test` builds it).
+- e2e tests click chart marks through the chart itself: every ECharts container element
+  (`.cartesian`) carries its instance as `.chart`, so a test can `convertToPixel` a data
+  point (multiply by the canvas zoom: bounding width ÷ offsetWidth).
+- e2e runs the dev server with `HOME=$CHARTED_E2E_TMP/home` holding a copy of the
+  desktop's Omarchy theme, so a test can rewrite `colors.toml` and watch the UI follow.
+- In a table or matrix, `.table-visual th button` styles apply to every button in a
+  header cell; scope new buttons more specifically (`.table-visual th .matrix-toggle`).
+
+- **Never let the process exit while a DuckDB query is running on another thread.**
+  `exit()` runs libduckdb's static destructors, and a query still binding then calls
+  into freed memory (SIGBUS/SIGSEGV in `TryGetMaxLogicalTypeInternal`, seen when a
+  screenshot exited right after a click). The app calls `charted_core::api::shutdown`
+  on `RunEvent::Exit`: no new data jobs, running ones interrupted and waited for. Any new
+  binary that runs queries on threads must do the same before exiting.
+
 ## Deferred from M0 (do these when relevant)
 
 - Visual query IR → SQL with many-to-one star joins (`crates/compiler`): start of M2.
@@ -310,6 +373,35 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 - New measures get no format string (Power BI shows General too); undo labels are not
   translated (see the gotcha on commit labels).
 
+## Deferred from M4
+
+Deviations from the plan (better, keep them): highlights are the same compiled query
+with the selection's filters added, LEFT JOINed to the full result on the groups, in
+one statement, instead of `agg FILTER (WHERE sel)`, which only works for plain
+aggregates, not for DAX measures with their own filter context. Matrix subtotals are one
+compiled query per level stacked with UNION ALL, instead of GROUPING SETS, so every
+level gets DAX semantics (a distinct count or a ratio is recomputed, never summed). The
+checkpoint's "the line highlights": line charts are filtered, not highlighted, as in
+Power BI.
+
+
+- Selections across two fields from different tables (a stacked segment, Ctrl-clicked
+  several times) filter by each field's values, so every combination of them is kept
+  (Power BI uses the exact tuples). Exact for a single point and for one field.
+- Slicers list a column's values without checking the facts (Power BI hides values with
+  no data under the other slicers when they are on another table); range slicers do
+  narrow. No hierarchy slicers, tiles, or "Sync slicers" across pages.
+- The matrix shows leaf column members and the grand total column (no intermediate
+  column subtotals); expansion is view state (not saved); no stepped/tabular layout
+  switch, no conditional formatting, no drill up/down buttons.
+- Highlights only on column/bar/pie/donut/scatter; line charts filter (as Power BI).
+- Theme JSON: only dataColors, background, foreground and tableAccent are applied
+  (`visualStyles`, text classes and the sentiment colours are kept but unused); no theme
+  editor. PBIP export does not write the theme yet (M6).
+- Text box is plain text (no rich text runs); images are stored as data URLs in the
+  visual's objects (5 MB cap).
+- Selection and expansion state is lost when switching pages (Power BI keeps them).
+
 ## Milestone 3: Real modeling (done; kept for reference)
 
 From the plan: Model view (elkjs in a worker; drag to create relationships;
@@ -329,7 +421,7 @@ create the Targets relationship, set Both; autocomplete + error squiggle;
 `USERELATIONSHIP` and `ALL` share measures in a table; a RELATED calculated column;
 export PBIP and view the `.tmdl`; `export ossie → import` shows 0 differences.
 
-## Milestone 4: Interactivity (after the M3 review)
+## Milestone 4: Interactivity (done; kept for reference)
 
 From the plan: cross-filter store (scope-identity tuples, Ctrl-click union, an
 interaction matrix, cancellation of stale queries); highlight via
@@ -342,3 +434,20 @@ table, export CSV.
 Checkpoint: click a column → the line highlights, the matrix filters, the card updates;
 Ctrl-click; slicers; set an interaction to "none"; expand the matrix; switch themes,
 including a live Omarchy switch; import a Power BI theme JSON.
+
+## Milestone 5: Query editor (after the M4 review)
+
+From the plan: Queries list, preview grid, applied-steps list (rename/drag-reorder/
+delete/gear/insert), read-only SQL strip, Close & Apply with progress. About 22
+transforms, each a typed step + SQL emitter + M emitter + dialog: promote headers / type
+/ choose / remove / rename / filter / dedupe / blanks / replace / split / merge columns /
+custom / conditional / group / unpivot / pivot / fill down / index / extract / merge
+queries / append. Profiling bars (first 1,000 rows or the full table). Sources: Excel
+sheet picker, JSON, folder combine, consented SQLite/Postgres with `keyring`
+credentials. Source file watching with Refresh / Locate… (needs a `notify::PollWatcher`
+fallback on `/mnt/mac`, see the gotchas). The sample's messy `stores_raw.csv` and
+`targets.xlsx` are meant for this milestone.
+
+Checkpoint: clean `stores_raw.csv` end to end; split + conditional column; merge with
+Store; reorder/delete/undo steps; Close & Apply updates the report slicer; Get Data →
+Excel.

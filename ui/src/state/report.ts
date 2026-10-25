@@ -155,7 +155,8 @@ export function withField(model: Model, v: Visual, field: FieldRef, roleName?: s
   const p = projectionFor(model, field, role);
   if (role.max !== undefined && list.length >= role.max) list.splice(role.max - 1, list.length);
   list.splice(index ?? list.length, 0, p);
-  return { ...v, roles: { ...v.roles, [role.name]: list } };
+  // A slicer's choice belongs to its field.
+  return { ...v, roles: { ...v.roles, [role.name]: list }, selection: v.visualType === "slicer" ? null : v.selection };
 }
 
 export function withoutField(v: Visual, role: string, index: number): Visual {
@@ -165,7 +166,7 @@ export function withoutField(v: Visual, role: string, index: number): Visual {
   if (!list.length) delete roles[role];
   // A sort on a removed field no longer applies.
   const sort = v.sort && v.sort.role === role && v.sort.index >= index ? null : v.sort;
-  return { ...v, roles, sort };
+  return { ...v, roles, sort, selection: v.visualType === "slicer" ? null : v.selection };
 }
 
 /** Change(s) for an updated visual. */

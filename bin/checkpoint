@@ -67,7 +67,7 @@ if [ "$m" = m3 ] && [ -d "$built" ]; then
 fi
 if [ "$m" = m4 ] && [ -d "$built" ]; then
   # A cross-filter (a matrix row chosen) and the new visuals, in the real window.
-  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=2500 CHARTED_SCREENSHOT_SCRIPT='(async () => {
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=6000 CHARTED_SCREENSHOT_SCRIPT='(async () => {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       [...document.querySelectorAll("[role=tab]")].find((e) => e.textContent === "Interactivity").click();
       await sleep(2500);

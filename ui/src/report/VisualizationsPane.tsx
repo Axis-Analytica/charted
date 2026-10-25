@@ -300,7 +300,9 @@ function FormatPane({ page, visual }: { page: Page; visual: Visual }) {
       editVisual(page.id, visual.id, (v) => {
         const objects = { ...(v.objects ?? {}) };
         objects[object] = { ...(objects[object] ?? {}), [name]: value };
-        return { ...v, objects };
+        // A slicer's choice is made in its style (a list's values, a range, a period).
+        const restyled = object === "slicer" && name === "style";
+        return { ...v, objects, selection: restyled ? null : v.selection };
       }),
     );
   const section = (o: ObjectDef) => {
