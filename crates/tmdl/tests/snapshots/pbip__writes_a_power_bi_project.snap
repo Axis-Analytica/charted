@@ -1,0 +1,171 @@
+---
+source: crates/tmdl/tests/pbip.rs
+expression: all
+---
+=== Shop.pbip
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/pbip/pbipProperties/1.0.0/schema.json",
+  "artifacts": [
+    {
+      "report": {
+        "path": "Shop.Report"
+      }
+    }
+  ],
+  "settings": {
+    "enableAutoRecovery": true
+  },
+  "version": "1.0"
+}
+
+=== Shop.SemanticModel/definition.pbism
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/semanticModel/definitionProperties/1.0.0/schema.json",
+  "settings": {},
+  "version": "4.2"
+}
+
+=== Shop.SemanticModel/definition/database.tmdl
+database
+	compatibilityLevel: 1567
+
+=== Shop.SemanticModel/definition/model.tmdl
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["Sales","Date"]
+
+ref table Sales
+ref table Date
+
+=== Shop.SemanticModel/definition/expressions.tmdl
+/// The folder the data files are read from. Change it where the files live.
+expression SourceFolder = "/home/me/Shop/" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 6f1d3c2a-8b8e-4f3c-9a51-50757263654f
+
+=== Shop.SemanticModel/definition/relationships.tmdl
+relationship r-1
+	isActive: false
+	crossFilteringBehavior: bothDirections
+	fromColumn: Sales.DateKey
+	toColumn: Date.DateKey
+
+
+=== Shop.SemanticModel/definition/tables/Sales.tmdl
+/// One row per order line
+table Sales
+	lineageTag: t-sales
+
+	measure 'Total Sales' = SUM ( Sales[Sales Amount] )
+		formatString: \$#,0
+		displayFolder: Sales
+		lineageTag: m-total
+
+	column DateKey
+		dataType: int64
+		lineageTag: c-sdk
+		summarizeBy: sum
+		sourceColumn: DateKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Sales Amount'
+		dataType: decimal
+		formatString: \$#,0.00
+		lineageTag: c-amount
+		summarizeBy: sum
+		sourceColumn: Sales Amount
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Of Sale' = RELATED ( 'Date'[Month Name] )
+		dataType: string
+		lineageTag: c-rel
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Sales = m
+		mode: import
+		source =
+				let
+				    Source = Parquet.Document(File.Contents(SourceFolder & "data/sales.parquet")),
+				    #"Renamed Columns" = Table.RenameColumns(Source, {{"Amount", "Sales Amount"}})
+				in
+				    #"Renamed Columns"
+
+=== Shop.SemanticModel/definition/tables/Date.tmdl
+table Date
+	lineageTag: t-date
+	dataCategory: Time
+
+	column DateKey
+		dataType: int64
+		isKey
+		lineageTag: c-dk
+		summarizeBy: none
+		sourceColumn: DateKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month Name'
+		dataType: string
+		lineageTag: c-month
+		summarizeBy: none
+		sourceColumn: Month Name
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNumber
+		dataType: int64
+		lineageTag: c-mnum
+		summarizeBy: sum
+		sourceColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Date = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(SourceFolder & "data/date.csv"), [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    #"Promoted Headers" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {{"DateKey", Int64.Type}, {"Month Name", type text}, {"MonthNumber", Int64.Type}})
+				in
+				    #"Changed Type"
+
+=== Shop.Report/definition.pbir
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/1.0.0/schema.json",
+  "datasetReference": {
+    "byPath": {
+      "path": "../Shop.SemanticModel"
+    }
+  },
+  "version": "4.0"
+}
+
+=== Shop.Report/report.json
+{
+  "config": "{\"themeCollection\":{},\"version\":\"5.37\"}",
+  "layoutOptimization": 0,
+  "resourcePackages": [],
+  "sections": [
+    {
+      "config": "{}",
+      "displayName": "Page 1",
+      "displayOption": 1,
+      "filters": "[]",
+      "height": 720,
+      "name": "ReportSection",
+      "visualContainers": [],
+      "width": 1280
+    }
+  ]
+}

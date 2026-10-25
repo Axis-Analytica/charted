@@ -772,6 +772,7 @@ dependencies = [
  "charted-model",
  "charted-ossie",
  "charted-samplegen",
+ "charted-tmdl",
  "insta",
  "notify",
  "serde",
@@ -836,6 +837,16 @@ dependencies = [
  "rand 0.10.3",
  "rand_chacha 0.10.0",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "charted-tmdl"
+version = "0.1.0"
+dependencies = [
+ "charted-compiler",
+ "charted-model",
+ "insta",
+ "serde_json",
 ]
 
 [[package]]

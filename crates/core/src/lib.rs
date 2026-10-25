@@ -10,6 +10,7 @@ pub mod check;
 pub mod dataview;
 pub mod env;
 pub mod ids;
+pub mod interop;
 pub mod project;
 pub mod recent;
 pub mod reportfile;

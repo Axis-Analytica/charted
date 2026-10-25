@@ -68,6 +68,21 @@ pub enum Command {
         #[arg(long)]
         state_dir: Option<PathBuf>,
     },
+    /// Export a project's model: a Power BI project (PBIP with TMDL) or Apache Ossie.
+    Export {
+        #[command(subcommand)]
+        format: ExportFormat,
+    },
+    /// Import an Apache Ossie document into a project, replacing its model (the report
+    /// is kept). Prints what changes; --dry-run only prints.
+    Import {
+        project: PathBuf,
+        file: PathBuf,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+    },
     /// Install the bundled agent skill so coding agents can drive charted.
     Skill {
         #[command(subcommand)]
@@ -85,6 +100,14 @@ pub enum SampleAction {
         #[arg(long)]
         json: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum ExportFormat {
+    /// A folder Power BI Desktop opens: <dir>/<Name>.pbip and its TMDL model.
+    Pbip { project: PathBuf, dir: PathBuf },
+    /// One Apache Ossie YAML document.
+    Ossie { project: PathBuf, file: PathBuf },
 }
 
 #[derive(Debug, Subcommand)]
@@ -175,6 +198,13 @@ pub fn run(command: Command) -> i32 {
             Ok(()) => 0,
             Err(e) => fail(e),
         },
+        Command::Export { format } => export(format),
+        Command::Import {
+            project,
+            file,
+            dry_run,
+            json,
+        } => import(&project, &file, dry_run, json),
         Command::Skill {
             action: SkillAction::Show,
         } => {
@@ -339,4 +369,70 @@ fn install_skill() -> std::io::Result<PathBuf> {
         std::os::unix::fs::symlink(&dir, &link)?;
     }
     Ok(dir)
+}
+
+fn export(format: ExportFormat) -> i32 {
+    let (project, out) = match &format {
+        ExportFormat::Pbip { project, dir } => (project, dir),
+        ExportFormat::Ossie { project, file } => (project, file),
+    };
+    let p = match charted_core::project::Project::open(project) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let done = match format {
+        ExportFormat::Pbip { .. } => charted_core::interop::export_pbip(&p, out),
+        ExportFormat::Ossie { .. } => {
+            charted_core::interop::export_ossie(&p.model, out).map(|()| out.clone())
+        }
+    };
+    match done {
+        Ok(path) => {
+            println!("Wrote {}", path.display());
+            0
+        }
+        Err(e) => fail(e),
+    }
+}
+
+fn import(project: &Path, file: &Path, dry_run: bool, json: bool) -> i32 {
+    let p = match charted_core::project::Project::open(project) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let diff = match charted_core::interop::import_diff(&p.model, file) {
+        Ok((_, d)) => d,
+        Err(e) => return fail(e),
+    };
+    if json {
+        println!("{}", serde_json::to_string_pretty(&diff).unwrap());
+    } else {
+        for w in &diff.warnings {
+            eprintln!("warning: {w}");
+        }
+        if diff.differences.is_empty() {
+            println!("0 differences");
+        } else {
+            println!("{} difference(s):", diff.differences.len());
+            for d in &diff.differences {
+                println!("  {d}");
+            }
+        }
+    }
+    if dry_run || diff.differences.is_empty() {
+        return 0;
+    }
+    let mut session = match charted_core::Session::open(project) {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    match session.import_ossie(file).and_then(|()| session.save()) {
+        Ok(()) => {
+            if !json {
+                println!("Imported into {}", project.display());
+            }
+            0
+        }
+        Err(e) => fail(e),
+    }
 }

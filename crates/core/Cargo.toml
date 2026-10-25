@@ -11,6 +11,7 @@ charted-model.workspace = true
 charted-ossie = { workspace = true, features = ["schema"] }
 charted-compiler.workspace = true
 charted-dax.workspace = true
+charted-tmdl.workspace = true
 charted-engine.workspace = true
 charted-samplegen.workspace = true
 serde.workspace = true

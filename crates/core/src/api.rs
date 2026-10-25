@@ -44,6 +44,18 @@ pub enum Request {
     ForgetRecent {
         path: String,
     },
+    /// Writes a Power BI project (PBIP with TMDL) into a folder.
+    ExportPbip {
+        dir: String,
+    },
+    /// Writes the model as an Apache Ossie document.
+    ExportOssie {
+        path: String,
+    },
+    /// Replaces the model with an Ossie document's (one undoable step).
+    ImportOssie {
+        path: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -150,6 +162,10 @@ pub enum DataRequest {
         expression: String,
         #[serde(default)]
         measure: Option<Id>,
+    },
+    /// What importing an Ossie document would change (JSON `ModelDiff`).
+    OssieDiff {
+        path: String,
     },
 }
 
@@ -272,6 +288,15 @@ impl App {
             Request::RestoreRecovery => self.session_mut()?.restore_recovery()?,
             Request::DiscardRecovery => self.session_mut()?.discard_recovery(),
             Request::ForgetRecent { path } => recent::forget(&self.state_dir, Path::new(&path)),
+            Request::ExportPbip { dir } => {
+                let s = self.session_mut()?;
+                crate::interop::export_pbip(&s.project, Path::new(&dir))?;
+            }
+            Request::ExportOssie { path } => {
+                let s = self.session_mut()?;
+                crate::interop::export_ossie(&s.project.model, Path::new(&path))?;
+            }
+            Request::ImportOssie { path } => self.session_mut()?.import_ossie(Path::new(&path))?,
         }
         Ok(())
     }
@@ -315,6 +340,12 @@ impl App {
                     *limit,
                 )?;
                 return Ok(DataJob::FieldValues(s.database().clone(), sql));
+            }
+            DataRequest::OssieDiff { path } => {
+                let d = crate::interop::import_diff(model, Path::new(path))
+                    .map(|(_, d)| d)
+                    .map_err(CoreError::from);
+                return Ok(DataJob::Ready(json(d)?));
             }
             DataRequest::CheckDax {
                 expression,

@@ -39,6 +39,7 @@ charted-model = { path = "crates/model" }
 charted-ossie = { path = "crates/ossie" }
 charted-compiler = { path = "crates/compiler" }
 charted-dax = { path = "crates/dax" }
+charted-tmdl = { path = "crates/tmdl" }
 charted-engine = { path = "crates/engine" }
 charted-core = { path = "crates/core" }
 charted-samplegen = { path = "crates/samplegen" }

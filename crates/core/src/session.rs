@@ -422,6 +422,20 @@ impl Session {
         Ok(())
     }
 
+    /// Replaces the model with an Ossie document's model, as one undoable step.
+    pub fn import_ossie(&mut self, file: &Path) -> Result<(), CoreError> {
+        let (model, _) = crate::interop::import_diff(&self.project.model, file)?;
+        let changes = whole_model_changes(&self.project.model, &model);
+        self.history.commit(
+            &mut self.project.model,
+            "Import Apache Ossie model",
+            changes,
+        )?;
+        self.refresh_calculated();
+        self.write_recovery();
+        Ok(())
+    }
+
     pub fn discard_recovery(&mut self) {
         let _ = std::fs::remove_file(recovery_path(&self.project));
         self.recovery = None;

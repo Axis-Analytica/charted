@@ -18,4 +18,4 @@ columns: Array<string> | null, offset: number, limit: number, } | { "type": "cou
 /**
  * Search after this row (before it when `backwards`); from the start if omitted.
  */
-after: number | null, backwards: boolean, } | { "type": "visual", query: VisualQuery, } | { "type": "reportVisual", visual: string, totals: boolean, filters: Array<QueryFilter>, } | { "type": "fieldValues", field: Projection, filters: Array<QueryFilter>, search: string | null, limit: number, } | { "type": "checkDax", expression: string, measure: string | null, };
+after: number | null, backwards: boolean, } | { "type": "visual", query: VisualQuery, } | { "type": "reportVisual", visual: string, totals: boolean, filters: Array<QueryFilter>, } | { "type": "fieldValues", field: Projection, filters: Array<QueryFilter>, search: string | null, limit: number, } | { "type": "checkDax", expression: string, measure: string | null, } | { "type": "ossieDiff", path: string, };
