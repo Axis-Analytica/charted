@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "../bin/wasm && vite",
+    "build": "../bin/wasm && tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "tauri": "tauri",
     "test": "vitest run"

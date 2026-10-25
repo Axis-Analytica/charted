@@ -1,5 +1,5 @@
 import type { Rectangle } from "@glideapps/glide-data-grid";
-import { ChartNoAxesColumn, ChevronDown, ChevronRight, Code2, FunnelX, PanelRight, Search, X } from "lucide-react";
+import { ChartNoAxesColumn, ChevronDown, ChevronRight, Code2, FunnelX, PanelRight, Search, SquareFunction, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { errorMessage } from "../../bridge";
 import type { Column } from "../../bridge/generated/Column";
@@ -14,6 +14,7 @@ import { Banner, Spinner } from "../../kit/misc";
 import { dataJson, nextSort, useDataView, viewSpec } from "../../state/dataview";
 import { toast } from "../../state/toasts";
 import { fetchRows } from "./blocks";
+import { ColumnFormulaBar } from "./ColumnFormulaBar";
 import { ColumnProperties } from "./ColumnProperties";
 import { DataGrid, type GridHandle } from "./DataGrid";
 import { FilterMenu } from "./FilterMenu";
@@ -55,9 +56,22 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
   const tv = store.view(table.id);
   const spec = useMemo(() => viewSpec(table.id, tv), [table.id, tv]);
   const selectedId = store.selected[table.id];
-  const columns: Column[] = useMemo(() => table.columns.filter((c) => c.kind.kind === "data"), [table.columns]);
+  const columns: Column[] = table.columns;
   const selected = columns.find((c) => c.id === selectedId);
-  const dataKey = columns.map((c) => `${c.id}:${c.dataType}:${c.sortBy ?? ""}`).join("|");
+  // Calculated columns' values change with their expression.
+  const dataKey = columns.map((c) => `${c.id}:${c.dataType}:${c.sortBy ?? ""}:${c.kind.kind === "calculated" ? c.kind.expression : ""}`).join("|");
+  // The formula bar: a new column, or the selected calculated column.
+  const [newColumn, setNewColumn] = useState(false);
+  // A new column is shown once the grid has it.
+  const scrollTo = useRef<string | null>(null);
+  useEffect(() => {
+    const id = scrollTo.current;
+    if (id && columns.some((c) => c.id === id)) {
+      scrollTo.current = null;
+      requestAnimationFrame(() => grid.current?.goTo(id, 0));
+    }
+  }, [columns]);
+  const formulaColumn = newColumn ? null : selected?.kind.kind === "calculated" ? selected : undefined;
   const total = Number(project.tables.find((s) => s.id === table.id)?.rows ?? 0);
   const query = project.queries.find((q) => q.table === table.source);
 
@@ -173,6 +187,9 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
           </div>
         </div>
         <div className="dv-tools">
+          <Button size="sm" variant="ghost" icon={<SquareFunction size={14} />} onPress={() => setNewColumn(true)}>
+            {t("New column")}
+          </Button>
           <IconButton label={t("Find in table")} shortcut="Ctrl+F" icon={<Search size={15} />} onPress={() => store.set({ findOpen: true })} />
           <IconButton label={t("Column statistics")} shortcut="Ctrl+I" icon={<ChartNoAxesColumn size={15} />} pressed={store.statsOpen} onPress={() => store.set({ statsOpen: !store.statsOpen })} />
           <IconButton label={t("Column properties")} shortcut="Ctrl+Alt+Enter" icon={<PanelRight size={15} />} pressed={store.propsOpen} onPress={() => store.set({ propsOpen: !store.propsOpen })} />
@@ -186,6 +203,22 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
         </div>
       </div>
       {showSql && query && <pre className="sql-panel mono">{query.sql}</pre>}
+      {formulaColumn !== undefined && (
+        <ColumnFormulaBar
+          model={project.model}
+          table={table}
+          column={formulaColumn}
+          onDone={() => {
+            setNewColumn(false);
+            if (formulaColumn) store.select(table.id, undefined);
+          }}
+          onCreated={(id) => {
+            setNewColumn(false);
+            store.select(table.id, id);
+            scrollTo.current = id;
+          }}
+        />
+      )}
       {store.findOpen && <FindBar view={spec} onFound={(r) => grid.current?.goTo(r.column, r.row)} onClose={() => (store.set({ findOpen: false }), grid.current?.focus())} />}
       {(spec.filters.length > 0 || spec.sort.length > 0) && (
         <div className="chips" aria-label={t("Sort and filters")}>

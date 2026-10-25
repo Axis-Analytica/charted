@@ -10,6 +10,7 @@ case "$(stat -f -c %T .)" in
   *) export CHARTED_POLL=1 ;;
 esac
 cargo build -p charted
+bin/wasm
 (cd ui && exec pnpm exec vite --port 1420 --strictPort) &
 VITE=$!
 trap 'kill $VITE 2>/dev/null' EXIT

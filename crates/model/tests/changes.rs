@@ -85,6 +85,7 @@ fn fixture() -> Model {
                 visuals: vec![visual("v-1")],
             }],
             filters: vec![],
+            diagram: Default::default(),
         },
     }
 }

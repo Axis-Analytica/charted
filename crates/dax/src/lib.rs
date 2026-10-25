@@ -3,6 +3,8 @@
 //! language service).
 
 pub mod bind;
+pub mod catalog;
+pub mod ide;
 pub mod lexer;
 pub mod parser;
 

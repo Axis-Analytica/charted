@@ -11,3 +11,4 @@ node_modules/
 ui/test-results/
 ui/playwright-report/
 ui/*.tmp.mjs
+ui/src/dax/pkg/

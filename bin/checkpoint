@@ -13,6 +13,7 @@ case "$(stat -f -c %T .)" in
   *) export CHARTED_POLL=1 ;;
 esac
 cargo build -q -p charted -p charted-cli
+bin/wasm
 demo="$HOME/Work/charted-checkpoints/Harbor & Pine"
 rm -rf "$demo"
 ./target/debug/charted-headless sample create "$demo"

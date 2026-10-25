@@ -1,7 +1,7 @@
 // The formula bar: edit a measure as `Name = expression`, checked against the model as
 // you type (parse, names, supported functions, cycles). Enter commits, Shift+Enter
 // adds a line, Escape cancels. Quick measures write the DAX for common calculations.
-import { Check, Sparkles, Trash2, X } from "lucide-react";
+import { Check, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DaxCheck } from "../bridge/generated/DaxCheck";
 import type { Measure } from "../bridge/generated/Measure";
@@ -12,6 +12,8 @@ import { Dialog } from "../kit/Dialog";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { newId, useReport } from "../state/report";
+import { DaxEditor, type DaxEditorHandle } from "../dax/DaxEditor";
+import { splitFormula } from "../dax/service";
 
 const FORMATS = [
   { format: "", label: "General" },
@@ -22,11 +24,12 @@ const FORMATS = [
   { format: "0.0%", label: "Percentage" },
 ];
 
-/** `Name = expression` → its parts; a missing name gets `fallback`. */
-function split(text: string, fallback: string): { name: string; expression: string } {
-  const i = text.indexOf("=");
-  if (i < 0) return { name: fallback, expression: text.trim() };
-  return { name: text.slice(0, i).trim() || fallback, expression: text.slice(i + 1).trim() };
+/** `Name = expression` → its parts; a missing name gets `fallback`. `lead` is where the
+ * trimmed expression starts after `exprStart`. */
+function split(text: string, fallback: string): { name: string; expression: string; exprStart: number; lead: number } {
+  const { name, exprStart } = splitFormula(text);
+  const rest = text.slice(exprStart);
+  return { name: name ?? fallback, expression: rest.trim(), exprStart, lead: rest.length - rest.trimStart().length };
 }
 
 function uniqueName(model: Model, base: string): string {
@@ -40,7 +43,7 @@ export function FormulaBar({ model }: { model: Model }) {
   const commit = useApp((s) => s.commit);
   const formula = useReport((s) => s.formula);
   const set = useReport((s) => s.set);
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const ref = useRef<DaxEditorHandle>(null);
   const isNew = formula?.startsWith("new:") ?? false;
   const homeId = isNew ? formula!.slice(4) : model.tables.find((tb) => tb.measures.some((m) => m.id === formula))?.id;
   const home = model.tables.find((tb) => tb.id === homeId);
@@ -56,18 +59,14 @@ export function FormulaBar({ model }: { model: Model }) {
     setText(initial);
     setCheck(null);
     requestAnimationFrame(() => {
-      const el = ref.current;
-      if (el && isNew) {
-        el.focus();
-        el.setSelectionRange(el.value.length, el.value.length);
-      }
+      if (isNew) ref.current?.focus();
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formula, measure?.expression, measure?.name]);
 
-  const { name, expression } = split(text, fallback);
+  const { name, expression, exprStart, lead } = split(text, fallback);
   // Diagnostics are positions in the expression; show them as positions in the text.
-  const exprOffset = Math.max(0, text.indexOf(expression, text.indexOf("=") + 1));
+  const exprOffset = exprStart + lead;
   useEffect(() => {
     if (!formula || !expression) {
       setCheck(null);
@@ -106,27 +105,15 @@ export function FormulaBar({ model }: { model: Model }) {
       <IconButton label={t("Cancel")} shortcut="Escape" icon={<X size={15} />} onPress={() => (isNew ? set({ formula: null }) : setText(initial))} />
       <IconButton label={t("Commit")} shortcut="Enter" icon={<Check size={15} />} isDisabled={!expression || (!isNew && !dirty)} onPress={save} />
       <div className="formula-edit">
-        <textarea
+        <DaxEditor
           ref={ref}
-          className="formula-input mono"
-          aria-label={t("Measure formula")}
-          aria-invalid={!!problem}
-          spellCheck={false}
-          rows={Math.min(6, text.split("\n").length)}
+          label={t("Measure formula")}
+          model={model}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              save();
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              if (isNew) set({ formula: null });
-              else setText(initial);
-            }
-          }}
+          onChange={setText}
+          onCommit={save}
+          onCancel={() => (isNew ? set({ formula: null }) : setText(initial))}
+          extra={problem ? { message: problem.message, start: lead + problem.span.start, end: lead + problem.span.end } : null}
         />
         {problem && (
           <div className="formula-problem" role="alert">
@@ -150,6 +137,7 @@ export function FormulaBar({ model }: { model: Model }) {
             {!FORMATS.some((f) => f.format === (measure.formatString ?? "")) && <option value="custom">{measure.formatString}</option>}
           </select>
         )}
+        <IconButton label={t("Format DAX")} shortcut="Shift+Alt+F" icon={<WandSparkles size={15} />} onPress={() => ref.current?.format()} />
         <IconButton label={t("Quick measure")} icon={<Sparkles size={15} />} onPress={() => setQuick(true)} />
         {measure && (
           <IconButton

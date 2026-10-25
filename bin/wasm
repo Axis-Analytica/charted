@@ -1,0 +1,15 @@
+#!/bin/bash
+# Builds the DAX editor's language service (crates/wasm) into ui/src/dax/pkg, skipping
+# the build when nothing it depends on has changed.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+out=ui/src/dax/pkg
+stamp="$out/.stamp"
+newest=$(find crates/wasm crates/dax crates/model -name '*.rs' -o -name Cargo.toml | xargs stat -c %Y | sort -n | tail -1)
+if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$newest" ] && [ -f "$out/charted_wasm_bg.wasm" ]; then
+  exit 0
+fi
+cargo build -q --release --target wasm32-unknown-unknown -p charted-wasm
+wasm-bindgen --target web --out-dir "$out" target/wasm32-unknown-unknown/release/charted_wasm.wasm
+echo "$newest" > "$stamp"

@@ -46,6 +46,17 @@ pub struct Token {
 }
 
 pub fn lex(src: &str) -> Vec<Token> {
+    lex_inner(src, &mut Vec::new())
+}
+
+/// Like `lex`, also returning the spans of comments (for the formatter).
+pub fn lex_with_comments(src: &str) -> (Vec<Token>, Vec<Span>) {
+    let mut comments = Vec::new();
+    let tokens = lex_inner(src, &mut comments);
+    (tokens, comments)
+}
+
+fn lex_inner(src: &str, comments: &mut Vec<Span>) -> Vec<Token> {
     let b = src.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
@@ -62,6 +73,7 @@ pub fn lex(src: &str) -> Vec<Token> {
             while i < b.len() && b[i] != b'\n' {
                 i += 1;
             }
+            comments.push(Span { start, end: i });
             continue;
         }
         if c == b'/' && b.get(i + 1) == Some(&b'*') {
@@ -70,6 +82,7 @@ pub fn lex(src: &str) -> Vec<Token> {
                 i += 1;
             }
             i = (i + 2).min(b.len());
+            comments.push(Span { start, end: i });
             continue;
         }
         let tok = match c {

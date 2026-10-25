@@ -6,5 +6,7 @@ command -v mise >/dev/null || { echo "mise is required (Omarchy ships it)"; exit
 mise use -g rust@stable pnpm@latest
 . bin/env
 rustup target add wasm32-unknown-unknown
+# The DAX editor's language service; the version must match wasm-bindgen in Cargo.lock.
+wasm-bindgen --version 2>/dev/null | grep -q 0.2.129 || cargo install wasm-bindgen-cli --version 0.2.129 --locked
 (cd ui && pnpm install)
 echo "Ready. Run bin/dev to start charted in development mode."

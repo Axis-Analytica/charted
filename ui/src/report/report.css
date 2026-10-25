@@ -184,9 +184,9 @@
 .formula-bar { display: flex; align-items: flex-start; gap: 2px; padding: 4px 6px; border-bottom: 1px solid var(--border); background: var(--bg-raised); }
 .formula-bar .icon-btn { width: 28px; height: 28px; }
 .formula-edit { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.formula-input { width: 100%; min-height: 28px; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); color: var(--fg-strong); font-size: 13px; line-height: 1.4; resize: vertical; }
-.formula-input:focus { border-color: var(--accent); outline: none; }
-.formula-bar.has-error .formula-input { border-color: var(--danger); }
+.dax-editor { width: 100%; min-height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); overflow: hidden; }
+.dax-editor:focus-within { border-color: var(--accent); }
+.formula-bar.has-error .dax-editor { border-color: var(--danger); }
 .formula-problem { color: var(--danger); font-size: var(--text-xs); padding-inline: 2px; }
 .formula-tools { display: flex; align-items: center; gap: 2px; }
 .formula-tools .select { height: 28px; max-width: 150px; }
