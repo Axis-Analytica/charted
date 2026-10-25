@@ -49,10 +49,45 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                 return;
             };
             let paths = EnvPaths::from_env();
-            loop {
+            // Short read timeouts let one thread both read requests and send replies:
+            // data requests run on their own threads (as in the app, where they run in
+            // parallel and a newer one can cancel an older one), and desktop theme
+            // changes are pushed as `env` events.
+            let _ = ws
+                .get_ref()
+                .set_read_timeout(Some(std::time::Duration::from_millis(20)));
+            let (tx, rx) = std::sync::mpsc::channel::<Message>();
+            let mut env_seen = serde_json::to_value(EnvSnapshot::read(&paths)).unwrap();
+            let mut env_checked = std::time::Instant::now();
+            'conn: loop {
+                while let Ok(m) = rx.try_recv() {
+                    if ws.send(m).is_err() {
+                        break 'conn;
+                    }
+                }
+                if env_checked.elapsed() > std::time::Duration::from_millis(400) {
+                    env_checked = std::time::Instant::now();
+                    let now = serde_json::to_value(EnvSnapshot::read(&paths)).unwrap();
+                    if now != env_seen {
+                        env_seen = now.clone();
+                        let event = json!({ "event": "env", "payload": now });
+                        if ws.send(Message::Text(event.to_string().into())).is_err() {
+                            break;
+                        }
+                    }
+                }
                 let msg = match ws.read() {
                     Ok(Message::Text(t)) => t,
-                    Ok(Message::Close(_)) | Err(_) => break,
+                    Ok(Message::Close(_)) => break,
+                    Err(tungstenite::Error::Io(e))
+                        if matches!(
+                            e.kind(),
+                            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                        ) =>
+                    {
+                        continue;
+                    }
+                    Err(_) => break,
                     Ok(_) => continue,
                 };
                 let Ok(req) = serde_json::from_str::<Value>(&msg) else {
@@ -61,6 +96,9 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                 let id = req["id"].as_u64().unwrap_or(0);
                 let params = req["params"].clone();
                 let lock = || app.lock().unwrap_or_else(|p| p.into_inner());
+                let error = |id: u64, e: ApiError| {
+                    Message::Text(json!({ "id": id, "err": e }).to_string().into())
+                };
                 let reply = match req["method"].as_str().unwrap_or("") {
                     "rpc" => match serde_json::from_value(params) {
                         Ok(r) => lock().handle(r).map(|s| serde_json::to_value(s).unwrap()),
@@ -70,22 +108,26 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                         }),
                     },
                     "data" => {
-                        let result = serde_json::from_value(params)
+                        let job = serde_json::from_value(params)
                             .map_err(|e| ApiError {
                                 code: "invalid".into(),
                                 message: e.to_string(),
                             })
-                            .and_then(|r| {
-                                let job = lock().data_job(r)?;
-                                job.run()
-                            });
-                        match result {
-                            Ok(bytes) => {
-                                let mut frame = id.to_le_bytes().to_vec();
-                                frame.extend_from_slice(&bytes);
-                                if ws.send(Message::Binary(frame.into())).is_err() {
-                                    break;
-                                }
+                            .and_then(|r| lock().data_job(r));
+                        match job {
+                            Ok(job) => {
+                                let tx = tx.clone();
+                                std::thread::spawn(move || {
+                                    let m = match job.run() {
+                                        Ok(bytes) => {
+                                            let mut frame = id.to_le_bytes().to_vec();
+                                            frame.extend_from_slice(&bytes);
+                                            Message::Binary(frame.into())
+                                        }
+                                        Err(e) => error(id, e),
+                                    };
+                                    let _ = tx.send(m);
+                                });
                                 continue;
                             }
                             Err(e) => Err(e),
@@ -102,10 +144,10 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                     }),
                 };
                 let out = match reply {
-                    Ok(v) => json!({ "id": id, "ok": v }),
-                    Err(e) => json!({ "id": id, "err": e }),
+                    Ok(v) => Message::Text(json!({ "id": id, "ok": v }).to_string().into()),
+                    Err(e) => error(id, e),
                 };
-                if ws.send(Message::Text(out.to_string().into())).is_err() {
+                if ws.send(out).is_err() {
                     break;
                 }
             }

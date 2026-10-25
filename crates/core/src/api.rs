@@ -187,6 +187,11 @@ pub enum DataRequest {
     OssieDiff {
         path: String,
     },
+    /// The bytes of an image file to place on a report page (PNG, JPEG, GIF, WebP or
+    /// SVG, at most 5 MB).
+    ReadImage {
+        path: String,
+    },
     /// Key counts and a suggested cardinality for a prospective relationship (JSON
     /// `RelationshipCheck`).
     CheckRelationship {
@@ -395,12 +400,19 @@ impl App {
                         ..Default::default()
                     },
                 )?;
+                // Written beside the target and moved into place, so the file is
+                // never seen half-written.
+                let part = format!("{path}.part");
                 s.database()
                     .execute(&format!(
                         "COPY ({sql}) TO {} (FORMAT csv, HEADER true)",
-                        charted_engine::sql::string(&path)
+                        charted_engine::sql::string(&part)
                     ))
                     .map_err(CoreError::from)?;
+                std::fs::rename(&part, &path).map_err(|e| {
+                    let _ = std::fs::remove_file(&part);
+                    CoreError::Invalid(format!("couldn't write {path}: {e}"))
+                })?;
             }
         }
         Ok(())
@@ -470,6 +482,7 @@ impl App {
                     crate::relcheck::plan(model, from_table, from_column, to_table, to_column)?;
                 return Ok(DataJob::Relationship(s.database().clone(), sql));
             }
+            DataRequest::ReadImage { path } => return Ok(DataJob::Ready(read_image(path)?)),
             DataRequest::OssieDiff { path } => {
                 let d = crate::interop::import_diff(model, Path::new(path))
                     .map(|(_, d)| d)
@@ -490,6 +503,36 @@ impl App {
     pub fn data(&self, request: DataRequest) -> Result<Vec<u8>, ApiError> {
         self.data_job(request)?.run()
     }
+}
+
+/// Images placed on report pages are stored in the report, so they are kept small.
+const MAX_IMAGE_BYTES: u64 = 5 * 1024 * 1024;
+
+fn read_image(path: &str) -> Result<Vec<u8>, CoreError> {
+    let p = Path::new(path);
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    if !matches!(
+        ext.as_str(),
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "svg"
+    ) {
+        return Err(CoreError::Invalid(
+            "choose a PNG, JPEG, GIF, WebP or SVG image".into(),
+        ));
+    }
+    let size = std::fs::metadata(p)
+        .map_err(|e| CoreError::Invalid(format!("couldn't read {path}: {e}")))?
+        .len();
+    if size > MAX_IMAGE_BYTES {
+        return Err(CoreError::Invalid(format!(
+            "the image is {:.1} MB; images on a page can be at most 5 MB",
+            size as f64 / 1_048_576.0
+        )));
+    }
+    std::fs::read(p).map_err(|e| CoreError::Invalid(format!("couldn't read {path}: {e}")))
 }
 
 /// `$XDG_DOCUMENTS_DIR/charted/Harbor & Pine`, falling back to `~/Documents`.
