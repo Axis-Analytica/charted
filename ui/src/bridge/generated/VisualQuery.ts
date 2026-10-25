@@ -19,4 +19,9 @@ values: Array<Projection>, filters: Array<QueryFilter>,
 /**
  * When empty, groups ascend in their sort order.
  */
-order: Array<OrderBy>, limit: number | null, };
+order: Array<OrderBy>, limit: number | null, 
+/**
+ * Also return each group's value as text (`k0…`, after the values), as filters
+ * compare it: selections in a visual become filters on these.
+ */
+keys: boolean, };

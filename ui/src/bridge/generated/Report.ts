@@ -2,6 +2,7 @@
 import type { DiagramPosition } from "./DiagramPosition";
 import type { Page } from "./Page";
 import type { ReportFilter } from "./ReportFilter";
+import type { ReportTheme } from "./ReportTheme";
 
 export type Report = { pages: Array<Page>, 
 /**
@@ -12,4 +13,8 @@ filters: Array<ReportFilter>,
  * Where each table's card sits in the model view, by table id. Tables without a
  * position are laid out automatically.
  */
-diagram: { [key in string]: DiagramPosition }, };
+diagram: { [key in string]: DiagramPosition }, 
+/**
+ * The report theme; `None` follows the Omarchy desktop theme live.
+ */
+theme?: ReportTheme | null, };

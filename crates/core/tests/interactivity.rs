@@ -1,0 +1,481 @@
+//! Report interactivity on the Harbor & Pine sample: slicers and the page's
+//! interactions, highlights, the matrix's subtotals, relative dates and cancelling a
+//! superseded query.
+
+use arrow_ipc::reader::StreamReader;
+use charted_compiler::visual::{QueryFilter, VisualQuery};
+use charted_core::api::{DataJob, Running};
+use charted_core::{App, DataRequest, Request};
+use charted_model::*;
+use std::collections::HashMap;
+
+type Row = HashMap<String, String>;
+
+fn rows(bytes: Vec<u8>) -> Vec<Row> {
+    let reader = StreamReader::try_new(std::io::Cursor::new(bytes), None).unwrap();
+    let mut out = Vec::new();
+    for batch in reader {
+        let batch = batch.unwrap();
+        let schema = batch.schema();
+        let fmts: Vec<_> = batch
+            .columns()
+            .iter()
+            .map(|c| arrow_cast::display::ArrayFormatter::try_new(c, &Default::default()).unwrap())
+            .collect();
+        for r in 0..batch.num_rows() {
+            out.push(
+                schema
+                    .fields()
+                    .iter()
+                    .zip(&fmts)
+                    .map(|(f, x)| (f.name().clone(), x.value(r).to_string()))
+                    .collect(),
+            );
+        }
+    }
+    out
+}
+
+fn num(r: &Row, k: &str) -> f64 {
+    r.get(k)
+        .unwrap_or_else(|| panic!("no column {k} in {r:?}"))
+        .parse()
+        .unwrap_or(f64::NAN)
+}
+
+struct Sample {
+    app: App,
+    page: Id,
+    _dir: tempfile::TempDir,
+}
+
+impl Sample {
+    fn new() -> Self {
+        let dir = tempfile::tempdir().unwrap();
+        let mut app = App::new(dir.path().join("state"));
+        app.handle(Request::OpenSample {
+            dir: Some(dir.path().join("p").display().to_string()),
+        })
+        .unwrap();
+        let page = app.session().unwrap().project.model.report.pages[0]
+            .id
+            .clone();
+        Self {
+            app,
+            page,
+            _dir: dir,
+        }
+    }
+
+    fn model(&self) -> &Model {
+        &self.app.session().unwrap().project.model
+    }
+
+    fn col(&self, table: &str, column: &str) -> Projection {
+        let t = self.model().table_by_name(table).unwrap();
+        Projection {
+            field: FieldRef::Column {
+                table: t.id.clone(),
+                column: t.column_by_name(column).unwrap().id.clone(),
+            },
+            aggregation: None,
+            display_name: None,
+        }
+    }
+
+    fn measure(&self, name: &str) -> Projection {
+        let (t, m) = self
+            .model()
+            .tables
+            .iter()
+            .find_map(|t| t.measures.iter().find(|x| x.name == name).map(|x| (t, x)))
+            .unwrap();
+        Projection {
+            field: FieldRef::Measure {
+                table: t.id.clone(),
+                measure: m.id.clone(),
+            },
+            aggregation: None,
+            display_name: None,
+        }
+    }
+
+    fn commit(&mut self, changes: Vec<Change>) {
+        self.app
+            .handle(Request::Commit {
+                label: "test".into(),
+                changes,
+            })
+            .unwrap_or_else(|e| panic!("{}", e.message));
+    }
+
+    fn add(&mut self, id: &str, kind: &str, roles: Vec<(&str, Vec<Projection>)>) {
+        let visual = Visual {
+            id: id.into(),
+            visual_type: kind.into(),
+            position: Position {
+                x: 0.0,
+                y: 0.0,
+                width: 300.0,
+                height: 200.0,
+                z: 0,
+            },
+            roles: roles.into_iter().map(|(r, p)| (r.to_string(), p)).collect(),
+            filters: vec![],
+            sort: None,
+            objects: Default::default(),
+            selection: None,
+        };
+        let page = self.page.clone();
+        self.commit(vec![Change::AddVisual {
+            page,
+            visual,
+            index: None,
+        }]);
+    }
+
+    fn update(&mut self, id: &str, f: impl FnOnce(&mut Visual)) {
+        let mut v = self.model().report.visual(id).unwrap().1.clone();
+        f(&mut v);
+        let page = self.page.clone();
+        self.commit(vec![Change::UpdateVisual { page, visual: v }]);
+    }
+
+    fn data(&self, id: &str, filters: Vec<QueryFilter>, highlight: Vec<QueryFilter>) -> Vec<Row> {
+        rows(
+            self.app
+                .data(DataRequest::ReportVisual {
+                    visual: id.into(),
+                    totals: false,
+                    filters,
+                    highlight,
+                    tag: None,
+                })
+                .unwrap_or_else(|e| panic!("{}", e.message)),
+        )
+    }
+
+    fn total(&self, filters: Vec<QueryFilter>) -> f64 {
+        let r = rows(
+            self.app
+                .data(DataRequest::Visual {
+                    query: VisualQuery {
+                        values: vec![self.measure("Total Sales")],
+                        filters,
+                        ..Default::default()
+                    },
+                })
+                .unwrap(),
+        );
+        num(&r[0], "v0")
+    }
+}
+
+fn equals(field: Projection, value: &str) -> QueryFilter {
+    QueryFilter {
+        field,
+        filter: FilterKind::Basic {
+            values: vec![Some(value.into())],
+            exclude: false,
+        },
+    }
+}
+
+#[test]
+fn slicers_filter_the_page_unless_the_interaction_is_off() {
+    let mut s = Sample::new();
+    let year = s.col("Date", "Year");
+    let category = s.col("Product", "Category");
+    let sales = s.measure("Total Sales");
+    s.add(
+        "chart",
+        "columnChart",
+        vec![
+            ("category", vec![category.clone()]),
+            ("values", vec![sales.clone()]),
+        ],
+    );
+    s.add("slicer", "slicer", vec![("field", vec![year.clone()])]);
+
+    let slicer = s.data("slicer", vec![], vec![]);
+    let years: Vec<&str> = slicer.iter().map(|r| r["key:field:0"].as_str()).collect();
+    assert_eq!(years, ["2022", "2023", "2024", "2025"]);
+
+    let all: f64 = s
+        .data("chart", vec![], vec![])
+        .iter()
+        .map(|r| num(r, "values:0"))
+        .sum();
+    s.update("slicer", |v| {
+        v.selection = Some(FilterKind::Basic {
+            values: vec![Some("2024".into())],
+            exclude: false,
+        })
+    });
+    let chart = s.data("chart", vec![], vec![]);
+    let sliced: f64 = chart.iter().map(|r| num(r, "values:0")).sum();
+    let expected = s.total(vec![equals(year.clone(), "2024")]);
+    assert!((sliced - expected).abs() < 0.01, "{sliced} vs {expected}");
+    assert!(sliced < all);
+    // Keys are the group values as filters compare them.
+    assert!(chart.iter().all(|r| r["key:category:0"] == r["category:0"]));
+    // The slicer still lists every year (it doesn't filter itself).
+    assert_eq!(s.data("slicer", vec![], vec![]).len(), 4);
+
+    let page = s.page.clone();
+    let mut settings = s.model().report.page(&page).unwrap().settings.clone();
+    settings.interactions.push(Interaction {
+        source: "slicer".into(),
+        target: "chart".into(),
+        kind: InteractionKind::None,
+    });
+    s.commit(vec![Change::SetPage {
+        page: page.clone(),
+        settings,
+    }]);
+    let unsliced: f64 = s
+        .data("chart", vec![], vec![])
+        .iter()
+        .map(|r| num(r, "values:0"))
+        .sum();
+    assert!((unsliced - all).abs() < 0.01);
+    let p = s.model().report.page(&page).unwrap();
+    assert_eq!(p.interaction("slicer", "chart"), InteractionKind::None);
+    assert_eq!(p.interaction("chart", "slicer"), InteractionKind::Filter);
+
+    // A range slicer reports its field's smallest and largest values, under the
+    // other slicers.
+    s.add(
+        "range",
+        "slicer",
+        vec![("field", vec![s.col("Date", "Date")])],
+    );
+    s.update("range", |v| {
+        v.objects
+            .insert("slicer".into(), serde_json::json!({ "style": "between" }));
+    });
+    let r = s.data("range", vec![], vec![]);
+    assert_eq!(r.len(), 1);
+    assert!(r[0]["min"].starts_with("2024-01-01"), "{r:?}");
+    assert!(r[0]["max"].starts_with("2024-12-31"), "{r:?}");
+}
+
+#[test]
+fn highlights_are_computed_alongside_the_full_values() {
+    let mut s = Sample::new();
+    let category = s.col("Product", "Category");
+    let region = s.col("Store", "Region");
+    let sales = s.measure("Total Sales");
+    s.add(
+        "chart",
+        "columnChart",
+        vec![
+            ("category", vec![category.clone()]),
+            ("values", vec![sales.clone()]),
+        ],
+    );
+
+    // Highlighting by a region: every category keeps its full value and gains a part.
+    let r = s.data(
+        "chart",
+        vec![],
+        vec![equals(region.clone(), "North America")],
+    );
+    assert_eq!(r.len(), 6);
+    let full: Vec<f64> = r.iter().map(|x| num(x, "values:0")).collect();
+    assert!(
+        full.windows(2).all(|w| w[0] >= w[1]),
+        "order kept: {full:?}"
+    );
+    for x in &r {
+        let part = num(x, "hl:values:0");
+        assert!(part > 0.0 && part < num(x, "values:0"), "{x:?}");
+    }
+    let parts: f64 = r.iter().map(|x| num(x, "hl:values:0")).sum();
+    let west = s.total(vec![equals(region.clone(), "North America")]);
+    assert!((parts - west).abs() < 0.01);
+
+    // Highlighting one of its own categories leaves the others blank.
+    let first = r[0]["key:category:0"].clone();
+    let r = s.data("chart", vec![], vec![equals(category.clone(), &first)]);
+    for x in &r {
+        if x["key:category:0"] == first {
+            assert_eq!(x["hl:values:0"], x["values:0"]);
+        } else {
+            assert_eq!(x["hl:values:0"], "");
+        }
+    }
+    // A filter instead keeps only the matching rows.
+    let r = s.data("chart", vec![equals(category, &first)], vec![]);
+    assert_eq!(r.len(), 1);
+}
+
+#[test]
+fn matrix_returns_every_level_with_recomputed_subtotals() {
+    let mut s = Sample::new();
+    let category = s.col("Product", "Category");
+    let subcategory = s.col("Product", "Subcategory");
+    let year = s.col("Date", "Year");
+    let sales = s.measure("Total Sales");
+    s.add(
+        "m",
+        "matrix",
+        vec![
+            ("rows", vec![category.clone(), subcategory.clone()]),
+            ("columns", vec![year.clone()]),
+            ("values", vec![sales.clone()]),
+        ],
+    );
+    let r = s.data("m", vec![], vec![]);
+    let level = |a: &str, b: &str| -> Vec<&Row> {
+        r.iter()
+            .filter(|x| x["level:rows"] == a && x["level:columns"] == b)
+            .collect()
+    };
+    let grand = level("0", "0");
+    assert_eq!(grand.len(), 1);
+    let total = s.total(vec![]);
+    assert!((num(grand[0], "values:0") - total).abs() < 0.01);
+    assert_eq!(level("0", "1").len(), 4, "a total per year");
+    assert_eq!(level("1", "0").len(), 6, "a subtotal per category");
+    let sum: f64 = level("1", "0").iter().map(|x| num(x, "values:0")).sum();
+    assert!((sum - total).abs() < 0.01);
+    let leaves = level("2", "1");
+    assert!(leaves.len() > 20);
+    assert!(
+        leaves
+            .iter()
+            .all(|x| !x["rows:1"].is_empty() && !x["columns:0"].is_empty())
+    );
+    // Each level is in order: categories ascend.
+    let cats: Vec<&str> = level("1", "0")
+        .iter()
+        .map(|x| x["rows:0"].as_str())
+        .collect();
+    let mut sorted = cats.clone();
+    sorted.sort();
+    assert_eq!(cats, sorted);
+    let order: Vec<f64> = level("1", "0").iter().map(|x| num(x, "order")).collect();
+    assert_eq!(order, (1..=6).map(f64::from).collect::<Vec<_>>());
+}
+
+#[test]
+fn relative_dates_are_relative_to_today() {
+    let s = Sample::new();
+    let date = s.col("Date", "Date");
+    let rel = |period, count, unit| QueryFilter {
+        field: date.clone(),
+        filter: FilterKind::RelativeDate {
+            period,
+            count,
+            unit,
+        },
+    };
+    let all = s.total(vec![]);
+    // The sample covers 2022–2025.
+    let decade = s.total(vec![rel(RelativePeriod::Last, 10, DateUnit::Years)]);
+    assert!((decade - all).abs() < 0.01);
+    let next = s.total(vec![rel(RelativePeriod::Next, 3, DateUnit::Months)]);
+    assert!(next.is_nan(), "nothing in the future: {next}");
+
+    // The ranges themselves, checked in DuckDB.
+    let db = s.app.session().unwrap().database();
+    let check = |period, count, unit, expect: &str| {
+        let (lo, hi) = charted_compiler::visual::relative_range(period, count, unit);
+        let got: Vec<String> = db
+            .json_rows(
+                &format!("SELECT ({hi}) - ({lo}) AS days, ({expect}) AS ok"),
+                None,
+            )
+            .unwrap();
+        assert!(
+            got[0].contains("\"ok\":true"),
+            "{period:?} {count} {unit:?}: {got:?}"
+        );
+    };
+    check(
+        RelativePeriod::Last,
+        7,
+        DateUnit::Days,
+        &format!(
+            "({}) - ({}) = 7",
+            "CAST(current_date + 1 AS DATE)", "CAST(current_date - 6 AS DATE)"
+        ),
+    );
+    check(
+        RelativePeriod::This,
+        1,
+        DateUnit::Months,
+        "day(CAST(date_trunc('month', current_date) AS DATE)) = 1",
+    );
+    check(RelativePeriod::Last, 1, DateUnit::Years, "TRUE");
+}
+
+#[test]
+fn a_newer_tagged_query_cancels_the_running_one() {
+    let s = Sample::new();
+    let db = s.app.session().unwrap().database().clone();
+    let running = Running::default();
+    let slow = "SELECT count(*) FROM range(20000000000) AS a(x) WHERE x % 7 = 3";
+    let first = {
+        let (db, running) = (db.clone(), running.clone());
+        std::thread::spawn(move || DataJob::Tagged(db, slow.into(), running, "v1".into()).run())
+    };
+    std::thread::sleep(std::time::Duration::from_millis(400));
+    let second = DataJob::Tagged(db, "SELECT 42 AS x".into(), running, "v1".into()).run();
+    assert!(second.is_ok());
+    let first = first.join().unwrap();
+    assert_eq!(first.err().map(|e| e.code), Some("cancelled".into()));
+}
+
+#[test]
+fn themes_import_and_visual_data_exports_as_csv() {
+    let mut s = Sample::new();
+    let dir = tempfile::tempdir().unwrap();
+    let theme = dir.path().join("tidal.json");
+    std::fs::write(
+        &theme,
+        r##"{"name":"Tidal","dataColors":["#094782","#0B72D7"],"background":"#FFFFFF","foreground":"#252423"}"##,
+    )
+    .unwrap();
+    s.app
+        .handle(Request::ImportTheme {
+            path: theme.display().to_string(),
+        })
+        .unwrap();
+    assert_eq!(s.model().report.theme.as_ref().unwrap().name, "Tidal");
+    s.app.handle(Request::Undo).unwrap();
+    assert!(s.model().report.theme.is_none());
+    std::fs::write(&theme, "{}").unwrap();
+    assert!(
+        s.app
+            .handle(Request::ImportTheme {
+                path: theme.display().to_string()
+            })
+            .is_err()
+    );
+
+    let category = s.col("Product", "Category");
+    let sales = s.measure("Total Sales");
+    s.add(
+        "chart",
+        "columnChart",
+        vec![
+            ("category", vec![category.clone()]),
+            ("values", vec![sales]),
+        ],
+    );
+    let csv = dir.path().join("out.csv");
+    s.app
+        .handle(Request::ExportVisualCsv {
+            visual: "chart".into(),
+            path: csv.display().to_string(),
+            filters: vec![equals(category, "Camping")],
+        })
+        .unwrap();
+    let text = std::fs::read_to_string(&csv).unwrap();
+    let lines: Vec<&str> = text.lines().collect();
+    assert_eq!(lines[0], "Category,Total Sales");
+    assert_eq!(lines.len(), 2);
+    assert!(lines[1].starts_with("Camping,"));
+}

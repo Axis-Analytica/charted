@@ -308,22 +308,18 @@ fn query_visual(
             ));
         }
     };
-    let (q, _) = match visualq::report_visual_query(model, &v.id, false, &[]) {
+    let sql_text = match visualq::report_visual_sql(
+        model,
+        session.schema(),
+        &v.id,
+        &visualq::VisualSqlOptions {
+            captions: true,
+            ..Default::default()
+        },
+    ) {
         Ok(x) => x,
         Err(e) => return fail(e),
     };
-    let compiled = match visualq::compile(model, session.schema(), &q) {
-        Ok(c) => c,
-        Err(e) => return fail(e),
-    };
-    // Name columns after the fields, as the visual shows them.
-    let names: Vec<String> = q
-        .groups
-        .iter()
-        .chain(&q.values)
-        .map(|p| visualq::projection_name(model, p))
-        .collect();
-    let sql_text = visualq::rename_columns(&compiled.sql, q.groups.len(), &names);
     if show_sql {
         println!("{sql_text}");
         return 0;

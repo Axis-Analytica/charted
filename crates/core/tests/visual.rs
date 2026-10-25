@@ -446,6 +446,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
         filters: vec![],
         sort: None,
         objects: Default::default(),
+        selection: None,
     };
     app.handle(Request::Commit {
         label: "Add visual".into(),
@@ -462,6 +463,8 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
                 visual: "v-col".into(),
                 totals: false,
                 filters: vec![],
+                highlight: vec![],
+                tag: None,
             })
             .unwrap(),
         )
@@ -476,6 +479,8 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
             visual: "v-col".into(),
             totals: true,
             filters: vec![],
+            highlight: vec![],
+            tag: None,
         })
         .unwrap(),
     );

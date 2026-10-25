@@ -1040,7 +1040,8 @@ fn condition_holds(v: &Value, c: &Condition, text: bool) -> bool {
 
 fn kind_holds(v: &Value, kind: &FilterKind, text: bool) -> bool {
     match kind {
-        FilterKind::All | FilterKind::TopN { .. } => true,
+        // The interpreter has no clock; relative dates are tested against SQL directly.
+        FilterKind::All | FilterKind::TopN { .. } | FilterKind::RelativeDate { .. } => true,
         FilterKind::Basic { values, exclude } => values.contains(&v.key()) != *exclude,
         FilterKind::Advanced { conditions, or } => {
             if *or {
@@ -1137,6 +1138,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
                     descending: !bottom,
                 }],
                 limit: Some(*count),
+                keys: false,
             },
         )?;
         let FieldRef::Column { table, column } = &f.field.field else {

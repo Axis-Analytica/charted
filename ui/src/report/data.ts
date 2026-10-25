@@ -36,8 +36,8 @@ function decode(buf: ArrayBuffer): { rows: number; columns: Map<string, Vector> 
 
 async function load(visual: Visual, totals: boolean): Promise<VisualData> {
   const t0 = performance.now();
-  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters: [] });
-  const tot = totals ? transport.data({ type: "reportVisual", visual: visual.id, totals: true, filters: [] }) : null;
+  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters: [], highlight: [], tag: null });
+  const tot = totals ? transport.data({ type: "reportVisual", visual: visual.id, totals: true, filters: [], highlight: [], tag: null }) : null;
   const d = decode(await main);
   let totalsRow: Map<string, unknown> | undefined;
   if (tot) {

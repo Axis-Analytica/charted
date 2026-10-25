@@ -113,6 +113,10 @@ pub enum Change {
     SetDiagram {
         positions: std::collections::BTreeMap<Id, DiagramPosition>,
     },
+    /// Sets the report theme (`None` follows the desktop theme).
+    SetTheme {
+        theme: Option<ReportTheme>,
+    },
 }
 
 /// A single column property, so one change type covers the whole properties pane.
@@ -669,6 +673,10 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
         Change::SetDiagram { positions } => {
             let old = std::mem::replace(&mut model.report.diagram, positions);
             Ok(vec![Change::SetDiagram { positions: old }])
+        }
+        Change::SetTheme { theme } => {
+            let old = std::mem::replace(&mut model.report.theme, theme);
+            Ok(vec![Change::SetTheme { theme: old }])
         }
     }
 }

@@ -23,6 +23,20 @@ pub struct Report {
     /// position are laid out automatically.
     #[serde(default)]
     pub diagram: std::collections::BTreeMap<Id, DiagramPosition>,
+    /// The report theme; `None` follows the Omarchy desktop theme live.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<ReportTheme>,
+}
+
+/// A report theme in Power BI's theme JSON format (`name`, `dataColors`, `background`,
+/// `foreground`, `tableAccent`, …), kept whole so nothing in an imported file is lost.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct ReportTheme {
+    pub name: String,
+    #[ts(type = "Record<string, unknown>")]
+    pub json: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS)]
@@ -56,6 +70,28 @@ pub struct PageSettings {
     /// Filters on this page.
     #[serde(default)]
     pub filters: Vec<ReportFilter>,
+    /// How selecting in one visual affects another, where it differs from the default.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub interactions: Vec<Interaction>,
+}
+
+/// What a selection in `source` does to `target`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Interaction {
+    pub source: Id,
+    pub target: Id,
+    pub kind: InteractionKind,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum InteractionKind {
+    Filter,
+    Highlight,
+    None,
 }
 
 fn default_width() -> u32 {
@@ -73,6 +109,7 @@ impl PageSettings {
             width: default_width(),
             height: default_height(),
             filters: Vec::new(),
+            interactions: Vec::new(),
         }
     }
 }
@@ -108,6 +145,9 @@ pub struct Visual {
     #[serde(default, skip_serializing_if = "serde_json::Map::is_empty")]
     #[ts(type = "Record<string, Record<string, unknown>>")]
     pub objects: serde_json::Map<String, serde_json::Value>,
+    /// A slicer's current choice, which filters the other visuals on its page.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<FilterKind>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -221,6 +261,32 @@ pub enum FilterKind {
         bottom: bool,
         by: Projection,
     },
+    /// Dates relative to today: the last or next `count` units (today included), or the
+    /// current unit (`this`, `count` ignored).
+    RelativeDate {
+        period: RelativePeriod,
+        count: u32,
+        unit: DateUnit,
+    },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum RelativePeriod {
+    Last,
+    This,
+    Next,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub enum DateUnit {
+    Days,
+    Weeks,
+    Months,
+    Years,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -260,9 +326,46 @@ impl Page {
     pub fn visual(&self, id: &str) -> Option<&Visual> {
         self.visuals.iter().find(|v| v.id == id)
     }
+
+    /// What a selection in `source` does to `target`: the page's setting, or the
+    /// default for the target's type (charts that can show a highlight highlight; the
+    /// rest filter).
+    pub fn interaction(&self, source: &str, target: &str) -> InteractionKind {
+        if let Some(i) = self
+            .settings
+            .interactions
+            .iter()
+            .find(|i| i.source == source && i.target == target)
+        {
+            return i.kind;
+        }
+        match self.visual(target) {
+            Some(v) if v.can_highlight() => InteractionKind::Highlight,
+            _ => InteractionKind::Filter,
+        }
+    }
 }
 
 impl Visual {
+    /// Whether the visual can show a selection elsewhere as a highlight (part of each
+    /// bar or slice) rather than only as a filter.
+    pub fn can_highlight(&self) -> bool {
+        matches!(
+            self.visual_type.as_str(),
+            "columnChart"
+                | "barChart"
+                | "stackedColumnChart"
+                | "stackedBarChart"
+                | "pieChart"
+                | "donutChart"
+                | "scatterChart"
+        )
+    }
+
+    pub fn is_slicer(&self) -> bool {
+        self.visual_type == "slicer"
+    }
+
     /// Every field the visual uses, in role order.
     pub fn projections(&self) -> impl Iterator<Item = (&str, &Projection)> {
         self.roles

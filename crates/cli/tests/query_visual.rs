@@ -59,6 +59,7 @@ fn query_visual_prints_rows_by_field_name() {
         filters: vec![],
         sort: None,
         objects: Default::default(),
+        selection: None,
     };
     let page = m.report.pages[0].id.clone();
     app.handle(Request::Commit {

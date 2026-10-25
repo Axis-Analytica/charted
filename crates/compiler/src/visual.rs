@@ -26,8 +26,8 @@
 
 use charted_dax::{AggFunc, BinaryOp, Bound, FilterArg, InfoFunc, ScalarFunc, TableExpr, UnaryOp};
 use charted_model::{
-    Aggregation, ColumnKind, Condition, DataType, FieldRef, FilterKind, FilterOp, Id, Model,
-    Projection, Table,
+    Aggregation, ColumnKind, Condition, DataType, DateUnit, FieldRef, FilterKind, FilterOp, Id,
+    Model, Projection, RelativePeriod, Table,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -92,6 +92,10 @@ pub struct VisualQuery {
     pub order: Vec<OrderBy>,
     #[serde(default)]
     pub limit: Option<u32>,
+    /// Also return each group's value as text (`k0…`, after the values), as filters
+    /// compare it: selections in a visual become filters on these.
+    #[serde(default)]
+    pub keys: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize, TS)]
@@ -621,6 +625,50 @@ fn predicate(e: &str, t: DataType, kind: &FilterKind) -> Option<String> {
                 "({})",
                 parts.join(if *or { " OR " } else { " AND " })
             ))
+        }
+        FilterKind::RelativeDate {
+            period,
+            count,
+            unit,
+        } => {
+            let (lo, hi) = relative_range(*period, *count, *unit);
+            Some(format!(
+                "(CAST({e} AS DATE) >= {lo} AND CAST({e} AS DATE) < {hi})"
+            ))
+        }
+    }
+}
+
+/// The half-open date range `[lo, hi)` of a relative date filter, as SQL over
+/// `current_date`. "Last 3 months" runs from the day after the same date three months
+/// ago through today; "this month" is the calendar month; "next" starts tomorrow.
+pub fn relative_range(period: RelativePeriod, count: u32, unit: DateUnit) -> (String, String) {
+    let n = count.max(1);
+    let unit_sql = match unit {
+        DateUnit::Days => "day",
+        DateUnit::Weeks => "week",
+        DateUnit::Months => "month",
+        DateUnit::Years => "year",
+    };
+    let today = "current_date";
+    let tomorrow = "CAST(current_date + INTERVAL 1 day AS DATE)";
+    match period {
+        RelativePeriod::Last => (
+            format!("CAST({tomorrow} - INTERVAL {n} {unit_sql} AS DATE)"),
+            tomorrow.to_string(),
+        ),
+        RelativePeriod::Next => (
+            tomorrow.to_string(),
+            format!("CAST({tomorrow} + INTERVAL {n} {unit_sql} AS DATE)"),
+        ),
+        RelativePeriod::This => {
+            let start = format!("CAST(date_trunc('{unit_sql}', {today}) AS DATE)");
+            let end = if unit == DateUnit::Days {
+                tomorrow.to_string()
+            } else {
+                format!("CAST({start} + INTERVAL 1 {unit_sql} AS DATE)")
+            };
+            (start, end)
         }
     }
 }
@@ -2094,6 +2142,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
                                 descending: !bottom,
                             }],
                             limit: Some(*count),
+                            keys: false,
                         },
                     )?;
                     filters.push(CFilter {
@@ -2263,6 +2312,13 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
             format!("{sql} AS v{i}")
         });
     }
+    let mut text_keys = Vec::new();
+    if q.keys {
+        for (i, k) in keys.iter().take(n_groups).enumerate() {
+            select.push(format!("CAST(f.{} AS VARCHAR) AS k{i}", k.name));
+            text_keys.push(format!("k{i}"));
+        }
+    }
     let mut where_: Vec<String> = Vec::new();
     for (v, kind) in &vfilters {
         let (sql, _) = c.render(v, "k");
@@ -2296,6 +2352,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         .take(n_groups)
         .map(|k| k.name.clone())
         .chain(value_names.iter().cloned())
+        .chain(text_keys.iter().cloned())
         .collect();
     let hidden: Vec<String> = keys.iter().skip(n_groups).map(|k| k.name.clone()).collect();
     let mut outer_cols = visible.clone();

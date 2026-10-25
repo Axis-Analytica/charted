@@ -4,7 +4,7 @@ use charted_compiler::visual::{
     self, Catalog, Compiled, OrderBy, OrderTarget, QueryFilter, VisualQuery,
 };
 use charted_engine::{Database, sql};
-use charted_model::{DataType, FieldRef, Model, Projection};
+use charted_model::{DataType, FieldRef, FilterKind, InteractionKind, Model, Page, Projection};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -90,6 +90,7 @@ pub fn field_values_sql(
                 descending: false,
             }],
             limit: None,
+            keys: false,
         },
     )?;
     let search = search
@@ -208,9 +209,11 @@ pub fn check_dax(
 }
 
 /// The query behind a report visual: its fields by role (columns group, measures and
-/// summarised columns are values), with report, page and visual filters, the visual's
-/// sort or a sensible default for its type, and a row limit. With `totals`, the same
-/// values without grouping (a table's total row).
+/// summarised columns are values), with report, page and visual filters, the choices
+/// of the page's slicers (where the page's interactions let them through), the
+/// visual's sort or a sensible default for its type, and a row limit. With `totals`,
+/// the same values without grouping (a table's total row). `extra` filters are added
+/// (a selection in another visual).
 pub fn report_visual_query(
     model: &Model,
     visual: &str,
@@ -254,7 +257,10 @@ pub fn report_visual_query(
             field: f.field.clone(),
             filter: f.filter.clone(),
         });
-    q.filters = filters.chain(extra.iter().cloned()).collect();
+    q.filters = filters
+        .chain(slicer_filters(page, &v.id))
+        .chain(extra.iter().cloned())
+        .collect();
     if let Some(s) = &v.sort
         && let Some(t) = slot.get(&(s.role.clone(), s.index))
     {
@@ -263,9 +269,17 @@ pub fn report_visual_query(
             descending: s.descending,
         });
     } else if !q.groups.is_empty() && !q.values.is_empty() {
-        // Bar and column charts rank categories by value unless the axis has an order
-        // of its own (numbers, dates, a sort-by column).
-        let ranked = matches!(v.visual_type.as_str(), "columnChart" | "barChart");
+        // Bar, column and pie charts rank categories by value unless the axis has an
+        // order of its own (numbers, dates, a sort-by column).
+        let ranked = matches!(
+            v.visual_type.as_str(),
+            "columnChart"
+                | "barChart"
+                | "stackedColumnChart"
+                | "stackedBarChart"
+                | "pieChart"
+                | "donutChart"
+        );
         let natural = match &q.groups[0].field {
             FieldRef::Column { table, column } => model
                 .table(table)
@@ -284,32 +298,288 @@ pub fn report_visual_query(
     }
     q.limit = Some(match v.visual_type.as_str() {
         "card" => 1,
-        "lineChart" => 10_000,
-        "table" => 5_000,
+        "lineChart" | "scatterChart" => 10_000,
+        "table" | "matrix" | "slicer" => 5_000,
         _ => 1_000,
     });
     group_names.extend(value_names);
     Ok((q, group_names))
 }
 
-/// Renames the compiler's `g0…`/`v0…` columns to the visual's `role:index` names.
-pub fn rename_columns(sql_text: &str, groups: usize, names: &[String]) -> String {
-    let cols: Vec<String> = names
+/// The filters that the slicers on `page` put on `target`: each slicer's choice on
+/// its field, unless the page turns that interaction off. A slicer never filters
+/// itself.
+pub fn slicer_filters(page: &Page, target: &str) -> Vec<QueryFilter> {
+    page.visuals
         .iter()
-        .enumerate()
-        .map(|(i, n)| {
+        .filter(|s| s.is_slicer() && s.id != target)
+        .filter(|s| page.interaction(&s.id, target) != InteractionKind::None)
+        .filter_map(|s| {
+            let field = s.roles.get("field")?.first()?;
+            let filter = s.selection.clone()?;
+            (!matches!(filter, FilterKind::All)).then(|| QueryFilter {
+                field: Projection {
+                    aggregation: None,
+                    ..field.clone()
+                },
+                filter,
+            })
+        })
+        .collect()
+}
+
+/// How a report visual's data is asked for.
+#[derive(Debug, Clone, Default)]
+pub struct VisualSqlOptions<'a> {
+    /// Values without grouping (a table's total row).
+    pub totals: bool,
+    /// Added filters (a selection elsewhere that filters this visual).
+    pub filters: &'a [QueryFilter],
+    /// A selection elsewhere that highlights this visual: each value is also computed
+    /// under these filters, as `hl:role:index`.
+    pub highlight: &'a [QueryFilter],
+    /// Name columns after the fields ("Sum of Quantity") instead of `role:index`, with
+    /// no key columns (exports and the command line).
+    pub captions: bool,
+}
+
+/// The SQL behind a report visual. Columns are named `role:index`, with each group's
+/// value as text in `key:role:index` (what a selection filters on). A matrix returns
+/// every level of its row and column hierarchies (subtotals and totals), each row
+/// marked with `level:rows`, `level:columns` and its position within its level
+/// (`order`). A slicer lists its field's values, or for a range slicer the smallest and
+/// largest (`min`, `max`).
+pub fn report_visual_sql(
+    model: &Model,
+    schema: &Schema,
+    visual: &str,
+    o: &VisualSqlOptions,
+) -> Result<String, CoreError> {
+    let (_, v) = model
+        .report
+        .visual(visual)
+        .ok_or_else(|| CoreError::Invalid(format!("there is no visual with id {visual}")))?;
+    let (mut q, names) = report_visual_query(model, visual, o.totals, o.filters)?;
+    if v.is_slicer() {
+        return slicer_sql(model, schema, v, q);
+    }
+    if o.captions {
+        let names: Vec<String> = q
+            .groups
+            .iter()
+            .chain(&q.values)
+            .map(|p| projection_name(model, p))
+            .collect();
+        let c = compile(model, schema, &q)?;
+        return Ok(select_as(
+            &c.sql,
+            &columns(q.groups.len(), names.len(), &names, false),
+        ));
+    }
+    if v.visual_type == "matrix" && !o.totals {
+        return matrix_sql(model, schema, v, q);
+    }
+    q.keys = true;
+    let groups = q.groups.len();
+    let cols = columns(groups, names.len(), &names, true);
+    let full = compile(model, schema, &q)?;
+    if o.highlight.is_empty() || q.values.is_empty() {
+        return Ok(select_as(&full.sql, &cols));
+    }
+    // The highlight: the same values with the selection's filters added, joined to the
+    // full result on the groups.
+    let mut hq = q.clone();
+    hq.filters.extend(o.highlight.iter().cloned());
+    hq.order.clear();
+    hq.limit = None;
+    hq.keys = false;
+    let hl = compile(model, schema, &hq)?;
+    let on = if groups == 0 {
+        "TRUE".to_string()
+    } else {
+        (0..groups)
+            .map(|i| format!("a.g{i} IS NOT DISTINCT FROM b.g{i}"))
+            .collect::<Vec<_>>()
+            .join(" AND ")
+    };
+    let mut picks: Vec<String> = cols
+        .iter()
+        .map(|(src, name)| format!("a.{src} AS {}", sql::ident(name)))
+        .collect();
+    for (i, name) in names.iter().enumerate().skip(groups) {
+        picks.push(format!(
+            "b.v{} AS {}",
+            i - groups,
+            sql::ident(&format!("hl:{name}"))
+        ));
+    }
+    Ok(format!(
+        "SELECT {} FROM (SELECT *, row_number() OVER () AS rn FROM ({}) AS f) AS a LEFT JOIN ({}) AS b ON {on} ORDER BY a.rn",
+        picks.join(", "),
+        full.sql,
+        hl.sql
+    ))
+}
+
+/// Compiler columns (`g0…`, `v0…`, `k0…`) paired with the names to give them.
+fn columns(groups: usize, total: usize, names: &[String], keys: bool) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = (0..total)
+        .map(|i| {
             let src = if i < groups {
                 format!("g{i}")
             } else {
                 format!("v{}", i - groups)
             };
-            format!("{src} AS {}", sql::ident(n))
+            (src, names[i].clone())
         })
         .collect();
+    if keys {
+        for (i, name) in names.iter().take(groups).enumerate() {
+            out.push((format!("k{i}"), format!("key:{name}")));
+        }
+    }
+    out
+}
+
+fn select_as(sql_text: &str, cols: &[(String, String)]) -> String {
     if cols.is_empty() {
         return "SELECT 1 WHERE FALSE".into();
     }
-    format!("SELECT {} FROM ({sql_text}) AS visual", cols.join(", "))
+    format!(
+        "SELECT {} FROM ({sql_text}) AS visual",
+        cols.iter()
+            .map(|(src, name)| format!("{src} AS {}", sql::ident(name)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+/// A matrix: one query per level of the row and column hierarchies (each recomputes
+/// its values, so subtotals of non-additive measures are right), stacked in one SQL
+/// statement.
+fn matrix_sql(
+    model: &Model,
+    schema: &Schema,
+    v: &charted_model::Visual,
+    q: VisualQuery,
+) -> Result<String, CoreError> {
+    let rows = v.roles.get("rows").map(Vec::len).unwrap_or(0);
+    let cols = v.roles.get("columns").map(Vec::len).unwrap_or(0);
+    // `q.groups` holds the column hierarchy before the rows (roles are ordered by name).
+    let col_groups: Vec<Projection> = q.groups[..cols].to_vec();
+    let row_groups: Vec<Projection> = q.groups[cols..cols + rows].to_vec();
+    let value_names: Vec<String> = (0..q.values.len()).map(|i| format!("values:{i}")).collect();
+    let mut parts = Vec::new();
+    for r in 0..=rows {
+        for c in 0..=cols {
+            if r + c == 0 && q.values.is_empty() {
+                continue;
+            }
+            let mut sq = q.clone();
+            sq.groups = row_groups[..r]
+                .iter()
+                .chain(&col_groups[..c])
+                .cloned()
+                .collect();
+            sq.keys = true;
+            // A sort on a value orders every level; otherwise groups ascend.
+            sq.order
+                .retain(|o| matches!(o.target, OrderTarget::Value(_)));
+            let compiled = compile(model, schema, &sq)?;
+            let mut picks = vec![
+                format!("{r} AS \"level:rows\""),
+                format!("{c} AS \"level:columns\""),
+                "row_number() OVER () AS \"order\"".to_string(),
+            ];
+            for i in 0..rows {
+                if i < r {
+                    picks.push(format!("g{i} AS \"rows:{i}\""));
+                    picks.push(format!("k{i} AS \"key:rows:{i}\""));
+                } else {
+                    picks.push(format!("NULL AS \"rows:{i}\""));
+                    picks.push(format!("NULL AS \"key:rows:{i}\""));
+                }
+            }
+            for i in 0..cols {
+                if i < c {
+                    picks.push(format!("g{0} AS \"columns:{i}\"", r + i));
+                    picks.push(format!("k{0} AS \"key:columns:{i}\"", r + i));
+                } else {
+                    picks.push(format!("NULL AS \"columns:{i}\""));
+                    picks.push(format!("NULL AS \"key:columns:{i}\""));
+                }
+            }
+            for (i, n) in value_names.iter().enumerate() {
+                picks.push(format!("v{i} AS {}", sql::ident(n)));
+            }
+            parts.push(format!(
+                "SELECT {} FROM ({}) AS m",
+                picks.join(", "),
+                compiled.sql
+            ));
+        }
+    }
+    if parts.is_empty() {
+        return Ok("SELECT 1 WHERE FALSE".into());
+    }
+    Ok(parts.join(" UNION ALL "))
+}
+
+/// A slicer's values: the distinct values of its field (as `field:0`, with
+/// `key:field:0`) under the other filters, or for a range slicer its smallest and
+/// largest values.
+fn slicer_sql(
+    model: &Model,
+    schema: &Schema,
+    v: &charted_model::Visual,
+    q: VisualQuery,
+) -> Result<String, CoreError> {
+    let Some(field) = v.roles.get("field").and_then(|f| f.first()) else {
+        return Ok("SELECT 1 WHERE FALSE".into());
+    };
+    let field = Projection {
+        aggregation: None,
+        ..field.clone()
+    };
+    let style = v
+        .objects
+        .get("slicer")
+        .and_then(|o| o.get("style"))
+        .and_then(Value::as_str)
+        .unwrap_or("list");
+    if matches!(style, "between" | "relative") {
+        let agg = |a| Projection {
+            aggregation: Some(a),
+            ..field.clone()
+        };
+        let rq = VisualQuery {
+            groups: vec![],
+            values: vec![
+                agg(charted_model::Aggregation::Min),
+                agg(charted_model::Aggregation::Max),
+            ],
+            filters: q.filters,
+            ..Default::default()
+        };
+        let c = compile(model, schema, &rq)?;
+        return Ok(format!(
+            "SELECT v0 AS \"min\", v1 AS \"max\" FROM ({}) AS r",
+            c.sql
+        ));
+    }
+    let lq = VisualQuery {
+        groups: vec![field],
+        values: vec![],
+        filters: q.filters,
+        order: vec![],
+        limit: Some(5_000),
+        keys: true,
+    };
+    let c = compile(model, schema, &lq)?;
+    Ok(format!(
+        "SELECT g0 AS \"field:0\", k0 AS \"key:field:0\" FROM ({}) AS s",
+        c.sql
+    ))
 }
 
 /// A projection's name as shown in a visual: its display name, the field's name, or

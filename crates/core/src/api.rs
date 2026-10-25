@@ -5,7 +5,9 @@ use charted_compiler::visual::{QueryFilter, VisualQuery};
 use charted_engine::Database;
 use charted_model::{Change, Id, Projection};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex, MutexGuard};
 use ts_rs::TS;
 
 use crate::dataview::{View, ViewSpec};
@@ -55,6 +57,18 @@ pub enum Request {
     /// Replaces the model with an Ossie document's (one undoable step).
     ImportOssie {
         path: String,
+    },
+    /// Sets the report theme from a Power BI theme file (one undoable step).
+    ImportTheme {
+        path: String,
+    },
+    /// Writes a report visual's data as CSV, named after its fields, with `filters`
+    /// added (a selection elsewhere filtering it).
+    ExportVisualCsv {
+        visual: Id,
+        path: String,
+        #[serde(default)]
+        filters: Vec<QueryFilter>,
     },
 }
 
@@ -137,14 +151,20 @@ pub enum DataRequest {
     Visual {
         query: VisualQuery,
     },
-    /// A report visual's data (Arrow), with columns named `role:index`. `totals` drops
-    /// the grouping (a table's total row); `filters` are added (cross-filtering).
+    /// A report visual's data (Arrow); see `visualq::report_visual_sql` for its
+    /// columns. `totals` drops the grouping (a table's total row); `filters` are added
+    /// and `highlight` computes highlighted values (a selection in another visual). A
+    /// new request with the same `tag` cancels one still running.
     ReportVisual {
         visual: Id,
         #[serde(default)]
         totals: bool,
         #[serde(default)]
         filters: Vec<QueryFilter>,
+        #[serde(default)]
+        highlight: Vec<QueryFilter>,
+        #[serde(default)]
+        tag: Option<String>,
     },
     /// Values of a column for a filter card, under the other filters (JSON
     /// `DistinctValues`, counts are zero).
@@ -185,6 +205,8 @@ fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> 
 pub enum DataJob {
     View(Box<View>, DataRequest),
     Arrow(Database, String),
+    /// A query that a later one with the same tag cancels.
+    Tagged(Database, String, Running, String),
     FieldValues(Database, String),
     Relationship(Database, String),
     Ready(Vec<u8>),
@@ -195,6 +217,32 @@ impl DataJob {
         let (v, request) = match self {
             DataJob::View(v, r) => (v, r),
             DataJob::Arrow(db, sql) => return Ok(db.arrow(&sql).map_err(CoreError::from)?),
+            DataJob::Tagged(db, sql, running, tag) => {
+                let id = running
+                    .next
+                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                let result = db.arrow_interruptible(&sql, |handle| {
+                    let mut m = running.lock();
+                    if let Some((_, old)) = m.insert(tag.clone(), (id, handle)) {
+                        old.interrupt();
+                    }
+                });
+                let mut m = running.lock();
+                if m.get(&tag).is_some_and(|(i, _)| *i == id) {
+                    m.remove(&tag);
+                }
+                drop(m);
+                return result.map_err(|e| {
+                    if e.to_string().contains("INTERRUPT") {
+                        ApiError {
+                            code: "cancelled".into(),
+                            message: "a newer request replaced this one".into(),
+                        }
+                    } else {
+                        CoreError::from(e).into()
+                    }
+                });
+            }
             DataJob::FieldValues(db, sql) => return json(visualq::run_field_values(&db, &sql)),
             DataJob::Relationship(db, sql) => return json(crate::relcheck::run(&db, &sql)),
             DataJob::Ready(bytes) => return Ok(bytes),
@@ -230,6 +278,22 @@ impl DataJob {
 pub struct App {
     session: Option<Session>,
     state_dir: PathBuf,
+    running: Running,
+}
+
+type RunningMap = HashMap<String, (u64, Arc<charted_engine::InterruptHandle>)>;
+
+/// Tagged queries still running, with the handle that interrupts each.
+#[derive(Clone, Default)]
+pub struct Running {
+    queries: Arc<Mutex<RunningMap>>,
+    next: Arc<std::sync::atomic::AtomicU64>,
+}
+
+impl Running {
+    fn lock(&self) -> MutexGuard<'_, RunningMap> {
+        self.queries.lock().unwrap_or_else(|p| p.into_inner())
+    }
 }
 
 impl App {
@@ -238,6 +302,7 @@ impl App {
         Self {
             session: None,
             state_dir,
+            running: Running::default(),
         }
     }
 
@@ -307,6 +372,36 @@ impl App {
                 crate::interop::export_ossie(&s.project.model, Path::new(&path))?;
             }
             Request::ImportOssie { path } => self.session_mut()?.import_ossie(Path::new(&path))?,
+            Request::ImportTheme { path } => {
+                let theme = crate::reporttheme::read(Path::new(&path))?;
+                self.session_mut()?.commit(
+                    "Import theme",
+                    vec![charted_model::Change::SetTheme { theme: Some(theme) }],
+                )?;
+            }
+            Request::ExportVisualCsv {
+                visual,
+                path,
+                filters,
+            } => {
+                let s = self.session_mut()?;
+                let sql = visualq::report_visual_sql(
+                    &s.project.model,
+                    s.schema(),
+                    &visual,
+                    &visualq::VisualSqlOptions {
+                        filters: &filters,
+                        captions: true,
+                        ..Default::default()
+                    },
+                )?;
+                s.database()
+                    .execute(&format!(
+                        "COPY ({sql}) TO {} (FORMAT csv, HEADER true)",
+                        charted_engine::sql::string(&path)
+                    ))
+                    .map_err(CoreError::from)?;
+            }
         }
         Ok(())
     }
@@ -329,11 +424,25 @@ impl App {
                 visual,
                 totals,
                 filters,
+                highlight,
+                tag,
             } => {
-                let (q, names) = visualq::report_visual_query(model, visual, *totals, filters)?;
-                let c = visualq::compile(model, s.schema(), &q)?;
-                let sql = visualq::rename_columns(&c.sql, q.groups.len(), &names);
-                return Ok(DataJob::Arrow(s.database().clone(), sql));
+                let sql = visualq::report_visual_sql(
+                    model,
+                    s.schema(),
+                    visual,
+                    &visualq::VisualSqlOptions {
+                        totals: *totals,
+                        filters,
+                        highlight,
+                        captions: false,
+                    },
+                )?;
+                let db = s.database().clone();
+                return Ok(match tag {
+                    Some(tag) => DataJob::Tagged(db, sql, self.running.clone(), tag.clone()),
+                    None => DataJob::Arrow(db, sql),
+                });
             }
             DataRequest::FieldValues {
                 field,

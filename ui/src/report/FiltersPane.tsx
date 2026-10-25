@@ -22,6 +22,7 @@ import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { columnOf, fieldKey, newId, projectionName, updateVisual, useReport } from "../state/report";
+import { relativeLabel } from "./relative";
 import { FIELD_MIME } from "./Canvas";
 
 type Scope = "visual" | "page" | "report";
@@ -167,6 +168,8 @@ function summary(f: ReportFilter, t: (s: string, ...a: (string | number)[]) => s
       return k.conditions.map((c) => `${opLabel(c.op, t)} ${c.value ?? ""}`.trim()).join(k.or ? ` ${t("or")} ` : ` ${t("and")} `);
     case "topN":
       return k.bottom ? t("Bottom %1", k.count) : t("Top %1", k.count);
+    case "relativeDate":
+      return relativeLabel(k.period, k.count, k.unit, t);
   }
 }
 

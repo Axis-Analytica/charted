@@ -100,6 +100,18 @@ impl Database {
         Ok(query_arrow_ipc(&conn, sql)?)
     }
 
+    /// Like `arrow`, on a connection whose interrupt handle is handed to `register`
+    /// first, so the query can be cancelled from another thread.
+    pub fn arrow_interruptible(
+        &self,
+        sql: &str,
+        register: impl FnOnce(Arc<InterruptHandle>),
+    ) -> Result<Vec<u8>, DbError> {
+        let conn = self.connection()?;
+        register(conn.interrupt_handle());
+        Ok(query_arrow_ipc(&conn, sql)?)
+    }
+
     /// Runs `sql` and returns each row as a JSON object (via DuckDB's `to_json`).
     pub fn json_rows(&self, sql: &str, limit: Option<u64>) -> Result<Vec<String>, DbError> {
         let conn = self.connection()?;

@@ -15,6 +15,7 @@ pub mod project;
 pub mod recent;
 pub mod relcheck;
 pub mod reportfile;
+pub mod reporttheme;
 pub mod sample;
 pub mod session;
 mod types;
