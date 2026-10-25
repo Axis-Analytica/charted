@@ -14,7 +14,7 @@ import type { Visual } from "../bridge/generated/Visual";
 import { msg } from "../i18n";
 import { type RoleDef, visualDef } from "../report/registry";
 
-export type View = "report" | "data" | "model";
+export type View = "report" | "data" | "model" | "query";
 
 interface ReportStore {
   view: View;

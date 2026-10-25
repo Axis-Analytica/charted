@@ -297,8 +297,10 @@ pub enum Step {
         #[serde(default = "index")]
         name: String,
         #[serde(default)]
+        #[ts(type = "number")]
         start: i64,
         #[serde(default = "one")]
+        #[ts(type = "number")]
         step: i64,
     },
     /// Part of a text column: in place, or as a new column named `new_column`.

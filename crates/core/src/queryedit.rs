@@ -95,6 +95,9 @@ pub enum Analysis {
     SplitParts { column: String, delimiter: String },
     /// A column's distinct values, as text, in order.
     Distinct { column: String, limit: u32 },
+    /// The narrowest type each text column's values all convert to (Power Query's
+    /// automatic "Changed Type" after a text file's headers), over the first 1,000 rows.
+    DetectTypes,
 }
 
 /// The SQL of a query up to `upto` steps, in a draft set of queries.
@@ -269,6 +272,35 @@ pub fn analyze(p: &Prepared, a: &Analysis) -> Result<Value, CoreError> {
                 p.sql
             ))?;
             Ok(Value::from(n))
+        }
+        Analysis::DetectTypes => {
+            let cols = p.db.describe(&format!("({})", p.sql))?;
+            let sample = format!("(SELECT * FROM ({}) AS q LIMIT 1000)", p.sql);
+            let mut out = Vec::new();
+            for c in cols {
+                let e = sql::ident(&c.name);
+                let mut ty = from_duckdb(&c.duckdb_type);
+                if ty == DataType::String {
+                    // Narrowest first; a type fits when every non-blank value converts.
+                    for (cand, sql_ty) in [
+                        (DataType::Boolean, "BOOLEAN"),
+                        (DataType::Int64, "BIGINT"),
+                        (DataType::Double, "DOUBLE"),
+                        (DataType::Date, "DATE"),
+                        (DataType::DateTime, "TIMESTAMP"),
+                    ] {
+                        let bad = p.db.query_u64(&format!(
+                            "SELECT count(*) FILTER (WHERE trim({e}) <> '' AND TRY_CAST(trim({e}) AS {sql_ty}) IS NULL) + (count(*) FILTER (WHERE trim({e}) <> '') = 0)::INT FROM {sample}"
+                        ))?;
+                        if bad == 0 {
+                            ty = cand;
+                            break;
+                        }
+                    }
+                }
+                out.push(serde_json::json!([c.name, ty]));
+            }
+            Ok(Value::Array(out))
         }
         Analysis::Distinct { column, limit } => {
             let e = sql::ident(column);

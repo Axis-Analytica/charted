@@ -1,4 +1,4 @@
-import { ChartColumnBig, ChartPie, Command, Keyboard, Network, Redo2, Save, Sheet, Undo2, X } from "lucide-react";
+import { ChartColumnBig, ChartPie, Command, Keyboard, Network, Redo2, Save, Sheet, Undo2, Workflow, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import { useT } from "../i18n";
@@ -10,16 +10,18 @@ import { useShortcut } from "../app/shortcuts";
 import { StatusBar } from "./StatusBar";
 import { DataView } from "./data/DataView";
 import { useDataView } from "../state/dataview";
-import { useReport } from "../state/report";
+import { type View, useReport } from "../state/report";
 import { ReportView } from "../report/ReportView";
 import { TablesPanel } from "./TablesPanel";
 import { FileMenu } from "../app/FileMenu";
 import { ModelView } from "../model/ModelView";
+import { QueryEditor } from "../query/QueryEditor";
+import { SourceBanner } from "../query/SourceBanner";
 
 export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const { t } = useT();
   const view = useReport((s) => s.view);
-  const setView = (v: "report" | "data" | "model") => useReport.getState().set({ view: v });
+  const setView = (v: View) => useReport.getState().set({ view: v });
   const rpc = useApp((s) => s.rpc);
   const [selected, setSelected] = useState<string | null>(project.model.tables[0]?.id ?? null);
   useEffect(() => {
@@ -39,11 +41,13 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const redo = () => rpc({ type: "redo" });
   useShortcut(
     { id: "save", keys: "Ctrl+S", label: "Save", group: "File", run: save, global: true },
-    { id: "undo", keys: "Ctrl+Z", label: "Undo", group: "Edit", run: undo, enabled: () => !!useApp.getState().state?.project?.undoLabel },
-    { id: "redo", keys: "Ctrl+Shift+Z", label: "Redo", group: "Edit", run: redo, enabled: () => !!useApp.getState().state?.project?.redoLabel },
+    // The query editor has its own undo for its draft.
+    { id: "undo", keys: "Ctrl+Z", label: "Undo", group: "Edit", run: undo, enabled: () => !!useApp.getState().state?.project?.undoLabel && useReport.getState().view !== "query" },
+    { id: "redo", keys: "Ctrl+Shift+Z", label: "Redo", group: "Edit", run: redo, enabled: () => !!useApp.getState().state?.project?.redoLabel && useReport.getState().view !== "query" },
     { id: "report-view", keys: "Ctrl+1", label: "Report view", group: "View", run: () => setView("report"), global: true },
     { id: "data-view", keys: "Ctrl+2", label: "Data view", group: "View", run: () => setView("data"), global: true },
     { id: "model-view", keys: "Ctrl+3", label: "Model view", group: "View", run: () => setView("model"), global: true },
+    { id: "query-view", keys: "Ctrl+4", label: "Transform data", group: "View", run: () => setView("query"), global: true },
     { id: "close", keys: "Ctrl+W", label: "Close project", group: "File", run: () => rpc({ type: "closeProject" }), enabled: () => !useApp.getState().state?.project?.dirty },
   );
 
@@ -85,11 +89,13 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
         </Banner>
       )}
       {project.warnings.length > 0 && <Banner tone="info">{t("Some parts of the model were imported with warnings: %1", project.warnings.join("; "))}</Banner>}
-      <div className={`workspace ${view === "report" ? "is-report" : ""} ${view === "model" ? "is-model" : ""}`}>
+      <SourceBanner project={project} />
+      <div className={`workspace ${view === "report" ? "is-report" : ""} ${view === "model" ? "is-model" : ""} ${view === "query" ? "is-query" : ""}`}>
         <nav className="rail" aria-label={t("Views")}>
           <IconButton label={t("Report view")} shortcut="Ctrl+1" icon={<ChartPie size={18} />} pressed={view === "report"} onPress={() => setView("report")} />
           <IconButton label={t("Data view")} shortcut="Ctrl+2" icon={<Sheet size={18} />} pressed={view === "data"} onPress={() => setView("data")} />
           <IconButton label={t("Model view")} shortcut="Ctrl+3" icon={<Network size={18} />} pressed={view === "model"} onPress={() => setView("model")} />
+          <IconButton label={t("Transform data")} shortcut="Ctrl+4" icon={<Workflow size={18} />} pressed={view === "query"} onPress={() => setView("query")} />
         </nav>
         {view === "report" ? (
           <main className="main">
@@ -98,6 +104,10 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
         ) : view === "model" ? (
           <main className="main">
             <ModelView model={project.model} />
+          </main>
+        ) : view === "query" ? (
+          <main className="main">
+            <QueryEditor project={project} />
           </main>
         ) : (
           <>

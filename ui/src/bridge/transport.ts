@@ -30,6 +30,8 @@ export interface Transport {
 export interface ApiError {
   code: string;
   message: string;
+  /** What the error is about, when the UI can offer a fix (an extension, a connection). */
+  detail?: string | null;
 }
 
 export function isApiError(e: unknown): e is ApiError {

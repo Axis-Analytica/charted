@@ -3,4 +3,4 @@
 /**
  * A lookup made while adding a step.
  */
-export type Analysis = { "kind": "firstRow" } | { "kind": "splitParts", column: string, delimiter: string, } | { "kind": "distinct", column: string, limit: number, };
+export type Analysis = { "kind": "firstRow" } | { "kind": "splitParts", column: string, delimiter: string, } | { "kind": "distinct", column: string, limit: number, } | { "kind": "detectTypes" };

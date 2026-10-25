@@ -221,7 +221,7 @@ impl Session {
         // Sources loaded before charted kept stamps count as current.
         for q in &project.queries {
             if !stamps.contains_key(&q.id)
-                && let Some(st) = crate::sources::stamp(&dir, &q.source)
+                && let Some(st) = crate::sources::full_stamp(&dir, &q.source)
             {
                 stamps.insert(q.id.clone(), st);
             }
@@ -240,7 +240,7 @@ impl Session {
             for q in project.queries.iter().filter(|q| missing.contains(&q.id)) {
                 let select = crate::sources::query_sql(&dir, &project.queries, &sheets, q, None)?;
                 materialise(&db, q, &select)?;
-                if let Some(st) = crate::sources::stamp(&dir, &q.source) {
+                if let Some(st) = crate::sources::full_stamp(&dir, &q.source) {
                     stamps.insert(q.id.clone(), st);
                 }
             }
@@ -571,7 +571,7 @@ impl Session {
         self.project.queries = queries.to_vec();
         self.sheets = sheets;
         for q in queries.iter().filter(|q| ids.contains(&q.id)) {
-            match crate::sources::stamp(&dir, &q.source) {
+            match crate::sources::full_stamp(&dir, &q.source) {
                 Some(st) => self.stamps.insert(q.id.clone(), st),
                 None => self.stamps.remove(&q.id),
             };

@@ -622,6 +622,17 @@ fn clean_the_store_list_merge_it_into_store_and_apply() {
     std::thread::sleep(std::time::Duration::from_millis(20));
     let raw_path = fx.data_dir().join("stores_raw.csv");
     let text = std::fs::read_to_string(&raw_path).unwrap();
+    // Written again with the same bytes (as a copy does): still current.
+    std::fs::write(&raw_path, &text).unwrap();
+    assert!(
+        status(&fx)
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s["state"] == "current"),
+        "{}",
+        status(&fx)
+    );
     std::fs::write(&raw_path, text.replace("Ben Okafor", "Bea Okafor")).unwrap();
     let s = status(&fx);
     let changed: Vec<&str> = s

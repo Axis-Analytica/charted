@@ -7,10 +7,10 @@ fast data grid, and design interactive reports, all on your own machine. Models 
 stored as [Apache Ossie](https://ossie.apache.org/) documents and export to Power BI
 projects (PBIP/TMDL), so your work is never locked in.
 
-> **Status:** in active development. Milestones 0–4 are built: you can model data, write
-> DAX and build interactive reports. Still to come are the query editor (M5) and
-> Power BI import, packaging and a 1.0 release (M6); see the [roadmap](#roadmap). There
-> is no packaged release yet.
+> **Status:** in active development. Milestones 0–5 are built: you can get and shape
+> data, model it, write DAX and build interactive reports. Still to come are Power BI
+> import, time intelligence, packaging and a 1.0 release (M6); see the
+> [roadmap](#roadmap). There is no packaged release yet.
 
 ## What works today
 
@@ -21,6 +21,17 @@ projects (PBIP/TMDL), so your work is never locked in.
   the report in `report/` (one small JSON file per page and visual, so changes diff
   well in git), data cached in DuckDB. Atomic saves, crash recovery, unlimited undo.
 - No telemetry and no network access, except opt-in downloads of database connectors.
+
+**Getting and shaping data**
+- A query editor in the spirit of Power Query: applied steps you can select, rename,
+  reorder, edit and delete, with each step's SQL and its Power Query M side by side.
+- About 25 transforms: remove or keep rows, promote headers, change types, filter,
+  replace values, split and merge columns, custom and conditional columns, group by,
+  pivot and unpivot, fill down, merge and append queries, and more.
+- Column profiles (quality and distribution) over the first 1,000 rows or all of them.
+- Sources: CSV, Excel (with a sheet navigator), JSON, Parquet, a folder of files, and
+  SQLite and PostgreSQL (their connectors are downloaded only after you agree;
+  passwords stay in your desktop keyring). charted notices when a source file changes.
 
 **Data view**
 - A virtual grid that scrolls 10 million rows at 60 fps: sort, filter, find, copy.
@@ -89,7 +100,7 @@ and the DAX support list, and `docs/HANDOFF.md` for the architecture.
 | M2 | First report: canvas, visuals, measures, filters | Done |
 | M3 | Real modeling: relationships, DAX language service and compiler, Power BI export | Done |
 | M4 | Interactivity: cross-filter/highlight, slicers, matrix, themes | Done |
-| M5 | Query editor: applied steps, transforms, profiling, more sources | In progress |
+| M5 | Query editor: applied steps, transforms, profiling, more sources | In review |
 | M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | |
 
 ## License

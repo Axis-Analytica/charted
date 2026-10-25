@@ -135,6 +135,71 @@ pub fn stamp(project_dir: &str, source: &Source) -> Option<(u64, u64)> {
     }
 }
 
+/// The content of a source: a file's bytes, or a folder's matching file names and
+/// sizes. Copying a project changes modification times, not content.
+pub fn content_hash(project_dir: &str, source: &Source) -> Option<u64> {
+    use std::io::Read;
+    let path = PathBuf::from(steps::resolve_path(project_dir, &source.path()));
+    let mut h: u64 = 0xcbf29ce484222325;
+    let mut feed = |bytes: &[u8]| {
+        for b in bytes {
+            h ^= u64::from(*b);
+            h = h.wrapping_mul(0x100000001b3);
+        }
+    };
+    match source {
+        Source::Postgres { .. } => return None,
+        Source::Folder { pattern, .. } => {
+            let ext = pattern.trim_start_matches('*').to_lowercase();
+            let mut files: Vec<(String, u64)> = std::fs::read_dir(&path)
+                .ok()?
+                .flatten()
+                .filter_map(|e| {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    let len = e.metadata().ok()?.len();
+                    name.to_lowercase().ends_with(&ext).then_some((name, len))
+                })
+                .collect();
+            files.sort();
+            for (n, l) in files {
+                feed(n.as_bytes());
+                feed(&l.to_le_bytes());
+            }
+        }
+        _ => {
+            let mut f = std::fs::File::open(&path).ok()?;
+            let mut buf = vec![0; 1 << 16];
+            loop {
+                let n = f.read(&mut buf).ok()?;
+                if n == 0 {
+                    break;
+                }
+                feed(&buf[..n]);
+            }
+        }
+    }
+    Some(h)
+}
+
+/// A source as loaded: its modification time and size, and its content's hash.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Stamp {
+    pub mtime: u64,
+    pub size: u64,
+    #[serde(default)]
+    pub hash: Option<u64>,
+}
+
+/// Stamps a source now (reads it whole to hash it).
+pub fn full_stamp(project_dir: &str, source: &Source) -> Option<Stamp> {
+    let (mtime, size) = stamp(project_dir, source)?;
+    Some(Stamp {
+        mtime,
+        size,
+        hash: content_hash(project_dir, source),
+    })
+}
+
 /// Caches every Excel sheet the queries read (again when the workbook changed) and
 /// returns where each is, for `Ctx::sheets`.
 pub fn prepare_sheets(
@@ -379,7 +444,7 @@ pub struct SourceStatus {
 }
 
 /// Stamps of the sources as last loaded, by query id (kept in the project cache).
-pub type Stamps = BTreeMap<String, (u64, u64)>;
+pub type Stamps = BTreeMap<String, Stamp>;
 
 pub fn read_stamps(cache: &Path) -> Stamps {
     std::fs::read_to_string(cache.join("sources.json"))
@@ -395,7 +460,13 @@ pub fn write_stamps(cache: &Path, stamps: &Stamps) {
     );
 }
 
+type HashCache = std::collections::HashMap<(String, u64), Option<u64>>;
+
 pub fn status(project_dir: &str, queries: &[Query], stamps: &Stamps) -> Vec<SourceStatus> {
+    // Hashes of sources whose time changed, by path and time, so a poll hashes a file
+    // once rather than every few seconds.
+    static HASHES: std::sync::LazyLock<std::sync::Mutex<HashCache>> =
+        std::sync::LazyLock::new(Default::default);
     queries
         .iter()
         .filter(|q| q.source.is_file())
@@ -403,7 +474,22 @@ pub fn status(project_dir: &str, queries: &[Query], stamps: &Stamps) -> Vec<Sour
             let now = stamp(project_dir, &q.source);
             let state = match (now, stamps.get(&q.id)) {
                 (None, _) => SourceState::Missing,
-                (Some(n), Some(was)) if n != *was => SourceState::Changed,
+                (Some((mtime, size)), Some(was)) if (mtime, size) != (was.mtime, was.size) => {
+                    // Only the time changed (a copy, a save of the same bytes): look inside.
+                    let same = size == was.size
+                        && was.hash.is_some()
+                        && *HASHES
+                            .lock()
+                            .unwrap_or_else(|p| p.into_inner())
+                            .entry((q.source.path(), mtime))
+                            .or_insert_with(|| content_hash(project_dir, &q.source))
+                            == was.hash;
+                    if same {
+                        SourceState::Current
+                    } else {
+                        SourceState::Changed
+                    }
+                }
                 _ => SourceState::Current,
             };
             SourceStatus {

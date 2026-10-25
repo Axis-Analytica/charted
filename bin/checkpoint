@@ -76,6 +76,15 @@ if [ "$m" = m4 ] && [ -d "$built" ]; then
   CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=2500 CHARTED_SCREENSHOT_SCRIPT='[...document.querySelectorAll("[role=tab]")].find((e) => e.textContent === "Visuals").click()' \
     ./target/debug/charted open "$built" --screenshot "$out/m4-window-visuals.png" >/dev/null
 fi
+if [ "$m" = m5 ] && [ -d "$built" ]; then
+  # The query editor in the real window, on the cleaned store list.
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=4000 CHARTED_SCREENSHOT_SCRIPT='(async () => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      document.querySelector("[aria-label=\"Transform data\"]").click();
+      await sleep(1500);
+      [...document.querySelectorAll(".qe-query")].find((e) => e.textContent.includes("stores_raw"))?.click();
+    })()' ./target/debug/charted open "$built" --screenshot "$out/m5-window-editor.png" >/dev/null
+fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."

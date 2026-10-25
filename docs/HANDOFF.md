@@ -1,12 +1,11 @@
-# Handoff: milestone 4 (interactivity) built; checkpoint review, then milestone 5
+# Handoff: milestone 5 (query editor) built; checkpoint review, then milestone 6
 
-Read this first when picking up development. Last updated 2026-10-25, end of M4 build.
-**Status:** M0–M2 are approved; the user liked M2 ("looking outstanding") and has a
-standalone M2 build (`~/.local/opt/charted-m2`, launcher "charted (M2 preview)"). M3 was
-delivered and the user said to move on without separate feedback. M4 is implemented,
-committed locally (not pushed) and `bin/test` is green. The user has not yet reviewed
-the M4 checkpoint (`docs/demos/m4.md`, screenshots in
-`~/Work/charted-checkpoints/m4/`). Address their feedback before starting M5.
+Read this first when picking up development. Last updated 2026-10-26, end of M5 build.
+**Status:** M0–M4 are done (the user moved on from M3 and M4 without separate feedback;
+the README and CI fixes for M3/M4 are pushed, CI green at 02de7c8). M5 is implemented
+and committed locally (not pushed); `bin/test` is green. The user has not yet reviewed
+the M5 checkpoint (`docs/demos/m5.md`, screenshots in `~/Work/charted-checkpoints/m5/`).
+Address their feedback before starting M6.
 
 ## Decisions already made (do not re-litigate)
 
@@ -193,6 +192,40 @@ ui/src/report/ReportView.tsx  Edit interactions toggle, Themes menu, FocusView
 ui/e2e/m4.spec.ts
 ```
 
+M5 added:
+
+```
+crates/compiler/src/steps.rs  Query {source, steps, step_names, no_load}; Source: Csv, Parquet,
+                              Json, Excel {sheet}, Folder {pattern}, Sqlite, Postgres; 25 Steps,
+                              each with SQL (one CTE per step) and M (m_steps / to_m, also
+                              used by the PBIP export); Ctx {project_dir, queries, sheets};
+                              merges/appends inline other queries (cycles are errors)
+crates/compiler/src/mformula.rs  custom column formulas: an M subset parsed to SQL and M
+crates/core/src/sources.rs    Excel → cached CSV (calamine; dates by hand), extension
+                              consent (state_dir/extensions.json; code "consent"), Postgres
+                              ATTACH with a secret from the keyring (code "password"),
+                              source stamps (cache/sources.json) and status
+crates/core/src/queryedit.rs  preview (Arrow), info (columns, SQL, M), profile (quality,
+                              distribution, type-change errors), analyses (first row, split
+                              parts, distinct values, detect types)
+crates/core/src/session.rs    open_with (consent), prepared(), apply_queries (staging tables,
+                              swap, model_sync, History::forget), refresh, source_status
+crates/samplegen              data/stores_raw.csv (messy) and data/targets.xlsx (sheets per year)
+crates/core/tests/queries.rs  every step, the cleaning flow, Excel, merge, apply, refresh
+ui/src/query/                 QueryEditor (ribbon menus, queries, SQL/M strip, preview, steps),
+                              transforms.ts (every transform: fields + build; also step names),
+                              StepDialog, PreviewTable (profiles), NewSource (Get Data, Excel
+                              navigator, consent and password dialogs), SourceBanner (polls
+                              SourceStatus every 3 s: Refresh / Locate…), state.ts (draft +
+                              its own undo), data.ts
+ui/e2e/m5.spec.ts             (fails on React render loops)
+```
+
+New requests: `ApplyQueries`, `Refresh`, `AllowExtension`, `SetPassword`; data requests
+`QueryPreview`, `QueryInfo`, `QueryProfile`, `QueryAnalyze`, `ExcelSheets`,
+`SourceStatus`. `ApiError` gained `detail` (the extension or connection a fix needs).
+The snapshot's `queries[].definition` is the full query. View "query" (Ctrl+4).
+
 Measured (aarch64 VM, release, 10M rows): matrix Category/Subcategory × Year with all
 subtotals 131 ms p50; a highlighted column chart 30 ms; a cross-filtered line 12 ms; a
 Region slicer 94 ms (`cargo run --release -p charted-core --example visualbench`).
@@ -327,6 +360,20 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   on `RunEvent::Exit`: no new data jobs, running ones interrupted and waited for. Any new
   binary that runs queries on threads must do the same before exiting.
 
+- **A React hook keyed on an object built during render loops forever** if the object
+  gets a fresh random id each render (the Excel navigator made its preview query with
+  `newQuery()`): build such objects with `useMemo` and stable ids. m5.spec fails on
+  "Maximum update depth exceeded".
+- The snapshot's `path` is the project's `.charted` file, not its folder (`projectDir()`
+  in ui/src/query/NewSource.tsx).
+- DuckDB 2.0 rejects `x -> f(x)` lambdas: write `lambda x: f(x)`. `COLUMNS(*)` is not
+  allowed in a window's PARTITION BY (remove duplicates uses `GROUP BY ALL` instead), and
+  in WHERE it expands with AND (blank rows use `concat_ws('', *COLUMNS(*))`). `/` is
+  float division; use `//` for integers.
+- keyring (Secret Service) links libdbus: `libdbus-1-dev` on CI; `bin/setup` machines have it.
+- Row order: steps that depend on it (remove top rows, promote headers, fill down, index,
+  remove duplicates) number rows with `row_number() OVER ()`, which follows file order.
+
 ## Deferred from M0 (do these when relevant)
 
 - Visual query IR → SQL with many-to-one star joins (`crates/compiler`): start of M2.
@@ -402,6 +449,21 @@ Power BI.
   visual's objects (5 MB cap).
 - Selection and expansion state is lost when switching pages (Power BI keeps them).
 
+## Deferred from M5
+
+- Type-change errors are counted only when the selected step is the type change; cells
+  that didn't convert show as null (Power Query shows Error cells and has Keep/Remove
+  errors). No "Detect data type" button (only on a new CSV), no locale for types.
+- No query groups, parameters, or "Reference" (duplicate copies the steps); no fuzzy
+  merge; Merge expands chosen columns directly (no nested-table column).
+- SQLite tables are typed in, not listed; PostgreSQL isn't tested against a server
+  (SQL, M and the consent/keyring flow are). Folder combines CSV only.
+- The M for Excel and Folder sources is written to work in Power BI but is unverified
+  there; SQLite exports through ODBC.
+- Close & Apply shows one progress message, not per-table progress. Apply clears the
+  undo history (the data can't be un-loaded), like Power BI.
+- Source watching polls every 3 s while a project is open (no inotify on /mnt/mac).
+
 ## Milestone 3: Real modeling (done; kept for reference)
 
 From the plan: Model view (elkjs in a worker; drag to create relationships;
@@ -435,19 +497,28 @@ Checkpoint: click a column → the line highlights, the matrix filters, the card
 Ctrl-click; slicers; set an interaction to "none"; expand the matrix; switch themes,
 including a live Omarchy switch; import a Power BI theme JSON.
 
-## Milestone 5: Query editor (after the M4 review)
+## Milestone 5: Query editor (done; kept for reference)
 
-From the plan: Queries list, preview grid, applied-steps list (rename/drag-reorder/
-delete/gear/insert), read-only SQL strip, Close & Apply with progress. About 22
-transforms, each a typed step + SQL emitter + M emitter + dialog: promote headers / type
-/ choose / remove / rename / filter / dedupe / blanks / replace / split / merge columns /
-custom / conditional / group / unpivot / pivot / fill down / index / extract / merge
-queries / append. Profiling bars (first 1,000 rows or the full table). Sources: Excel
-sheet picker, JSON, folder combine, consented SQLite/Postgres with `keyring`
-credentials. Source file watching with Refresh / Locate… (needs a `notify::PollWatcher`
-fallback on `/mnt/mac`, see the gotchas). The sample's messy `stores_raw.csv` and
-`targets.xlsx` are meant for this milestone.
+Plan: queries list, preview, applied steps (rename/reorder/delete/gear/insert), read-only
+SQL strip, Close & Apply; ~22 transforms each with SQL + M + dialog; profiling bars;
+Excel sheet picker, JSON, folder combine, consented SQLite/Postgres with keyring
+credentials; source watching with Refresh / Locate…. Checkpoint: clean stores_raw.csv;
+split + conditional column; merge with Store; reorder/delete/undo steps; Close & Apply
+updates the report slicer; Get Data → Excel.
 
-Checkpoint: clean `stores_raw.csv` end to end; split + conditional column; merge with
-Store; reorder/delete/undo steps; Close & Apply updates the report slicer; Get Data →
-Excel.
+## Milestone 6: Interop, polish, release v1.0.0 (after the M5 review)
+
+From the plan: time intelligence (TOTALYTD, DATESYTD, SAMEPERIODLASTYEAR, DATEADD,
+PARALLELPERIOD, a date table wizard); drill-down and drill-through; bookmarks;
+PBIP/TMDL/model.bim/Ossie import with a skip report; full PBIR export (visuals, themes);
+a `.chartedz` bundle; packaging (PKGBUILD, mime type, translated `.desktop`, icon,
+`bin/install` with `makepkg -fsi` so it appears in Super+Space; README hero screenshot;
+tag v1.0.0, then omarchy-pkgs PR and AUR `charted`/`charted-bin`).
+
+Checkpoint: launch from the launcher; a Trends page with LY/YTD; drill and drill-through;
+switch bookmarks with the keyboard; import a PBIP fixture and see the import report;
+export → re-import with no differences; open a bundle.
+
+The plan's quality bars apply at release (startup under 1 s, cross-filter under 250 ms,
+idle memory under 300 MB, initial JS under 1.2 MB gzipped, F6 region cycling, per-visual
+error boundaries, crash logs in `$XDG_STATE_HOME/charted/`): measure them in M6.
