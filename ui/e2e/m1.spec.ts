@@ -12,6 +12,9 @@ async function openSample(page: Page) {
   const explore = page.getByRole("button", { name: "Explore the sample" });
   await expect(explore.or(page.locator(".shell"))).toBeVisible();
   if (await explore.isVisible()) await explore.click();
+  await expect(page.locator(".shell")).toBeVisible({ timeout: 30_000 });
+  // Projects open in the Report view; these tests use the Data view.
+  await page.getByRole("button", { name: "Data view" }).click();
   await expect(tableItem(page, "Sales")).toBeVisible({ timeout: 30_000 });
 }
 

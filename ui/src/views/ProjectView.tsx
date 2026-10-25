@@ -1,4 +1,4 @@
-import { ChartColumnBig, Command, Keyboard, Redo2, Save, Sheet, Undo2, X } from "lucide-react";
+import { ChartColumnBig, ChartPie, Command, Keyboard, Redo2, Save, Sheet, Undo2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import { useT } from "../i18n";
@@ -10,17 +10,24 @@ import { useShortcut } from "../app/shortcuts";
 import { StatusBar } from "./StatusBar";
 import { DataView } from "./data/DataView";
 import { useDataView } from "../state/dataview";
+import { useReport } from "../state/report";
+import { ReportView } from "../report/ReportView";
 import { TablesPanel } from "./TablesPanel";
 
 export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const { t } = useT();
+  const view = useReport((s) => s.view);
+  const setView = (v: "report" | "data") => useReport.getState().set({ view: v });
   const rpc = useApp((s) => s.rpc);
   const [selected, setSelected] = useState<string | null>(project.model.tables[0]?.id ?? null);
   useEffect(() => {
     if (selected && !project.model.tables.some((x) => x.id === selected)) setSelected(project.model.tables[0]?.id ?? null);
   }, [project, selected]);
   // Sort, filters and selection belong to the project they were made in.
-  useEffect(() => useDataView.getState().reset(), [project.path]);
+  useEffect(() => {
+    useDataView.getState().reset();
+    useReport.getState().set({ page: null, selected: [], formula: null, field: null, pointer: null });
+  }, [project.path]);
 
   const save = async () => {
     if (await rpc({ type: "save" })) toast({ kind: "success", title: t("Saved %1", project.name) });
@@ -31,7 +38,8 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
     { id: "save", keys: "Ctrl+S", label: "Save", group: "File", run: save, global: true },
     { id: "undo", keys: "Ctrl+Z", label: "Undo", group: "Edit", run: undo, enabled: () => !!useApp.getState().state?.project?.undoLabel },
     { id: "redo", keys: "Ctrl+Shift+Z", label: "Redo", group: "Edit", run: redo, enabled: () => !!useApp.getState().state?.project?.redoLabel },
-    { id: "data-view", keys: "Ctrl+2", label: "Data view", group: "View", run: () => {} },
+    { id: "report-view", keys: "Ctrl+1", label: "Report view", group: "View", run: () => setView("report"), global: true },
+    { id: "data-view", keys: "Ctrl+2", label: "Data view", group: "View", run: () => setView("data"), global: true },
     { id: "close", keys: "Ctrl+W", label: "Close project", group: "File", run: () => rpc({ type: "closeProject" }), enabled: () => !useApp.getState().state?.project?.dirty },
   );
 
@@ -72,22 +80,31 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
         </Banner>
       )}
       {project.warnings.length > 0 && <Banner tone="info">{t("Some parts of the model were imported with warnings: %1", project.warnings.join("; "))}</Banner>}
-      <div className="workspace">
+      <div className={`workspace ${view === "report" ? "is-report" : ""}`}>
         <nav className="rail" aria-label={t("Views")}>
-          <IconButton label={t("Data view")} shortcut="Ctrl+2" icon={<Sheet size={18} />} pressed />
+          <IconButton label={t("Report view")} shortcut="Ctrl+1" icon={<ChartPie size={18} />} pressed={view === "report"} onPress={() => setView("report")} />
+          <IconButton label={t("Data view")} shortcut="Ctrl+2" icon={<Sheet size={18} />} pressed={view === "data"} onPress={() => setView("data")} />
         </nav>
-        <TablesPanel
-          project={project}
-          selected={selected}
-          onSelect={setSelected}
-          onSelectColumn={(tableId, column) => {
-            setSelected(tableId);
-            useDataView.getState().select(tableId, column);
-          }}
-        />
-        <main className="main">{table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}</main>
+        {view === "report" ? (
+          <main className="main">
+            <ReportView model={project.model} />
+          </main>
+        ) : (
+          <>
+            <TablesPanel
+              project={project}
+              selected={selected}
+              onSelect={setSelected}
+              onSelectColumn={(tableId, column) => {
+                setSelected(tableId);
+                useDataView.getState().select(tableId, column);
+              }}
+            />
+            <main className="main">{table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}</main>
+          </>
+        )}
       </div>
-      <StatusBar project={project} table={table} />
+      <StatusBar project={project} table={view === "data" ? table : null} />
     </div>
   );
 }

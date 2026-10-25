@@ -5,6 +5,7 @@ import { useT } from "../i18n";
 import { formatNumber } from "../i18n";
 import { useApp } from "../state/app";
 import { useDataView } from "../state/dataview";
+import { currentPage, useReport } from "../state/report";
 
 export function StatusBar({ project, table }: { project: ProjectSnapshot; table: Table | null }) {
   const { t, tn } = useT();
@@ -15,6 +16,11 @@ export function StatusBar({ project, table }: { project: ProjectSnapshot; table:
   const column = table?.columns.find((c) => c.id === selectedId);
   const live = counts && table && counts.table === table.id ? counts : null;
   const total = Number(stats?.rows ?? 0);
+  const view = useReport((s) => s.view);
+  const pageId = useReport((s) => s.page);
+  const selectedCount = useReport((s) => s.selected.length);
+  const page = view === "report" ? currentPage(project.model, pageId) : null;
+  const pageIndex = page ? project.model.report.pages.indexOf(page) : -1;
   return (
     <footer className="statusbar">
       <span>{project.dirty ? t("Unsaved changes") : t("All changes saved")}</span>
@@ -32,6 +38,15 @@ export function StatusBar({ project, table }: { project: ProjectSnapshot; table:
               </span>
             </>
           )}
+        </>
+      )}
+      {page && (
+        <>
+          <span className="status-sep" />
+          <span data-testid="status-page">
+            {t("Page %1 of %2", pageIndex + 1, project.model.report.pages.length)} · {tn("%n visuals", page.visuals.length, "%n visual")}
+            {selectedCount > 0 && <> · {tn("%n selected", selectedCount, "%n selected")}</>}
+          </span>
         </>
       )}
       <span className="status-fill" />

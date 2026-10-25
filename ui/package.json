@@ -21,6 +21,8 @@
     "react": "^19.3.1",
     "react-aria-components": "^1.22.1",
     "react-dom": "^19.3.1",
+    "react-moveable": "^0.56.0",
+    "react-selecto": "^1.26.3",
     "zustand": "^5.0.16"
   },
   "devDependencies": {

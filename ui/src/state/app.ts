@@ -5,6 +5,7 @@ import { errorMessage, transport } from "../bridge";
 import type { AppState } from "../bridge/generated/AppState";
 import type { Change } from "../bridge/generated/Change";
 import type { EnvSnapshot } from "../bridge/generated/EnvSnapshot";
+import type { Model } from "../bridge/generated/Model";
 import type { Request } from "../bridge/generated/Request";
 import { toast } from "./toasts";
 
@@ -16,7 +17,13 @@ interface Store {
   setEnv(env: EnvSnapshot): void;
   rpc(request: Request, busy?: string): Promise<boolean>;
   commit(label: string, changes: Change[]): Promise<boolean>;
+  /** Builds changes from the latest model once earlier edits have landed, then commits
+   * them. Use it when a change depends on current state, so quick successive edits
+   * (ticking several fields) never overwrite each other. */
+  edit(label: string, build: (model: Model) => Change[] | null | undefined): Promise<boolean>;
 }
+
+let queue: Promise<unknown> = Promise.resolve();
 
 export const useApp = create<Store>()((set, get) => ({
   state: null,
@@ -38,6 +45,16 @@ export const useApp = create<Store>()((set, get) => ({
   },
   commit(label, changes) {
     return get().rpc({ type: "commit", label, changes });
+  },
+  edit(label, build) {
+    const run = queue.then(async () => {
+      const model = get().state?.project?.model;
+      const changes = model ? build(model) : null;
+      if (!changes?.length) return false;
+      return get().commit(label, changes);
+    });
+    queue = run.catch(() => {});
+    return run;
   },
 }));
 
