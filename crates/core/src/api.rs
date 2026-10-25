@@ -1,7 +1,9 @@
 //! The request/response API. The desktop shell, the command line and the development
 //! WebSocket server all call `App::handle`, so they can never drift apart.
 
-use charted_model::{Change, Id};
+use charted_compiler::visual::{QueryFilter, VisualQuery};
+use charted_engine::Database;
+use charted_model::{Change, Id, Projection};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
@@ -9,6 +11,7 @@ use ts_rs::TS;
 use crate::dataview::{View, ViewSpec};
 use crate::recent::{self, RecentProject};
 use crate::session::{CoreError, ProjectSnapshot, Session};
+use crate::visualq;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(
@@ -118,6 +121,36 @@ pub enum DataRequest {
         #[serde(default)]
         backwards: bool,
     },
+    /// A visual query's data (Arrow): groups `g0…` then values `v0…`.
+    Visual {
+        query: VisualQuery,
+    },
+    /// A report visual's data (Arrow), with columns named `role:index`. `totals` drops
+    /// the grouping (a table's total row); `filters` are added (cross-filtering).
+    ReportVisual {
+        visual: Id,
+        #[serde(default)]
+        totals: bool,
+        #[serde(default)]
+        filters: Vec<QueryFilter>,
+    },
+    /// Values of a column for a filter card, under the other filters (JSON
+    /// `DistinctValues`, counts are zero).
+    FieldValues {
+        field: Projection,
+        #[serde(default)]
+        filters: Vec<QueryFilter>,
+        #[serde(default)]
+        search: Option<String>,
+        limit: u32,
+    },
+    /// Checks a measure expression (JSON `DaxCheck`). `measure` is the measure being
+    /// edited, if it exists.
+    CheckDax {
+        expression: String,
+        #[serde(default)]
+        measure: Option<Id>,
+    },
 }
 
 fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> {
@@ -125,15 +158,23 @@ fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> 
 }
 
 /// A data request resolved against the open project, runnable without the `App`.
-pub struct DataJob {
-    view: View,
-    request: DataRequest,
+pub enum DataJob {
+    View(Box<View>, DataRequest),
+    Arrow(Database, String),
+    FieldValues(Database, String),
+    Ready(Vec<u8>),
 }
 
 impl DataJob {
     pub fn run(self) -> Result<Vec<u8>, ApiError> {
-        let v = &self.view;
-        match self.request {
+        let (v, request) = match self {
+            DataJob::View(v, r) => (v, r),
+            DataJob::Arrow(db, sql) => return Ok(db.arrow(&sql).map_err(CoreError::from)?),
+            DataJob::FieldValues(db, sql) => return json(visualq::run_field_values(&db, &sql)),
+            DataJob::Ready(bytes) => return Ok(bytes),
+        };
+        let v = &*v;
+        match request {
             DataRequest::Rows {
                 columns,
                 offset,
@@ -155,6 +196,7 @@ impl DataJob {
                 backwards,
                 ..
             } => json(v.find(&text, columns.as_deref(), after, backwards)),
+            _ => unreachable!("only view requests reach a view"),
         }
     }
 }
@@ -237,14 +279,52 @@ impl App {
     /// Resolves a data request; run the job after releasing any lock on the `App`.
     pub fn data_job(&self, request: DataRequest) -> Result<DataJob, ApiError> {
         let s = self.session.as_ref().ok_or(CoreError::NoProject)?;
+        let model = &s.project.model;
         let view = match &request {
             DataRequest::Rows { view, .. }
             | DataRequest::Count { view, .. }
             | DataRequest::Distinct { view, .. }
             | DataRequest::Stats { view, .. }
             | DataRequest::Find { view, .. } => s.view(view)?,
+            DataRequest::Visual { query } => {
+                let c = visualq::compile(model, s.schema(), query)?;
+                return Ok(DataJob::Arrow(s.database().clone(), c.sql));
+            }
+            DataRequest::ReportVisual {
+                visual,
+                totals,
+                filters,
+            } => {
+                let (q, names) = visualq::report_visual_query(model, visual, *totals, filters)?;
+                let c = visualq::compile(model, s.schema(), &q)?;
+                let sql = visualq::rename_columns(&c.sql, q.groups.len(), &names);
+                return Ok(DataJob::Arrow(s.database().clone(), sql));
+            }
+            DataRequest::FieldValues {
+                field,
+                filters,
+                search,
+                limit,
+            } => {
+                let sql = visualq::field_values_sql(
+                    model,
+                    s.schema(),
+                    field,
+                    filters,
+                    search.as_deref(),
+                    *limit,
+                )?;
+                return Ok(DataJob::FieldValues(s.database().clone(), sql));
+            }
+            DataRequest::CheckDax {
+                expression,
+                measure,
+            } => {
+                let check = visualq::check_dax(model, s.schema(), expression, measure.as_deref());
+                return Ok(DataJob::Ready(json(Ok::<_, CoreError>(check))?));
+            }
         };
-        Ok(DataJob { view, request })
+        Ok(DataJob::View(Box::new(view), request))
     }
 
     pub fn data(&self, request: DataRequest) -> Result<Vec<u8>, ApiError> {

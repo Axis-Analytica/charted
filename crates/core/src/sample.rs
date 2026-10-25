@@ -59,6 +59,15 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
         SAMPLE_NAME,
         Model {
             name: SAMPLE_NAME.into(),
+            // A new report starts with one empty page, as in Power BI.
+            report: charted_model::Report {
+                pages: vec![charted_model::Page {
+                    id: stable_id("page/Page 1"),
+                    settings: charted_model::PageSettings::named("Page 1"),
+                    visuals: vec![],
+                }],
+                filters: vec![],
+            },
             ..Default::default()
         },
         queries,

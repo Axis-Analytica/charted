@@ -30,10 +30,18 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// Run SQL against a project's loaded data.
+    /// Run SQL against a project's loaded data, or show a report visual's data.
     Query {
         project: PathBuf,
-        sql: String,
+        /// DuckDB SQL (omit with --visual).
+        #[arg(required_unless_present = "visual")]
+        sql: Option<String>,
+        /// A report visual, by id or title: prints its rows by field name.
+        #[arg(long, conflicts_with = "sql")]
+        visual: Option<String>,
+        /// With --visual: print the generated SQL instead of running it.
+        #[arg(long, requires = "visual")]
+        show_sql: bool,
         #[arg(long)]
         json: bool,
         #[arg(long, conflicts_with = "json")]
@@ -122,10 +130,21 @@ pub fn run(command: Command) -> i32 {
         Command::Query {
             project,
             sql,
+            visual,
+            show_sql,
             json,
             csv,
             limit,
-        } => query(&project, &sql, json, csv, limit),
+        } => match visual {
+            Some(v) => query_visual(&project, &v, show_sql, json, csv, limit),
+            None => query(
+                &project,
+                sql.as_deref().unwrap_or_default(),
+                json,
+                csv,
+                limit,
+            ),
+        },
         Command::Sample {
             action: SampleAction::Create { dir, scale, json },
         } => {
@@ -199,6 +218,102 @@ fn query(project: &Path, sql: &str, json: bool, csv: bool, limit: u64) -> i32 {
             if json {
                 println!("[{}]", rows.join(","));
             } else {
+                for r in &rows {
+                    println!("{r}");
+                }
+            }
+            0
+        }
+        Err(e) => fail(e),
+    }
+}
+
+fn query_visual(
+    project: &Path,
+    which: &str,
+    show_sql: bool,
+    json: bool,
+    csv: bool,
+    limit: u64,
+) -> i32 {
+    use charted_core::visualq;
+    let session = match charted_core::Session::open(project) {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    let model = &session.project.model;
+    let found: Vec<&charted_model::Visual> = model
+        .report
+        .pages
+        .iter()
+        .flat_map(|p| &p.visuals)
+        .filter(|v| v.id == which || visualq::visual_title(model, v).eq_ignore_ascii_case(which))
+        .collect();
+    let v = match found.as_slice() {
+        [v] => *v,
+        [] => {
+            let titles: Vec<String> = model
+                .report
+                .pages
+                .iter()
+                .flat_map(|p| {
+                    p.visuals.iter().map(move |v| {
+                        format!(
+                            "  {} ({}, page {})",
+                            visualq::visual_title(model, v),
+                            v.id,
+                            p.settings.name
+                        )
+                    })
+                })
+                .collect();
+            return fail(format!(
+                "no visual is called \"{which}\". Visuals:\n{}",
+                titles.join("\n")
+            ));
+        }
+        _ => {
+            return fail(format!(
+                "more than one visual is called \"{which}\"; use its id"
+            ));
+        }
+    };
+    let (q, _) = match visualq::report_visual_query(model, &v.id, false, &[]) {
+        Ok(x) => x,
+        Err(e) => return fail(e),
+    };
+    let compiled = match visualq::compile(model, session.schema(), &q) {
+        Ok(c) => c,
+        Err(e) => return fail(e),
+    };
+    // Name columns after the fields, as the visual shows them.
+    let names: Vec<String> = q
+        .groups
+        .iter()
+        .chain(&q.values)
+        .map(|p| visualq::projection_name(model, p))
+        .collect();
+    let sql_text = visualq::rename_columns(&compiled.sql, q.groups.len(), &names);
+    if show_sql {
+        println!("{sql_text}");
+        return 0;
+    }
+    let db = session.database();
+    if csv {
+        return match db.csv(&sql_text) {
+            Ok(text) => {
+                print!("{text}");
+                0
+            }
+            Err(e) => fail(e),
+        };
+    }
+    match db.json_rows(&sql_text, (limit > 0).then_some(limit)) {
+        Ok(rows) => {
+            if json {
+                println!("[{}]", rows.join(","));
+            } else {
+                println!("{}", visualq::visual_title(model, v));
                 for r in &rows {
                     println!("{r}");
                 }

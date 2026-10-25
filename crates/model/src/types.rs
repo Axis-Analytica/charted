@@ -33,6 +33,10 @@ pub struct Model {
     #[serde(default, skip_serializing_if = "Extras::is_empty")]
     #[ts(type = "Record<string, unknown>")]
     pub extras: Extras,
+    /// The report built on this model. It is stored in its own files, not in the Ossie
+    /// document, but lives here so model and report edits share one undo history.
+    #[serde(default)]
+    pub report: crate::report::Report,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]

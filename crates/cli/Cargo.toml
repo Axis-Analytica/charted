@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 charted-core.workspace = true
+charted-model.workspace = true
 charted-engine.workspace = true
 charted-samplegen.workspace = true
 clap.workspace = true

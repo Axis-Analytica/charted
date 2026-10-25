@@ -8,8 +8,10 @@
 
 mod change;
 mod history;
+pub mod report;
 mod types;
 
 pub use change::{Change, ChangeError, ColumnProperty, apply};
 pub use history::{History, HistoryEntry, apply_all};
+pub use report::*;
 pub use types::*;

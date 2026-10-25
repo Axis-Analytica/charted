@@ -8,6 +8,7 @@
 //! (about 10 ms for 200 rows of a 10-million-row table).
 
 use charted_engine::{Database, sql};
+pub use charted_model::FilterOp;
 use charted_model::{ColumnKind, DataType, Id, Table};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -31,25 +32,6 @@ pub struct SortKey {
     pub column: Id,
     #[serde(default)]
     pub descending: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
-#[serde(rename_all = "camelCase")]
-#[ts(export)]
-pub enum FilterOp {
-    Equals,
-    NotEquals,
-    Contains,
-    NotContains,
-    StartsWith,
-    EndsWith,
-    Less,
-    LessOrEqual,
-    Greater,
-    GreaterOrEqual,
-    Between,
-    IsBlank,
-    IsNotBlank,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -253,19 +235,7 @@ pub struct View {
 
 /// DuckDB's name for a model data type.
 pub fn duckdb_type(t: DataType) -> Option<&'static str> {
-    Some(match t {
-        DataType::String => "VARCHAR",
-        DataType::Int64 => "BIGINT",
-        DataType::Double => "DOUBLE",
-        DataType::Decimal => "DECIMAL(19,4)",
-        DataType::Boolean => "BOOLEAN",
-        DataType::Date => "DATE",
-        DataType::Time => "TIME",
-        DataType::DateTime => "TIMESTAMP",
-        DataType::DateTimeTz => "TIMESTAMPTZ",
-        DataType::Binary => "BLOB",
-        DataType::Unknown => return None,
-    })
+    charted_compiler::sqltype(t)
 }
 
 fn type_label(t: DataType) -> &'static str {

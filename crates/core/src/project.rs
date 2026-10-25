@@ -5,6 +5,7 @@
 //!   Sales.charted          manifest (JSON); the file you open
 //!   model.ossie.yaml       semantic model (Apache Ossie)
 //!   queries/<table>.json   how each table is loaded
+//!   report/                pages and visuals (see reportfile.rs)
 //!   data/                  source files (sample projects only)
 //!   .gitignore             ignores .cache/
 //!   .cache/data.duckdb     loaded rows (rebuildable), recovery file, lock
@@ -127,6 +128,8 @@ impl Project {
             .map(|w| format!("{}: {}", w.scope, w.message))
             .collect();
         let queries = read_queries(&dir)?;
+        let mut model = model;
+        model.report = crate::reportfile::read(&dir)?;
         Ok(Self {
             dir,
             manifest_path,
@@ -151,7 +154,16 @@ impl Project {
 
     /// Writes every project file atomically, the manifest last, and bumps the generation.
     pub fn save(&mut self) -> Result<(), ProjectError> {
-        let generated = charted_ossie::GeneratedDialects::new();
+        // Each measure also gets SQL that tools without DAX can evaluate.
+        let mut generated = charted_ossie::GeneratedDialects::new();
+        for m in self.model.tables.iter().flat_map(|t| &t.measures) {
+            if let Some(sql) = charted_compiler::ossie::measure_sql(&self.model, &m.id) {
+                generated.insert(
+                    m.id.clone(),
+                    vec![(charted_ossie::OSSIE_SQL.to_string(), sql)],
+                );
+            }
+        }
         let model_path = self.dir.join(MODEL_FILE);
         atomic::write(
             &model_path,
@@ -176,6 +188,7 @@ impl Project {
                 }
             }
         }
+        crate::reportfile::write(&self.dir, &self.model.report)?;
         let gi = self.dir.join(".gitignore");
         if !gi.exists() {
             atomic::write(&gi, b"# Rebuildable caches written by charted\n.cache/\n")

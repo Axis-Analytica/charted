@@ -12,9 +12,11 @@ pub mod env;
 pub mod ids;
 pub mod project;
 pub mod recent;
+pub mod reportfile;
 pub mod sample;
 pub mod session;
 mod types;
+pub mod visualq;
 
 pub use api::{ApiError, App, AppState, DataRequest, Request};
 pub use session::{CoreError, ProjectSnapshot, Session};

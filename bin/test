@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -q -- -D warnings
 cargo test --workspace -q
-cargo check -q --target wasm32-unknown-unknown -p charted-model -p charted-compiler -p charted-ossie
+cargo check -q --target wasm32-unknown-unknown -p charted-model -p charted-compiler -p charted-ossie -p charted-dax
 node tools/i18n-strings.mjs --check
 (cd ui && pnpm exec tsc --noEmit)
 (cd ui && pnpm exec vitest run --reporter=dot)

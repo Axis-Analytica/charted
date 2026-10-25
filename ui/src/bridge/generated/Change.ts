@@ -2,11 +2,15 @@
 import type { Column } from "./Column";
 import type { ColumnProperty } from "./ColumnProperty";
 import type { Measure } from "./Measure";
+import type { Page } from "./Page";
+import type { PageSettings } from "./PageSettings";
 import type { Relationship } from "./Relationship";
+import type { ReportFilter } from "./ReportFilter";
 import type { Table } from "./Table";
+import type { Visual } from "./Visual";
 
 /**
  * One edit to the model. Every view expresses edits this way, which is what makes
  * undo, autosave and multi-view sync uniform.
  */
-export type Change = { "op": "addTable", table: Table, index: number | null, } | { "op": "removeTable", table: string, } | { "op": "renameTable", table: string, name: string, } | { "op": "setTableDescription", table: string, description: string | null, } | { "op": "setTableHidden", table: string, hidden: boolean, } | { "op": "setDateTable", table: string, isDateTable: boolean, } | { "op": "renameColumn", table: string, column: string, name: string, } | { "op": "setColumn", table: string, column: string, property: ColumnProperty, } | { "op": "addColumn", table: string, column: Column, index: number | null, } | { "op": "removeColumn", table: string, column: string, } | { "op": "addMeasure", table: string, measure: Measure, index: number | null, } | { "op": "removeMeasure", table: string, measure: string, } | { "op": "updateMeasure", table: string, measure: Measure, } | { "op": "addRelationship", relationship: Relationship, index: number | null, } | { "op": "removeRelationship", relationship: string, } | { "op": "updateRelationship", relationship: Relationship, };
+export type Change = { "op": "addTable", table: Table, index: number | null, } | { "op": "removeTable", table: string, } | { "op": "renameTable", table: string, name: string, } | { "op": "setTableDescription", table: string, description: string | null, } | { "op": "setTableHidden", table: string, hidden: boolean, } | { "op": "setDateTable", table: string, isDateTable: boolean, } | { "op": "renameColumn", table: string, column: string, name: string, } | { "op": "setColumn", table: string, column: string, property: ColumnProperty, } | { "op": "addColumn", table: string, column: Column, index: number | null, } | { "op": "removeColumn", table: string, column: string, } | { "op": "addMeasure", table: string, measure: Measure, index: number | null, } | { "op": "removeMeasure", table: string, measure: string, } | { "op": "updateMeasure", table: string, measure: Measure, } | { "op": "addRelationship", relationship: Relationship, index: number | null, } | { "op": "removeRelationship", relationship: string, } | { "op": "updateRelationship", relationship: Relationship, } | { "op": "addPage", page: Page, index: number | null, } | { "op": "removePage", page: string, } | { "op": "setPage", page: string, settings: PageSettings, } | { "op": "movePage", page: string, index: number, } | { "op": "addVisual", page: string, visual: Visual, index: number | null, } | { "op": "removeVisual", page: string, visual: string, } | { "op": "updateVisual", page: string, visual: Visual, } | { "op": "setReportFilters", filters: Array<ReportFilter>, };

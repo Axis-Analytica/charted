@@ -35,7 +35,7 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
       - name: WebAssembly-compatible crates stay free of native dependencies
-        run: cargo check --target wasm32-unknown-unknown -p charted-model -p charted-compiler -p charted-ossie
+        run: cargo check --target wasm32-unknown-unknown -p charted-model -p charted-compiler -p charted-ossie -p charted-dax
       - name: TypeScript bindings are up to date
         run: git diff --exit-code -- ui/src/bridge/generated
 

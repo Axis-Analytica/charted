@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use crate::report::*;
 use crate::types::*;
 
 /// One edit to the model. Every view expresses edits this way, which is what makes
@@ -75,6 +76,39 @@ pub enum Change {
     UpdateRelationship {
         relationship: Relationship,
     },
+    AddPage {
+        page: Page,
+        index: Option<usize>,
+    },
+    RemovePage {
+        page: Id,
+    },
+    /// Replaces a page's name, size and filters (not its visuals).
+    SetPage {
+        page: Id,
+        settings: PageSettings,
+    },
+    MovePage {
+        page: Id,
+        index: usize,
+    },
+    AddVisual {
+        page: Id,
+        visual: Visual,
+        index: Option<usize>,
+    },
+    RemoveVisual {
+        page: Id,
+        visual: Id,
+    },
+    /// Replaces a visual wholesale (position, fields, filters, formatting), keeping its id.
+    UpdateVisual {
+        page: Id,
+        visual: Visual,
+    },
+    SetReportFilters {
+        filters: Vec<ReportFilter>,
+    },
 }
 
 /// A single column property, so one change type covers the whole properties pane.
@@ -109,6 +143,10 @@ pub enum ChangeError {
     UnknownMeasure { id: Id },
     #[error("there is no relationship with id {id}")]
     UnknownRelationship { id: Id },
+    #[error("there is no page with id {id}")]
+    UnknownPage { id: Id },
+    #[error("there is no visual with id {id}")]
+    UnknownVisual { id: Id },
     #[error("an object with id {id} already exists")]
     DuplicateId { id: Id },
     #[error("the name \"{name}\" is already used")]
@@ -172,6 +210,31 @@ fn ids_in_use(model: &Model) -> impl Iterator<Item = &str> {
                 .chain(t.measures.iter().map(|m| m.id.as_str()))
         })
         .chain(model.relationships.iter().map(|r| r.id.as_str()))
+        .chain(model.report.pages.iter().flat_map(|p| {
+            std::iter::once(p.id.as_str()).chain(p.visuals.iter().map(|v| v.id.as_str()))
+        }))
+}
+
+fn page_mut<'a>(model: &'a mut Model, id: &str) -> Result<&'a mut Page> {
+    model
+        .report
+        .page_mut(id)
+        .ok_or_else(|| ChangeError::UnknownPage { id: id.to_string() })
+}
+
+fn validate_page_name(model: &Model, id: &str, name: &str) -> Result<()> {
+    validate_name(name)?;
+    if model
+        .report
+        .pages
+        .iter()
+        .any(|p| p.id != id && p.settings.name.eq_ignore_ascii_case(name))
+    {
+        return Err(ChangeError::NameTaken {
+            name: name.to_string(),
+        });
+    }
+    Ok(())
 }
 
 fn ensure_fresh_id(model: &Model, id: &str) -> Result<()> {
@@ -503,6 +566,89 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 .ok_or(ChangeError::UnknownRelationship { id })?;
             let old = std::mem::replace(r, relationship);
             Ok(vec![Change::UpdateRelationship { relationship: old }])
+        }
+        Change::AddPage { page, index } => {
+            validate_page_name(model, &page.id, &page.settings.name)?;
+            ensure_fresh_id(model, &page.id)?;
+            for v in &page.visuals {
+                ensure_fresh_id(model, &v.id)?;
+            }
+            let id = page.id.clone();
+            insert_at(&mut model.report.pages, index, page);
+            Ok(vec![Change::RemovePage { page: id }])
+        }
+        Change::RemovePage { page } => {
+            let i = index_of(
+                &model.report.pages,
+                |p| p.id == page,
+                || ChangeError::UnknownPage { id: page.clone() },
+            )?;
+            let p = model.report.pages.remove(i);
+            Ok(vec![Change::AddPage {
+                page: p,
+                index: Some(i),
+            }])
+        }
+        Change::SetPage { page, settings } => {
+            validate_page_name(model, &page, &settings.name)?;
+            let p = page_mut(model, &page)?;
+            let old = std::mem::replace(&mut p.settings, settings);
+            Ok(vec![Change::SetPage {
+                page,
+                settings: old,
+            }])
+        }
+        Change::MovePage { page, index } => {
+            let pages = &mut model.report.pages;
+            let from = index_of(
+                pages,
+                |p| p.id == page,
+                || ChangeError::UnknownPage { id: page.clone() },
+            )?;
+            let p = pages.remove(from);
+            let to = index.min(pages.len());
+            pages.insert(to, p);
+            Ok(vec![Change::MovePage { page, index: from }])
+        }
+        Change::AddVisual {
+            page,
+            visual,
+            index,
+        } => {
+            ensure_fresh_id(model, &visual.id)?;
+            let p = page_mut(model, &page)?;
+            let id = visual.id.clone();
+            insert_at(&mut p.visuals, index, visual);
+            Ok(vec![Change::RemoveVisual { page, visual: id }])
+        }
+        Change::RemoveVisual { page, visual } => {
+            let p = page_mut(model, &page)?;
+            let i = index_of(
+                &p.visuals,
+                |v| v.id == visual,
+                || ChangeError::UnknownVisual { id: visual.clone() },
+            )?;
+            let v = p.visuals.remove(i);
+            Ok(vec![Change::AddVisual {
+                page,
+                visual: v,
+                index: Some(i),
+            }])
+        }
+        Change::UpdateVisual { page, visual } => {
+            let p = page_mut(model, &page)?;
+            let id = visual.id.clone();
+            let v = p
+                .visuals
+                .iter_mut()
+                .find(|v| v.id == id)
+                .ok_or(ChangeError::UnknownVisual { id })?;
+            let old = std::mem::replace(v, visual);
+            Ok(vec![Change::UpdateVisual { page, visual: old }])
+        }
+        Change::SetReportFilters { filters } => {
+            let old = std::mem::replace(&mut model.report.filters, filters);
+            Ok(vec![Change::SetReportFilters { filters: old }])
         }
     }
 }

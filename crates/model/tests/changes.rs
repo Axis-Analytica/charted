@@ -78,6 +78,43 @@ fn fixture() -> Model {
             extras: Default::default(),
         }],
         extras: Default::default(),
+        report: Report {
+            pages: vec![Page {
+                id: "p-1".into(),
+                settings: PageSettings::named("Overview"),
+                visuals: vec![visual("v-1")],
+            }],
+            filters: vec![],
+        },
+    }
+}
+
+fn visual(id: &str) -> Visual {
+    Visual {
+        id: id.into(),
+        visual_type: "card".into(),
+        position: Position {
+            x: 10.0,
+            y: 10.0,
+            width: 200.0,
+            height: 120.0,
+            z: 0,
+        },
+        roles: [(
+            "values".to_string(),
+            vec![Projection {
+                field: FieldRef::Column {
+                    table: "t-sales".into(),
+                    column: "c-s-amt".into(),
+                },
+                aggregation: Some(Aggregation::Sum),
+                display_name: None,
+            }],
+        )]
+        .into(),
+        filters: vec![],
+        sort: None,
+        objects: Default::default(),
     }
 }
 
@@ -160,6 +197,54 @@ fn arb_change() -> impl Strategy<Value = Change> {
             index: None,
         }),
         (table, any::<bool>()).prop_map(|(table, hidden)| Change::SetTableHidden { table, hidden }),
+        report_change(),
+    ]
+}
+
+fn report_change() -> impl Strategy<Value = Change> {
+    let page = prop_oneof![
+        Just("p-1".to_string()),
+        Just("p-2".to_string()),
+        Just("p-missing".to_string())
+    ];
+    let vis = prop_oneof![
+        Just("v-1".to_string()),
+        Just("v-2".to_string()),
+        Just("v-missing".to_string())
+    ];
+    let name = prop_oneof![
+        Just("Overview".to_string()),
+        Just("Details".to_string()),
+        Just("".to_string())
+    ];
+    prop_oneof![
+        (page.clone(), name.clone()).prop_map(|(id, n)| Change::AddPage {
+            page: Page {
+                id,
+                settings: PageSettings::named(n),
+                visuals: vec![]
+            },
+            index: Some(0),
+        }),
+        page.clone().prop_map(|page| Change::RemovePage { page }),
+        (page.clone(), name).prop_map(|(page, n)| Change::SetPage {
+            page,
+            settings: PageSettings::named(n)
+        }),
+        (page.clone(), 0usize..3).prop_map(|(page, index)| Change::MovePage { page, index }),
+        (page.clone(), vis.clone()).prop_map(|(page, v)| Change::AddVisual {
+            page,
+            visual: visual(&v),
+            index: None
+        }),
+        (page.clone(), vis.clone())
+            .prop_map(|(page, visual)| Change::RemoveVisual { page, visual }),
+        (page, vis, 0.0f64..500.0).prop_map(|(page, v, x)| {
+            let mut visual = visual(&v);
+            visual.position.x = x;
+            Change::UpdateVisual { page, visual }
+        }),
+        Just(Change::SetReportFilters { filters: vec![] }),
     ]
 }
 

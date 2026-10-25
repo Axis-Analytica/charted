@@ -175,6 +175,7 @@ fn sample_model() -> Model {
             prod,
         ],
         extras: Default::default(),
+        report: Default::default(),
     }
 }
 

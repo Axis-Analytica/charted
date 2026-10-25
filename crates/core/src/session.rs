@@ -155,6 +155,7 @@ pub struct Session {
     history: History,
     db: Database,
     indexes: SharedIndexes,
+    schema: crate::visualq::Schema,
     recovery: Option<RecoveryInfo>,
     _lock: Lock,
 }
@@ -177,11 +178,13 @@ impl Session {
                 },
             )
         });
+        let schema = crate::visualq::Schema::read(&db, &project.model);
         Ok(Self {
             project,
             history: History::with_limit(500),
             db,
             indexes: SharedIndexes::default(),
+            schema,
             recovery,
             _lock: lock,
         })
@@ -189,6 +192,11 @@ impl Session {
 
     pub fn database(&self) -> &Database {
         &self.db
+    }
+
+    /// Column types of the loaded tables.
+    pub fn schema(&self) -> &crate::visualq::Schema {
+        &self.schema
     }
 
     pub fn snapshot(&self) -> Result<ProjectSnapshot, CoreError> {
@@ -358,7 +366,7 @@ fn read_recovery(project: &Project) -> Option<RecoveryFile> {
     serde_json::from_str(&text).ok()
 }
 
-/// Changes that turn `from` into `to` by replacing every table and relationship.
+/// Changes that turn `from` into `to` by replacing every table, relationship and page.
 fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
     let mut changes: Vec<Change> = from
         .relationships
@@ -378,5 +386,18 @@ fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
         relationship: r.clone(),
         index: None,
     }));
+    changes.extend(
+        from.report
+            .pages
+            .iter()
+            .map(|p| Change::RemovePage { page: p.id.clone() }),
+    );
+    changes.extend(to.report.pages.iter().map(|p| Change::AddPage {
+        page: p.clone(),
+        index: None,
+    }));
+    changes.push(Change::SetReportFilters {
+        filters: to.report.filters.clone(),
+    });
     changes
 }

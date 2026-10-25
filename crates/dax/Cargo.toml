@@ -1,0 +1,15 @@
+[package]
+name = "charted-dax"
+description = "DAX lexer, parser and binder for charted"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+charted-model.workspace = true
+serde.workspace = true
+ts-rs.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
