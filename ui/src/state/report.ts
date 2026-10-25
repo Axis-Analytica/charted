@@ -2,6 +2,7 @@
 // formula bar, where the pointer last was on the canvas (so inserts land under it).
 // Edits go through `commit` as model changes; the helpers here build those changes.
 import { create } from "zustand";
+import { hierarchy } from "./drill";
 import type { Aggregation } from "../bridge/generated/Aggregation";
 import type { Change } from "../bridge/generated/Change";
 import type { Column } from "../bridge/generated/Column";
@@ -21,7 +22,7 @@ interface ReportStore {
   page: string | null;
   selected: string[];
   /** Right-hand panes. */
-  panes: { filters: boolean; visualizations: boolean; fields: boolean };
+  panes: { bookmarks: boolean; filters: boolean; visualizations: boolean; fields: boolean };
   vizTab: "build" | "format";
   /** Last pointer position on the page, in page units. */
   pointer: { x: number; y: number } | null;
@@ -41,7 +42,7 @@ export const useReport = create<ReportStore>()((set) => ({
   view: "report",
   page: null,
   selected: [],
-  panes: { filters: true, visualizations: true, fields: true },
+  panes: { bookmarks: false, filters: true, visualizations: true, fields: true },
   vizTab: "build",
   pointer: null,
   formula: null,
@@ -102,7 +103,13 @@ export function visualTitle(model: Model, v: Visual, translate?: (s: string, ...
   const t = translate ?? ((s: string, ...a: (string | number)[]) => s.replace(/%(\d)/g, (_, i) => String(a[Number(i) - 1])));
   const groups: string[] = [];
   const values: string[] = [];
-  for (const ps of Object.values(v.roles)) for (const p of ps ?? []) (isGrouping(p) ? groups : values).push(projectionName(model, p, t));
+  // A hierarchy is named by the levels shown.
+  const h = hierarchy(v);
+  for (const [role, ps] of Object.entries(v.roles))
+    (ps ?? []).forEach((p, i) => {
+      if (h && role === h.role && !h.shown.includes(i)) return;
+      (isGrouping(p) ? groups : values).push(projectionName(model, p, t));
+    });
   if (values.length && groups.length) return t("%1 by %2", values.join(t(" and ")), groups.join(t(" and ")));
   return (values.length ? values : groups).join(t(" and "));
 }
@@ -134,7 +141,8 @@ export function projectionFor(model: Model, field: FieldRef, role: RoleDef): Pro
 export function roleFor(model: Model, v: Visual, field: FieldRef): RoleDef | undefined {
   const def = visualDef(v.visualType);
   if (!def) return undefined;
-  const free = (r: RoleDef) => r.max === undefined || (v.roles[r.name]?.length ?? 0) < r.max;
+  const limit = (r: RoleDef) => r.autoMax ?? r.max;
+  const free = (r: RoleDef) => limit(r) === undefined || (v.roles[r.name]?.length ?? 0) < limit(r)!;
   const isMeasure = field.kind === "measure";
   const col = columnOf(model, field);
   const numeric = col && (col.dataType === "Int64" || col.dataType === "Double" || col.dataType === "Decimal") && col.summarizeBy !== "None" && !col.isKey;

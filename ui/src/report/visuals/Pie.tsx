@@ -10,6 +10,7 @@ import type { Model } from "../../bridge/generated/Model";
 import type { Visual } from "../../bridge/generated/Visual";
 import { useLanguage, useT } from "../../i18n";
 import { useApp } from "../../state/app";
+import { hierarchy } from "../../state/drill";
 import { keysOf, type VisualData } from "../data";
 import { prop, visualDef } from "../registry";
 import { CanvasScale, ThemeKey } from "../scale";
@@ -30,28 +31,37 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
   const el = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.ECharts | null>(null);
   const def = visualDef(visual.visualType);
-  const leg = visual.roles.legend?.[0];
+  // The levels of the legend hierarchy shown.
+  const levels = useMemo(() => hierarchy(visual)?.shown ?? [], [visual]);
+  const legFields = useMemo(() => levels.map((i) => visual.roles.legend![i]!), [levels, visual.roles.legend]);
   const val = visual.roles.values?.[0];
   const donut = visual.visualType === "donutChart";
 
   const slices = useMemo(() => {
-    const f = leg ? projectionFormat(model, leg) : null;
-    const lv = data.columns.get("legend:0");
-    const keys = leg ? keysOf(data, "legend:0") : [];
+    const fmts = legFields.map((p) => projectionFormat(model, p));
+    const lvs = levels.map((i) => data.columns.get(`legend:${i}`));
+    const keyCols = levels.map((i) => keysOf(data, `legend:${i}`));
+    const name = (r: number) =>
+      lvs
+        .map((lv, j) => {
+          const raw = lv?.get(r);
+          const f = fmts[j];
+          return raw === null || raw === undefined ? t("(Blank)") : f ? fmt(raw, f, locale) : String(raw);
+        })
+        .join(" ");
     const vv = data.columns.get("values:0");
     const hv = data.columns.get("hl:values:0");
-    const out: { name: string; key: string | null; value: number; hl: number | null }[] = [];
+    const out: { name: string; keys: (string | null)[]; value: number; hl: number | null }[] = [];
     for (let r = 0; r < Math.min(data.rows, MAX_SLICES); r++) {
       const v = numberAt(vv, r);
       if (v === null || v <= 0) continue;
-      const raw = lv?.get(r);
-      out.push({ name: raw === null || raw === undefined ? t("(Blank)") : f ? fmt(raw, f, locale) : String(raw), key: keys[r] ?? null, value: v, hl: hv ? numberAt(hv, r) : null });
+      out.push({ name: name(r), keys: keyCols.map((k) => k[r] ?? null), value: v, hl: hv ? numberAt(hv, r) : null });
     }
     return { out, highlighted: !!hv };
-  }, [data, leg, model, locale, t]);
+  }, [data, legFields, levels, model, locale, t]);
 
-  const ref = useRef({ slices, interact, leg });
-  ref.current = { slices, interact, leg };
+  const ref = useRef({ slices, interact, legFields });
+  ref.current = { slices, interact, legFields };
 
   useEffect(() => {
     if (!el.current) return;
@@ -65,9 +75,20 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
     c.on("click", (p) => {
       onItem = true;
       const params = p as unknown as { data?: { slice?: number }; event?: { event?: MouseEvent } };
-      const { slices, interact, leg } = ref.current;
+      const { slices, interact, legFields } = ref.current;
       const s = slices.out[params.data?.slice ?? -1];
-      if (s && leg) interact.choose([leg], [s.key], additive(params.event?.event));
+      if (!s || !legFields.length) return;
+      if (interact.drill) interact.drill(s.keys);
+      else interact.choose(legFields, s.keys, additive(params.event?.event));
+    });
+    c.on("contextmenu", (p) => {
+      const params = p as unknown as { data?: { slice?: number }; event?: { event?: MouseEvent } };
+      const { slices, interact, legFields } = ref.current;
+      const s = slices.out[params.data?.slice ?? -1];
+      const ev = params.event?.event;
+      if (!s || !ev || !legFields.length || !interact.menu) return;
+      ev.preventDefault();
+      interact.menu(legFields, s.keys, { x: ev.clientX, y: ev.clientY });
     });
     c.getZr().on("click", () => {
       if (!onItem) ref.current.interact.clear();
@@ -97,7 +118,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
     const color = (i: number) => colors[i % colors.length] ?? "#888";
     // Highlighted: each slice is its highlighted share, then the rest faded.
     const data = slices.out.flatMap((s, i) => {
-      const dim = s.key !== undefined && interact.chosen([s.key]) === false;
+      const dim = interact.chosen(s.keys) === false;
       const solid = { name: s.name, value: slices.highlighted ? (s.hl ?? 0) : s.value, slice: i, itemStyle: { color: color(i), opacity: dim ? 0.35 : 1 } };
       if (!slices.highlighted) return [solid];
       return [solid, { name: s.name, value: s.value - (s.hl ?? 0), slice: i, rest: true, itemStyle: { color: fade(color(i), 0.3) }, label: { show: false }, labelLine: { show: false } }];

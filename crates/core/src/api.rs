@@ -526,9 +526,10 @@ impl App {
                 end,
                 fiscal_start,
                 relate,
-            } => self
-                .session_mut()?
-                .create_date_table(&name, &start, &end, fiscal_start, &relate)?,
+            } => {
+                self.session_mut()?
+                    .create_date_table(&name, &start, &end, fiscal_start, &relate)?
+            }
             Request::AllowExtension { name } => {
                 let consent = crate::sources::Consent::allow(&self.state_dir, &name)?;
                 if let Ok(s) = self.session_mut() {

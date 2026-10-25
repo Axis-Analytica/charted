@@ -60,6 +60,7 @@ fn query_visual_prints_rows_by_field_name() {
         sort: None,
         objects: Default::default(),
         selection: None,
+        drill: Vec::new(),
     };
     let page = m.report.pages[0].id.clone();
     app.handle(Request::Commit {

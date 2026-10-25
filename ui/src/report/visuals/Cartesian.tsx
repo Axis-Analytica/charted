@@ -13,6 +13,7 @@ import type { Projection } from "../../bridge/generated/Projection";
 import type { Visual } from "../../bridge/generated/Visual";
 import { useLanguage, useT } from "../../i18n";
 import { useApp } from "../../state/app";
+import { hierarchy } from "../../state/drill";
 import { projectionName } from "../../state/report";
 import { keysOf, type VisualData } from "../data";
 import { prop, visualDef } from "../registry";
@@ -46,7 +47,10 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
   const scale = useContext(CanvasScale);
   const def = visualDef(visual.visualType);
   const kind = visual.visualType;
-  const cat = visual.roles.category?.[0];
+  // The levels of the axis hierarchy shown (one, or several when expanded).
+  const levels = useMemo(() => hierarchy(visual)?.shown ?? [], [visual]);
+  const catFields = useMemo(() => levels.map((i) => visual.roles.category![i]!), [levels, visual.roles.category]);
+  const cat = catFields[0];
   const ser = visual.roles.series?.[0];
   const vals = visual.roles.values ?? [];
   const stacked = kind === "stackedColumnChart" || kind === "stackedBarChart";
@@ -54,15 +58,18 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
   const isLine = kind === "lineChart";
 
   const shaped = useMemo(() => {
-    const catVec = data.columns.get("category:0");
+    const catVecs = levels.map((i) => data.columns.get(`category:${i}`));
     const serVec = data.columns.get("series:0");
-    const catKeys = cat ? keysOf(data, "category:0") : [];
+    const catKeyCols = levels.map((i) => keysOf(data, `category:${i}`));
     const serKeys = ser ? keysOf(data, "series:0") : [];
-    const catFmt = cat ? projectionFormat(model, cat) : null;
+    const catFmts = catFields.map((p) => projectionFormat(model, p));
     const serFmt = ser ? projectionFormat(model, ser) : null;
     const label = (v: unknown, f: ReturnType<typeof projectionFormat> | null) => (v === null || v === undefined ? t("(Blank)") : f ? fmt(v, f, locale) : String(v));
+    const catLabel = (r: number) => catVecs.map((v, j) => label(v?.get(r), catFmts[j] ?? null)).join(" ");
+    const catKey = (r: number) => catKeyCols.map((k) => k[r] ?? null);
     const categories: string[] = [];
-    const keys: (string | null)[] = [];
+    // Each category's values at the levels shown (what a selection filters on).
+    const keys: (string | null)[][] = [];
     const catIndex = new Map<string, number>();
     const series: Series[] = [];
     if (ser && serVec && vals.length) {
@@ -71,11 +78,11 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
       const valVec = data.columns.get("values:0");
       const hlVec = data.columns.get("hl:values:0");
       for (let r = 0; r < data.rows; r++) {
-        const ck = cat ? (catKeys[r] ?? null) : null;
-        const cid = String(ck);
+        const ck = catKey(r);
+        const cid = JSON.stringify(ck);
         if (!catIndex.has(cid)) {
           catIndex.set(cid, categories.length);
-          categories.push(cat ? label(catVec?.get(r), catFmt) : "");
+          categories.push(cat ? catLabel(r) : "");
           keys.push(ck);
         }
         const sk = serKeys[r] ?? null;
@@ -97,8 +104,8 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
         }
     } else {
       for (let r = 0; r < data.rows; r++) {
-        categories.push(cat ? label(catVec?.get(r), catFmt) : "");
-        keys.push(cat ? (catKeys[r] ?? null) : null);
+        categories.push(cat ? catLabel(r) : "");
+        keys.push(catKey(r));
       }
       vals.forEach((p, i) => {
         const vec = data.columns.get(`values:${i}`);
@@ -113,16 +120,12 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
       });
     }
     return { categories, keys, series };
-  }, [data, cat, ser, vals, model, locale, t]);
+  }, [data, cat, catFields, levels, ser, vals, model, locale, t]);
 
   // The fields and values that identify a point.
   const point = (category: number, series: number | null): { fields: Projection[]; tuple: (string | null)[] } | null => {
-    const fields: Projection[] = [];
-    const tuple: (string | null)[] = [];
-    if (cat) {
-      fields.push(cat);
-      tuple.push(shaped.keys[category] ?? null);
-    }
+    const fields: Projection[] = [...catFields];
+    const tuple: (string | null)[] = catFields.map((_, j) => shaped.keys[category]?.[j] ?? null);
     const s = series === null ? null : shaped.series[series];
     if (ser && s) {
       fields.push(ser);
@@ -134,6 +137,8 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
   pointRef.current = point;
   const interactRef = useRef(interact);
   interactRef.current = interact;
+  const keysRef = useRef(shaped.keys);
+  keysRef.current = cat ? shaped.keys : [];
 
   useEffect(() => {
     if (!el.current) return;
@@ -145,14 +150,47 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
     const ro = new ResizeObserver(() => c.resize());
     ro.observe(el.current);
     let onItem = false;
+    // Drill mode: a click on a category drills into it.
+    const drillAt = (category: number) => {
+      const keys = keysRef.current[category];
+      if (!interactRef.current.drill || !keys?.length) return false;
+      interactRef.current.drill(keys);
+      return true;
+    };
     c.on("click", (p) => {
       onItem = true;
       const params = p as unknown as { dataIndex: number; seriesIndex: number; event?: { event?: MouseEvent } };
       // Highlighted bars are drawn as pairs of series; both stand for the same one.
       const s = (c.getOption() as { series?: { id?: string }[] }).series?.[params.seriesIndex]?.id ?? "";
       const series = Number(s.split(":")[1] ?? 0);
+      if (drillAt(params.dataIndex)) return;
       const pt = pointRef.current(params.dataIndex, series);
       if (pt) interactRef.current.choose(pt.fields, pt.tuple, additive(params.event?.event));
+    });
+    c.on("contextmenu", (p) => {
+      onItem = true;
+      const params = p as unknown as { dataIndex: number; seriesIndex: number; event?: { event?: MouseEvent } };
+      const ev = params.event?.event;
+      const s = (c.getOption() as { series?: { id?: string }[] }).series?.[params.seriesIndex]?.id ?? "";
+      const pt = pointRef.current(params.dataIndex, Number(s.split(":")[1] ?? 0));
+      if (!pt || !ev || !interactRef.current.menu) return;
+      ev.preventDefault();
+      interactRef.current.menu(pt.fields, pt.tuple, { x: ev.clientX, y: ev.clientY });
+    });
+    c.getZr().on("contextmenu", (e) => {
+      if (onItem) {
+        onItem = false;
+        return;
+      }
+      // Lines: the category under the pointer.
+      const opt = c.getOption() as { series?: { type?: string }[] };
+      const ev = e.event as unknown as MouseEvent;
+      if (opt.series?.[0]?.type !== "line" || !interactRef.current.menu || !c.containPixel({ gridIndex: 0 }, [e.offsetX, e.offsetY])) return;
+      const at = c.convertFromPixel({ seriesIndex: 0 }, [e.offsetX, e.offsetY]) as number[] | undefined;
+      const pt = pointRef.current(Math.round(at?.[0] ?? -1), null);
+      if (!pt) return;
+      ev.preventDefault();
+      interactRef.current.menu(pt.fields, pt.tuple, { x: ev.clientX, y: ev.clientY });
     });
     c.getZr().on("click", (e) => {
       if (onItem) {
@@ -165,6 +203,7 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
         const at = c.convertFromPixel({ seriesIndex: 0 }, [e.offsetX, e.offsetY]) as number[] | undefined;
         const i = at ? Math.round(at[0] ?? -1) : -1;
         if (c.containPixel({ gridIndex: 0 }, [e.offsetX, e.offsetY]) && i >= 0) {
+          if (drillAt(i)) return;
           const pt = pointRef.current(i, null);
           if (pt) interactRef.current.choose(pt.fields, pt.tuple, additive(e.event as unknown as MouseEvent));
           return;
@@ -201,7 +240,7 @@ export function Cartesian({ visual, model, data, interact }: { visual: Visual; m
     const valShow = prop<boolean>(o, def, "valueAxis", "show");
     const valGrid = prop<boolean>(o, def, "valueAxis", "gridlines");
     const catGrid = prop<boolean>(o, def, "categoryAxis", "gridlines");
-    const catTitle = prop<boolean>(o, def, "categoryAxis", "title") && cat ? projectionName(model, cat, t) : undefined;
+    const catTitle = prop<boolean>(o, def, "categoryAxis", "title") && cat ? catFields.map((p) => projectionName(model, p, t)).join(", ") : undefined;
     const valTitle = prop<boolean>(o, def, "valueAxis", "title") ? shaped.series.map((s) => s.name).slice(0, 2).join(", ") : undefined;
     const seriesColor = (i: number) => (fill && shaped.series.length === 1 ? fill : (colors[i % colors.length] ?? "#888"));
     const categoryAxis = {

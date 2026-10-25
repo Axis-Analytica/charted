@@ -135,6 +135,7 @@ fn main() {
             sort: None,
             objects: Default::default(),
             selection: None,
+            drill: Vec::new(),
         };
     let sales = measure(m, "Total Sales");
     let page = charted_model::Page {

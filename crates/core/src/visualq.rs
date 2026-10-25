@@ -229,9 +229,38 @@ pub fn report_visual_query(
     let mut group_names = Vec::new();
     let mut value_names = Vec::new();
     let mut slot: HashMap<(String, usize), OrderTarget> = HashMap::new();
+    // A drilled hierarchy shows some of its levels, filtered to the members drilled into.
+    let drill = charted_model::drill_role(&v.visual_type)
+        .and_then(|r| Some((r, v.roles.get(r)?)))
+        .filter(|(_, ps)| ps.len() > 1);
+    let mut drill_filters = Vec::new();
+    let shown = |role: &str, i: usize| match drill {
+        Some((r, ps)) if r == role => {
+            let (start, depth, _) = v.drill_levels(ps.len());
+            (start..=depth).contains(&i)
+        }
+        _ => true,
+    };
+    if let Some((_, ps)) = drill {
+        for (level, key) in v.drill_levels(ps.len()).2 {
+            drill_filters.push(QueryFilter {
+                field: Projection {
+                    aggregation: None,
+                    ..ps[level].clone()
+                },
+                filter: FilterKind::Basic {
+                    values: vec![key],
+                    exclude: false,
+                },
+            });
+        }
+    }
     for (role, ps) in &v.roles {
         for (i, p) in ps.iter().enumerate() {
             let is_group = matches!(p.field, FieldRef::Column { .. }) && p.aggregation.is_none();
+            if is_group && !shown(role, i) {
+                continue;
+            }
             if is_group {
                 if totals {
                     continue;
@@ -259,6 +288,7 @@ pub fn report_visual_query(
         });
     q.filters = filters
         .chain(slicer_filters(page, &v.id))
+        .chain(drill_filters)
         .chain(extra.iter().cloned())
         .collect();
     if let Some(s) = &v.sort
@@ -628,12 +658,19 @@ pub fn visual_title(model: &Model, v: &charted_model::Visual) -> String {
     }
     let mut groups = Vec::new();
     let mut values = Vec::new();
-    for (_, p) in v.projections() {
-        let name = projection_name(model, p);
-        if matches!(p.field, FieldRef::Column { .. }) && p.aggregation.is_none() {
-            groups.push(name);
-        } else {
-            values.push(name);
+    // A hierarchy is named by the levels shown.
+    let drill = charted_model::drill_role(&v.visual_type)
+        .and_then(|r| Some((r, v.roles.get(r)?.len())))
+        .filter(|(_, n)| *n > 1);
+    for (role, ps) in &v.roles {
+        for (i, p) in ps.iter().enumerate() {
+            if let Some((r, n)) = drill {
+                let (start, depth, _) = v.drill_levels(n);
+                if r == role && !(start..=depth).contains(&i) {
+                    continue;
+                }
+            }
+            title_part(model, p, &mut groups, &mut values);
         }
     }
     match (values.is_empty(), groups.is_empty()) {
@@ -641,5 +678,14 @@ pub fn visual_title(model: &Model, v: &charted_model::Visual) -> String {
         (false, true) => values.join(" and "),
         (true, false) => groups.join(" and "),
         (true, true) => String::new(),
+    }
+}
+
+fn title_part(model: &Model, p: &Projection, groups: &mut Vec<String>, values: &mut Vec<String>) {
+    let name = projection_name(model, p);
+    if matches!(p.field, FieldRef::Column { .. }) && p.aggregation.is_none() {
+        groups.push(name);
+    } else {
+        values.push(name);
     }
 }

@@ -87,6 +87,7 @@ fn fixture() -> Model {
             filters: vec![],
             diagram: Default::default(),
             theme: None,
+            bookmarks: Vec::new(),
         },
     }
 }
@@ -118,6 +119,7 @@ fn visual(id: &str) -> Visual {
         sort: None,
         objects: Default::default(),
         selection: None,
+        drill: Vec::new(),
     }
 }
 

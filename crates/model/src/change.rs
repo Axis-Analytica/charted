@@ -117,6 +117,10 @@ pub enum Change {
     SetTheme {
         theme: Option<ReportTheme>,
     },
+    /// Replaces the report's bookmarks.
+    SetBookmarks {
+        bookmarks: Vec<Bookmark>,
+    },
 }
 
 /// A single column property, so one change type covers the whole properties pane.
@@ -677,6 +681,10 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
         Change::SetTheme { theme } => {
             let old = std::mem::replace(&mut model.report.theme, theme);
             Ok(vec![Change::SetTheme { theme: old }])
+        }
+        Change::SetBookmarks { bookmarks } => {
+            let old = std::mem::replace(&mut model.report.bookmarks, bookmarks);
+            Ok(vec![Change::SetBookmarks { bookmarks: old }])
         }
     }
 }

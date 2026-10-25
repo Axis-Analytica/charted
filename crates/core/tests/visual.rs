@@ -447,6 +447,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
         sort: None,
         objects: Default::default(),
         selection: None,
+        drill: Vec::new(),
     };
     app.handle(Request::Commit {
         label: "Add visual".into(),
@@ -708,9 +709,21 @@ fn time_intelligence_matches_sql() {
         .handle(Request::Commit {
             label: "Time intelligence".into(),
             changes: vec![
-                add("m-ly", "Sales LY", "CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )"),
-                add("m-ytd", "Sales YTD", "TOTALYTD ( [Total Sales], 'Date'[Date] )"),
-                add("m-fytd", "Sales FYTD", "TOTALYTD ( [Total Sales], 'Date'[Date], \"6/30\" )"),
+                add(
+                    "m-ly",
+                    "Sales LY",
+                    "CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )",
+                ),
+                add(
+                    "m-ytd",
+                    "Sales YTD",
+                    "TOTALYTD ( [Total Sales], 'Date'[Date] )",
+                ),
+                add(
+                    "m-fytd",
+                    "Sales FYTD",
+                    "TOTALYTD ( [Total Sales], 'Date'[Date], \"6/30\" )",
+                ),
             ],
         })
         .unwrap();

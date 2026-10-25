@@ -29,6 +29,9 @@ export interface RoleDef {
   label: string;
   kind: RoleKind;
   max?: number;
+  /** How many fields the role takes when they are added without a target (a ticked
+   * field); more can be dragged in (an axis hierarchy). */
+  autoMax?: number;
 }
 
 export type PropDef =
@@ -117,13 +120,13 @@ const colors: ObjectDef = {
 };
 
 const cartesianRoles = (axisLabel: string): RoleDef[] => [
-  { name: "category", label: axisLabel, kind: "grouping", max: 1 },
+  { name: "category", label: axisLabel, kind: "grouping", autoMax: 1 },
   { name: "series", label: "Legend", kind: "grouping", max: 1 },
   { name: "values", label: "Values", kind: "value" },
 ];
 
 const pieRoles: RoleDef[] = [
-  { name: "legend", label: "Legend", kind: "grouping", max: 1 },
+  { name: "legend", label: "Legend", kind: "grouping" },
   { name: "values", label: "Values", kind: "value", max: 1 },
 ];
 

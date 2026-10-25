@@ -37,12 +37,17 @@
 .visual-header { position: absolute; top: 4px; inset-inline-end: 4px; opacity: 0; transition: opacity var(--motion); z-index: 2; }
 .visual-header-btn { display: grid; place-items: center; width: 24px; height: 20px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-raised); color: var(--fg-muted); }
 .visual-header-btn:hover { color: var(--fg); background: var(--bg-hover); }
+.visual-header-btn:disabled { opacity: 0.4; pointer-events: none; }
+.visual-header-btn.is-on { color: var(--accent-text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg-raised)); }
 .visual-menu { position: absolute; top: 24px; inset-inline-end: 0; z-index: 5; min-width: 220px; padding: 4px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-overlay); box-shadow: var(--shadow); display: grid; }
 .visual-menu button { display: flex; align-items: center; gap: 8px; height: 28px; padding-inline: 8px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg); text-align: start; font-size: 12px; white-space: nowrap; }
 .visual-menu button:hover { background: var(--bg-hover); }
 .visual-menu button svg { color: var(--fg-faint); flex: none; }
 .visual-menu .is-danger { color: var(--danger); }
 .visual-menu-group { display: grid; padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+.visual-menu-label { padding: 4px 8px 2px; color: var(--fg-faint); font-size: 11px; font-weight: 600; }
+.visual-menu.point-menu { position: fixed; inset-inline-end: auto; z-index: 50; }
+.visual-menu.point-menu .visual-menu-group:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
 
 /* Moveable and Selecto, in the theme's accent. */
 .moveable-control { --moveable-color: var(--accent); }
@@ -279,3 +284,19 @@
 .focus-body.with-table { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
 .visual.is-standalone { position: relative; min-height: 0; }
 .data-table { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-raised); }
+.drill-keep { margin-bottom: 6px; font-size: var(--text-sm); }
+.drill-field-name { flex: 1; min-width: 0; padding: 6px 8px; }
+.drill-bar { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 10px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--accent) 10%, var(--bg-raised)); font-size: var(--text-sm); color: var(--fg); }
+.drill-bar-point { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-muted); }
+.drill-bar-point b { color: var(--fg-strong); font-weight: 600; }
+.bookmark-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.bookmark { display: flex; align-items: center; gap: 2px; border-radius: var(--radius-sm); }
+.bookmark:hover { background: var(--bg-hover); }
+.bookmark.is-on { background: var(--bg-active); box-shadow: inset 2px 0 0 var(--accent); }
+.bookmark-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; height: 30px; padding-inline: 8px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg); text-align: start; }
+.bookmark-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bookmark-name svg { flex: none; color: var(--fg-faint); }
+.bookmark.is-on .bookmark-name svg { color: var(--accent); }
+.bookmark .menu-trigger { height: 24px; padding-inline: 4px; opacity: 0; }
+.bookmark:hover .menu-trigger, .bookmark.is-on .menu-trigger, .bookmark:focus-within .menu-trigger { opacity: 1; }
+.bookmark-input { flex: 1; height: 28px; }

@@ -9,6 +9,10 @@ export interface Interact {
   clear(): void;
   /** Whether a point is chosen: null when nothing in this visual is. */
   chosen(tuple: (string | null)[]): boolean | null;
+  /** In drill mode: drills into a member, given its values at the levels shown. */
+  drill?(keys: (string | null)[]): void;
+  /** A point's context menu (drill through, drill down), at a pointer position. */
+  menu?(fields: Projection[], tuple: (string | null)[], at: { x: number; y: number }): void;
 }
 
 export const noInteract: Interact = { choose() {}, clear() {}, chosen: () => null };

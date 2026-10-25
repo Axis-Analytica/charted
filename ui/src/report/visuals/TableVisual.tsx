@@ -58,6 +58,15 @@ export function TableVisual({ visual, model, data, onSort, interact = noInteract
                     additive(e),
                   )
                 }
+                onContextMenu={(e) => {
+                  if (!groups.length || !interact.menu) return;
+                  e.preventDefault();
+                  interact.menu(
+                    groups.map((g) => g.p),
+                    tupleAt(r),
+                    { x: e.clientX, y: e.clientY },
+                  );
+                }}
               >
                 {cols.map((_, i) => (
                   <td key={i} className={numeric[i] ? "is-num tabular" : ""}>

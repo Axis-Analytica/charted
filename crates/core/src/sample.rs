@@ -71,6 +71,7 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
                 filters: vec![],
                 diagram: Default::default(),
                 theme: None,
+                bookmarks: Vec::new(),
             },
             ..Default::default()
         },

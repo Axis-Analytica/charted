@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
+  ArrowDown,
   ArrowDownWideNarrow,
+  ArrowUp,
   ArrowUpNarrowWide,
   Ban,
   ChevronsDownUp,
@@ -9,6 +11,9 @@ import {
   Download,
   Filter,
   Focus,
+  ChevronsDown,
+  CornerDownRight,
+  GitFork,
   Highlighter,
   ImagePlus,
   MoreHorizontal,
@@ -20,10 +25,13 @@ import { errorMessage, transport } from "../bridge";
 import type { InteractionKind } from "../bridge/generated/InteractionKind";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
+import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { msg, useLanguage, useT } from "../i18n";
 import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
+import { drillInto, drillNext, drillUp, expandDown, hierarchy, useDrillMode } from "../state/drill";
+import { drillTargets, drillThrough } from "../state/drillthrough";
 import { editVisual, isGrouping, newId, pageSettings, projectionName, useReport, visualTitle } from "../state/report";
 import { interaction, interactionKinds, isDataVisual, selectionEffect, useSelection } from "../state/selection";
 import { toast } from "../state/toasts";
@@ -56,18 +64,24 @@ interface Props {
 const CARTESIAN = ["columnChart", "barChart", "lineChart", "stackedColumnChart", "stackedBarChart"];
 
 /** The visual's own choice of points, as the renderers use it. */
-function useInteract(visual: Visual, page: Page): Interact {
+type PointMenu = { fields: Projection[]; tuple: (string | null)[]; x: number; y: number };
+
+function useInteract(visual: Visual, page: Page, onMenu: (m: PointMenu) => void): Interact {
   const selection = useSelection((s) => s.selection);
+  const drillMode = useDrillMode((s) => s.on.includes(visual.id));
+  const canDown = !!hierarchy(visual)?.canDown;
   return useMemo(() => {
     const mine = selection && selection.source === visual.id && selection.page === page.id ? selection : null;
     return {
+      drill: drillMode && canDown ? (keys) => void drillInto(page.id, visual, keys) : undefined,
+      menu: (fields, tuple, at) => onMenu({ fields, tuple, ...at }),
       choose: (fields, tuple, additive) => useSelection.getState().choose(page.id, visual.id, fields, tuple, additive),
       clear: () => {
         if (useSelection.getState().selection?.source === visual.id) useSelection.getState().clear();
       },
       chosen: (tuple) => (mine ? mine.tuples.some((t) => t.length === tuple.length && t.every((x, i) => x === tuple[i])) : null),
     };
-  }, [selection, visual.id, page.id]);
+  }, [selection, visual, page.id, drillMode, canDown, onMenu]);
 }
 
 export function VisualContainer({ visual, page, model, signature, selected, register, onPointerDown, standalone }: Props) {
@@ -79,11 +93,12 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const chosenVisuals = useReport((s) => s.selected);
   const ref = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState(false);
+  const [pointMenu, setPointMenu] = useState<PointMenu | null>(null);
   const def = visualDef(visual.visualType);
   const isTable = visual.visualType === "table";
   const decor = !!def?.decor;
   const { data, error, loading } = useVisualData(visual, page, model, signature, isTable);
-  const interact = useInteract(visual, page);
+  const interact = useInteract(visual, page, setPointMenu);
   const hasFields = Object.values(visual.roles).some((r) => r && r.length > 0);
   const o = visual.objects;
   const showTitle = prop<boolean>(o, def, "title", "show");
@@ -93,6 +108,9 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const Icon = def?.icon;
   // The source of the interactions being edited: the one selected visual.
   const source = editingInteractions && chosenVisuals.length === 1 && chosenVisuals[0] !== visual.id ? page.visuals.find((v) => v.id === chosenVisuals[0]) : undefined;
+  const drill = hierarchy(visual);
+  const drillable = !!drill && drill.fields.length > 1;
+  const drillMode = useDrillMode((s) => s.on.includes(visual.id));
   const crossFiltered = useSelection((s) => {
     const e = selectionEffect(s.selection, page, visual);
     return e.filters.length > 0;
@@ -211,12 +229,37 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
         </span>
       )}
       {source && isDataVisual(visual.visualType) && isDataVisual(source.visualType) && <InteractionPicker page={page} source={source} target={visual} />}
+      {pointMenu && <PointMenuView menu={pointMenu} visual={visual} page={page} model={model} onClose={() => setPointMenu(null)} />}
       {!standalone && (
         <div className="visual-header" onPointerDown={(e) => e.stopPropagation()}>
           {crossFiltered && (
             <span className="visual-badge" title={t("Filtered by a selection in another visual")} aria-label={t("Filtered by a selection in another visual")}>
               <Filter size={11} />
             </span>
+          )}
+          {drillable && drill && (
+            <>
+              <button type="button" className="visual-header-btn" aria-label={t("Drill up")} title={t("Drill up")} disabled={!drill.canUp} onClick={() => drillUp(page.id, visual)}>
+                <ArrowUp size={13} />
+              </button>
+              <button
+                type="button"
+                className={`visual-header-btn ${drillMode ? "is-on" : ""}`}
+                aria-label={t("Drill down mode")}
+                title={drillMode ? t("Drill down mode is on: click a data point to drill into it") : t("Turn on drill down mode")}
+                aria-pressed={drillMode}
+                disabled={!drill.canDown && !drillMode}
+                onClick={() => useDrillMode.getState().toggle(visual.id)}
+              >
+                <ArrowDown size={13} />
+              </button>
+              <button type="button" className="visual-header-btn" aria-label={t("Go to the next level in the hierarchy")} title={t("Go to the next level in the hierarchy")} disabled={!drill.canDown} onClick={() => drillNext(page.id, visual)}>
+                <ChevronsDown size={13} />
+              </button>
+              <button type="button" className="visual-header-btn" aria-label={t("Expand all down one level in the hierarchy")} title={t("Expand all down one level in the hierarchy")} disabled={!drill.canDown} onClick={() => expandDown(page.id, visual)}>
+                <GitFork size={13} />
+              </button>
+            </>
           )}
           {!decor && hasFields && (
             <button type="button" className="visual-header-btn" aria-label={t("Focus mode")} title={t("Focus mode")} onClick={() => setReport({ focus: { visual: visual.id, table: false } })}>
@@ -292,6 +335,56 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** A data point's context menu: drill through to pages set up for its fields, drill
+ * down into it, drill up. */
+function PointMenuView({ menu, visual, page, model, onClose }: { menu: PointMenu; visual: Visual; page: Page; model: Model; onClose(): void }) {
+  const { t } = useT();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus();
+    const close = (e: Event) => {
+      if (!ref.current?.contains(e.target as Node)) onClose();
+    };
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("mousedown", close, true);
+    window.addEventListener("keydown", key, true);
+    return () => {
+      window.removeEventListener("mousedown", close, true);
+      window.removeEventListener("keydown", key, true);
+    };
+  }, [onClose]);
+  const targets = drillTargets(model, page, menu.fields);
+  const h = hierarchy(visual);
+  // The point's values at the hierarchy levels shown.
+  const levelKeys = h ? h.shown.map((i) => menu.tuple[menu.fields.findIndex((f) => f === h.fields[i])] ?? null) : [];
+  const item = (label: string, run: () => void, icon?: React.ReactNode) => (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={() => {
+        onClose();
+        run();
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+  return (
+    <div ref={ref} className="visual-menu point-menu" role="menu" aria-label={t("Data point")} style={{ position: "fixed", left: menu.x, top: menu.y }} onPointerDown={(e) => e.stopPropagation()}>
+      {h && h.canDown && item(t("Drill down"), () => drillInto(page.id, visual, levelKeys), <ArrowDown size={13} />)}
+      {h && h.canUp && item(t("Drill up"), () => drillUp(page.id, visual), <ArrowUp size={13} />)}
+      {targets.length > 0 && (
+        <div className="visual-menu-group" role="group" aria-label={t("Drill through")}>
+          <div className="visual-menu-label">{t("Drill through")}</div>
+          {targets.map((p) => item(p.name, () => drillThrough(page, visual, menu.fields, menu.tuple, p), <CornerDownRight size={13} />))}
+        </div>
+      )}
+      {!targets.length && !(h && (h.canDown || h.canUp)) && <div className="visual-menu-label">{t("No drill-through pages for this data")}</div>}
     </div>
   );
 }

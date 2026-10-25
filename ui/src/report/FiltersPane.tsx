@@ -120,12 +120,57 @@ export function FiltersPane({ model, page }: { model: Model; page: Page }) {
         {visual && section("visual", t("Filters on this visual"))}
         {section("page", t("Filters on this page"))}
         {section("report", t("Filters on all pages"))}
+        {!visual && (
+          <Section
+            title={t("Drill through")}
+            onDropField={(field) => {
+              if (field.kind !== "column" || page.drillthrough?.some((p) => fieldKey(p.field) === fieldKey(field))) return;
+              edit("Add drill-through field", (m) => {
+                const p = m.report.pages.find((x) => x.id === page.id);
+                return p ? [{ op: "setPage", page: p.id, settings: { ...pageSettings(p), drillthrough: [...(p.drillthrough ?? []), { field, aggregation: null, displayName: null }] } }] : null;
+              });
+            }}
+            dropLabel={t("Add drill-through fields here")}
+          >
+            <label className="check drill-keep">
+              <input
+                type="checkbox"
+                checked={page.keepAllFilters ?? true}
+                onChange={(e) => edit("Keep all filters", (m) => {
+                  const p = m.report.pages.find((x) => x.id === page.id);
+                  return p ? [{ op: "setPage", page: p.id, settings: { ...pageSettings(p), keepAllFilters: e.target.checked } }] : null;
+                })}
+              />
+              {t("Keep all filters")}
+            </label>
+            {(page.drillthrough ?? []).map((d) => (
+              <div key={fieldKey(d.field)} className="filter-card drill-field">
+                <div className="filter-card-head">
+                  <span className="filter-card-name drill-field-name">{projectionName(model, d, t)}</span>
+                  <button
+                    type="button"
+                    className="filter-icon"
+                    aria-label={t("Remove %1", projectionName(model, d, t))}
+                    onClick={() =>
+                      edit("Remove drill-through field", (m) => {
+                        const p = m.report.pages.find((x) => x.id === page.id);
+                        return p ? [{ op: "setPage", page: p.id, settings: { ...pageSettings(p), drillthrough: (p.drillthrough ?? []).filter((x) => fieldKey(x.field) !== fieldKey(d.field)) } }] : null;
+                      })
+                    }
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </Section>
+        )}
       </div>
     </section>
   );
 }
 
-function Section({ title, children, onDropField }: { title: string; children: React.ReactNode; onDropField(f: FieldRef): void }) {
+function Section({ title, children, onDropField, dropLabel }: { title: string; children: React.ReactNode; onDropField(f: FieldRef): void; dropLabel?: string }) {
   const { t } = useT();
   const [over, setOver] = useState(false);
   return (
@@ -148,7 +193,7 @@ function Section({ title, children, onDropField }: { title: string; children: Re
           if (raw) onDropField(JSON.parse(raw) as FieldRef);
         }}
       >
-        {t("Add data fields here")}
+        {dropLabel ?? t("Add data fields here")}
       </div>
     </div>
   );

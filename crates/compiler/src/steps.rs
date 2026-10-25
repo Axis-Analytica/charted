@@ -109,11 +109,19 @@ pub enum Source {
 /// A calendar bound: an ISO date (YYYY-MM-DD).
 fn calendar_date(d: &str) -> Result<&str, StepError> {
     let ok = d.len() == 10
-        && d.char_indices().all(|(i, c)| if i == 4 || i == 7 { c == '-' } else { c.is_ascii_digit() });
+        && d.char_indices().all(|(i, c)| {
+            if i == 4 || i == 7 {
+                c == '-'
+            } else {
+                c.is_ascii_digit()
+            }
+        });
     if ok {
         Ok(d)
     } else {
-        Err(StepError::Invalid(format!("\"{d}\" isn't a date (YYYY-MM-DD)")))
+        Err(StepError::Invalid(format!(
+            "\"{d}\" isn't a date (YYYY-MM-DD)"
+        )))
     }
 }
 
@@ -550,7 +558,9 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
         } => {
             let (a, b) = (calendar_date(start)?, calendar_date(end)?);
             if a > b {
-                return Err(StepError::Invalid("the date table ends before it starts".into()));
+                return Err(StepError::Invalid(
+                    "the date table ends before it starts".into(),
+                ));
             }
             let fs = (*fiscal_start).clamp(1, 12);
             let next = if fs == 1 {
@@ -1320,29 +1330,56 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
             ));
             steps.push((
                 "To Table".into(),
-                "Table.FromList(Source, Splitter.SplitByNothing(), type table [Date = date])".into(),
+                "Table.FromList(Source, Splitter.SplitByNothing(), type table [Date = date])"
+                    .into(),
             ));
             let fs = (*fiscal_start).clamp(1, 12);
             let fiscal = if fs == 1 {
                 "\"FY\" & Text.From(Date.Year([Date]))".to_string()
             } else {
-                format!("\"FY\" & Text.From(Date.Year([Date]) + (if Date.Month([Date]) >= {fs} then 1 else 0))")
+                format!(
+                    "\"FY\" & Text.From(Date.Year([Date]) + (if Date.Month([Date]) >= {fs} then 1 else 0))"
+                )
             };
             let mut prev = "To Table".to_string();
             for (name, expr, ty) in [
                 ("Year", "Date.Year([Date])".to_string(), "Int64.Type"),
-                ("Quarter", "\"Q\" & Text.From(Date.QuarterOfYear([Date]))".into(), "type text"),
+                (
+                    "Quarter",
+                    "\"Q\" & Text.From(Date.QuarterOfYear([Date]))".into(),
+                    "type text",
+                ),
                 ("MonthNumber", "Date.Month([Date])".into(), "Int64.Type"),
-                ("MonthName", "Date.MonthName([Date], \"en-US\")".into(), "type text"),
-                ("YearMonth", "Date.ToText([Date], \"yyyy-MM\")".into(), "type text"),
-                ("Weekday", "Date.DayOfWeekName([Date], \"en-US\")".into(), "type text"),
-                ("WeekdayNumber", "Date.DayOfWeek([Date], Day.Monday) + 1".into(), "Int64.Type"),
+                (
+                    "MonthName",
+                    "Date.MonthName([Date], \"en-US\")".into(),
+                    "type text",
+                ),
+                (
+                    "YearMonth",
+                    "Date.ToText([Date], \"yyyy-MM\")".into(),
+                    "type text",
+                ),
+                (
+                    "Weekday",
+                    "Date.DayOfWeekName([Date], \"en-US\")".into(),
+                    "type text",
+                ),
+                (
+                    "WeekdayNumber",
+                    "Date.DayOfWeek([Date], Day.Monday) + 1".into(),
+                    "Int64.Type",
+                ),
                 ("FiscalYear", fiscal.clone(), "type text"),
             ] {
                 let step = format!("Added {name}");
                 steps.push((
                     step.clone(),
-                    format!("Table.AddColumn({}, {}, each {expr}, {ty})", m_ident(&prev), m_string(name)),
+                    format!(
+                        "Table.AddColumn({}, {}, each {expr}, {ty})",
+                        m_ident(&prev),
+                        m_string(name)
+                    ),
                 ));
                 prev = step;
             }

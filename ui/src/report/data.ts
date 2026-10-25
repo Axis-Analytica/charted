@@ -9,6 +9,7 @@ import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { QueryFilter } from "../bridge/generated/QueryFilter";
 import type { Visual } from "../bridge/generated/Visual";
+import { drillFilters, useDrillThrough } from "../state/drillthrough";
 import { selectionEffect, useSelection } from "../state/selection";
 
 export interface VisualData {
@@ -63,9 +64,11 @@ function pageSignature(page: Page): string {
 export function useVisualData(visual: Visual, page: Page, model: Model, signature: string, withTotals: boolean) {
   const hasFields = Object.values(visual.roles).some((r) => r && r.length > 0);
   const selection = useSelection((s) => s.selection);
-  const effect = selectionEffect(selection, page, visual);
+  const drilled = useDrillThrough((s) => drillFilters(s.current, page.id));
+  const own = selectionEffect(selection, page, visual);
+  const effect = drilled.length ? { ...own, filters: [...drilled, ...own.filters] } : own;
   const key = hasFields
-    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, pageSignature(page), model.report.filters, signature, withTotals, effect])
+    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, pageSignature(page), model.report.filters, signature, withTotals, effect])
     : "";
   const [state, setState] = useState<{ key: string; data: VisualData | null; error: string | null; loading: boolean }>({ key: "", data: null, error: null, loading: false });
 

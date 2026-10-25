@@ -523,13 +523,25 @@ impl Session {
         }
         let model = &self.project.model;
         if model.table_by_name(name).is_some()
-            || self.project.queries.iter().any(|q| q.name.eq_ignore_ascii_case(name))
+            || self
+                .project
+                .queries
+                .iter()
+                .any(|q| q.name.eq_ignore_ascii_case(name))
         {
-            return Err(CoreError::Invalid(format!("there's already a table called \"{name}\"")));
+            return Err(CoreError::Invalid(format!(
+                "there's already a table called \"{name}\""
+            )));
         }
         let base: String = name
             .chars()
-            .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+            .map(|c| {
+                if c.is_ascii_alphanumeric() {
+                    c.to_ascii_lowercase()
+                } else {
+                    '_'
+                }
+            })
             .collect();
         let mut source_table = base.clone();
         let mut k = 2;
@@ -573,7 +585,8 @@ impl Session {
             .find(|t| t.source == source_table)
             .ok_or_else(|| CoreError::Invalid("the date table didn't load".into()))?;
         let col = |n: &str| table.column_by_name(n).map(|c| c.id.clone());
-        let date = col("Date").ok_or_else(|| CoreError::Invalid("the date table has no Date column".into()))?;
+        let date = col("Date")
+            .ok_or_else(|| CoreError::Invalid("the date table has no Date column".into()))?;
         let mut changes = vec![
             Change::SetDateTable {
                 table: table.id.clone(),

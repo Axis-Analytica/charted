@@ -28,6 +28,8 @@ struct ReportFile {
     diagram: std::collections::BTreeMap<String, charted_model::DiagramPosition>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     theme: Option<charted_model::ReportTheme>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    bookmarks: Vec<charted_model::Bookmark>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -90,6 +92,7 @@ pub fn read(project_dir: &Path) -> Result<Report, ProjectError> {
         filters: file.filters,
         diagram: file.diagram,
         theme: file.theme,
+        bookmarks: file.bookmarks,
     };
     for id in file.pages.iter().filter(|id| safe(id)) {
         let pdir = dir.join("pages").join(id);
@@ -163,6 +166,7 @@ pub fn write(project_dir: &Path, report: &Report) -> Result<(), ProjectError> {
             filters: report.filters.clone(),
             diagram: report.diagram.clone(),
             theme: report.theme.clone(),
+            bookmarks: report.bookmarks.clone(),
         },
     )
 }

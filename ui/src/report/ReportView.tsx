@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Bookmark as BookmarkIcon,
   Check,
   MousePointerClick,
   Palette,
@@ -37,6 +38,9 @@ import { DataTable, VisualContainer } from "./VisualContainer";
 import { Menu } from "../kit/Menu";
 import { Button } from "../kit/Button";
 import { useSelection } from "../state/selection";
+import { drillBack, useDrillThrough } from "../state/drillthrough";
+import { BookmarksPane, useBookmarkShortcuts } from "./BookmarksPane";
+import { projectionName } from "../state/report";
 import { transport } from "../bridge";
 import { FieldsPane } from "./FieldsPane";
 import { FiltersPane } from "./FiltersPane";
@@ -212,7 +216,7 @@ export function ReportView({ model }: { model: Model }) {
   // In narrow windows (a tiled half screen) the three panes share one tabbed column.
   const body = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
-  const [paneTab, setPaneTab] = useState<"filters" | "visualizations" | "fields">("visualizations");
+  const [paneTab, setPaneTab] = useState<"bookmarks" | "filters" | "visualizations" | "fields">("visualizations");
   useEffect(() => {
     const el = body.current;
     if (!el) return;
@@ -262,6 +266,7 @@ export function ReportView({ model }: { model: Model }) {
     apply(front ? "Bring to front" : "Send to back", chosen.map((v, i) => ({ ...v, position: { ...v.position, z: edge + (front ? i : -i) } })));
   };
 
+  useBookmarkShortcuts(model);
   useShortcut(
     { id: "visual-delete", keys: "Delete", label: "Delete selected visuals", group: "Edit", run: () => page && commit("Remove visuals", useReport.getState().selected.map((id): Change => ({ op: "removeVisual", page: page.id, visual: id }))), enabled: hasSelection },
     { id: "visual-left", keys: "ArrowLeft", label: "Nudge left", group: "Edit", run: () => nudge(-1, 0), enabled: hasSelection },
@@ -326,30 +331,31 @@ export function ReportView({ model }: { model: Model }) {
         <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
         <ThemeMenu model={model} />
         <span className="status-fill" />
+        <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
         <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
       </div>
       <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
         <div className="report-center">
+          <DrillBar model={model} page={page} />
           <Canvas model={model} page={page} signature={signature} />
           {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}
           <PageTabs model={model} page={page} />
         </div>
         {compact ? (
-          (panes.filters || panes.visualizations || panes.fields) && (
+          (panes.bookmarks || panes.filters || panes.visualizations || panes.fields) && (
             <div className="pane-stack">
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
-                {(["filters", "visualizations", "fields"] as const)
-                  .filter((k) => panes[k])
-                  .map((k) => (
-                    <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === (["filters", "visualizations", "fields"] as const).find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
-                      {k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
-                    </button>
-                  ))}
+                {PANES.filter((k) => panes[k]).map((k) => (
+                  <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === PANES.find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
+                    {k === "bookmarks" ? t("Bookmarks") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
+                  </button>
+                ))}
               </div>
               {(() => {
-                const shown = panes[paneTab] ? paneTab : (["filters", "visualizations", "fields"] as const).find((x) => panes[x]);
+                const shown = panes[paneTab] ? paneTab : PANES.find((x) => panes[x]);
+                if (shown === "bookmarks") return <BookmarksPane model={model} page={page} />;
                 if (shown === "filters") return <FiltersPane model={model} page={page} />;
                 if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
                 return <FieldsPane model={model} page={page} />;
@@ -358,12 +364,41 @@ export function ReportView({ model }: { model: Model }) {
           )
         ) : (
           <>
+            {panes.bookmarks && <BookmarksPane model={model} page={page} />}
             {panes.filters && <FiltersPane model={model} page={page} />}
             {panes.visualizations && <VisualizationsPane model={model} page={page} />}
             {panes.fields && <FieldsPane model={model} page={page} />}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+const PANES = ["bookmarks", "filters", "visualizations", "fields"] as const;
+
+/** On a page drilled through to: what it shows, and the way back. Leaving the page
+ * ends the drill through. */
+function DrillBar({ model, page }: { model: Model; page: Page }) {
+  const { t } = useT();
+  const d = useDrillThrough((s) => s.current);
+  useEffect(() => {
+    const cur = useDrillThrough.getState().current;
+    if (cur && cur.target !== page.id) useDrillThrough.getState().set(null);
+  }, [page.id]);
+  if (!d || d.target !== page.id) return null;
+  const from = model.report.pages.find((p) => p.id === d.from);
+  return (
+    <div className="drill-bar" role="region" aria-label={t("Drill through")}>
+      <IconButton label={from ? t("Back to %1", from.name) : t("Back")} icon={<ArrowLeft size={15} />} onPress={drillBack} />
+      <span className="drill-bar-point">
+        {d.point.map((p, i) => (
+          <span key={i}>
+            {i > 0 && ", "}
+            {projectionName(model, p.field, t)}: <b>{p.value ?? t("(Blank)")}</b>
+          </span>
+        ))}
+      </span>
     </div>
   );
 }

@@ -204,6 +204,11 @@ export function Matrix({ visual, model, data, interact }: { visual: Visual; mode
                   className="matrix-row-head"
                   style={{ paddingInlineStart: 8 + (n.depth - 1) * 16 }}
                   onClick={(e) => interact.choose(rows.slice(0, n.depth), n.keys, additive(e))}
+                  onContextMenu={(e) => {
+                    if (!interact.menu) return;
+                    e.preventDefault();
+                    interact.menu(rows.slice(0, n.depth), n.keys, { x: e.clientX, y: e.clientY });
+                  }}
                 >
                   {hasKids ? (
                     <button

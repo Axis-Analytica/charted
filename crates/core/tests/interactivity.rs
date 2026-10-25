@@ -125,6 +125,7 @@ impl Sample {
             sort: None,
             objects: Default::default(),
             selection: None,
+            drill: Vec::new(),
         };
         let page = self.page.clone();
         self.commit(vec![Change::AddVisual {
@@ -478,4 +479,61 @@ fn themes_import_and_visual_data_exports_as_csv() {
     assert_eq!(lines[0], "Category,Total Sales");
     assert_eq!(lines.len(), 2);
     assert!(lines[1].starts_with("Camping,"));
+}
+
+#[test]
+fn drilling_a_hierarchy_shows_one_level_filtered_to_its_members() {
+    let mut s = Sample::new();
+    let (year, quarter, month) = (
+        s.col("Date", "Year"),
+        s.col("Date", "Quarter"),
+        s.col("Date", "MonthName"),
+    );
+    s.add(
+        "drill",
+        "columnChart",
+        vec![
+            (
+                "category",
+                vec![year.clone(), quarter.clone(), month.clone()],
+            ),
+            ("values", vec![s.measure("Total Sales")]),
+        ],
+    );
+    let cats = |rows: &[Row], k: &str| rows.iter().map(|r| r[k].clone()).collect::<Vec<_>>();
+    // The top level only.
+    let top = s.data("drill", vec![], vec![]);
+    assert_eq!(cats(&top, "category:0"), ["2022", "2023", "2024", "2025"]);
+    assert!(!top[0].contains_key("category:1"));
+    // Into 2024: its quarters, adding up to the year.
+    s.update("drill", |v| {
+        v.drill = vec![DrillStep::Into {
+            keys: vec![Some("2024".into())],
+        }]
+    });
+    let q = s.data("drill", vec![], vec![]);
+    let mut quarters = cats(&q, "category:1");
+    quarters.sort();
+    assert_eq!(quarters, ["Q1", "Q2", "Q3", "Q4"]);
+    let sum: f64 = q.iter().map(|r| num(r, "values:0")).sum();
+    let y2024 = top.iter().find(|r| r["category:0"] == "2024").unwrap();
+    assert!((sum - num(y2024, "values:0")).abs() < 0.01);
+    // Next level for everything: quarters of every year (summed across years).
+    s.update("drill", |v| v.drill = vec![DrillStep::Next]);
+    assert_eq!(s.data("drill", vec![], vec![]).len(), 4);
+    // Expand all down: year and quarter together.
+    s.update("drill", |v| v.drill = vec![DrillStep::Expand]);
+    let e = s.data("drill", vec![], vec![]);
+    assert_eq!(e.len(), 16);
+    assert!(e[0].contains_key("category:0") && e[0].contains_key("key:category:1"));
+    // Then into "2025 Q3": its months.
+    s.update("drill", |v| {
+        v.drill.push(DrillStep::Into {
+            keys: vec![Some("2025".into()), Some("Q3".into())],
+        })
+    });
+    assert_eq!(
+        cats(&s.data("drill", vec![], vec![]), "category:2"),
+        ["July", "August", "September"]
+    );
 }

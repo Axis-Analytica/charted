@@ -26,6 +26,42 @@ pub struct Report {
     /// The report theme; `None` follows the Omarchy desktop theme live.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub theme: Option<ReportTheme>,
+    /// Saved views of the report, in order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub bookmarks: Vec<Bookmark>,
+}
+
+/// A saved view: a page with the report's and the page's filters, and each visual's
+/// filters, slicer choice, sort and drill state, as they were.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Bookmark {
+    pub id: Id,
+    pub name: String,
+    pub page: Id,
+    #[serde(default)]
+    pub report_filters: Vec<ReportFilter>,
+    #[serde(default)]
+    pub page_filters: Vec<ReportFilter>,
+    /// The state of each visual on the page, by visual id.
+    #[serde(default)]
+    pub visuals: std::collections::BTreeMap<Id, VisualState>,
+}
+
+/// The parts of a visual a bookmark keeps.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct VisualState {
+    #[serde(default)]
+    pub filters: Vec<ReportFilter>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection: Option<FilterKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sort: Option<VisualSort>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub drill: Vec<DrillStep>,
 }
 
 /// A report theme in Power BI's theme JSON format (`name`, `dataColors`, `background`,
@@ -73,6 +109,22 @@ pub struct PageSettings {
     /// How selecting in one visual affects another, where it differs from the default.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub interactions: Vec<Interaction>,
+    /// Drill-through fields: other pages' data points with these fields can drill
+    /// through to this page, which then shows them filtered to the point.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub drillthrough: Vec<Projection>,
+    /// Drilling through also brings the source visual's other filters (its page's
+    /// filters and slicers, and the point's other fields).
+    #[serde(default = "yes", skip_serializing_if = "is_true")]
+    pub keep_all_filters: bool,
+}
+
+fn yes() -> bool {
+    true
+}
+
+fn is_true(b: &bool) -> bool {
+    *b
 }
 
 /// What a selection in `source` does to `target`.
@@ -110,6 +162,8 @@ impl PageSettings {
             height: default_height(),
             filters: Vec::new(),
             interactions: Vec::new(),
+            drillthrough: Vec::new(),
+            keep_all_filters: true,
         }
     }
 }
@@ -148,6 +202,63 @@ pub struct Visual {
     /// A slicer's current choice, which filters the other visuals on its page.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selection: Option<FilterKind>,
+    /// How far the visual is drilled down its hierarchy (the fields of its axis or
+    /// legend), one step per level below the top.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub drill: Vec<DrillStep>,
+}
+
+/// One level of drilling down a visual's hierarchy.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+#[ts(export)]
+pub enum DrillStep {
+    /// Into one member: the next level, filtered to it. `keys` are the member's values
+    /// (as text, none for blank) at the levels shown, the last at this level.
+    Into { keys: Vec<Option<String>> },
+    /// Go to the next level: the next level for every member.
+    Next,
+    /// Expand all down one level: this level and the next, together.
+    Expand,
+}
+
+/// The role whose fields form a visual type's drillable hierarchy.
+pub fn drill_role(visual_type: &str) -> Option<&'static str> {
+    match visual_type {
+        "columnChart" | "barChart" | "stackedColumnChart" | "stackedBarChart" | "lineChart" => {
+            Some("category")
+        }
+        "pieChart" | "donutChart" => Some("legend"),
+        _ => None,
+    }
+}
+
+impl Visual {
+    /// The levels of the drill hierarchy shown (`start..=depth`), and the members
+    /// drilled into above them (level, key). `levels` is the hierarchy's field count.
+    pub fn drill_levels(&self, levels: usize) -> (usize, usize, Vec<(usize, Option<String>)>) {
+        let mut start = 0;
+        let mut into = Vec::new();
+        let steps = &self.drill[..self.drill.len().min(levels.saturating_sub(1))];
+        for (i, s) in steps.iter().enumerate() {
+            match s {
+                DrillStep::Into { keys } => {
+                    let first = (i + 1).saturating_sub(keys.len());
+                    for (j, k) in keys.iter().enumerate() {
+                        into.push((first + j, k.clone()));
+                    }
+                    start = i + 1;
+                }
+                DrillStep::Next => start = i + 1,
+                DrillStep::Expand => {}
+            }
+        }
+        (start, steps.len(), into)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -371,5 +482,67 @@ impl Visual {
         self.roles
             .iter()
             .flat_map(|(r, ps)| ps.iter().map(move |p| (r.as_str(), p)))
+    }
+}
+
+#[cfg(test)]
+mod drill_tests {
+    use super::*;
+
+    fn visual(drill: Vec<DrillStep>) -> Visual {
+        Visual {
+            id: "v".into(),
+            visual_type: "columnChart".into(),
+            position: Position {
+                x: 0.0,
+                y: 0.0,
+                width: 1.0,
+                height: 1.0,
+                z: 0,
+            },
+            roles: Default::default(),
+            filters: vec![],
+            sort: None,
+            objects: Default::default(),
+            selection: None,
+            drill,
+        }
+    }
+
+    #[test]
+    fn drill_levels_follow_the_steps() {
+        let k = |s: &str| Some(s.to_string());
+        assert_eq!(visual(vec![]).drill_levels(3), (0, 0, vec![]));
+        assert_eq!(
+            visual(vec![DrillStep::Into {
+                keys: vec![k("2024")]
+            }])
+            .drill_levels(3),
+            (1, 1, vec![(0, k("2024"))])
+        );
+        assert_eq!(
+            visual(vec![DrillStep::Next]).drill_levels(3),
+            (1, 1, vec![])
+        );
+        assert_eq!(
+            visual(vec![DrillStep::Expand]).drill_levels(3),
+            (0, 1, vec![])
+        );
+        // Expanded, then into "2024 Q1": both levels filtered.
+        assert_eq!(
+            visual(vec![
+                DrillStep::Expand,
+                DrillStep::Into {
+                    keys: vec![k("2024"), k("Q1")]
+                }
+            ])
+            .drill_levels(3),
+            (2, 2, vec![(0, k("2024")), (1, k("Q1"))])
+        );
+        // Steps past the last level are ignored.
+        assert_eq!(
+            visual(vec![DrillStep::Next, DrillStep::Next]).drill_levels(2),
+            (1, 1, vec![])
+        );
     }
 }
