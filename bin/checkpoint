@@ -1,0 +1,34 @@
+#!/bin/bash
+# bin/checkpoint mN — prepares a milestone review: builds charted, creates a fresh
+# sample project, captures screenshots into ~/Work/charted-checkpoints/mN/, then opens
+# the app with the sample so the demo in docs/demos/mN.md can be followed live.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+m="${1:?usage: bin/checkpoint m0}"
+out="$HOME/Work/charted-checkpoints/$m"
+mkdir -p "$out"
+case "$(stat -f -c %T .)" in
+  ext2/ext3|ext4|btrfs|xfs|tmpfs|zfs|f2fs) ;;
+  *) export CHARTED_POLL=1 ;;
+esac
+cargo build -q -p charted -p charted-cli
+demo="$HOME/Work/charted-checkpoints/Harbor & Pine"
+rm -rf "$demo"
+./target/debug/charted-headless sample create "$demo"
+
+# Browser screenshots of the scripted flows (Chromium against the real core).
+(cd ui && CHARTED_SHOTS="$out" CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium || true)}" pnpm exec playwright test "e2e/$m.spec.ts") || true
+
+# Real-window screenshots (WebKitGTK), using the live Omarchy theme.
+(cd ui && exec pnpm exec vite --port 1420 --strictPort >/dev/null 2>&1) &
+VITE=$!
+trap 'kill $VITE 2>/dev/null' EXIT
+for _ in $(seq 1 40); do curl -s -o /dev/null localhost:1420/ && break; sleep 0.25; done
+curl -s -o /dev/null localhost:1420/src/main.tsx
+CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open --screenshot "$out/$m-window-welcome.png" >/dev/null
+CHARTED_SCREENSHOT_DELAY_MS=7000 ./target/debug/charted open "$demo" --screenshot "$out/$m-window-project.png" >/dev/null
+echo "Screenshots: $out"
+[ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
+echo "Opening charted with the sample. Follow docs/demos/$m.md."
+./target/debug/charted open "$demo"

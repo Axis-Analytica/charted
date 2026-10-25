@@ -12,10 +12,12 @@
 //!   back unchanged.
 
 use charted_model::*;
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 
 use crate::document::{self as doc, Document, Expression, SPEC_VERSION};
-use crate::stash::{self, StashError, CHARTED, CHARTED_STASH_VERSION, POWER_BI, POWER_BI_STASH_VERSION};
+use crate::stash::{
+    self, CHARTED, CHARTED_STASH_VERSION, POWER_BI, POWER_BI_STASH_VERSION, StashError,
+};
 
 pub const DAX: &str = "DAX";
 pub const ANSI_SQL: &str = "ANSI_SQL";
@@ -64,26 +66,52 @@ pub fn to_document(model: &Model, generated: &GeneratedDialects) -> Document {
         name: model.name.clone(),
         description: model.description.clone(),
         ai_context: model.extras.get(X_AI_CONTEXT).cloned(),
-        datasets: model.tables.iter().map(|t| write_table(model, t, generated)).collect(),
-        relationships: model.relationships.iter().filter_map(|r| write_relationship(model, r)).collect(),
+        datasets: model
+            .tables
+            .iter()
+            .map(|t| write_table(model, t, generated))
+            .collect(),
+        relationships: model
+            .relationships
+            .iter()
+            .filter_map(|r| write_relationship(model, r))
+            .collect(),
         metrics: model
             .tables
             .iter()
-            .flat_map(|t| t.measures.iter().map(move |m| write_measure(t, m, generated)))
+            .flat_map(|t| {
+                t.measures
+                    .iter()
+                    .map(move |m| write_measure(t, m, generated))
+            })
             .collect(),
         custom_extensions: Vec::new(),
         unknown: unknown_of(&model.extras),
     };
-    finish_extensions(&mut d.custom_extensions, &model.extras, Map::new(), Map::new());
+    finish_extensions(
+        &mut d.custom_extensions,
+        &model.extras,
+        Map::new(),
+        Map::new(),
+    );
     d
 }
 
 fn unknown_of(extras: &Extras) -> doc::Unknown {
-    extras.get(X_UNKNOWN).and_then(|v| v.as_object()).map(|m| m.clone().into_iter().collect()).unwrap_or_default()
+    extras
+        .get(X_UNKNOWN)
+        .and_then(|v| v.as_object())
+        .map(|m| m.clone().into_iter().collect())
+        .unwrap_or_default()
 }
 
 /// Writes POWER_BI and CHARTED blobs (merging preserved unknown keys) and foreign extensions.
-fn finish_extensions(exts: &mut Vec<doc::CustomExtension>, extras: &Extras, mut powerbi: Map<String, Value>, mut charted: Map<String, Value>) {
+fn finish_extensions(
+    exts: &mut Vec<doc::CustomExtension>,
+    extras: &Extras,
+    mut powerbi: Map<String, Value>,
+    mut charted: Map<String, Value>,
+) {
     if let Some(Value::Object(preserved)) = extras.get(X_POWERBI) {
         for (k, v) in preserved {
             powerbi.entry(k.clone()).or_insert_with(|| v.clone());
@@ -105,19 +133,27 @@ fn finish_extensions(exts: &mut Vec<doc::CustomExtension>, extras: &Extras, mut 
     stash::write(exts, CHARTED, CHARTED_STASH_VERSION, charted);
 }
 
-fn expression(primary: (&str, &str), id: &str, extras: &Extras, generated: &GeneratedDialects) -> Expression {
+fn expression(
+    primary: (&str, &str),
+    id: &str,
+    extras: &Extras,
+    generated: &GeneratedDialects,
+) -> Expression {
     let mut e = Expression::single(primary.0, primary.1);
     for (dialect, text) in generated.get(id).into_iter().flatten() {
         if e.get(dialect).is_none() {
-            e.dialects.push(doc::DialectExpression { dialect: dialect.clone(), expression: text.clone() });
+            e.dialects.push(doc::DialectExpression {
+                dialect: dialect.clone(),
+                expression: text.clone(),
+            });
         }
     }
     if let Some(Value::Array(others)) = extras.get(X_DIALECTS) {
         for o in others {
-            if let Ok(o) = serde_json::from_value::<doc::DialectExpression>(o.clone()) {
-                if e.get(&o.dialect).is_none() {
-                    e.dialects.push(o);
-                }
+            if let Ok(o) = serde_json::from_value::<doc::DialectExpression>(o.clone())
+                && e.get(&o.dialect).is_none()
+            {
+                e.dialects.push(o);
             }
         }
     }
@@ -127,19 +163,27 @@ fn expression(primary: (&str, &str), id: &str, extras: &Extras, generated: &Gene
 /// Records which dialects were generated, so readers regenerate rather than preserve them.
 fn mark_generated(charted: &mut Map<String, Value>, id: &str, generated: &GeneratedDialects) {
     if let Some(list) = generated.get(id).filter(|l| !l.is_empty()) {
-        charted.insert("generated".into(), Value::Array(list.iter().map(|(d, _)| Value::from(d.clone())).collect()));
+        charted.insert(
+            "generated".into(),
+            Value::Array(list.iter().map(|(d, _)| Value::from(d.clone())).collect()),
+        );
     }
 }
 
 fn is_plain_identifier(s: &str) -> bool {
     let mut chars = s.chars();
-    matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_') && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+    matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 /// The ANSI SQL expression for a physical column: bare when possible (the converter maps
 /// a bare identifier straight to a TMSL `sourceColumn`), double-quoted otherwise.
 fn column_reference(name: &str) -> String {
-    if is_plain_identifier(name) { name.to_string() } else { format!("\"{}\"", name.replace('"', "\"\"")) }
+    if is_plain_identifier(name) {
+        name.to_string()
+    } else {
+        format!("\"{}\"", name.replace('"', "\"\""))
+    }
 }
 
 fn datatype(t: DataType) -> Option<&'static str> {
@@ -189,7 +233,12 @@ fn write_table(model: &Model, t: &Table, generated: &GeneratedDialects) -> doc::
     let mut d = doc::Dataset {
         name: t.name.clone(),
         source: t.source.clone(),
-        primary_key: t.columns.iter().filter(|c| c.is_key).map(|c| c.name.clone()).collect(),
+        primary_key: t
+            .columns
+            .iter()
+            .filter(|c| c.is_key)
+            .map(|c| c.name.clone())
+            .collect(),
         unique_keys: t
             .extras
             .get(X_UNIQUE_KEYS)
@@ -197,7 +246,11 @@ fn write_table(model: &Model, t: &Table, generated: &GeneratedDialects) -> doc::
             .unwrap_or_default(),
         description: t.description.clone(),
         ai_context: t.extras.get(X_AI_CONTEXT).cloned(),
-        fields: t.columns.iter().map(|c| write_column(t, c, generated)).collect(),
+        fields: t
+            .columns
+            .iter()
+            .map(|c| write_column(t, c, generated))
+            .collect(),
         metrics: Vec::new(),
         custom_extensions: Vec::new(),
         unknown: unknown_of(&t.extras),
@@ -231,9 +284,17 @@ fn write_column(t: &Table, c: &Column, generated: &GeneratedDialects) -> doc::Fi
                 // source when it differs from the column's display name.
                 pb.insert("sourceColumn".into(), source_column.clone().into());
             }
-            expression((ANSI_SQL, &column_reference(source_column)), &c.id, &c.extras, generated)
+            expression(
+                (ANSI_SQL, &column_reference(source_column)),
+                &c.id,
+                &c.extras,
+                generated,
+            )
         }
-        ColumnKind::Calculated { expression: e, language } => match language {
+        ColumnKind::Calculated {
+            expression: e,
+            language,
+        } => match language {
             ExpressionLanguage::Dax => expression((DAX, e), &c.id, &c.extras, generated),
             ExpressionLanguage::Sql => {
                 ch.insert("expressionLanguage".into(), "sql".into());
@@ -246,8 +307,15 @@ fn write_column(t: &Table, c: &Column, generated: &GeneratedDialects) -> doc::Fi
     let mut f = doc::Field {
         name: c.name.clone(),
         expression: expr,
-        dimension: is_time.map(|v| doc::Dimension { is_time: Some(v), unknown: Default::default() }),
-        label: c.extras.get(X_LABEL).and_then(|v| v.as_str()).map(str::to_string),
+        dimension: is_time.map(|v| doc::Dimension {
+            is_time: Some(v),
+            unknown: Default::default(),
+        }),
+        label: c
+            .extras
+            .get(X_LABEL)
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
         description: c.description.clone(),
         datatype: datatype(c.data_type).map(str::to_string),
         ai_context: c.extras.get(X_AI_CONTEXT).cloned(),
@@ -280,7 +348,11 @@ fn write_measure(t: &Table, m: &Measure, generated: &GeneratedDialects) -> doc::
         name: m.name.clone(),
         expression: expr,
         description: m.description.clone(),
-        datatype: m.extras.get("ossie.datatype").and_then(|v| v.as_str()).map(str::to_string),
+        datatype: m
+            .extras
+            .get("ossie.datatype")
+            .and_then(|v| v.as_str())
+            .map(str::to_string),
         ai_context: m.extras.get(X_AI_CONTEXT).cloned(),
         custom_extensions: Vec::new(),
         unknown: unknown_of(&m.extras),
@@ -311,10 +383,16 @@ fn write_relationship(model: &Model, r: &Relationship) -> Option<doc::Relationsh
     ch.insert("id".into(), r.id.clone().into());
     if !pb.is_empty() {
         // Lets the converter detect stale metadata if endpoints are edited by hand.
-        pb.insert("normalizedEndpoints".into(), json!([from.name, from_col.name, to.name, to_col.name]));
+        pb.insert(
+            "normalizedEndpoints".into(),
+            json!([from.name, from_col.name, to.name, to_col.name]),
+        );
     }
     let mut out = doc::Relationship {
-        name: format!("{}_{}_to_{}_{}", from.name, from_col.name, to.name, to_col.name),
+        name: format!(
+            "{}_{}_to_{}_{}",
+            from.name, from_col.name, to.name, to_col.name
+        ),
         from: from.name.clone(),
         to: to.name.clone(),
         from_columns: vec![from_col.name.clone()],
@@ -344,7 +422,14 @@ fn derived_id(kind: &str, path: &str) -> String {
     };
     let a = fnv(0xcbf29ce484222325);
     let b = fnv(0x84222325cbf29ce4);
-    format!("{:08x}-{:04x}-{:04x}-{:04x}-{:012x}", a >> 32, (a >> 16) & 0xffff, a & 0xffff, b >> 48, b & 0xffff_ffff_ffff)
+    format!(
+        "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
+        a >> 32,
+        (a >> 16) & 0xffff,
+        a & 0xffff,
+        b >> 48,
+        b & 0xffff_ffff_ffff
+    )
 }
 
 struct Reader {
@@ -353,7 +438,10 @@ struct Reader {
 
 impl Reader {
     fn warn(&mut self, scope: impl Into<String>, message: impl Into<String>) {
-        self.warnings.push(Warning { scope: scope.into(), message: message.into() });
+        self.warnings.push(Warning {
+            scope: scope.into(),
+            message: message.into(),
+        });
     }
 }
 
@@ -397,10 +485,16 @@ fn collect_extras(
         extras.insert(X_AI_CONTEXT.into(), ai.clone());
     }
     if !unknown.is_empty() {
-        extras.insert(X_UNKNOWN.into(), Value::Object(unknown.clone().into_iter().collect()));
+        extras.insert(
+            X_UNKNOWN.into(),
+            Value::Object(unknown.clone().into_iter().collect()),
+        );
     }
     if !other_dialects.is_empty() {
-        extras.insert(X_DIALECTS.into(), serde_json::to_value(other_dialects).unwrap());
+        extras.insert(
+            X_DIALECTS.into(),
+            serde_json::to_value(other_dialects).unwrap(),
+        );
     }
     if !powerbi_left.is_empty() {
         extras.insert(X_POWERBI.into(), Value::Object(powerbi_left));
@@ -461,7 +555,11 @@ fn split_expression<'a>(
         .dialects
         .iter()
         .find(|d| d.dialect == DAX)
-        .or_else(|| e.dialects.iter().find(|d| d.dialect == ANSI_SQL || d.dialect == OSSIE_SQL))
+        .or_else(|| {
+            e.dialects
+                .iter()
+                .find(|d| d.dialect == ANSI_SQL || d.dialect == OSSIE_SQL)
+        })
         .or_else(|| e.dialects.first());
     let others = e
         .dialects
@@ -470,12 +568,18 @@ fn split_expression<'a>(
         // Dialects charted generated are regenerated on save, not preserved.
         .filter(|d| !generated_keys.contains(&d.dialect))
         .collect();
-    (primary.map(|p| (p.dialect.as_str(), p.expression.as_str())), others)
+    (
+        primary.map(|p| (p.dialect.as_str(), p.expression.as_str())),
+        others,
+    )
 }
 
 fn generated_dialects(charted: &mut Map<String, Value>) -> Vec<String> {
     match charted.remove("generated") {
-        Some(Value::Array(items)) => items.into_iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
+        Some(Value::Array(items)) => items
+            .into_iter()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect(),
         _ => Vec::new(),
     }
 }
@@ -486,8 +590,14 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
     if d.version != SPEC_VERSION {
         return Err(MapError::Version(d.version.clone()));
     }
-    let mut r = Reader { warnings: Vec::new() };
-    let mut model = Model { name: d.name.clone(), description: d.description.clone(), ..Default::default() };
+    let mut r = Reader {
+        warnings: Vec::new(),
+    };
+    let mut model = Model {
+        name: d.name.clone(),
+        description: d.description.clone(),
+        ..Default::default()
+    };
 
     for ds in &d.datasets {
         let mut pb = stash::read(&ds.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
@@ -523,27 +633,49 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             let sql_language = fch.remove("expressionLanguage").is_some_and(|v| v == "sql");
             let source_override = take_str(&mut fpb, "sourceColumn");
             let kind = match primary {
-                Some((DAX, e)) => ColumnKind::Calculated { expression: e.to_string(), language: ExpressionLanguage::Dax },
-                Some((dialect, e)) if dialect == ANSI_SQL && !sql_language => match parse_column_reference(e) {
-                    Some(col) => ColumnKind::Data { source_column: source_override.clone().unwrap_or(col) },
-                    None => ColumnKind::Calculated { expression: e.to_string(), language: ExpressionLanguage::Sql },
+                Some((DAX, e)) => ColumnKind::Calculated {
+                    expression: e.to_string(),
+                    language: ExpressionLanguage::Dax,
                 },
+                Some((dialect, e)) if dialect == ANSI_SQL && !sql_language => {
+                    match parse_column_reference(e) {
+                        Some(col) => ColumnKind::Data {
+                            source_column: source_override.clone().unwrap_or(col),
+                        },
+                        None => ColumnKind::Calculated {
+                            expression: e.to_string(),
+                            language: ExpressionLanguage::Sql,
+                        },
+                    }
+                }
                 Some((dialect, e)) => {
                     if dialect != ANSI_SQL && dialect != OSSIE_SQL {
-                        r.warn(&scope, format!("expression is in {dialect}, which charted cannot evaluate"));
+                        r.warn(
+                            &scope,
+                            format!("expression is in {dialect}, which charted cannot evaluate"),
+                        );
                     }
-                    ColumnKind::Calculated { expression: e.to_string(), language: ExpressionLanguage::Sql }
+                    ColumnKind::Calculated {
+                        expression: e.to_string(),
+                        language: ExpressionLanguage::Sql,
+                    }
                 }
                 None => {
-                    r.warn(&scope, "field has no expression; treated as a column of the same name");
-                    ColumnKind::Data { source_column: f.name.clone() }
+                    r.warn(
+                        &scope,
+                        "field has no expression; treated as a column of the same name",
+                    );
+                    ColumnKind::Data {
+                        source_column: f.name.clone(),
+                    }
                 }
             };
             if let Some(name) = take_str(&mut fpb, "sortByColumn") {
                 sort_by_names.push((table.columns.len(), name));
             }
             let mut column = Column {
-                id: take_str(&mut fpb, "lineageTag").unwrap_or_else(|| derived_id("column", &format!("{}.{}", ds.name, f.name))),
+                id: take_str(&mut fpb, "lineageTag")
+                    .unwrap_or_else(|| derived_id("column", &format!("{}.{}", ds.name, f.name))),
                 name: f.name.clone(),
                 data_type: parse_datatype(f.datatype.as_deref()),
                 kind,
@@ -554,34 +686,59 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
                 sort_by: None,
                 display_folder: take_str(&mut fpb, "displayFolder"),
                 hidden: take_bool(&mut fpb, "isHidden").unwrap_or(false),
-                is_key: take_bool(&mut fpb, "isKey").unwrap_or(false) || ds.primary_key.len() == 1 && ds.primary_key[0] == f.name,
+                is_key: take_bool(&mut fpb, "isKey").unwrap_or(false)
+                    || ds.primary_key.len() == 1 && ds.primary_key[0] == f.name,
                 extras: Extras::new(),
             };
-            if let Some(dim) = &f.dimension {
-                if let Some(t) = dim.is_time {
-                    column.extras.insert(X_IS_TIME.into(), t.into());
-                }
+            if let Some(t) = f.dimension.as_ref().and_then(|d| d.is_time) {
+                column.extras.insert(X_IS_TIME.into(), t.into());
             }
             if let Some(label) = &f.label {
                 column.extras.insert(X_LABEL.into(), label.clone().into());
             }
-            collect_extras(&mut column.extras, &f.custom_extensions, f.ai_context.as_ref(), &f.unknown, others, fpb, fch);
+            collect_extras(
+                &mut column.extras,
+                &f.custom_extensions,
+                f.ai_context.as_ref(),
+                &f.unknown,
+                others,
+                fpb,
+                fch,
+            );
             table.columns.push(column);
         }
         for (i, name) in sort_by_names {
             match table.column_by_name(&name).map(|c| c.id.clone()) {
                 Some(id) => table.columns[i].sort_by = Some(id),
-                None => r.warn(format!("table {}", ds.name), format!("sort-by column \"{name}\" does not exist")),
+                None => r.warn(
+                    format!("table {}", ds.name),
+                    format!("sort-by column \"{name}\" does not exist"),
+                ),
             }
         }
         if ds.primary_key.len() > 1 {
-            r.warn(format!("table {}", ds.name), "composite primary keys are kept but not used by charted");
-            table.extras.insert("ossie.primaryKey".into(), json!(ds.primary_key));
+            r.warn(
+                format!("table {}", ds.name),
+                "composite primary keys are kept but not used by charted",
+            );
+            table
+                .extras
+                .insert("ossie.primaryKey".into(), json!(ds.primary_key));
         }
         if !ds.unique_keys.is_empty() {
-            table.extras.insert(X_UNIQUE_KEYS.into(), json!(ds.unique_keys));
+            table
+                .extras
+                .insert(X_UNIQUE_KEYS.into(), json!(ds.unique_keys));
         }
-        collect_extras(&mut table.extras, &ds.custom_extensions, ds.ai_context.as_ref(), &ds.unknown, Vec::new(), pb, ch);
+        collect_extras(
+            &mut table.extras,
+            &ds.custom_extensions,
+            ds.ai_context.as_ref(),
+            &ds.unknown,
+            Vec::new(),
+            pb,
+            ch,
+        );
         for m in &ds.metrics {
             let measure = read_metric(&mut r, m, Some(&ds.name))?;
             table.measures.push(measure.1);
@@ -593,44 +750,75 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
         let (home, measure) = read_metric(&mut r, m, None)?;
         let index = home
             .as_deref()
-            .and_then(|h| model.tables.iter().position(|t| t.name.eq_ignore_ascii_case(h)))
+            .and_then(|h| {
+                model
+                    .tables
+                    .iter()
+                    .position(|t| t.name.eq_ignore_ascii_case(h))
+            })
             .unwrap_or_else(|| {
-                r.warn(format!("metric {}", m.name), "no home table recorded; placed on the first table");
+                r.warn(
+                    format!("metric {}", m.name),
+                    "no home table recorded; placed on the first table",
+                );
                 0
             });
         match model.tables.get_mut(index) {
             Some(t) => t.measures.push(measure),
-            None => r.warn(format!("metric {}", m.name), "the model has no tables to hold this measure"),
+            None => r.warn(
+                format!("metric {}", m.name),
+                "the model has no tables to hold this measure",
+            ),
         }
     }
 
     for rel in &d.relationships {
         let scope = format!("relationship {}", rel.name);
         if rel.from_columns.len() != 1 || rel.to_columns.len() != 1 {
-            r.warn(&scope, "composite relationships are not supported yet and were skipped");
+            r.warn(
+                &scope,
+                "composite relationships are not supported yet and were skipped",
+            );
             continue;
         }
-        let ends = model.table_by_name(&rel.from).zip(model.table_by_name(&rel.to)).and_then(|(f, t)| {
-            Some((
-                f.id.clone(),
-                f.column_by_name(&rel.from_columns[0])?.id.clone(),
-                t.id.clone(),
-                t.column_by_name(&rel.to_columns[0])?.id.clone(),
-            ))
-        });
+        let ends = model
+            .table_by_name(&rel.from)
+            .zip(model.table_by_name(&rel.to))
+            .and_then(|(f, t)| {
+                Some((
+                    f.id.clone(),
+                    f.column_by_name(&rel.from_columns[0])?.id.clone(),
+                    t.id.clone(),
+                    t.column_by_name(&rel.to_columns[0])?.id.clone(),
+                ))
+            });
         let Some((from_table, from_column, to_table, to_column)) = ends else {
-            r.warn(&scope, "it refers to tables or columns that do not exist; skipped");
+            r.warn(
+                &scope,
+                "it refers to tables or columns that do not exist; skipped",
+            );
             continue;
         };
         let mut pb = stash::read(&rel.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
         let mut ch = stash::read(&rel.custom_extensions, CHARTED, CHARTED_STASH_VERSION)?;
         let current_ends = json!([rel.from, rel.from_columns[0], rel.to, rel.to_columns[0]]);
-        let stale = pb.get("normalizedEndpoints").is_some_and(|e| e != &current_ends);
+        let stale = pb
+            .get("normalizedEndpoints")
+            .is_some_and(|e| e != &current_ends);
         pb.remove("normalizedEndpoints");
         pb.remove("name");
         if stale {
-            r.warn(&scope, "its Power BI metadata describes different columns and was ignored");
-            for k in ["fromCardinality", "toCardinality", "crossFilteringBehavior", "isActive", "relyOnReferentialIntegrity"] {
+            r.warn(
+                &scope,
+                "its Power BI metadata describes different columns and was ignored",
+            );
+            for k in [
+                "fromCardinality",
+                "toCardinality",
+                "crossFilteringBehavior",
+                "isActive",
+                "relyOnReferentialIntegrity",
+            ] {
                 pb.remove(k);
             }
         }
@@ -655,17 +843,37 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             extras: Extras::new(),
         };
         let mut rel_out = relationship;
-        collect_extras(&mut rel_out.extras, &rel.custom_extensions, rel.ai_context.as_ref(), &rel.unknown, Vec::new(), pb, ch);
+        collect_extras(
+            &mut rel_out.extras,
+            &rel.custom_extensions,
+            rel.ai_context.as_ref(),
+            &rel.unknown,
+            Vec::new(),
+            pb,
+            ch,
+        );
         model.relationships.push(rel_out);
     }
 
     let pb = stash::read(&d.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
     let ch = stash::read(&d.custom_extensions, CHARTED, CHARTED_STASH_VERSION)?;
-    collect_extras(&mut model.extras, &d.custom_extensions, d.ai_context.as_ref(), &d.unknown, Vec::new(), pb, ch);
+    collect_extras(
+        &mut model.extras,
+        &d.custom_extensions,
+        d.ai_context.as_ref(),
+        &d.unknown,
+        Vec::new(),
+        pb,
+        ch,
+    );
     Ok((model, r.warnings))
 }
 
-fn read_metric(r: &mut Reader, m: &doc::Metric, dataset: Option<&str>) -> Result<(Option<String>, Measure), MapError> {
+fn read_metric(
+    r: &mut Reader,
+    m: &doc::Metric,
+    dataset: Option<&str>,
+) -> Result<(Option<String>, Measure), MapError> {
     let mut pb = stash::read(&m.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
     let mut ch = stash::read(&m.custom_extensions, CHARTED, CHARTED_STASH_VERSION)?;
     let generated = generated_dialects(&mut ch);
@@ -677,14 +885,27 @@ fn read_metric(r: &mut Reader, m: &doc::Metric, dataset: Option<&str>) -> Result
         Some((DAX, e)) if !sql => (e.to_string(), ExpressionLanguage::Dax),
         Some((dialect, e)) => {
             if dialect != ANSI_SQL && dialect != OSSIE_SQL && dialect != DAX {
-                r.warn(format!("metric {}", m.name), format!("expression is in {dialect}, which charted cannot evaluate"));
+                r.warn(
+                    format!("metric {}", m.name),
+                    format!("expression is in {dialect}, which charted cannot evaluate"),
+                );
             }
             (e.to_string(), ExpressionLanguage::Sql)
         }
-        None => return Err(MapError::Invalid(format!("metric {} has no expression", m.name))),
+        None => {
+            return Err(MapError::Invalid(format!(
+                "metric {} has no expression",
+                m.name
+            )));
+        }
     };
     let mut measure = Measure {
-        id: take_str(&mut pb, "lineageTag").unwrap_or_else(|| derived_id("measure", &format!("{}.{}", home.clone().unwrap_or_default(), name))),
+        id: take_str(&mut pb, "lineageTag").unwrap_or_else(|| {
+            derived_id(
+                "measure",
+                &format!("{}.{}", home.clone().unwrap_or_default(), name),
+            )
+        }),
         name,
         expression,
         language,
@@ -695,8 +916,18 @@ fn read_metric(r: &mut Reader, m: &doc::Metric, dataset: Option<&str>) -> Result
         extras: Extras::new(),
     };
     if let Some(dt) = &m.datatype {
-        measure.extras.insert("ossie.datatype".into(), dt.clone().into());
+        measure
+            .extras
+            .insert("ossie.datatype".into(), dt.clone().into());
     }
-    collect_extras(&mut measure.extras, &m.custom_extensions, m.ai_context.as_ref(), &m.unknown, others, pb, ch);
+    collect_extras(
+        &mut measure.extras,
+        &m.custom_extensions,
+        m.ai_context.as_ref(),
+        &m.unknown,
+        others,
+        pb,
+        ch,
+    );
     Ok((home, measure))
 }

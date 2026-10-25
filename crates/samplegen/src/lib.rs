@@ -18,7 +18,7 @@
 mod calendar;
 mod names;
 
-use duckdb::{params, Connection};
+use duckdb::{Connection, params};
 use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use std::path::{Path, PathBuf};
@@ -60,7 +60,10 @@ pub enum SampleError {
     #[error("DuckDB error while generating the sample: {0}")]
     Db(#[from] duckdb::Error),
     #[error("could not create {path}: {source}")]
-    Io { path: PathBuf, source: std::io::Error },
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
 }
 
 /// One generated data file.
@@ -78,7 +81,10 @@ const SEED: u64 = 42;
 /// Writes the sample data files into `dir` (created if needed): the sales fact as
 /// Parquet and the dimensions as CSV, to exercise both loaders.
 pub fn generate(dir: &Path, scale: Scale) -> Result<Vec<SampleTable>, SampleError> {
-    std::fs::create_dir_all(dir).map_err(|source| SampleError::Io { path: dir.to_path_buf(), source })?;
+    std::fs::create_dir_all(dir).map_err(|source| SampleError::Io {
+        path: dir.to_path_buf(),
+        source,
+    })?;
     let conn = Connection::open_in_memory()?;
     // One thread keeps file output byte-identical between runs.
     conn.execute_batch("SET threads = 1; SET preserve_insertion_order = true;")?;
@@ -93,7 +99,11 @@ pub fn generate(dir: &Path, scale: Scale) -> Result<Vec<SampleTable>, SampleErro
 
     let mut out = Vec::new();
     for (name, file, format) in [
-        ("Sales", "sales.parquet", "(FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 122880)"),
+        (
+            "Sales",
+            "sales.parquet",
+            "(FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 122880)",
+        ),
         ("Date", "date.csv", "(FORMAT csv, HEADER true)"),
         ("Product", "product.csv", "(FORMAT csv, HEADER true)"),
         ("Customer", "customer.csv", "(FORMAT csv, HEADER true)"),
@@ -102,9 +112,18 @@ pub fn generate(dir: &Path, scale: Scale) -> Result<Vec<SampleTable>, SampleErro
     ] {
         let path = dir.join(file);
         let table = name.to_lowercase();
-        conn.execute_batch(&format!("COPY \"{table}\" TO '{}' {format}", path.display().to_string().replace('\'', "''")))?;
-        let rows: u64 = conn.query_row(&format!("SELECT count(*) FROM \"{table}\""), [], |r| r.get(0))?;
-        out.push(SampleTable { name, file: path, rows });
+        conn.execute_batch(&format!(
+            "COPY \"{table}\" TO '{}' {format}",
+            path.display().to_string().replace('\'', "''")
+        ))?;
+        let rows: u64 = conn.query_row(&format!("SELECT count(*) FROM \"{table}\""), [], |r| {
+            r.get(0)
+        })?;
+        out.push(SampleTable {
+            name,
+            file: path,
+            rows,
+        });
     }
     Ok(out)
 }
@@ -189,19 +208,43 @@ fn create_products(conn: &Connection, rng: &mut ChaCha8Rng) -> duckdb::Result<Ve
             let count = rng.random_range(20..34);
             for i in 0..count {
                 let ridgeline = *sub == "Trail Running" && i < 6;
-                let word = if ridgeline { "Ridgeline" } else { pick(rng, PRODUCT_WORDS) };
+                let word = if ridgeline {
+                    "Ridgeline"
+                } else {
+                    pick(rng, PRODUCT_WORDS)
+                };
                 let color = pick(rng, COLORS);
                 let name = format!("{word} {} {}", sub.trim_end_matches('s'), i + 1);
-                let price = (rng.random_range(band.clone()) as f64 / 5.0).round() * 5.0 - 0.01;
+                let price = (rng.random_range(band.clone()) / 5.0_f64).round() * 5.0 - 0.01;
                 let cost = round2(price * rng.random_range(0.38..0.62));
                 let launch = if ridgeline {
                     launch_ridgeline
                 } else {
                     days_from_civil(2020, 1, 1) + rng.random_range(0..900)
                 };
-                let brand = if ridgeline { "Harbor & Pine" } else { *pick(rng, BRANDS) };
-                app.append_row(params![key, name, category, sub, brand, color, price, cost, date_str(launch)])?;
-                products.push(Product { key, category: ci, price, cost, launch });
+                let brand = if ridgeline {
+                    "Harbor & Pine"
+                } else {
+                    *pick(rng, BRANDS)
+                };
+                app.append_row(params![
+                    key,
+                    name,
+                    category,
+                    sub,
+                    brand,
+                    color,
+                    price,
+                    cost,
+                    date_str(launch)
+                ])?;
+                products.push(Product {
+                    key,
+                    category: ci,
+                    price,
+                    cost,
+                    launch,
+                });
                 key += 1;
             }
         }
@@ -224,7 +267,16 @@ fn create_customers(conn: &Connection, rng: &mut ChaCha8Rng, n: i32) -> duckdb::
         let segment = SEGMENTS[weighted(rng, &seg_weights)].0;
         let join = days_from_civil(2018, 1, 1) + rng.random_range(0..2900);
         let birth = rng.random_range(1950..2006);
-        app.append_row(params![key, format!("{first} {last}"), segment, city, country, region, date_str(join), birth])?;
+        app.append_row(params![
+            key,
+            format!("{first} {last}"),
+            segment,
+            city,
+            country,
+            region,
+            date_str(join),
+            birth
+        ])?;
     }
     app.flush()?;
     Ok(n)
@@ -245,7 +297,16 @@ fn create_stores(conn: &Connection, rng: &mut ChaCha8Rng) -> duckdb::Result<Vec<
     )?;
     let mut app = conn.appender("store")?;
     let mut stores = Vec::new();
-    let streets = ["Harbor St", "Main St", "Market Sq", "Pine Ridge", "Riverside", "Old Mill", "Northgate", "Station Rd"];
+    let streets = [
+        "Harbor St",
+        "Main St",
+        "Market Sq",
+        "Pine Ridge",
+        "Riverside",
+        "Old Mill",
+        "Northgate",
+        "Station Rd",
+    ];
     let mut used = std::collections::BTreeSet::new();
     let mut key = 1;
     while stores.len() < 40 {
@@ -257,9 +318,14 @@ fn create_stores(conn: &Connection, rng: &mut ChaCha8Rng) -> duckdb::Result<Vec<
         let name = format!("{city} {street}");
         let sqft = rng.random_range(8..32) * 1000;
         // A handful of stores open during the period, so their sales start later.
-        let open = if key % 9 == 0 { days_from_civil(2023, 3, 1) + rng.random_range(0..400) } else { days_from_civil(2012, 1, 1) + rng.random_range(0..3000) };
+        let open = if key % 9 == 0 {
+            days_from_civil(2023, 3, 1) + rng.random_range(0..400)
+        } else {
+            days_from_civil(2012, 1, 1) + rng.random_range(0..3000)
+        };
         // The first "Old Mill" store closes mid-2024.
-        let close = (street == "Old Mill" && !stores.iter().any(|s: &Store| s.close.is_some())).then(|| days_from_civil(2024, 6, 30));
+        let close = (street == "Old Mill" && !stores.iter().any(|s: &Store| s.close.is_some()))
+            .then(|| days_from_civil(2024, 6, 30));
         app.append_row(params![
             key,
             format!("HP-{key:03}"),
@@ -272,11 +338,34 @@ fn create_stores(conn: &Connection, rng: &mut ChaCha8Rng) -> duckdb::Result<Vec<
             close.map(date_str),
             sqft
         ])?;
-        stores.push(Store { key, online: false, weight: sqft as f64, open, close });
+        stores.push(Store {
+            key,
+            online: false,
+            weight: sqft as f64,
+            open,
+            close,
+        });
         key += 1;
     }
-    app.append_row(params![key, "HP-WEB", "Online", None::<String>, None::<String>, "Online", "Online", "2015-04-01", None::<String>, None::<i32>])?;
-    stores.push(Store { key, online: true, weight: 0.0, open: days_from_civil(2015, 4, 1), close: None });
+    app.append_row(params![
+        key,
+        "HP-WEB",
+        "Online",
+        None::<String>,
+        None::<String>,
+        "Online",
+        "Online",
+        "2015-04-01",
+        None::<String>,
+        None::<i32>
+    ])?;
+    stores.push(Store {
+        key,
+        online: true,
+        weight: 0.0,
+        open: days_from_civil(2015, 4, 1),
+        close: None,
+    });
     app.flush()?;
     Ok(stores)
 }
@@ -284,7 +373,9 @@ fn create_stores(conn: &Connection, rng: &mut ChaCha8Rng) -> duckdb::Result<Vec<
 /// Relative demand by month (index 0 = January) and category.
 fn season(category: &str, month: u32) -> f64 {
     let m = month as usize - 1;
-    let base = [0.80, 0.75, 0.90, 0.95, 1.00, 1.05, 1.05, 1.00, 0.95, 1.00, 1.30, 1.65][m];
+    let base = [
+        0.80, 0.75, 0.90, 0.95, 1.00, 1.05, 1.05, 1.00, 0.95, 1.00, 1.30, 1.65,
+    ][m];
     let shape = match category {
         "Camping" => [0.6, 0.6, 0.8, 1.0, 1.3, 1.6, 1.7, 1.5, 1.0, 0.7, 0.8, 1.0][m],
         "Footwear" => [0.8, 0.8, 1.0, 1.1, 1.2, 1.3, 1.3, 1.2, 1.0, 0.9, 0.9, 1.0][m],
@@ -294,7 +385,14 @@ fn season(category: &str, month: u32) -> f64 {
     base * shape
 }
 
-fn create_sales(conn: &Connection, rng: &mut ChaCha8Rng, products: &[Product], customers: i32, stores: &[Store], scale: Scale) -> duckdb::Result<()> {
+fn create_sales(
+    conn: &Connection,
+    rng: &mut ChaCha8Rng,
+    products: &[Product],
+    customers: i32,
+    stores: &[Store],
+    scale: Scale,
+) -> duckdb::Result<()> {
     conn.execute_batch(
         "CREATE TABLE sales_raw (OrderNumber VARCHAR, LineNumber INTEGER, OrderDateKey INTEGER, ShipDateKey INTEGER,
          ProductKey INTEGER, CustomerKey INTEGER, StoreKey INTEGER, Channel VARCHAR, Quantity INTEGER,
@@ -320,19 +418,31 @@ fn create_sales(conn: &Connection, rng: &mut ChaCha8Rng, products: &[Product], c
         let online_share = 0.22 + 0.04 * years;
         let expected = base_orders * growth * season("", month);
         let orders = (expected * rng.random_range(0.85..1.15)).round() as u64;
-        let open_stores: Vec<&Store> = stores.iter().filter(|s| !s.online && s.open <= day && s.close.is_none_or(|c| day <= c)).collect();
+        let open_stores: Vec<&Store> = stores
+            .iter()
+            .filter(|s| !s.online && s.open <= day && s.close.is_none_or(|c| day <= c))
+            .collect();
         let weights: Vec<f64> = open_stores.iter().map(|s| s.weight).collect();
         let cat_weights: Vec<f64> = CATEGORIES.iter().map(|(c, _)| season(c, month)).collect();
         for _ in 0..orders {
-            let channel_online = rng.random::<f64>() < online_share * if weekend { 0.75 } else { 1.12 };
-            let store = if channel_online { online } else { open_stores[weighted(rng, &weights)] };
+            let channel_online =
+                rng.random::<f64>() < online_share * if weekend { 0.75 } else { 1.12 };
+            let store = if channel_online {
+                online
+            } else {
+                open_stores[weighted(rng, &weights)]
+            };
             // Stores are busier at weekends: thin out weekday store orders a little.
             if !channel_online && !weekend && rng.random::<f64>() < 0.12 {
                 continue;
             }
             order_no += 1;
             let customer = rng.random_range(1..=customers);
-            let ship = if channel_online { day + rng.random_range(1..6) } else { day };
+            let ship = if channel_online {
+                day + rng.random_range(1..6)
+            } else {
+                day
+            };
             let lines = 1 + weighted(rng, &[0.45, 0.30, 0.17, 0.08]) as i32;
             for line in 1..=lines {
                 let cat = weighted(rng, &cat_weights);
@@ -387,7 +497,11 @@ fn create_sales(conn: &Connection, rng: &mut ChaCha8Rng, products: &[Product], c
 
 /// Monthly sales targets per physical store, keyed by the first day of the month.
 fn create_targets(conn: &Connection, stores: &[Store]) -> duckdb::Result<()> {
-    let physical: Vec<String> = stores.iter().filter(|s| !s.online).map(|s| s.key.to_string()).collect();
+    let physical: Vec<String> = stores
+        .iter()
+        .filter(|s| !s.online)
+        .map(|s| s.key.to_string())
+        .collect();
     conn.execute_batch(&format!(
         "CREATE TABLE targets AS
          SELECT CAST(strftime(date_trunc('month', d.Date), '%Y%m%d') AS INTEGER) AS DateKey,

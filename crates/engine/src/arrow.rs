@@ -16,11 +16,16 @@ pub fn query_arrow_ipc(conn: &Connection, sql: &str) -> Result<Vec<u8>, ArrowErr
     let schema = batches.get_schema();
     let mut out = Vec::new();
     {
-        let mut writer = StreamWriter::try_new(&mut out, &schema).map_err(|e| ArrowError::Encode(e.to_string()))?;
+        let mut writer = StreamWriter::try_new(&mut out, &schema)
+            .map_err(|e| ArrowError::Encode(e.to_string()))?;
         for batch in batches {
-            writer.write(&batch).map_err(|e| ArrowError::Encode(e.to_string()))?;
+            writer
+                .write(&batch)
+                .map_err(|e| ArrowError::Encode(e.to_string()))?;
         }
-        writer.finish().map_err(|e| ArrowError::Encode(e.to_string()))?;
+        writer
+            .finish()
+            .map_err(|e| ArrowError::Encode(e.to_string()))?;
     }
     Ok(out)
 }
@@ -33,7 +38,11 @@ mod tests {
     #[test]
     fn round_trips_rows_through_ipc() {
         let conn = Connection::open_in_memory().unwrap();
-        let bytes = query_arrow_ipc(&conn, "SELECT range AS id, range * 1.5 AS amount FROM range(5000)").unwrap();
+        let bytes = query_arrow_ipc(
+            &conn,
+            "SELECT range AS id, range * 1.5 AS amount FROM range(5000)",
+        )
+        .unwrap();
         let reader = StreamReader::try_new(std::io::Cursor::new(bytes), None).unwrap();
         let rows: usize = reader.map(|b| b.unwrap().num_rows()).sum();
         assert_eq!(rows, 5000);

@@ -5,7 +5,11 @@ use clap::{Parser, Subcommand};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Parser)]
-#[command(name = "charted", version, about = "Load data, model it, and build interactive reports. Locally.")]
+#[command(
+    name = "charted",
+    version,
+    about = "Load data, model it, and build interactive reports. Locally."
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Command>,
@@ -115,15 +119,26 @@ pub fn run(command: Command) -> i32 {
             }
             if report.ok { 0 } else { 1 }
         }
-        Command::Query { project, sql, json, csv, limit } => query(&project, &sql, json, csv, limit),
-        Command::Sample { action: SampleAction::Create { dir, scale, json } } => {
+        Command::Query {
+            project,
+            sql,
+            json,
+            csv,
+            limit,
+        } => query(&project, &sql, json, csv, limit),
+        Command::Sample {
+            action: SampleAction::Create { dir, scale, json },
+        } => {
             let Some(scale) = charted_samplegen::Scale::parse(&scale) else {
                 return fail(format!("unknown scale \"{scale}\"; use demo, 1m or 10m"));
             };
             match charted_core::sample::create(&dir, scale) {
                 Ok(p) => {
                     if json {
-                        println!("{}", serde_json::json!({ "ok": true, "path": p.manifest_path, "tables": p.model.tables.len() }));
+                        println!(
+                            "{}",
+                            serde_json::json!({ "ok": true, "path": p.manifest_path, "tables": p.model.tables.len() })
+                        );
                     } else {
                         println!("Created {} in {}", p.manifest.name, p.dir.display());
                     }
@@ -133,15 +148,23 @@ pub fn run(command: Command) -> i32 {
             }
         }
         #[cfg(feature = "dev-server")]
-        Command::Serve { port, token, state_dir } => match devserver::serve(port, &token, state_dir) {
+        Command::Serve {
+            port,
+            token,
+            state_dir,
+        } => match devserver::serve(port, &token, state_dir) {
             Ok(()) => 0,
             Err(e) => fail(e),
         },
-        Command::Skill { action: SkillAction::Show } => {
+        Command::Skill {
+            action: SkillAction::Show,
+        } => {
             print!("{SKILL}");
             0
         }
-        Command::Skill { action: SkillAction::Install } => match install_skill() {
+        Command::Skill {
+            action: SkillAction::Install,
+        } => match install_skill() {
             Ok(path) => {
                 println!("Installed the charted skill to {}", path.display());
                 0
@@ -188,7 +211,9 @@ fn query(project: &Path, sql: &str, json: bool, csv: bool, limit: u64) -> i32 {
 
 /// Copies the skill to ~/.agents/skills/charted and links it into ~/.claude/skills.
 fn install_skill() -> std::io::Result<PathBuf> {
-    let home = std::env::var_os("HOME").map(PathBuf::from).ok_or_else(|| std::io::Error::other("HOME is not set"))?;
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| std::io::Error::other("HOME is not set"))?;
     let dir = home.join(".agents/skills/charted");
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join("SKILL.md"), SKILL)?;

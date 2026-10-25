@@ -4,19 +4,21 @@
 //! with `{id, ok}` or `{id, err}`; data replies are binary frames carrying an 8-byte
 //! little-endian request id followed by Arrow IPC bytes.
 
-use charted_core::env::watch::EnvPaths;
 use charted_core::env::EnvSnapshot;
+use charted_core::env::watch::EnvPaths;
 use charted_core::{ApiError, App};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::net::TcpListener;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tungstenite::handshake::server::{Request as HsRequest, Response as HsResponse};
 use tungstenite::Message;
+use tungstenite::handshake::server::{Request as HsRequest, Response as HsResponse};
 
 pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Result<()> {
     let listener = TcpListener::bind(("127.0.0.1", port))?;
-    let state_dir = state_dir.unwrap_or_else(|| std::env::temp_dir().join(format!("charted-dev-{}", std::process::id())));
+    let state_dir = state_dir.unwrap_or_else(|| {
+        std::env::temp_dir().join(format!("charted-dev-{}", std::process::id()))
+    });
     let app = Arc::new(Mutex::new(App::new(state_dir)));
     eprintln!("charted dev server on ws://127.0.0.1:{port}");
     for stream in listener.incoming() {
@@ -24,17 +26,28 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
         let app = app.clone();
         let token = token.to_string();
         std::thread::spawn(move || {
+            // The handshake callback's error type is fixed by tungstenite.
+            #[allow(clippy::result_large_err)]
             let check = |req: &HsRequest, resp: HsResponse| {
-                let ok = req.uri().query().unwrap_or("").split('&').any(|kv| kv == format!("token={token}"));
+                let ok = req
+                    .uri()
+                    .query()
+                    .unwrap_or("")
+                    .split('&')
+                    .any(|kv| kv == format!("token={token}"));
                 if ok || token.is_empty() {
                     Ok(resp)
                 } else {
-                    let mut r = tungstenite::handshake::server::ErrorResponse::new(Some("invalid token".into()));
+                    let mut r = tungstenite::handshake::server::ErrorResponse::new(Some(
+                        "invalid token".into(),
+                    ));
                     *r.status_mut() = tungstenite::http::StatusCode::FORBIDDEN;
                     Err(r)
                 }
             };
-            let Ok(mut ws) = tungstenite::accept_hdr(stream, check) else { return };
+            let Ok(mut ws) = tungstenite::accept_hdr(stream, check) else {
+                return;
+            };
             let paths = EnvPaths::from_env();
             loop {
                 let msg = match ws.read() {
@@ -42,18 +55,26 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                     Ok(Message::Close(_)) | Err(_) => break,
                     Ok(_) => continue,
                 };
-                let Ok(req) = serde_json::from_str::<Value>(&msg) else { continue };
+                let Ok(req) = serde_json::from_str::<Value>(&msg) else {
+                    continue;
+                };
                 let id = req["id"].as_u64().unwrap_or(0);
                 let params = req["params"].clone();
                 let lock = || app.lock().unwrap_or_else(|p| p.into_inner());
                 let reply = match req["method"].as_str().unwrap_or("") {
                     "rpc" => match serde_json::from_value(params) {
                         Ok(r) => lock().handle(r).map(|s| serde_json::to_value(s).unwrap()),
-                        Err(e) => Err(ApiError { code: "invalid".into(), message: e.to_string() }),
+                        Err(e) => Err(ApiError {
+                            code: "invalid".into(),
+                            message: e.to_string(),
+                        }),
                     },
                     "data" => {
                         let result = serde_json::from_value(params)
-                            .map_err(|e| ApiError { code: "invalid".into(), message: e.to_string() })
+                            .map_err(|e| ApiError {
+                                code: "invalid".into(),
+                                message: e.to_string(),
+                            })
                             .and_then(|r| lock().data(r));
                         match result {
                             Ok(bytes) => {
@@ -68,9 +89,14 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                         }
                     }
                     "env" => Ok(serde_json::to_value(EnvSnapshot::read(&paths)).unwrap()),
-                    "pick" => Ok(std::env::var("CHARTED_PICK_RESULT").map(Value::String).unwrap_or(Value::Null)),
+                    "pick" => Ok(std::env::var("CHARTED_PICK_RESULT")
+                        .map(Value::String)
+                        .unwrap_or(Value::Null)),
                     "quit" => Ok(Value::Null),
-                    other => Err(ApiError { code: "invalid".into(), message: format!("unknown method {other}") }),
+                    other => Err(ApiError {
+                        code: "invalid".into(),
+                        message: format!("unknown method {other}"),
+                    }),
                 };
                 let out = match reply {
                     Ok(v) => json!({ "id": id, "ok": v }),

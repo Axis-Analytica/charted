@@ -22,7 +22,11 @@ pub struct Query {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum Source {
     Csv {
@@ -35,8 +39,12 @@ pub enum Source {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         encoding: Option<String>,
     },
-    Parquet { path: String },
-    Json { path: String },
+    Parquet {
+        path: String,
+    },
+    Json {
+        path: String,
+    },
 }
 
 fn yes() -> bool {
@@ -73,7 +81,12 @@ pub fn resolve_path(project_dir: &str, path: &str) -> String {
 fn source_sql(source: &Source, project_dir: &str) -> String {
     let path = quote::string(&resolve_path(project_dir, source.path()));
     match source {
-        Source::Csv { delimiter, header, encoding, .. } => {
+        Source::Csv {
+            delimiter,
+            header,
+            encoding,
+            ..
+        } => {
             let mut opts = vec![format!("header = {header}")];
             if let Some(d) = delimiter {
                 opts.push(format!("delim = {}", quote::string(d)));
@@ -99,7 +112,10 @@ fn step_sql(step: &Step, input: &str) -> String {
             format!("SELECT * EXCLUDE ({}) FROM {input}", cols.join(", "))
         }
         Step::RenameColumns { renames } => {
-            let cols: Vec<String> = renames.iter().map(|(from, to)| format!("{} AS {}", quote::ident(from), quote::ident(to))).collect();
+            let cols: Vec<String> = renames
+                .iter()
+                .map(|(from, to)| format!("{} AS {}", quote::ident(from), quote::ident(to)))
+                .collect();
             format!("SELECT * RENAME ({}) FROM {input}", cols.join(", "))
         }
     }
@@ -113,9 +129,17 @@ pub fn to_sql(query: &Query, project_dir: &str) -> String {
     }
     let mut ctes = vec![format!("s0 AS (SELECT * FROM {source})")];
     for (i, step) in query.steps.iter().enumerate() {
-        ctes.push(format!("s{} AS ({})", i + 1, step_sql(step, &format!("s{i}"))));
+        ctes.push(format!(
+            "s{} AS ({})",
+            i + 1,
+            step_sql(step, &format!("s{i}"))
+        ));
     }
-    format!("WITH {}\nSELECT * FROM s{}", ctes.join(",\n"), query.steps.len())
+    format!(
+        "WITH {}\nSELECT * FROM s{}",
+        ctes.join(",\n"),
+        query.steps.len()
+    )
 }
 
 #[cfg(test)]
@@ -128,10 +152,19 @@ mod tests {
             id: "q1".into(),
             name: "Stores".into(),
             table: "store".into(),
-            source: Source::Csv { path: "data/it's.csv".into(), delimiter: Some(";".into()), header: true, encoding: None },
+            source: Source::Csv {
+                path: "data/it's.csv".into(),
+                delimiter: Some(";".into()),
+                header: true,
+                encoding: None,
+            },
             steps: vec![
-                Step::RemoveColumns { columns: vec!["junk".into()] },
-                Step::RenameColumns { renames: vec![("City Name".into(), "City".into())] },
+                Step::RemoveColumns {
+                    columns: vec!["junk".into()],
+                },
+                Step::RenameColumns {
+                    renames: vec![("City Name".into(), "City".into())],
+                },
             ],
         };
         insta::assert_snapshot!(to_sql(&q, "/home/me/Sales"), @r#"
@@ -140,7 +173,16 @@ mod tests {
         s2 AS (SELECT * RENAME ("City Name" AS "City") FROM s1)
         SELECT * FROM s2
         "#);
-        let p = Query { steps: vec![], source: Source::Parquet { path: "/abs/sales.parquet".into() }, ..q };
-        assert_eq!(to_sql(&p, "/x"), "SELECT * FROM read_parquet('/abs/sales.parquet')");
+        let p = Query {
+            steps: vec![],
+            source: Source::Parquet {
+                path: "/abs/sales.parquet".into(),
+            },
+            ..q
+        };
+        assert_eq!(
+            to_sql(&p, "/x"),
+            "SELECT * FROM read_parquet('/abs/sales.parquet')"
+        );
     }
 }

@@ -6,7 +6,9 @@ fn col(id: &str, name: &str, ty: DataType) -> Column {
         id: id.into(),
         name: name.into(),
         data_type: ty,
-        kind: ColumnKind::Data { source_column: name.into() },
+        kind: ColumnKind::Data {
+            source_column: name.into(),
+        },
         description: None,
         format_string: None,
         summarize_by: Summarize::Default,
@@ -50,7 +52,10 @@ fn fixture() -> Model {
         name: "Product".into(),
         description: None,
         source: "product".into(),
-        columns: vec![col("c-p-key", "ProductKey", DataType::Int64), col("c-p-cat", "Category", DataType::String)],
+        columns: vec![
+            col("c-p-key", "ProductKey", DataType::Int64),
+            col("c-p-cat", "Category", DataType::String),
+        ],
         measures: vec![],
         hidden: false,
         is_date_table: false,
@@ -77,7 +82,11 @@ fn fixture() -> Model {
 }
 
 fn arb_change() -> impl Strategy<Value = Change> {
-    let table = prop_oneof![Just("t-sales".to_string()), Just("t-prod".to_string()), Just("t-missing".to_string())];
+    let table = prop_oneof![
+        Just("t-sales".to_string()),
+        Just("t-prod".to_string()),
+        Just("t-missing".to_string())
+    ];
     let column = prop_oneof![
         Just("c-s-date".to_string()),
         Just("c-s-prod".to_string()),
@@ -85,19 +94,56 @@ fn arb_change() -> impl Strategy<Value = Change> {
         Just("c-p-key".to_string()),
         Just("c-p-cat".to_string()),
     ];
-    let name = prop_oneof![Just("Sales".to_string()), Just("Facts".to_string()), Just(" bad".to_string()), "[A-Z][a-z]{1,8}"];
+    let name = prop_oneof![
+        Just("Sales".to_string()),
+        Just("Facts".to_string()),
+        Just(" bad".to_string()),
+        "[A-Z][a-z]{1,8}"
+    ];
     prop_oneof![
         (table.clone(), name.clone()).prop_map(|(table, name)| Change::RenameTable { table, name }),
-        (table.clone(), column.clone(), name.clone()).prop_map(|(table, column, name)| Change::RenameColumn { table, column, name }),
-        (table.clone(), column.clone(), proptest::option::of("[#,0.%]{1,6}"))
-            .prop_map(|(table, column, f)| Change::SetColumn { table, column, property: ColumnProperty::FormatString(f) }),
-        (table.clone(), column.clone(), any::<bool>())
-            .prop_map(|(table, column, h)| Change::SetColumn { table, column, property: ColumnProperty::Hidden(h) }),
-        (table.clone(), column.clone(), proptest::option::of(column.clone()))
-            .prop_map(|(table, column, s)| Change::SetColumn { table, column, property: ColumnProperty::SortBy(s) }),
-        (table.clone(), column.clone()).prop_map(|(table, column)| Change::RemoveColumn { table, column }),
-        table.clone().prop_map(|table| Change::RemoveTable { table }),
-        Just(Change::RemoveRelationship { relationship: "r-1".into() }),
+        (table.clone(), column.clone(), name.clone()).prop_map(|(table, column, name)| {
+            Change::RenameColumn {
+                table,
+                column,
+                name,
+            }
+        }),
+        (
+            table.clone(),
+            column.clone(),
+            proptest::option::of("[#,0.%]{1,6}")
+        )
+            .prop_map(|(table, column, f)| Change::SetColumn {
+                table,
+                column,
+                property: ColumnProperty::FormatString(f)
+            }),
+        (table.clone(), column.clone(), any::<bool>()).prop_map(|(table, column, h)| {
+            Change::SetColumn {
+                table,
+                column,
+                property: ColumnProperty::Hidden(h),
+            }
+        }),
+        (
+            table.clone(),
+            column.clone(),
+            proptest::option::of(column.clone())
+        )
+            .prop_map(|(table, column, s)| Change::SetColumn {
+                table,
+                column,
+                property: ColumnProperty::SortBy(s)
+            }),
+        (table.clone(), column.clone())
+            .prop_map(|(table, column)| Change::RemoveColumn { table, column }),
+        table
+            .clone()
+            .prop_map(|table| Change::RemoveTable { table }),
+        Just(Change::RemoveRelationship {
+            relationship: "r-1".into()
+        }),
         (table.clone(), name.clone()).prop_map(|(table, name)| Change::AddMeasure {
             table,
             measure: Measure {
@@ -159,7 +205,15 @@ proptest! {
 fn removing_a_table_takes_its_relationships_and_undo_restores_them() {
     let mut model = fixture();
     let mut history = History::new();
-    history.commit(&mut model, "Delete table", vec![Change::RemoveTable { table: "t-prod".into() }]).unwrap();
+    history
+        .commit(
+            &mut model,
+            "Delete table",
+            vec![Change::RemoveTable {
+                table: "t-prod".into(),
+            }],
+        )
+        .unwrap();
     assert!(model.relationships.is_empty());
     assert!(history.is_dirty());
     history.undo(&mut model).unwrap();
@@ -174,8 +228,14 @@ fn a_failing_transaction_rolls_back_completely() {
         &mut model,
         "Rename two things",
         vec![
-            Change::RenameTable { table: "t-sales".into(), name: "Facts".into() },
-            Change::RenameTable { table: "t-prod".into(), name: "Facts".into() },
+            Change::RenameTable {
+                table: "t-sales".into(),
+                name: "Facts".into(),
+            },
+            Change::RenameTable {
+                table: "t-prod".into(),
+                name: "Facts".into(),
+            },
         ],
     );
     assert!(matches!(err, Err(ChangeError::NameTaken { .. })));
@@ -187,9 +247,25 @@ fn a_failing_transaction_rolls_back_completely() {
 fn names_are_validated() {
     let mut model = fixture();
     for bad in ["", "  x", "x ", "a\u{7}b"] {
-        let r = apply(&mut model, Change::RenameTable { table: "t-sales".into(), name: bad.into() });
+        let r = apply(
+            &mut model,
+            Change::RenameTable {
+                table: "t-sales".into(),
+                name: bad.into(),
+            },
+        );
         assert!(matches!(r, Err(ChangeError::InvalidName { .. })), "{bad:?}");
     }
-    let r = apply(&mut model, Change::RenameColumn { table: "t-sales".into(), column: "c-s-amt".into(), name: "total sales".into() });
-    assert!(matches!(r, Err(ChangeError::NameTaken { .. })), "columns and measures share a namespace");
+    let r = apply(
+        &mut model,
+        Change::RenameColumn {
+            table: "t-sales".into(),
+            column: "c-s-amt".into(),
+            name: "total sales".into(),
+        },
+    );
+    assert!(
+        matches!(r, Err(ChangeError::NameTaken { .. })),
+        "columns and measures share a namespace"
+    );
 }

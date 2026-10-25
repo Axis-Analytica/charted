@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::change::{apply, Change, ChangeError};
+use crate::change::{Change, ChangeError, apply};
 use crate::types::Model;
 
 /// One undoable step: the changes as applied, and the changes that revert them.
@@ -37,7 +37,8 @@ pub fn apply_all(model: &mut Model, changes: &[Change]) -> Result<Vec<Change>, C
             Err(e) => {
                 for inv in inverses.into_iter().rev() {
                     for c in inv {
-                        apply(model, c).expect("rolling back a change that just applied cannot fail");
+                        apply(model, c)
+                            .expect("rolling back a change that just applied cannot fail");
                     }
                 }
                 return Err(e);
@@ -49,16 +50,27 @@ pub fn apply_all(model: &mut Model, changes: &[Change]) -> Result<Vec<Change>, C
 
 impl History {
     pub fn new() -> Self {
-        Self { saved: Some(0), ..Self::default() }
+        Self {
+            saved: Some(0),
+            ..Self::default()
+        }
     }
 
     /// Keeps at most `limit` entries; the oldest are dropped first.
     pub fn with_limit(limit: usize) -> Self {
-        Self { limit: Some(limit), ..Self::new() }
+        Self {
+            limit: Some(limit),
+            ..Self::new()
+        }
     }
 
     /// Applies a transaction and records it, discarding any redoable entries.
-    pub fn commit(&mut self, model: &mut Model, label: impl Into<String>, changes: Vec<Change>) -> Result<(), ChangeError> {
+    pub fn commit(
+        &mut self,
+        model: &mut Model,
+        label: impl Into<String>,
+        changes: Vec<Change>,
+    ) -> Result<(), ChangeError> {
         if changes.is_empty() {
             return Ok(());
         }
@@ -67,7 +79,11 @@ impl History {
         if self.saved.is_some_and(|s| s > self.cursor) {
             self.saved = None;
         }
-        self.entries.push(HistoryEntry { label: label.into(), changes, inverse });
+        self.entries.push(HistoryEntry {
+            label: label.into(),
+            changes,
+            inverse,
+        });
         self.cursor += 1;
         if let Some(limit) = self.limit {
             while self.entries.len() > limit {
@@ -92,7 +108,9 @@ impl History {
 
     /// Re-applies the next entry. Returns its label, or `None` when there is nothing to redo.
     pub fn redo(&mut self, model: &mut Model) -> Result<Option<String>, ChangeError> {
-        let Some(entry) = self.entries.get(self.cursor) else { return Ok(None) };
+        let Some(entry) = self.entries.get(self.cursor) else {
+            return Ok(None);
+        };
         let inverse = apply_all(model, &entry.changes)?;
         self.entries[self.cursor].inverse = inverse;
         let label = self.entries[self.cursor].label.clone();
@@ -101,7 +119,9 @@ impl History {
     }
 
     pub fn undo_label(&self) -> Option<&str> {
-        self.cursor.checked_sub(1).map(|i| self.entries[i].label.as_str())
+        self.cursor
+            .checked_sub(1)
+            .map(|i| self.entries[i].label.as_str())
     }
 
     pub fn redo_label(&self) -> Option<&str> {

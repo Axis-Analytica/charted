@@ -18,28 +18,62 @@ pub const CHARTED_STASH_VERSION: i64 = 1;
 #[derive(Debug, thiserror::Error)]
 pub enum StashError {
     #[error("{vendor} custom_extensions data is not valid JSON: {source}")]
-    Json { vendor: String, source: serde_json::Error },
+    Json {
+        vendor: String,
+        source: serde_json::Error,
+    },
     #[error("{vendor} custom_extensions data must be a JSON object")]
     NotObject { vendor: String },
-    #[error("{vendor} custom_extensions data was written by a newer version (_v {found}, this charted understands {supported})")]
-    TooNew { vendor: String, found: i64, supported: i64 },
+    #[error(
+        "{vendor} custom_extensions data was written by a newer version (_v {found}, this charted understands {supported})"
+    )]
+    TooNew {
+        vendor: String,
+        found: i64,
+        supported: i64,
+    },
 }
 
 /// Reads the blob for `vendor`, without its `_v` key. Missing blobs read as empty.
-pub fn read(exts: &[CustomExtension], vendor: &str, supported: i64) -> Result<Map<String, Value>, StashError> {
-    let Some(ext) = exts.iter().find(|e| e.vendor_name == vendor) else { return Ok(Map::new()) };
-    let value: Value = serde_json::from_str(&ext.data).map_err(|source| StashError::Json { vendor: vendor.into(), source })?;
-    let Value::Object(mut map) = value else { return Err(StashError::NotObject { vendor: vendor.into() }) };
-    let version = map.remove("_v").and_then(|v| v.as_i64()).unwrap_or(supported);
+pub fn read(
+    exts: &[CustomExtension],
+    vendor: &str,
+    supported: i64,
+) -> Result<Map<String, Value>, StashError> {
+    let Some(ext) = exts.iter().find(|e| e.vendor_name == vendor) else {
+        return Ok(Map::new());
+    };
+    let value: Value = serde_json::from_str(&ext.data).map_err(|source| StashError::Json {
+        vendor: vendor.into(),
+        source,
+    })?;
+    let Value::Object(mut map) = value else {
+        return Err(StashError::NotObject {
+            vendor: vendor.into(),
+        });
+    };
+    let version = map
+        .remove("_v")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(supported);
     if version > supported {
-        return Err(StashError::TooNew { vendor: vendor.into(), found: version, supported });
+        return Err(StashError::TooNew {
+            vendor: vendor.into(),
+            found: version,
+            supported,
+        });
     }
     Ok(map)
 }
 
 /// Writes (or replaces) the blob for `vendor`. An empty blob writes nothing, so models
 /// without vendor-specific properties stay vendor-neutral.
-pub fn write(exts: &mut Vec<CustomExtension>, vendor: &str, version: i64, data: Map<String, Value>) {
+pub fn write(
+    exts: &mut Vec<CustomExtension>,
+    vendor: &str,
+    version: i64,
+    data: Map<String, Value>,
+) {
     exts.retain(|e| e.vendor_name != vendor);
     if data.is_empty() {
         return;
@@ -47,12 +81,18 @@ pub fn write(exts: &mut Vec<CustomExtension>, vendor: &str, version: i64, data: 
     let mut payload = Map::new();
     payload.insert("_v".into(), Value::from(version));
     payload.extend(data);
-    exts.push(CustomExtension { vendor_name: vendor.into(), data: python_json(&Value::Object(payload)) });
+    exts.push(CustomExtension {
+        vendor_name: vendor.into(),
+        data: python_json(&Value::Object(payload)),
+    });
 }
 
 /// Extensions of vendors charted does not interpret.
 pub fn foreign(exts: &[CustomExtension]) -> Vec<CustomExtension> {
-    exts.iter().filter(|e| e.vendor_name != POWER_BI && e.vendor_name != CHARTED).cloned().collect()
+    exts.iter()
+        .filter(|e| e.vendor_name != POWER_BI && e.vendor_name != CHARTED)
+        .cloned()
+        .collect()
 }
 
 /// Serialises like Python's `json.dumps(value, sort_keys=True)`: keys sorted, `", "` and
@@ -128,8 +168,14 @@ mod tests {
     fn matches_python_json_dumps_sort_keys() {
         // Expected strings produced by CPython 3: json.dumps(v, sort_keys=True)
         let v = json!({"_v": 2, "isHidden": true, "formatString": "#,0.00", "table": "Sales"});
-        assert_eq!(python_json(&v), r##"{"_v": 2, "formatString": "#,0.00", "isHidden": true, "table": "Sales"}"##);
+        assert_eq!(
+            python_json(&v),
+            r##"{"_v": 2, "formatString": "#,0.00", "isHidden": true, "table": "Sales"}"##
+        );
         let v = json!({"name": "Café ☕", "list": [1, "a\"b", null]});
-        assert_eq!(python_json(&v), r#"{"list": [1, "a\"b", null], "name": "Caf\u00e9 \u2615"}"#);
+        assert_eq!(
+            python_json(&v),
+            r#"{"list": [1, "a\"b", null], "name": "Caf\u00e9 \u2615"}"#
+        );
     }
 }

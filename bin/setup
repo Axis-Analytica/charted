@@ -1,0 +1,10 @@
+#!/bin/bash
+# One-time developer setup: user-level toolchains via mise (no sudo needed).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+command -v mise >/dev/null || { echo "mise is required (Omarchy ships it)"; exit 1; }
+mise use -g rust@stable pnpm@latest
+. bin/env
+rustup target add wasm32-unknown-unknown
+(cd ui && pnpm install)
+echo "Ready. Run bin/dev to start charted in development mode."

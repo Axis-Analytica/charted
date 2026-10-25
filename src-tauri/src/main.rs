@@ -4,8 +4,8 @@
 mod pick;
 mod screenshot;
 
-use charted_core::env::watch::{self, EnvPaths};
 use charted_core::env::EnvSnapshot;
+use charted_core::env::watch::{self, EnvPaths};
 use charted_core::{ApiError, App, AppState, DataRequest, Request};
 use clap::Parser;
 use std::path::PathBuf;
@@ -24,10 +24,15 @@ fn lock(app: &Arc<Mutex<App>>) -> std::sync::MutexGuard<'_, App> {
 }
 
 /// Runs work that may touch DuckDB or the disk off the UI thread.
-async fn blocking<T: Send + 'static>(f: impl FnOnce() -> Result<T, ApiError> + Send + 'static) -> Result<T, ApiError> {
+async fn blocking<T: Send + 'static>(
+    f: impl FnOnce() -> Result<T, ApiError> + Send + 'static,
+) -> Result<T, ApiError> {
     tauri::async_runtime::spawn_blocking(f)
         .await
-        .map_err(|e| ApiError { code: "internal".into(), message: e.to_string() })?
+        .map_err(|e| ApiError {
+            code: "internal".into(),
+            message: e.to_string(),
+        })?
 }
 
 #[tauri::command]
@@ -49,12 +54,19 @@ fn env(state: tauri::State<'_, Shared>) -> EnvSnapshot {
 
 #[tauri::command]
 fn initial_path(state: tauri::State<'_, Shared>) -> Option<String> {
-    state.initial.lock().unwrap_or_else(|p| p.into_inner()).take()
+    state
+        .initial
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .take()
 }
 
 #[tauri::command]
 async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
-    pick::pick(options).await.map_err(|message| ApiError { code: "portal".into(), message })
+    pick::pick(options).await.map_err(|message| ApiError {
+        code: "portal".into(),
+        message,
+    })
 }
 
 #[tauri::command]
@@ -73,7 +85,9 @@ async fn spike_arrow(rows: u64) -> Result<Response, String> {
              (1 + range % 5)::INTEGER AS quantity, (10 + (range * 7919) % 300)::DOUBLE AS amount \
              FROM range({rows})"
         );
-        charted_engine::query_arrow_ipc(&conn, &sql).map(Response::new).map_err(|e| e.to_string())
+        charted_engine::query_arrow_ipc(&conn, &sql)
+            .map(Response::new)
+            .map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -93,11 +107,23 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
     glib::set_prgname(Some("charted"));
     let initial = path.map(|p| std::fs::canonicalize(&p).unwrap_or(p).display().to_string());
     let app = Arc::new(Mutex::new(App::new(state_dir())));
-    let shared = Shared { app: app.clone(), initial: Mutex::new(initial), env: EnvPaths::from_env() };
+    let shared = Shared {
+        app: app.clone(),
+        initial: Mutex::new(initial),
+        env: EnvPaths::from_env(),
+    };
 
     tauri::Builder::default()
         .manage(shared)
-        .invoke_handler(tauri::generate_handler![rpc, data, env, initial_path, pick, quit, spike_arrow])
+        .invoke_handler(tauri::generate_handler![
+            rpc,
+            data,
+            env,
+            initial_path,
+            pick,
+            quit,
+            spike_arrow
+        ])
         .setup(move |tauri_app| {
             let handle = tauri_app.handle().clone();
             let paths = EnvPaths::from_env();
@@ -113,11 +139,11 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
             Ok(())
         })
         .on_window_event(move |window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                if lock(&app).is_dirty() {
-                    api.prevent_close();
-                    let _ = window.emit("close-requested", ());
-                }
+            if let WindowEvent::CloseRequested { api, .. } = event
+                && lock(&app).is_dirty()
+            {
+                api.prevent_close();
+                let _ = window.emit("close-requested", ());
             }
         })
         .run(tauri::generate_context!())

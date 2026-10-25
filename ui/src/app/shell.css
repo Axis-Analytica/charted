@@ -108,3 +108,15 @@
 .palette-item { display: flex; align-items: center; justify-content: space-between; height: 32px; padding-inline: 10px; border-radius: var(--radius-sm); cursor: default; }
 .palette-item[aria-selected="true"] { background: var(--accent-soft); color: var(--fg-strong); }
 .palette-none { padding: 16px 10px; color: var(--fg-faint); }
+
+/* Component kit gallery (development aid) */
+.gallery { position: fixed; inset: 0; z-index: 120; display: grid; grid-template-rows: auto 1fr; background: var(--bg); }
+.gallery-head { display: flex; align-items: center; justify-content: space-between; height: 44px; padding-inline: 16px 8px; border-bottom: 1px solid var(--border); background: var(--bg-raised); }
+.gallery-body { overflow: auto; padding: 20px 24px 48px; display: grid; gap: 28px; align-content: start; }
+.gallery-body h3 { margin: 0 0 10px; font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-faint); }
+.gallery-row { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-bottom: 10px; }
+.gallery-stack { display: grid; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; max-width: 720px; }
+.gallery-stack .banner:last-child { border-bottom: 0; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin-bottom: 18px; }
+.swatch { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); color: var(--fg-muted); }
+.swatch-chip { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: var(--radius-sm); flex: none; }

@@ -24,19 +24,27 @@ pub const FORMAT_VERSION: u32 = 1;
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectError {
     #[error("{path}: {source}")]
-    Io { path: PathBuf, source: std::io::Error },
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
     #[error("{path} is not a charted project (no .charted manifest found)")]
     NotAProject { path: PathBuf },
     #[error("{path} contains more than one .charted manifest; open one of them directly")]
     AmbiguousProject { path: PathBuf },
     #[error("{path}: {message}")]
     Invalid { path: PathBuf, message: String },
-    #[error("this project was saved by a newer charted (format {found}); update charted to open it")]
+    #[error(
+        "this project was saved by a newer charted (format {found}); update charted to open it"
+    )]
     TooNew { found: u32 },
 }
 
 fn io(path: &Path) -> impl FnOnce(std::io::Error) -> ProjectError + '_ {
-    move |source| ProjectError::Io { path: path.to_path_buf(), source }
+    move |source| ProjectError::Io {
+        path: path.to_path_buf(),
+        source,
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -66,7 +74,9 @@ pub fn locate(path: &Path) -> Result<PathBuf, ProjectError> {
         return if path.extension().is_some_and(|e| e == MANIFEST_EXT) {
             Ok(path.to_path_buf())
         } else {
-            Err(ProjectError::NotAProject { path: path.to_path_buf() })
+            Err(ProjectError::NotAProject {
+                path: path.to_path_buf(),
+            })
         };
     }
     let mut found = Vec::new();
@@ -77,29 +87,54 @@ pub fn locate(path: &Path) -> Result<PathBuf, ProjectError> {
         }
     }
     match found.len() {
-        0 => Err(ProjectError::NotAProject { path: path.to_path_buf() }),
+        0 => Err(ProjectError::NotAProject {
+            path: path.to_path_buf(),
+        }),
         1 => Ok(found.remove(0)),
-        _ => Err(ProjectError::AmbiguousProject { path: path.to_path_buf() }),
+        _ => Err(ProjectError::AmbiguousProject {
+            path: path.to_path_buf(),
+        }),
     }
 }
 
 impl Project {
     pub fn open(path: &Path) -> Result<Self, ProjectError> {
         let manifest_path = locate(path)?;
-        let dir = manifest_path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let dir = manifest_path
+            .parent()
+            .unwrap_or(Path::new("."))
+            .to_path_buf();
         let text = std::fs::read_to_string(&manifest_path).map_err(io(&manifest_path))?;
-        let manifest: Manifest = serde_json::from_str(&text)
-            .map_err(|e| ProjectError::Invalid { path: manifest_path.clone(), message: e.to_string() })?;
+        let manifest: Manifest =
+            serde_json::from_str(&text).map_err(|e| ProjectError::Invalid {
+                path: manifest_path.clone(),
+                message: e.to_string(),
+            })?;
         if manifest.format > FORMAT_VERSION {
-            return Err(ProjectError::TooNew { found: manifest.format });
+            return Err(ProjectError::TooNew {
+                found: manifest.format,
+            });
         }
         let model_path = dir.join(MODEL_FILE);
         let model_text = std::fs::read_to_string(&model_path).map_err(io(&model_path))?;
-        let (model, warnings) = charted_ossie::read_str(&model_text)
-            .map_err(|e| ProjectError::Invalid { path: model_path.clone(), message: e.to_string() })?;
-        let warnings = warnings.into_iter().map(|w| format!("{}: {}", w.scope, w.message)).collect();
+        let (model, warnings) =
+            charted_ossie::read_str(&model_text).map_err(|e| ProjectError::Invalid {
+                path: model_path.clone(),
+                message: e.to_string(),
+            })?;
+        let warnings = warnings
+            .into_iter()
+            .map(|w| format!("{}: {}", w.scope, w.message))
+            .collect();
         let queries = read_queries(&dir)?;
-        Ok(Self { dir, manifest_path, manifest, model, queries, warnings })
+        Ok(Self {
+            dir,
+            manifest_path,
+            manifest,
+            model,
+            queries,
+            warnings,
+        })
     }
 
     pub fn cache_dir(&self) -> PathBuf {
@@ -118,7 +153,11 @@ impl Project {
     pub fn save(&mut self) -> Result<(), ProjectError> {
         let generated = charted_ossie::GeneratedDialects::new();
         let model_path = self.dir.join(MODEL_FILE);
-        atomic::write(&model_path, charted_ossie::write_string(&self.model, &generated).as_bytes()).map_err(io(&model_path))?;
+        atomic::write(
+            &model_path,
+            charted_ossie::write_string(&self.model, &generated).as_bytes(),
+        )
+        .map_err(io(&model_path))?;
         let qdir = self.dir.join("queries");
         let mut keep = Vec::new();
         for q in &self.queries {
@@ -139,7 +178,8 @@ impl Project {
         }
         let gi = self.dir.join(".gitignore");
         if !gi.exists() {
-            atomic::write(&gi, b"# Rebuildable caches written by charted\n.cache/\n").map_err(io(&gi))?;
+            atomic::write(&gi, b"# Rebuildable caches written by charted\n.cache/\n")
+                .map_err(io(&gi))?;
         }
         self.manifest.generation += 1;
         self.manifest.app_version = env!("CARGO_PKG_VERSION").to_string();
@@ -153,12 +193,21 @@ impl Project {
 fn read_queries(dir: &Path) -> Result<Vec<Query>, ProjectError> {
     let qdir = dir.join("queries");
     let mut out = Vec::new();
-    let Ok(entries) = std::fs::read_dir(&qdir) else { return Ok(out) };
-    let mut paths: Vec<PathBuf> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "json")).collect();
+    let Ok(entries) = std::fs::read_dir(&qdir) else {
+        return Ok(out);
+    };
+    let mut paths: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|x| x == "json"))
+        .collect();
     paths.sort();
     for p in paths {
         let text = std::fs::read_to_string(&p).map_err(io(&p))?;
-        let q: Query = serde_json::from_str(&text).map_err(|e| ProjectError::Invalid { path: p.clone(), message: e.to_string() })?;
+        let q: Query = serde_json::from_str(&text).map_err(|e| ProjectError::Invalid {
+            path: p.clone(),
+            message: e.to_string(),
+        })?;
         out.push(q);
     }
     Ok(out)
@@ -170,7 +219,12 @@ pub fn new_project(dir: &Path, name: &str, model: Model, queries: Vec<Query>) ->
     Project {
         dir: dir.to_path_buf(),
         manifest_path: dir.join(file),
-        manifest: Manifest { format: FORMAT_VERSION, name: name.to_string(), generation: 0, app_version: env!("CARGO_PKG_VERSION").into() },
+        manifest: Manifest {
+            format: FORMAT_VERSION,
+            name: name.to_string(),
+            generation: 0,
+            app_version: env!("CARGO_PKG_VERSION").into(),
+        },
         model,
         queries,
         warnings: Vec::new(),
@@ -178,7 +232,16 @@ pub fn new_project(dir: &Path, name: &str, model: Model, queries: Vec<Query>) ->
 }
 
 fn sanitize_file_name(name: &str) -> String {
-    let s: String = name.chars().map(|c| if c == '/' || c == '\0' || c.is_control() { '_' } else { c }).collect();
+    let s: String = name
+        .chars()
+        .map(|c| {
+            if c == '/' || c == '\0' || c.is_control() {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
     let s = s.trim().trim_start_matches('.').to_string();
     if s.is_empty() { "project".into() } else { s }
 }

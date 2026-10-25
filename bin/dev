@@ -1,0 +1,17 @@
+#!/bin/bash
+# Runs charted in development mode: the Vite dev server for the UI (hot reload) and a
+# debug build of the desktop binary. Extra arguments go to `charted open`.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+# Shared folders (e.g. a VM host mount) deliver no file-change events; poll there.
+case "$(stat -f -c %T .)" in
+  ext2/ext3|ext4|btrfs|xfs|tmpfs|zfs|f2fs) ;;
+  *) export CHARTED_POLL=1 ;;
+esac
+cargo build -p charted
+(cd ui && exec pnpm exec vite --port 1420 --strictPort) &
+VITE=$!
+trap 'kill $VITE 2>/dev/null' EXIT
+for _ in $(seq 1 40); do curl -s -o /dev/null localhost:1420/ && break; sleep 0.25; done
+./target/debug/charted open "$@"

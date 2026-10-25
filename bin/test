@@ -1,0 +1,14 @@
+#!/bin/bash
+# Runs the full local test suite: Rust (unit, property, snapshot, integration),
+# WebAssembly-compatibility checks, TypeScript, i18n catalogs and end-to-end tests.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -q -- -D warnings
+cargo test --workspace -q
+cargo check -q --target wasm32-unknown-unknown -p charted-model -p charted-compiler -p charted-ossie
+node tools/i18n-strings.mjs --check
+(cd ui && pnpm exec tsc --noEmit)
+cargo build -q -p charted-cli
+(cd ui && CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium || true)}" pnpm exec playwright test)

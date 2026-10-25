@@ -10,7 +10,7 @@ const GROUPS: Shortcut["group"][] = ["General", "File", "Edit", "View", "Navigat
 export function ShortcutOverlay({ open, onClose }: { open: boolean; onClose(): void }) {
   const { t } = useT();
   const shortcuts = useShortcuts((s) => s.shortcuts);
-  const groups = GROUPS.map((g) => [g, [...shortcuts.values()].filter((s) => s.group === g && s.keys)] as const).filter(([, items]) => items.length);
+  const groups = GROUPS.map((g) => [g, [...shortcuts.values()].filter((s) => s.group === g && s.keys && s.label)] as const).filter(([, items]) => items.length);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()} title={t("Keyboard shortcuts")} width={640}>
       <div className="shortcut-grid">
@@ -43,7 +43,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose(): vo
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     return [...shortcuts.values()]
-      .filter((s) => s.id !== "palette" && (!s.enabled || s.enabled()))
+      .filter((s) => s.id !== "palette" && s.label && (!s.enabled || s.enabled()))
       .filter((s) => !q || t(s.label).toLowerCase().includes(q) || s.label.toLowerCase().includes(q));
   }, [shortcuts, query, t]);
   useEffect(() => {

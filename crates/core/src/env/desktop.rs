@@ -15,7 +15,10 @@ pub struct Desktop {
 }
 
 fn hyprctl_option(name: &str) -> Option<serde_json::Value> {
-    let out = Command::new("hyprctl").args(["-j", "getoption", name]).output().ok()?;
+    let out = Command::new("hyprctl")
+        .args(["-j", "getoption", name])
+        .output()
+        .ok()?;
     if !out.status.success() {
         return None;
     }
@@ -27,10 +30,18 @@ pub fn read_desktop() -> Desktop {
     let animations = hyprctl_option("animations:enabled");
     Desktop {
         hyprland: rounding.is_some(),
-        rounding: rounding.as_ref().and_then(|v| v.get("int")).and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+        rounding: rounding
+            .as_ref()
+            .and_then(|v| v.get("int"))
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
         animations: animations
             .as_ref()
-            .and_then(|v| v.get("bool").and_then(|b| b.as_bool()).or_else(|| v.get("int").and_then(|i| i.as_i64()).map(|i| i != 0)))
+            .and_then(|v| {
+                v.get("bool")
+                    .and_then(|b| b.as_bool())
+                    .or_else(|| v.get("int").and_then(|i| i.as_i64()).map(|i| i != 0))
+            })
             .unwrap_or(true),
     }
 }

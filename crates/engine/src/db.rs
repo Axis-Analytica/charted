@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 pub use duckdb::InterruptHandle;
 
-use crate::arrow::{query_arrow_ipc, ArrowError};
+use crate::arrow::{ArrowError, query_arrow_ipc};
 use crate::sql;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,7 +14,10 @@ pub enum DbError {
     #[error(transparent)]
     Arrow(#[from] ArrowError),
     #[error("could not create {path}: {source}")]
-    Io { path: PathBuf, source: std::io::Error },
+    Io {
+        path: PathBuf,
+        source: std::io::Error,
+    },
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,25 +48,38 @@ impl Database {
         let conn = match path {
             Some(p) => {
                 if let Some(dir) = p.parent() {
-                    std::fs::create_dir_all(dir).map_err(|source| DbError::Io { path: dir.to_path_buf(), source })?;
+                    std::fs::create_dir_all(dir).map_err(|source| DbError::Io {
+                        path: dir.to_path_buf(),
+                        source,
+                    })?;
                 }
                 Connection::open(p)?
             }
             None => Connection::open_in_memory()?,
         };
-        let mut setup = String::from("SET autoinstall_known_extensions = false; SET autoload_known_extensions = false;");
+        let mut setup = String::from(
+            "SET autoinstall_known_extensions = false; SET autoload_known_extensions = false;",
+        );
         if let Some(m) = &options.memory_limit {
             setup.push_str(&format!("SET memory_limit = {};", sql::string(m)));
         }
         if let Some(t) = &options.temp_directory {
-            std::fs::create_dir_all(t).map_err(|source| DbError::Io { path: t.clone(), source })?;
-            setup.push_str(&format!("SET temp_directory = {};", sql::string(&t.display().to_string())));
+            std::fs::create_dir_all(t).map_err(|source| DbError::Io {
+                path: t.clone(),
+                source,
+            })?;
+            setup.push_str(&format!(
+                "SET temp_directory = {};",
+                sql::string(&t.display().to_string())
+            ));
         }
         if let Some(n) = options.threads {
             setup.push_str(&format!("SET threads = {n};"));
         }
         conn.execute_batch(&setup)?;
-        Ok(Self { conn: Arc::new(std::sync::Mutex::new(conn)) })
+        Ok(Self {
+            conn: Arc::new(std::sync::Mutex::new(conn)),
+        })
     }
 
     /// A fresh connection to the same database, for running queries in parallel.
@@ -88,7 +104,9 @@ impl Database {
     pub fn json_rows(&self, sql: &str, limit: Option<u64>) -> Result<Vec<String>, DbError> {
         let conn = self.lock();
         let limit = limit.map(|n| format!(" LIMIT {n}")).unwrap_or_default();
-        let mut stmt = conn.prepare(&format!("SELECT to_json(q)::VARCHAR FROM ({sql}) AS q{limit}"))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT to_json(q)::VARCHAR FROM ({sql}) AS q{limit}"
+        ))?;
         let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
         Ok(rows.collect::<Result<_, _>>()?)
     }
@@ -96,10 +114,19 @@ impl Database {
     /// Runs `sql` and returns the result as CSV text with a header row.
     pub fn csv(&self, sql: &str) -> Result<String, DbError> {
         let dir = std::env::temp_dir().join(format!("charted-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).map_err(|source| DbError::Io { path: dir.clone(), source })?;
+        std::fs::create_dir_all(&dir).map_err(|source| DbError::Io {
+            path: dir.clone(),
+            source,
+        })?;
         let file = dir.join("out.csv");
-        self.execute(&format!("COPY ({sql}) TO {} (FORMAT csv, HEADER true)", sql::string(&file.display().to_string())))?;
-        let text = std::fs::read_to_string(&file).map_err(|source| DbError::Io { path: file.clone(), source })?;
+        self.execute(&format!(
+            "COPY ({sql}) TO {} (FORMAT csv, HEADER true)",
+            sql::string(&file.display().to_string())
+        ))?;
+        let text = std::fs::read_to_string(&file).map_err(|source| DbError::Io {
+            path: file.clone(),
+            source,
+        })?;
         let _ = std::fs::remove_dir_all(&dir);
         Ok(text)
     }
@@ -122,7 +149,12 @@ impl Database {
     pub fn describe(&self, relation_sql: &str) -> Result<Vec<ColumnInfo>, DbError> {
         let conn = self.lock();
         let mut stmt = conn.prepare(&format!("DESCRIBE {relation_sql}"))?;
-        let rows = stmt.query_map([], |r| Ok(ColumnInfo { name: r.get(0)?, duckdb_type: r.get(1)? }))?;
+        let rows = stmt.query_map([], |r| {
+            Ok(ColumnInfo {
+                name: r.get(0)?,
+                duckdb_type: r.get(1)?,
+            })
+        })?;
         Ok(rows.collect::<Result<_, _>>()?)
     }
 
@@ -145,11 +177,19 @@ mod tests {
     #[test]
     fn materialises_and_describes() {
         let db = Database::open(None, &DbOptions::default()).unwrap();
-        let rows = db.materialise("my table", "SELECT range AS id, 'x' AS label FROM range(10)").unwrap();
+        let rows = db
+            .materialise(
+                "my table",
+                "SELECT range AS id, 'x' AS label FROM range(10)",
+            )
+            .unwrap();
         assert_eq!(rows, 10);
         assert!(db.table_exists("my table").unwrap());
         let cols = db.describe(&sql::ident("my table")).unwrap();
-        assert_eq!(cols.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(), ["id", "label"]);
+        assert_eq!(
+            cols.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            ["id", "label"]
+        );
         assert_eq!(cols[0].duckdb_type, "BIGINT");
     }
 
@@ -158,7 +198,11 @@ mod tests {
         let db = Database::open(None, &DbOptions::default()).unwrap();
         let conn = db.connection().unwrap();
         let v: String = conn
-            .query_row("SELECT current_setting('autoinstall_known_extensions')::VARCHAR", [], |r| r.get(0))
+            .query_row(
+                "SELECT current_setting('autoinstall_known_extensions')::VARCHAR",
+                [],
+                |r| r.get(0),
+            )
             .unwrap();
         assert_eq!(v, "false");
     }

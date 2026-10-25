@@ -25,7 +25,7 @@ for (const f of files) {
 // Shortcut labels and groups are translated where they are displayed.
 for (const f of files) {
   const src = readFileSync(f, "utf8");
-  for (const m of src.matchAll(/\blabel: "((?:[^"\\]|\\.)*)"/g)) strings.set(JSON.parse(`"${m[1]}"`), "t");
+  for (const m of src.matchAll(/\blabel: "((?:[^"\\]|\\.)+)"/g)) strings.set(JSON.parse(`"${m[1]}"`), "t");
   for (const m of src.matchAll(/\bgroup: "(\w+)"/g)) strings.set(m[1], "t");
 }
 

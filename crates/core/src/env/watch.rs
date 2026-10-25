@@ -9,14 +9,14 @@ use notify::{RecursiveMode, Watcher};
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
-use std::sync::Arc;
 use std::time::Duration;
 
-use super::desktop::{read_desktop, Desktop};
-use super::language::{language_file, locales_file, read_language, Language};
-use super::theme::{read_theme, theme_dir, Theme};
+use super::desktop::{Desktop, read_desktop};
+use super::language::{Language, language_file, locales_file, read_language};
+use super::theme::{Theme, read_theme, theme_dir};
 
 #[derive(Debug, Clone)]
 pub enum EnvChange {
@@ -33,8 +33,12 @@ pub struct EnvPaths {
 
 impl EnvPaths {
     pub fn from_env() -> Self {
-        let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/"));
-        let omarchy = std::env::var_os("OMARCHY_PATH").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/usr/share/omarchy"));
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/"));
+        let omarchy = std::env::var_os("OMARCHY_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/usr/share/omarchy"));
         Self { home, omarchy }
     }
 
@@ -61,7 +65,10 @@ impl Drop for WatchHandle {
 fn hypr_request(cmd: &str) -> Option<serde_json::Value> {
     let runtime = std::env::var_os("XDG_RUNTIME_DIR")?;
     let sig = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE")?;
-    let path = Path::new(&runtime).join("hypr").join(sig).join(".socket.sock");
+    let path = Path::new(&runtime)
+        .join("hypr")
+        .join(sig)
+        .join(".socket.sock");
     let mut s = UnixStream::connect(path).ok()?;
     s.set_read_timeout(Some(Duration::from_millis(500))).ok()?;
     s.write_all(cmd.as_bytes()).ok()?;
@@ -78,7 +85,11 @@ pub fn desktop_now() -> Desktop {
         (Some(r), Some(a)) => Desktop {
             hyprland: true,
             rounding: r.get("int").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-            animations: a.get("bool").and_then(|b| b.as_bool()).or_else(|| a.get("int").and_then(|i| i.as_i64()).map(|i| i != 0)).unwrap_or(true),
+            animations: a
+                .get("bool")
+                .and_then(|b| b.as_bool())
+                .or_else(|| a.get("int").and_then(|i| i.as_i64()).map(|i| i != 0))
+                .unwrap_or(true),
         },
         _ => read_desktop(),
     }
@@ -86,7 +97,10 @@ pub fn desktop_now() -> Desktop {
 
 /// Starts watching and calls `on_change` from a background thread whenever something
 /// changes. Initial values are not reported; read them with `EnvPaths`.
-pub fn spawn(paths: EnvPaths, on_change: impl Fn(EnvChange) + Send + Sync + 'static) -> WatchHandle {
+pub fn spawn(
+    paths: EnvPaths,
+    on_change: impl Fn(EnvChange) + Send + Sync + 'static,
+) -> WatchHandle {
     let stop = Arc::new(AtomicBool::new(false));
     let on_change = Arc::new(on_change);
 
@@ -99,14 +113,19 @@ pub fn spawn(paths: EnvPaths, on_change: impl Fn(EnvChange) + Send + Sync + 'sta
             .name("charted-env-files".into())
             .spawn(move || {
                 let (tx, rx) = mpsc::channel::<()>();
-                let Ok(mut watcher) = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
-                    // Reading the theme opens its files; ignore access events or every
-                    // read would trigger another.
-                    if matches!(&res, Ok(e) if !matches!(e.kind, notify::EventKind::Access(_))) {
-                        let _ = tx.send(());
-                    }
-                }) else {
-                    tracing::warn!("file watching is unavailable; theme and language changes need a restart");
+                let Ok(mut watcher) =
+                    notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+                        // Reading the theme opens its files; ignore access events or every
+                        // read would trigger another.
+                        if matches!(&res, Ok(e) if !matches!(e.kind, notify::EventKind::Access(_)))
+                        {
+                            let _ = tx.send(());
+                        }
+                    })
+                else {
+                    tracing::warn!(
+                        "file watching is unavailable; theme and language changes need a restart"
+                    );
                     return;
                 };
                 let current = paths.home.join(".local/state/omarchy/current");

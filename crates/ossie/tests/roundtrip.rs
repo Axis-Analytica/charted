@@ -6,7 +6,9 @@ fn col(id: &str, name: &str, ty: DataType) -> Column {
         id: id.into(),
         name: name.into(),
         data_type: ty,
-        kind: ColumnKind::Data { source_column: name.into() },
+        kind: ColumnKind::Data {
+            source_column: name.into(),
+        },
         description: None,
         format_string: None,
         summarize_by: Summarize::Default,
@@ -70,70 +72,131 @@ fn sample_model() -> Model {
             col("c-order-date", "OrderDateKey", DataType::Int64),
             col("c-ship-date", "ShipDateKey", DataType::Int64),
             col("c-prod", "ProductKey", DataType::Int64),
-            Column { format_string: Some("\\$#,0.00;(\\$#,0.00)".into()), summarize_by: Summarize::Sum, ..col("c-amt", "Amount", DataType::Decimal) },
             Column {
-                kind: ColumnKind::Data { source_column: "unit cost".into() },
+                format_string: Some("\\$#,0.00;(\\$#,0.00)".into()),
+                summarize_by: Summarize::Sum,
+                ..col("c-amt", "Amount", DataType::Decimal)
+            },
+            Column {
+                kind: ColumnKind::Data {
+                    source_column: "unit cost".into(),
+                },
                 hidden: true,
                 ..col("c-cost", "Unit Cost", DataType::Double)
             },
             Column {
-                kind: ColumnKind::Calculated { expression: "Sales[Amount] - Sales[Unit Cost]".into(), language: ExpressionLanguage::Dax },
+                kind: ColumnKind::Calculated {
+                    expression: "Sales[Amount] - Sales[Unit Cost]".into(),
+                    language: ExpressionLanguage::Dax,
+                },
                 ..col("c-margin", "Line Margin", DataType::Decimal)
             },
         ],
     );
     sales.measures = vec![
-        Measure { format_string: Some("#,0".into()), display_folder: Some("Revenue".into()), ..measure("m-total", "Total Sales", "SUM ( Sales[Amount] )") },
+        Measure {
+            format_string: Some("#,0".into()),
+            display_folder: Some("Revenue".into()),
+            ..measure("m-total", "Total Sales", "SUM ( Sales[Amount] )")
+        },
         Measure {
             description: Some("Share of the selected category".into()),
             format_string: Some("0.0%".into()),
-            ..measure("m-share", "Category Share", "DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALL ( Product[Category] ) ) )")
+            ..measure(
+                "m-share",
+                "Category Share",
+                "DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALL ( Product[Category] ) ) )",
+            )
         },
     ];
     let product = table(
         "p-1",
         "Product",
         vec![
-            Column { is_key: true, ..col("c-p-key", "ProductKey", DataType::Int64) },
-            Column { data_category: Some("Uncategorized".into()), ..col("c-p-cat", "Category", DataType::String) },
+            Column {
+                is_key: true,
+                ..col("c-p-key", "ProductKey", DataType::Int64)
+            },
+            Column {
+                data_category: Some("Uncategorized".into()),
+                ..col("c-p-cat", "Category", DataType::String)
+            },
         ],
     );
     let mut date = table(
         "d-1",
         "Date",
         vec![
-            Column { is_key: true, ..col("c-d-key", "DateKey", DataType::Int64) },
-            Column { format_string: Some("yyyy-mm-dd".into()), ..col("c-d-date", "Date", DataType::Date) },
+            Column {
+                is_key: true,
+                ..col("c-d-key", "DateKey", DataType::Int64)
+            },
+            Column {
+                format_string: Some("yyyy-mm-dd".into()),
+                ..col("c-d-date", "Date", DataType::Date)
+            },
             col("c-d-msort", "MonthNumber", DataType::Int64),
-            Column { sort_by: Some("c-d-msort".into()), ..col("c-d-month", "Month Name", DataType::String) },
+            Column {
+                sort_by: Some("c-d-msort".into()),
+                ..col("c-d-month", "Month Name", DataType::String)
+            },
         ],
     );
     date.is_date_table = true;
-    let mut ship = rel("r-ship", "11111111-0000-0000-0000-000000000001", "c-ship-date", "d-1", "c-d-key");
+    let mut ship = rel(
+        "r-ship",
+        "11111111-0000-0000-0000-000000000001",
+        "c-ship-date",
+        "d-1",
+        "c-d-key",
+    );
     ship.active = false;
-    let mut prod = rel("r-prod", "11111111-0000-0000-0000-000000000001", "c-prod", "p-1", "c-p-key");
+    let mut prod = rel(
+        "r-prod",
+        "11111111-0000-0000-0000-000000000001",
+        "c-prod",
+        "p-1",
+        "c-p-key",
+    );
     prod.cross_filter = CrossFilter::Both;
     Model {
         name: "Harbor & Pine".into(),
         description: Some("Retail sales sample".into()),
         tables: vec![sales, product, date],
-        relationships: vec![rel("r-order", "11111111-0000-0000-0000-000000000001", "c-order-date", "d-1", "c-d-key"), ship, prod],
+        relationships: vec![
+            rel(
+                "r-order",
+                "11111111-0000-0000-0000-000000000001",
+                "c-order-date",
+                "d-1",
+                "c-d-key",
+            ),
+            ship,
+            prod,
+        ],
         extras: Default::default(),
     }
 }
 
 fn schema_errors(yaml: &str) -> Vec<String> {
-    let schema: serde_json::Value = serde_json::from_str(include_str!("../schema/ossie-schema.json")).unwrap();
+    let schema: serde_json::Value =
+        serde_json::from_str(include_str!("../schema/ossie-schema.json")).unwrap();
     let validator = jsonschema::validator_for(&schema).unwrap();
     let instance: serde_json::Value = serde_yaml_ng::from_str(yaml).unwrap();
-    validator.iter_errors(&instance).map(|e| format!("{e} at {}", e.instance_path())).collect()
+    validator
+        .iter_errors(&instance)
+        .map(|e| format!("{e} at {}", e.instance_path()))
+        .collect()
 }
 
 #[test]
 fn model_round_trips_losslessly_and_validates() {
     let model = sample_model();
     let mut generated = GeneratedDialects::new();
-    generated.insert("m-total".into(), vec![(OSSIE_SQL.into(), "SUM(Sales.Amount)".into())]);
+    generated.insert(
+        "m-total".into(),
+        vec![(OSSIE_SQL.into(), "SUM(Sales.Amount)".into())],
+    );
     let yaml = write_string(&model, &generated);
     let errors = schema_errors(&yaml);
     assert!(errors.is_empty(), "schema violations: {errors:#?}\n{yaml}");
@@ -147,7 +210,10 @@ fn model_round_trips_losslessly_and_validates() {
 #[test]
 fn written_yaml_snapshot() {
     let mut generated = GeneratedDialects::new();
-    generated.insert("m-total".into(), vec![(OSSIE_SQL.into(), "SUM(Sales.Amount)".into())]);
+    generated.insert(
+        "m-total".into(),
+        vec![(OSSIE_SQL.into(), "SUM(Sales.Amount)".into())],
+    );
     insta::assert_snapshot!(write_string(&sample_model(), &generated));
 }
 
@@ -190,7 +256,14 @@ metrics:
 
     let written = write_string(&model, &GeneratedDialects::new());
     assert!(schema_errors(&written).is_empty());
-    for needle in ["SNOWFLAKE", "AMOUNT", "SIGMA", "synonyms", "variations", "Online shop orders"] {
+    for needle in [
+        "SNOWFLAKE",
+        "AMOUNT",
+        "SIGMA",
+        "synonyms",
+        "variations",
+        "Online shop orders",
+    ] {
         assert!(written.contains(needle), "lost {needle}:\n{written}");
     }
     let (again, _) = read_str(&written).unwrap();
@@ -214,10 +287,20 @@ relationships:
   - { name: bad, from: a, to: missing, from_columns: [k], to_columns: [k] }
 "#;
     let (model, warnings) = read_str(yaml).unwrap();
-    assert_eq!(model.tables[0].measures.len(), 1, "dataset-scoped metrics are read");
-    let text: Vec<String> = warnings.iter().map(|w| format!("{}: {}", w.scope, w.message)).collect();
+    assert_eq!(
+        model.tables[0].measures.len(),
+        1,
+        "dataset-scoped metrics are read"
+    );
+    let text: Vec<String> = warnings
+        .iter()
+        .map(|w| format!("{}: {}", w.scope, w.message))
+        .collect();
     assert!(text.iter().any(|w| w.contains("TABLEAU")), "{text:?}");
-    assert!(text.iter().any(|w| w.contains("relationship bad")), "{text:?}");
+    assert!(
+        text.iter().any(|w| w.contains("relationship bad")),
+        "{text:?}"
+    );
 }
 
 #[test]

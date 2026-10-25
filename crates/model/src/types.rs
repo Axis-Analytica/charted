@@ -81,7 +81,10 @@ impl DataType {
     }
 
     pub fn is_temporal(self) -> bool {
-        matches!(self, DataType::Date | DataType::DateTime | DataType::DateTimeTz)
+        matches!(
+            self,
+            DataType::Date | DataType::DateTime | DataType::DateTimeTz
+        )
     }
 }
 
@@ -100,7 +103,11 @@ pub enum Summarize {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum ColumnKind {
     /// A physical column of the source table.
@@ -212,7 +219,9 @@ impl Model {
     }
 
     pub fn table_by_name(&self, name: &str) -> Option<&Table> {
-        self.tables.iter().find(|t| t.name.eq_ignore_ascii_case(name))
+        self.tables
+            .iter()
+            .find(|t| t.name.eq_ignore_ascii_case(name))
     }
 
     pub fn relationship(&self, id: &str) -> Option<&Relationship> {
@@ -230,7 +239,9 @@ impl Table {
     }
 
     pub fn column_by_name(&self, name: &str) -> Option<&Column> {
-        self.columns.iter().find(|c| c.name.eq_ignore_ascii_case(name))
+        self.columns
+            .iter()
+            .find(|c| c.name.eq_ignore_ascii_case(name))
     }
 
     pub fn measure_mut(&mut self, id: &str) -> Option<&mut Measure> {
@@ -240,6 +251,7 @@ impl Table {
     /// True when `name` is already used by a column or measure of this table.
     pub fn has_field_named(&self, name: &str, except: Option<&str>) -> bool {
         let clash = |id: &str, n: &str| Some(id) != except && n.eq_ignore_ascii_case(name);
-        self.columns.iter().any(|c| clash(&c.id, &c.name)) || self.measures.iter().any(|m| clash(&m.id, &m.name))
+        self.columns.iter().any(|c| clash(&c.id, &c.name))
+            || self.measures.iter().any(|m| clash(&m.id, &m.name))
     }
 }

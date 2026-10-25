@@ -132,10 +132,18 @@ pub struct CustomExtension {
 
 impl Expression {
     pub fn single(dialect: &str, expression: impl Into<String>) -> Self {
-        Self { dialects: vec![DialectExpression { dialect: dialect.into(), expression: expression.into() }] }
+        Self {
+            dialects: vec![DialectExpression {
+                dialect: dialect.into(),
+                expression: expression.into(),
+            }],
+        }
     }
 
     pub fn get(&self, dialect: &str) -> Option<&str> {
-        self.dialects.iter().find(|d| d.dialect == dialect).map(|d| d.expression.as_str())
+        self.dialects
+            .iter()
+            .find(|d| d.dialect == dialect)
+            .map(|d| d.expression.as_str())
     }
 }

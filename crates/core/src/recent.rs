@@ -27,7 +27,10 @@ fn file(state_dir: &Path) -> std::path::PathBuf {
 }
 
 fn read(state_dir: &Path) -> Vec<RecentProject> {
-    std::fs::read_to_string(file(state_dir)).ok().and_then(|t| serde_json::from_str(&t).ok()).unwrap_or_default()
+    std::fs::read_to_string(file(state_dir))
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
 }
 
 fn write(state_dir: &Path, items: &[RecentProject]) {
@@ -37,17 +40,28 @@ fn write(state_dir: &Path, items: &[RecentProject]) {
 }
 
 pub fn list(state_dir: &Path) -> Vec<RecentProject> {
-    read(state_dir).into_iter().map(|mut r| {
-        r.exists = Path::new(&r.path).exists();
-        r
-    }).collect()
+    read(state_dir)
+        .into_iter()
+        .map(|mut r| {
+            r.exists = Path::new(&r.path).exists();
+            r
+        })
+        .collect()
 }
 
 pub fn remember(state_dir: &Path, name: &str, manifest: &Path) {
     let path = manifest.display().to_string();
     let mut items = read(state_dir);
     items.retain(|r| r.path != path);
-    items.insert(0, RecentProject { name: name.into(), path, opened_at: now(), exists: true });
+    items.insert(
+        0,
+        RecentProject {
+            name: name.into(),
+            path,
+            opened_at: now(),
+            exists: true,
+        },
+    );
     items.truncate(LIMIT);
     write(state_dir, &items);
 }

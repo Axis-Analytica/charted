@@ -8,5 +8,5 @@ mod arrow;
 mod db;
 pub mod sql;
 
-pub use arrow::{query_arrow_ipc, ArrowError};
+pub use arrow::{ArrowError, query_arrow_ipc};
 pub use db::{ColumnInfo, Database, DbError, DbOptions, InterruptHandle};

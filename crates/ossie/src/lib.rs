@@ -11,7 +11,9 @@ pub mod stash;
 pub mod validate;
 
 pub use document::{Document, SPEC_VERSION};
-pub use map::{from_document, to_document, GeneratedDialects, MapError, Warning, ANSI_SQL, DAX, OSSIE_SQL};
+pub use map::{
+    ANSI_SQL, DAX, GeneratedDialects, MapError, OSSIE_SQL, Warning, from_document, to_document,
+};
 
 use charted_model::Model;
 

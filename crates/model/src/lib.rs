@@ -10,6 +10,6 @@ mod change;
 mod history;
 mod types;
 
-pub use change::{apply, Change, ChangeError, ColumnProperty};
-pub use history::{apply_all, History, HistoryEntry};
+pub use change::{Change, ChangeError, ColumnProperty, apply};
+pub use history::{History, HistoryEntry, apply_all};
 pub use types::*;

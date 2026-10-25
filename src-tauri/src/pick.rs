@@ -22,7 +22,11 @@ pub struct PickOptions {
 }
 
 pub async fn pick(options: PickOptions) -> Result<Option<String>, String> {
-    let mut request = SelectedFiles::open_file().title(options.title.as_str()).modal(true).multiple(false).directory(options.directory);
+    let mut request = SelectedFiles::open_file()
+        .title(options.title.as_str())
+        .modal(true)
+        .multiple(false)
+        .directory(options.directory);
     for f in &options.filters {
         let mut filter = FileFilter::new(&f.name);
         for ext in &f.extensions {
@@ -33,7 +37,9 @@ pub async fn pick(options: PickOptions) -> Result<Option<String>, String> {
     let response = request
         .send()
         .await
-        .map_err(|e| format!("the file chooser is unavailable: {e}. Is xdg-desktop-portal running?"))?
+        .map_err(|e| {
+            format!("the file chooser is unavailable: {e}. Is xdg-desktop-portal running?")
+        })?
         .response();
     match response {
         Ok(files) => Ok(files
