@@ -413,7 +413,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                           </button>
                         </span>
                       )}
-                      {i === 0 && query.source.kind !== "postgres" && (
+                      {i === 0 && query.source.kind !== "postgres" && query.source.kind !== "calendar" && (
                         <span className="qe-step-tools">
                           <button
                             type="button"

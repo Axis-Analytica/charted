@@ -720,3 +720,63 @@ fn database_sources_ask_before_downloading() {
     );
     let _ = &mut fx;
 }
+
+#[test]
+fn the_date_table_wizard_makes_a_related_calendar() {
+    let mut fx = Fx::new();
+    let model = fx.app.session().unwrap().project.model.clone();
+    let store = model.table_by_name("Store").unwrap();
+    let open = store.column_by_name("OpenDate").unwrap();
+    fx.app
+        .handle(Request::CreateDateTable {
+            name: "Calendar".into(),
+            start: "2000-01-01".into(),
+            end: "2025-12-31".into(),
+            fiscal_start: 7,
+            relate: vec![(store.id.clone(), open.id.clone())],
+        })
+        .unwrap();
+    let s = fx.app.session().unwrap();
+    let m = &s.project.model;
+    let cal = m.table_by_name("Calendar").unwrap();
+    assert!(cal.is_date_table);
+    let names: Vec<&str> = cal.columns.iter().map(|c| c.name.as_str()).collect();
+    assert_eq!(
+        names,
+        ["Date", "Year", "Quarter", "MonthNumber", "MonthName", "YearMonth", "Weekday", "WeekdayNumber", "FiscalYear"]
+    );
+    assert_eq!(cal.column_by_name("Date").unwrap().data_type, DataType::Date);
+    assert!(cal.column_by_name("Date").unwrap().is_key);
+    let month = cal.column_by_name("MonthNumber").unwrap().id.clone();
+    assert_eq!(cal.column_by_name("MonthName").unwrap().sort_by.as_ref(), Some(&month));
+    let rel = m.relationships.iter().find(|r| r.to_table == cal.id).unwrap();
+    assert_eq!((rel.from_column.as_str(), rel.active), (open.id.as_str(), true));
+    let got = rows(
+        s.database()
+            .arrow(&format!(
+                "SELECT count(*), min(\"Date\"), max(FiscalYear), any_value(FiscalYear) FILTER (WHERE \"Date\" = DATE '2024-07-01') FROM {}",
+                cal.source
+            ))
+            .unwrap(),
+    );
+    assert_eq!(got, [["9497", "2000-01-01", "FY2026", "FY2025"]]);
+    let q = s.project.queries.iter().find(|q| q.name == "Calendar").unwrap();
+    let m_text = charted_tmdl::m_query(q, Some(cal), &s.project.queries);
+    assert!(m_text.contains("List.Dates(#date(2000, 1, 1)"), "{m_text}");
+    // A name that's taken, and a column that isn't a date.
+    let key = store.column_by_name("StoreKey").unwrap();
+    let mut err = |name: &str, relate| {
+        fx.app
+            .handle(Request::CreateDateTable {
+                name: name.into(),
+                start: "2024-01-01".into(),
+                end: "2024-12-31".into(),
+                fiscal_start: 1,
+                relate,
+            })
+            .unwrap_err()
+            .message
+    };
+    assert!(err("Calendar", vec![]).contains("already a table"));
+    assert!(err("Dates", vec![(store.id.clone(), key.id.clone())]).contains("isn't a date column"));
+}

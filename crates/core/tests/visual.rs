@@ -684,3 +684,62 @@ fn relationship_check_suggests_cardinality() {
     assert_eq!(v["toCardinality"], "One", "{v}");
     assert_eq!(v["unmatched"], 0, "{v}");
 }
+
+#[test]
+fn time_intelligence_matches_sql() {
+    let mut f = fixture();
+    let sales = model(&f).table_by_name("Sales").unwrap().id.clone();
+    let add = |id: &str, name: &str, expr: &str| Change::AddMeasure {
+        table: sales.clone(),
+        measure: Measure {
+            id: id.into(),
+            name: name.into(),
+            expression: expr.into(),
+            language: ExpressionLanguage::Dax,
+            description: None,
+            format_string: None,
+            display_folder: None,
+            hidden: false,
+            extras: Default::default(),
+        },
+        index: None,
+    };
+    f.app
+        .handle(Request::Commit {
+            label: "Time intelligence".into(),
+            changes: vec![
+                add("m-ly", "Sales LY", "CALCULATE ( [Total Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )"),
+                add("m-ytd", "Sales YTD", "TOTALYTD ( [Total Sales], 'Date'[Date] )"),
+                add("m-fytd", "Sales FYTD", "TOTALYTD ( [Total Sales], 'Date'[Date], \"6/30\" )"),
+            ],
+        })
+        .unwrap();
+    let start = std::time::Instant::now();
+    let rows = run(
+        &f,
+        q(
+            vec![col(&f, "Date", "Year"), col(&f, "Date", "MonthNumber")],
+            vec![
+                measure(&f, "Total Sales"),
+                measure(&f, "Sales LY"),
+                measure(&f, "Sales YTD"),
+                measure(&f, "Sales FYTD"),
+            ],
+        ),
+    );
+    eprintln!("time intelligence by month: {:?}", start.elapsed());
+    let expected = sql(
+        &f,
+        "WITH m AS (SELECT d.Year, d.MonthNumber, sum(s.Amount) AS amt FROM sales s
+           JOIN date d ON s.OrderDateKey = d.DateKey GROUP BY 1, 2)
+         SELECT Year, MonthNumber, amt,
+           (SELECT l.amt FROM m l WHERE l.Year = m.Year - 1 AND l.MonthNumber = m.MonthNumber),
+           sum(amt) OVER (PARTITION BY Year ORDER BY MonthNumber),
+           sum(amt) OVER (PARTITION BY Year + CASE WHEN MonthNumber >= 7 THEN 1 ELSE 0 END
+                          ORDER BY Year, MonthNumber)
+         FROM m ORDER BY 1, 2",
+    );
+    let got = rounded(rows);
+    assert_eq!(got.len(), 48);
+    assert_eq!(got, expected);
+}

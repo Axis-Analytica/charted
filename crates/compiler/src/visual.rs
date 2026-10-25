@@ -24,7 +24,9 @@
 //! - BLANK follows DAX: `+`/`-` treat it as zero unless both sides are blank, DIVIDE by
 //!   zero or blank gives the alternate result, counts of nothing are blank.
 
-use charted_dax::{AggFunc, BinaryOp, Bound, FilterArg, InfoFunc, ScalarFunc, TableExpr, UnaryOp};
+use charted_dax::{
+    AggFunc, BinaryOp, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, UnaryOp,
+};
 use charted_model::{
     Aggregation, ColumnKind, Condition, DataType, DateUnit, FieldRef, FilterKind, FilterOp, Id,
     Model, Projection, RelativePeriod, Table,
@@ -1039,6 +1041,11 @@ impl<'a> Compiler<'a> {
                     "iterating a list of values".into(),
                 ));
             }
+            TableExpr::Dates { .. } => {
+                return Err(CompileError::Unsupported(
+                    "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
+                ));
+            }
             TableExpr::Filter { .. } => unreachable!("filters were unwrapped"),
         };
         let mut related: Vec<(Id, Id)> = Vec::new();
@@ -1356,6 +1363,9 @@ impl<'a> Compiler<'a> {
         let mut c = self.transition(ctx, rows);
         // New filters, evaluated in the outer context.
         let mut added: Vec<(CFilter, bool)> = Vec::new();
+        // Time intelligence on a date table (marked, or joined on the date column)
+        // replaces the filters on all of the table's columns, as in DAX.
+        let mut date_tables: Vec<Id> = Vec::new();
         for fa in filters {
             let (inner, keep) = match fa {
                 FilterArg::Keep(i) => (&**i, true),
@@ -1372,7 +1382,22 @@ impl<'a> Compiler<'a> {
                     });
                 }
                 FilterArg::UseRelationship(r) => c.use_rels.push(r.clone()),
-                FilterArg::Table(t) => self.table_filter(t, keep, &outer, &mut added)?,
+                FilterArg::Table(t) => {
+                    if let TableExpr::Dates {
+                        table: tid, column, ..
+                    } = t
+                        && !keep
+                        && (table(self.model, tid)?.is_date_table
+                            || self
+                                .model
+                                .relationships
+                                .iter()
+                                .any(|r| &r.from_column == column || &r.to_column == column))
+                    {
+                        date_tables.push(tid.clone());
+                    }
+                    self.table_filter(t, keep, &outer, &mut added)?
+                }
                 FilterArg::Keep(_) => {
                     return Err(CompileError::Unsupported(
                         "KEEPFILTERS inside KEEPFILTERS".into(),
@@ -1380,6 +1405,8 @@ impl<'a> Compiler<'a> {
                 }
             }
         }
+        c.keys.retain(|k| !date_tables.contains(&k.table));
+        c.filters.retain(|f| !date_tables.contains(&f.table));
         for (f, keep) in added {
             if !keep && !f.columns.is_empty() {
                 c.keys.retain(|k| !f.columns.contains(&k.column));
@@ -1412,6 +1439,126 @@ impl<'a> Compiler<'a> {
                 set,
                 columns: columns.to_vec(),
                 keys,
+            },
+        })
+    }
+
+    /// The dates a time-intelligence function returns, as a value set: computed from
+    /// the dates visible under each key of the outer context, and kept to the dates
+    /// the column has.
+    fn date_set(
+        &mut self,
+        table_id: &str,
+        column: &str,
+        op: DateOp,
+        outer: &Ctx,
+    ) -> Result<CFilter> {
+        let (keys, preds, from, _) = self.scope(table_id, outer, &[table_id.to_string()], true)?;
+        let col = format!("CAST({} AS DATE)", self.column_sql(table_id, column)?.0);
+        let names: Vec<String> = keys.iter().map(|(k, _)| k.name.clone()).collect();
+        let mut select: Vec<String> = keys
+            .iter()
+            .map(|(k, e)| format!("{e} AS {}", k.name))
+            .collect();
+        select.push(format!("{col} AS v"));
+        let mut wh = preds;
+        wh.push(format!("{col} IS NOT NULL"));
+        let visible = format!(
+            "SELECT DISTINCT {} FROM {from} WHERE {}",
+            select.join(", "),
+            wh.join(" AND ")
+        );
+        let (_, _, all_from, _) = self.scope(table_id, &Ctx::default(), &[], false)?;
+        let all = format!("SELECT DISTINCT {col} AS d FROM {all_from} WHERE {col} IS NOT NULL");
+        let by = |p: &str| {
+            names
+                .iter()
+                .map(|k| format!("{p}.{k}, "))
+                .collect::<String>()
+        };
+        let iv = |n: i32, p: Period| match p {
+            Period::Day => format!("to_days({n})"),
+            Period::Month => format!("to_months({n})"),
+            Period::Quarter => format!("to_months({})", 3 * n),
+            Period::Year => format!("to_years({n})"),
+        };
+        let date = |e: String| format!("CAST({e} AS DATE)");
+        let trunc = |p: Period, e: &str| date(format!("date_trunc('{}', {e})", p.sql()));
+        // The first and last visible date per key.
+        let span = format!(
+            "(SELECT {}min(v) AS lo, max(v) AS hi FROM ({visible}) AS b{})",
+            by("b"),
+            if names.is_empty() {
+                String::new()
+            } else {
+                format!(
+                    " GROUP BY {}",
+                    names
+                        .iter()
+                        .map(|k| format!("b.{k}"))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
+        );
+        let between = |lo: String, hi: String| {
+            format!(
+                "SELECT DISTINCT {}a.d AS v0 FROM {span} AS s JOIN ({all}) AS a ON a.d BETWEEN {lo} AND {hi}",
+                by("s")
+            )
+        };
+        let sql = match op {
+            DateOp::Shift(n, p) => {
+                let moved = date(format!("b.v + {}", iv(n, p)));
+                let month_end = if p == Period::Day {
+                    String::new()
+                } else {
+                    format!(
+                        " OR (b.v = last_day(b.v) AND a.d > {moved} AND a.d <= last_day({moved}))"
+                    )
+                };
+                format!(
+                    "SELECT DISTINCT {}a.d AS v0 FROM ({visible}) AS b JOIN ({all}) AS a ON a.d = {moved}{month_end}",
+                    by("b")
+                )
+            }
+            DateOp::Parallel(n, p) => between(
+                trunc(p, &format!("s.lo + {}", iv(n, p))),
+                date(format!(
+                    "{} + {} - to_days(1)",
+                    trunc(p, &format!("s.hi + {}", iv(n, p))),
+                    iv(1, p)
+                )),
+            ),
+            DateOp::Previous(p) => between(
+                date(format!("{} - {}", trunc(p, "s.lo"), iv(1, p))),
+                date(format!("{} - to_days(1)", trunc(p, "s.lo"))),
+            ),
+            DateOp::Next(p) => between(
+                date(format!("{} + {}", trunc(p, "s.hi"), iv(1, p))),
+                date(format!("{} + {} - to_days(1)", trunc(p, "s.hi"), iv(2, p))),
+            ),
+            DateOp::ToDate(p, None) => between(trunc(p, "s.hi"), "s.hi".into()),
+            DateOp::ToDate(_, Some((m, d))) => {
+                let end = |y: &str| format!("(make_date({y}, {m}, 1) + to_days({}))", d - 1);
+                between(
+                    date(format!(
+                        "CASE WHEN s.hi > {this} THEN {this} ELSE {last} END + to_days(1)",
+                        this = end("year(s.hi)"),
+                        last = end("year(s.hi) - 1")
+                    )),
+                    "s.hi".into(),
+                )
+            }
+        };
+        let set = self.add_cte(sql, Vec::new(), false);
+        Ok(CFilter {
+            table: table_id.to_string(),
+            columns: vec![column.to_string()],
+            pred: Pred::InSet {
+                set,
+                columns: vec![column.to_string()],
+                keys: keys.into_iter().map(|(k, _)| k).collect(),
             },
         })
     }
@@ -1511,6 +1658,9 @@ impl<'a> Compiler<'a> {
                     "a list of values as a filter (use TREATAS)".into(),
                 ));
             }
+            TableExpr::Dates { table, column, op } => {
+                added.push((self.date_set(table, column, *op, outer)?, keep))
+            }
         }
         Ok(())
     }
@@ -1599,6 +1749,11 @@ impl<'a> Compiler<'a> {
             TableExpr::List(_) => {
                 return Err(CompileError::Unsupported(
                     "iterating a list of values".into(),
+                ));
+            }
+            TableExpr::Dates { .. } => {
+                return Err(CompileError::Unsupported(
+                    "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
             TableExpr::Filter { .. } => unreachable!("filters were unwrapped"),

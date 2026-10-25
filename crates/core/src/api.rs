@@ -66,6 +66,17 @@ pub enum Request {
     },
     /// Loads every query again from its sources. Clears undo.
     Refresh,
+    /// The date table wizard (see `Session::create_date_table`). Clears undo.
+    CreateDateTable {
+        name: String,
+        /// ISO dates (YYYY-MM-DD).
+        start: String,
+        end: String,
+        /// The month the fiscal year starts in (1: calendar years).
+        fiscal_start: u32,
+        /// Date columns to relate to it: (table id, column id).
+        relate: Vec<(Id, Id)>,
+    },
     /// Records the user's agreement to download a DuckDB extension (and downloads it).
     AllowExtension {
         name: String,
@@ -509,6 +520,15 @@ impl App {
             Request::ImportOssie { path } => self.session_mut()?.import_ossie(Path::new(&path))?,
             Request::ApplyQueries { queries } => self.session_mut()?.apply_queries(queries)?,
             Request::Refresh => self.session_mut()?.refresh()?,
+            Request::CreateDateTable {
+                name,
+                start,
+                end,
+                fiscal_start,
+                relate,
+            } => self
+                .session_mut()?
+                .create_date_table(&name, &start, &end, fiscal_start, &relate)?,
             Request::AllowExtension { name } => {
                 let consent = crate::sources::Consent::allow(&self.state_dir, &name)?;
                 if let Ok(s) = self.session_mut() {

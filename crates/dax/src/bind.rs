@@ -46,6 +46,43 @@ pub enum InfoFunc {
     IsInScope,
 }
 
+/// A calendar unit of the time-intelligence functions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Period {
+    Day,
+    Month,
+    Quarter,
+    Year,
+}
+
+impl Period {
+    pub fn sql(self) -> &'static str {
+        match self {
+            Period::Day => "day",
+            Period::Month => "month",
+            Period::Quarter => "quarter",
+            Period::Year => "year",
+        }
+    }
+}
+
+/// How a time-intelligence function turns the visible dates into other dates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DateOp {
+    /// DATEADD, SAMEPERIODLASTYEAR: each date moved by `n` units; a month's last day
+    /// also brings the rest of the target month (so whole months stay whole).
+    Shift(i32, Period),
+    /// PARALLELPERIOD: the whole periods from the first to the last date, moved by `n`.
+    Parallel(i32, Period),
+    /// PREVIOUSDAY/MONTH/QUARTER/YEAR: the whole period before the first date.
+    Previous(Period),
+    /// NEXTDAY/MONTH/QUARTER/YEAR: the whole period after the last date.
+    Next(Period),
+    /// DATESMTD/QTD/YTD: from the start of the last date's period to the last date. A
+    /// year can end on another day (month, day), as in "6/30".
+    ToDate(Period, Option<(u32, u32)>),
+}
+
 /// Rows to iterate or filter by.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TableExpr {
@@ -61,6 +98,8 @@ pub enum TableExpr {
     },
     /// A one-column table of literal values.
     List(Vec<Bound>),
+    /// Dates of a date column computed from the visible ones (time intelligence).
+    Dates { table: Id, column: Id, op: DateOp },
 }
 
 impl TableExpr {
@@ -69,7 +108,8 @@ impl TableExpr {
         match self {
             TableExpr::Table(t)
             | TableExpr::Values { table: t, .. }
-            | TableExpr::All { table: t, .. } => Some(t),
+            | TableExpr::All { table: t, .. }
+            | TableExpr::Dates { table: t, .. } => Some(t),
             TableExpr::Filter { source, .. } => source.table(),
             TableExpr::List(_) => None,
         }
@@ -85,6 +125,7 @@ impl TableExpr {
                 Some(columns)
             }
             TableExpr::Values { .. } | TableExpr::All { .. } => None,
+            TableExpr::Dates { column, .. } => Some(std::slice::from_ref(column)),
             TableExpr::Filter { source, .. } => source.columns(),
             TableExpr::List(_) => Some(&[]),
         }
@@ -190,13 +231,9 @@ pub const KNOWN: &[&str] = &[
     "COUNTAX",
     "CROSSFILTER",
     "DATE",
-    "DATEADD",
     "DATEDIFF",
     "DATESBETWEEN",
     "DATESINPERIOD",
-    "DATESMTD",
-    "DATESQTD",
-    "DATESYTD",
     "DATEVALUE",
     "DAY",
     "EARLIER",
@@ -204,7 +241,6 @@ pub const KNOWN: &[&str] = &[
     "EOMONTH",
     "EXP",
     "FIND",
-    "FIRSTDATE",
     "FIRSTNONBLANK",
     "FLOOR",
     "FORMAT",
@@ -213,7 +249,6 @@ pub const KNOWN: &[&str] = &[
     "IFERROR",
     "INT",
     "ISERROR",
-    "LASTDATE",
     "LASTNONBLANK",
     "LEFT",
     "LEN",
@@ -230,11 +265,8 @@ pub const KNOWN: &[&str] = &[
     "MOD",
     "MONTH",
     "NOW",
-    "PARALLELPERIOD",
     "PERCENTILE.INC",
     "POWER",
-    "PREVIOUSMONTH",
-    "PREVIOUSYEAR",
     "PRODUCT",
     "PRODUCTX",
     "QUARTER",
@@ -244,7 +276,6 @@ pub const KNOWN: &[&str] = &[
     "RIGHT",
     "ROUNDDOWN",
     "ROUNDUP",
-    "SAMEPERIODLASTYEAR",
     "SEARCH",
     "SELECTCOLUMNS",
     "SIGN",
@@ -256,9 +287,6 @@ pub const KNOWN: &[&str] = &[
     "SUMMARIZECOLUMNS",
     "TODAY",
     "TOPN",
-    "TOTALMTD",
-    "TOTALQTD",
-    "TOTALYTD",
     "TREATAS",
     "TRIM",
     "TRUNC",
@@ -287,30 +315,49 @@ pub const SUPPORTED: &[&str] = &[
     "COUNTBLANK",
     "COUNTROWS",
     "COUNTX",
+    "DATEADD",
+    "DATESMTD",
+    "DATESQTD",
+    "DATESYTD",
     "DISTINCT",
     "DISTINCTCOUNT",
     "DIVIDE",
     "FALSE",
     "FILTER",
+    "FIRSTDATE",
     "HASONEVALUE",
     "IF",
     "ISBLANK",
     "ISFILTERED",
     "ISINSCOPE",
     "KEEPFILTERS",
+    "LASTDATE",
     "MAX",
     "MAXX",
     "MIN",
     "MINX",
+    "NEXTDAY",
+    "NEXTMONTH",
+    "NEXTQUARTER",
+    "NEXTYEAR",
     "NOT",
     "OR",
+    "PARALLELPERIOD",
+    "PREVIOUSDAY",
+    "PREVIOUSMONTH",
+    "PREVIOUSQUARTER",
+    "PREVIOUSYEAR",
     "RELATED",
     "REMOVEFILTERS",
     "ROUND",
+    "SAMEPERIODLASTYEAR",
     "SELECTEDVALUE",
     "SUM",
     "SUMX",
     "SWITCH",
+    "TOTALMTD",
+    "TOTALQTD",
+    "TOTALYTD",
     "TRUE",
     "USERELATIONSHIP",
     "VALUES",
@@ -571,6 +618,125 @@ impl<'a> Binder<'a> {
         }
     }
 
+    /// A date column argument of a time-intelligence function.
+    fn date_column(&mut self, e: &Expr) -> Option<(&'a Table, &'a charted_model::Column)> {
+        let (t, c) = self.column_arg(e)?;
+        if !matches!(
+            c.data_type,
+            DataType::Date | DataType::DateTime | DataType::DateTimeTz
+        ) {
+            return self
+                .err(
+                    e.span,
+                    format!("'{}'[{}] isn't a date column; time intelligence needs the date column of a date table", t.name, c.name),
+                )
+                .and(None);
+        }
+        Some((t, c))
+    }
+
+    /// A whole number argument, such as DATEADD's -1.
+    fn whole(&mut self, e: &Expr) -> Option<i32> {
+        let v = match &e.kind {
+            ExprKind::Number(n) => Some(*n),
+            ExprKind::Unary {
+                op: UnaryOp::Neg,
+                expr,
+            } => match expr.kind {
+                ExprKind::Number(n) => Some(-n),
+                _ => None,
+            },
+            _ => None,
+        };
+        match v {
+            Some(n) if n.fract() == 0.0 && n.abs() < 10_000.0 => Some(n as i32),
+            _ => self
+                .err(e.span, "this needs a whole number, such as -1")
+                .and(None),
+        }
+    }
+
+    /// DAY, MONTH, QUARTER or YEAR.
+    fn period(&mut self, e: &Expr) -> Option<Period> {
+        let name = match &e.kind {
+            ExprKind::Table(n) => Some(n.as_str()),
+            ExprKind::Ref { table: None, name } => Some(name.as_str()),
+            _ => None,
+        };
+        match name.map(str::to_ascii_uppercase).as_deref() {
+            Some("DAY") => Some(Period::Day),
+            Some("MONTH") => Some(Period::Month),
+            Some("QUARTER") => Some(Period::Quarter),
+            Some("YEAR") => Some(Period::Year),
+            _ => self
+                .err(e.span, "this needs DAY, MONTH, QUARTER or YEAR")
+                .and(None),
+        }
+    }
+
+    /// A year-end date such as "6/30" (month/day) or "30-6" when the day comes first.
+    fn year_end(&mut self, e: &Expr) -> Option<(u32, u32)> {
+        let parsed = match &e.kind {
+            ExprKind::Text(t) => {
+                let parts: Vec<u32> = t
+                    .split(['/', '-', ' ', '.'])
+                    .filter(|p| !p.is_empty())
+                    .map_while(|p| p.parse().ok())
+                    .collect();
+                match parts[..] {
+                    [m, d] if (1..=12).contains(&m) && (1..=31).contains(&d) => Some((m, d)),
+                    [d, m] if (1..=12).contains(&m) && (1..=31).contains(&d) => Some((m, d)),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        parsed.or_else(|| {
+            self.err(e.span, "the year end is text such as \"6/30\" (month/day)")
+                .and(None)
+        })
+    }
+
+    /// SAMEPERIODLASTYEAR, DATEADD, PARALLELPERIOD, DATESYTD/QTD/MTD, PREVIOUS… and NEXT….
+    fn dates(&mut self, name: &str, args: &[Expr], span: Span) -> Option<TableExpr> {
+        let (min, max) = match name {
+            "DATEADD" | "PARALLELPERIOD" => (3, 3),
+            "DATESYTD" => (1, 2),
+            _ => (1, 1),
+        };
+        if !self.arity(name, args, span, min, max) {
+            return None;
+        }
+        let (t, c) = self.date_column(&args[0])?;
+        let unit = |n: &str| match &n[n.len() - 3..] {
+            "DAY" => Period::Day,
+            "NTH" => Period::Month,
+            "TER" => Period::Quarter,
+            _ => Period::Year,
+        };
+        let op = match name {
+            "SAMEPERIODLASTYEAR" => DateOp::Shift(-1, Period::Year),
+            "DATEADD" => DateOp::Shift(self.whole(&args[1])?, self.period(&args[2])?),
+            "PARALLELPERIOD" => DateOp::Parallel(self.whole(&args[1])?, self.period(&args[2])?),
+            "DATESYTD" => DateOp::ToDate(
+                Period::Year,
+                match args.get(1) {
+                    Some(y) => Some(self.year_end(y)?),
+                    None => None,
+                },
+            ),
+            "DATESQTD" => DateOp::ToDate(Period::Quarter, None),
+            "DATESMTD" => DateOp::ToDate(Period::Month, None),
+            n if n.starts_with("PREVIOUS") => DateOp::Previous(unit(n)),
+            n => DateOp::Next(unit(n)),
+        };
+        Some(TableExpr::Dates {
+            table: t.id.clone(),
+            column: c.id.clone(),
+            op,
+        })
+    }
+
     fn arity(&mut self, name: &str, args: &[Expr], span: Span, min: usize, max: usize) -> bool {
         if args.len() < min || args.len() > max {
             let want = if min == max {
@@ -633,6 +799,7 @@ impl<'a> Binder<'a> {
                             condition: Box::new(condition),
                         })
                     }
+                    "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.dates(&upper, args, e.span),
                     _ => self
                         .err(
                             e.span,
@@ -747,7 +914,10 @@ impl<'a> Binder<'a> {
                             .and(None),
                     };
                 }
-                "FILTER" | "VALUES" | "DISTINCT" => {
+                "FILTER" | "VALUES" | "DISTINCT" | "SAMEPERIODLASTYEAR" | "DATEADD"
+                | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY"
+                | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY"
+                | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
                     return Some(FilterArg::Table(self.table_expr(e, rows)?));
                 }
                 _ => {}
@@ -962,8 +1132,52 @@ impl<'a> Binder<'a> {
             }
             "BLANK" => self.arity(&upper, args, span, 0, 0).then_some(Bound::Blank),
             "TRUE" | "FALSE" => self.arity(&upper, args, span, 0, 0).then_some(Bound::Bool(upper == "TRUE")),
+            "TOTALYTD" | "TOTALQTD" | "TOTALMTD" => {
+                let ytd = upper == "TOTALYTD";
+                if !self.arity(&upper, args, span, 2, if ytd { 4 } else { 3 }) {
+                    return None;
+                }
+                let expr = self.expr(&args[0], rows);
+                let period = match upper.as_str() {
+                    "TOTALYTD" => "DATESYTD",
+                    "TOTALQTD" => "DATESQTD",
+                    _ => "DATESMTD",
+                };
+                // TOTALYTD ( e, dates, [filter], [year end] ): the year end is the last text.
+                let (filter, year_end) = match &args[2..] {
+                    [] => (None, None),
+                    [x] if ytd && matches!(x.kind, ExprKind::Text(_)) => (None, Some(x)),
+                    [f] => (Some(f), None),
+                    [f, y, ..] => (Some(f), Some(y)),
+                };
+                let mut dargs = vec![args[1].clone()];
+                dargs.extend(year_end.cloned());
+                let dates = self.dates(period, &dargs, span);
+                let mut filters = vec![FilterArg::Table(dates?)];
+                if let Some(f) = filter {
+                    filters.push(self.filter_arg(f, rows)?);
+                }
+                Some(Bound::Calculate {
+                    expr: Box::new(expr?),
+                    filters,
+                })
+            }
+            "FIRSTDATE" | "LASTDATE" => {
+                if !self.arity(&upper, args, span, 1, 1) {
+                    return None;
+                }
+                let (t, c) = self.date_column(&args[0])?;
+                Some(Bound::Aggregate {
+                    func: if upper == "FIRSTDATE" { AggFunc::Min } else { AggFunc::Max },
+                    source: TableExpr::Table(t.id.clone()),
+                    arg: Some(Box::new(Bound::Column {
+                        table: t.id.clone(),
+                        column: c.id.clone(),
+                    })),
+                })
+            }
             "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
-            | "USERELATIONSHIP" => self.err(
+            | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
             ),

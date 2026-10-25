@@ -16,7 +16,9 @@
 //! - SUMMARIZECOLUMNS: rows are the distinct visible tuples of each table's grouping
 //!   columns, cross joined, minus rows where every value is blank.
 
-use charted_dax::{AggFunc, BinaryOp, Bound, FilterArg, InfoFunc, ScalarFunc, TableExpr, UnaryOp};
+use charted_dax::{
+    AggFunc, BinaryOp, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, UnaryOp,
+};
 use charted_model::{
     Aggregation, Cardinality, Condition, FieldRef, FilterKind, FilterOp, Id, Model, Projection,
 };
@@ -529,6 +531,72 @@ impl<'a> Interp<'a> {
                 Ok(out)
             }
             TableExpr::List(_) => Err("lists are not tables here".into()),
+            TableExpr::Dates { table, column, op } => {
+                let td = self.table(table)?;
+                let ci = td.col(column).ok_or("missing date column")?;
+                let day = |v: &Value| match v {
+                    Value::Text(s) => cal::parse(s),
+                    _ => None,
+                };
+                let visible: Vec<i64> = self
+                    .visible_rows(ctx, table)?
+                    .into_iter()
+                    .filter_map(|r| day(&r[ci]))
+                    .collect();
+                let all: std::collections::BTreeSet<i64> =
+                    td.rows.iter().filter_map(|r| day(&r[ci])).collect();
+                let (Some(&lo), Some(&hi)) = (visible.iter().min(), visible.iter().max()) else {
+                    return Ok(Vec::new());
+                };
+                let within = |a: i64, b: i64| {
+                    if a > b {
+                        Vec::new()
+                    } else {
+                        all.range(a..=b).copied().collect::<Vec<_>>()
+                    }
+                };
+                let picked: Vec<i64> = match *op {
+                    DateOp::Shift(n, p) => {
+                        let mut out = std::collections::BTreeSet::new();
+                        for &v in &visible {
+                            let moved = cal::add(v, n, p);
+                            if all.contains(&moved) {
+                                out.insert(moved);
+                            }
+                            if p != Period::Day && v == cal::last_day(v) {
+                                out.extend(within(moved + 1, cal::last_day(moved)));
+                            }
+                        }
+                        out.into_iter().collect()
+                    }
+                    DateOp::Parallel(n, p) => within(
+                        cal::trunc(cal::add(lo, n, p), p),
+                        cal::add(cal::trunc(cal::add(hi, n, p), p), 1, p) - 1,
+                    ),
+                    DateOp::Previous(p) => {
+                        let start = cal::trunc(lo, p);
+                        within(cal::add(start, -1, p), start - 1)
+                    }
+                    DateOp::Next(p) => {
+                        let start = cal::trunc(hi, p);
+                        within(cal::add(start, 1, p), cal::add(start, 2, p) - 1)
+                    }
+                    DateOp::ToDate(p, None) => within(cal::trunc(hi, p), hi),
+                    DateOp::ToDate(_, Some((m, d))) => {
+                        let (y, _, _) = cal::civil(hi);
+                        let end = |y: i64| cal::days(y, m, 1) + d as i64 - 1;
+                        let start = if hi > end(y) { end(y) } else { end(y - 1) } + 1;
+                        within(start, hi)
+                    }
+                };
+                Ok(picked
+                    .into_iter()
+                    .map(|d| Row {
+                        table: table.clone(),
+                        values: HashMap::from([(column.clone(), Value::Text(cal::format(d)))]),
+                    })
+                    .collect())
+            }
         }
     }
 
@@ -558,6 +626,8 @@ impl<'a> Interp<'a> {
     ) -> Result<Value> {
         // Filter arguments see the outer context.
         let mut new: Vec<(Filter, bool)> = Vec::new();
+        // Time intelligence on a date table replaces the filters on all of its columns.
+        let mut date_tables: Vec<Id> = Vec::new();
         for fa in filters {
             let (inner, keep) = match fa {
                 FilterArg::Keep(i) => (&**i, true),
@@ -565,6 +635,17 @@ impl<'a> Interp<'a> {
             };
             if let FilterArg::Table(t) = inner {
                 let table = t.table().ok_or("a list can't filter")?.clone();
+                if let TableExpr::Dates { column, .. } = t
+                    && !keep
+                    && (self.model.table(&table).is_some_and(|x| x.is_date_table)
+                        || self
+                            .model
+                            .relationships
+                            .iter()
+                            .any(|r| &r.from_column == column || &r.to_column == column))
+                {
+                    date_tables.push(table.clone());
+                }
                 let columns: Vec<Id> = match t.columns() {
                     Some(cs) => cs.to_vec(),
                     None => self.table(&table)?.columns.clone(),
@@ -617,6 +698,7 @@ impl<'a> Interp<'a> {
                 _ => {}
             }
         }
+        c.filters.retain(|f| !date_tables.contains(&f.table));
         for (f, keep) in new {
             if !keep {
                 c.filters
@@ -1295,4 +1377,101 @@ fn reads_rows(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> bool {
 struct QueryFilterRef<'a> {
     field: &'a Projection,
     kind: &'a FilterKind,
+}
+
+/// Calendar arithmetic on days since 1970-01-01 (what DuckDB's date functions do).
+mod cal {
+    use charted_dax::Period;
+
+    pub fn days(y: i64, m: u32, d: u32) -> i64 {
+        let y = if m <= 2 { y - 1 } else { y };
+        let era = y.div_euclid(400);
+        let yoe = y - era * 400;
+        let mp = (m as i64 + 9) % 12;
+        let doy = (153 * mp + 2) / 5 + d as i64 - 1;
+        let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+        era * 146_097 + doe - 719_468
+    }
+
+    pub fn civil(z: i64) -> (i64, u32, u32) {
+        let z = z + 719_468;
+        let era = z.div_euclid(146_097);
+        let doe = z - era * 146_097;
+        let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+        let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+        let mp = (5 * doy + 2) / 153;
+        let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
+        let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
+        (yoe + era * 400 + i64::from(m <= 2), m, d)
+    }
+
+    pub fn parse(s: &str) -> Option<i64> {
+        let mut it = s.get(..10)?.split('-');
+        let y = it.next()?.parse().ok()?;
+        let m = it.next()?.parse().ok()?;
+        let d = it.next()?.parse().ok()?;
+        Some(days(y, m, d))
+    }
+
+    pub fn format(z: i64) -> String {
+        let (y, m, d) = civil(z);
+        format!("{y:04}-{m:02}-{d:02}")
+    }
+
+    pub fn last_day(z: i64) -> i64 {
+        let (y, m, _) = civil(z);
+        let (ny, nm) = if m == 12 { (y + 1, 1) } else { (y, m + 1) };
+        days(ny, nm, 1) - 1
+    }
+
+    /// Adds `n` periods; a day past the end of the target month becomes its last day.
+    pub fn add(z: i64, n: i32, p: Period) -> i64 {
+        let months = match p {
+            Period::Day => return z + n as i64,
+            Period::Month => n as i64,
+            Period::Quarter => 3 * n as i64,
+            Period::Year => 12 * n as i64,
+        };
+        let (y, m, d) = civil(z);
+        let total = y * 12 + (m as i64 - 1) + months;
+        let (ny, nm) = (total.div_euclid(12), (total.rem_euclid(12) + 1) as u32);
+        let first = days(ny, nm, 1);
+        (first + d as i64 - 1).min(last_day(first))
+    }
+
+    /// The first day of the period holding `z`.
+    pub fn trunc(z: i64, p: Period) -> i64 {
+        let (y, m, _) = civil(z);
+        match p {
+            Period::Day => z,
+            Period::Month => days(y, m, 1),
+            Period::Quarter => days(y, (m - 1) / 3 * 3 + 1, 1),
+            Period::Year => days(y, 1, 1),
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn round_trips_and_clamps() {
+            for s in ["1970-01-01", "2024-02-29", "2025-12-31", "1999-03-01"] {
+                assert_eq!(format(parse(s).unwrap()), s);
+            }
+            assert_eq!(
+                format(add(parse("2024-01-31").unwrap(), 1, Period::Month)),
+                "2024-02-29"
+            );
+            assert_eq!(
+                format(add(parse("2024-02-29").unwrap(), -1, Period::Year)),
+                "2023-02-28"
+            );
+            assert_eq!(
+                format(trunc(parse("2025-08-17").unwrap(), Period::Quarter)),
+                "2025-07-01"
+            );
+            assert_eq!(format(last_day(parse("2023-02-03").unwrap())), "2023-02-28");
+        }
+    }
 }

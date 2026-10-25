@@ -94,6 +94,31 @@ pub enum Source {
         schema: String,
         table: String,
     },
+    /// A generated date table: one row per day from `start` to `end` (ISO dates), with
+    /// year, quarter, month, weekday and fiscal-year columns. The fiscal year starts in
+    /// `fiscal_start` (a month, 1 for calendar years) and is named by the year it ends.
+    Calendar {
+        start: String,
+        end: String,
+        #[serde(default = "january")]
+        #[ts(type = "number")]
+        fiscal_start: u32,
+    },
+}
+
+/// A calendar bound: an ISO date (YYYY-MM-DD).
+fn calendar_date(d: &str) -> Result<&str, StepError> {
+    let ok = d.len() == 10
+        && d.char_indices().all(|(i, c)| if i == 4 || i == 7 { c == '-' } else { c.is_ascii_digit() });
+    if ok {
+        Ok(d)
+    } else {
+        Err(StepError::Invalid(format!("\"{d}\" isn't a date (YYYY-MM-DD)")))
+    }
+}
+
+fn january() -> u32 {
+    1
 }
 
 fn yes() -> bool {
@@ -368,12 +393,13 @@ impl Source {
                 database,
                 ..
             } => format!("postgresql://{host}:{port}/{database}"),
+            Source::Calendar { .. } => String::new(),
         }
     }
 
     /// Whether the source is a local file or folder (watched for changes).
     pub fn is_file(&self) -> bool {
-        !matches!(self, Source::Postgres { .. })
+        !matches!(self, Source::Postgres { .. } | Source::Calendar { .. })
     }
 
     /// The DuckDB extension the source needs, if any.
@@ -515,6 +541,28 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
                 "SELECT * FROM read_csv({}, {})",
                 file(path),
                 opts.join(", ")
+            )
+        }
+        Source::Calendar {
+            start,
+            end,
+            fiscal_start,
+        } => {
+            let (a, b) = (calendar_date(start)?, calendar_date(end)?);
+            if a > b {
+                return Err(StepError::Invalid("the date table ends before it starts".into()));
+            }
+            let fs = (*fiscal_start).clamp(1, 12);
+            let next = if fs == 1 {
+                "0".to_string()
+            } else {
+                format!("CASE WHEN month(d) >= {fs} THEN 1 ELSE 0 END")
+            };
+            format!(
+                "SELECT CAST(d AS DATE) AS \"Date\", year(d) AS \"Year\", 'Q' || quarter(d) AS \"Quarter\", \
+                 month(d) AS \"MonthNumber\", monthname(d) AS \"MonthName\", strftime(d, '%Y-%m') AS \"YearMonth\", \
+                 dayname(d) AS \"Weekday\", isodow(d) AS \"WeekdayNumber\", 'FY' || (year(d) + {next}) AS \"FiscalYear\" \
+                 FROM generate_series(DATE '{a}', DATE '{b}', INTERVAL 1 DAY) AS t(d)"
             )
         }
         Source::Parquet { path } => format!("SELECT * FROM read_parquet({})", file(path)),
@@ -1253,6 +1301,50 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
             ));
             if *header {
                 steps.push(("Promoted Headers".into(), promote("Source")));
+            }
+        }
+        Source::Calendar {
+            start,
+            end,
+            fiscal_start,
+        } => {
+            let m_date = |d: &str| -> String {
+                let p: Vec<&str> = d.split('-').collect();
+                let n = |x: &str| x.trim_start_matches('0').to_string();
+                format!("#date({}, {}, {})", p[0], n(p[1]), n(p[2]))
+            };
+            let (a, b) = (m_date(start), m_date(end));
+            steps.push((
+                "Source".into(),
+                format!("List.Dates({a}, Duration.Days({b} - {a}) + 1, #duration(1, 0, 0, 0))"),
+            ));
+            steps.push((
+                "To Table".into(),
+                "Table.FromList(Source, Splitter.SplitByNothing(), type table [Date = date])".into(),
+            ));
+            let fs = (*fiscal_start).clamp(1, 12);
+            let fiscal = if fs == 1 {
+                "\"FY\" & Text.From(Date.Year([Date]))".to_string()
+            } else {
+                format!("\"FY\" & Text.From(Date.Year([Date]) + (if Date.Month([Date]) >= {fs} then 1 else 0))")
+            };
+            let mut prev = "To Table".to_string();
+            for (name, expr, ty) in [
+                ("Year", "Date.Year([Date])".to_string(), "Int64.Type"),
+                ("Quarter", "\"Q\" & Text.From(Date.QuarterOfYear([Date]))".into(), "type text"),
+                ("MonthNumber", "Date.Month([Date])".into(), "Int64.Type"),
+                ("MonthName", "Date.MonthName([Date], \"en-US\")".into(), "type text"),
+                ("YearMonth", "Date.ToText([Date], \"yyyy-MM\")".into(), "type text"),
+                ("Weekday", "Date.DayOfWeekName([Date], \"en-US\")".into(), "type text"),
+                ("WeekdayNumber", "Date.DayOfWeek([Date], Day.Monday) + 1".into(), "Int64.Type"),
+                ("FiscalYear", fiscal.clone(), "type text"),
+            ] {
+                let step = format!("Added {name}");
+                steps.push((
+                    step.clone(),
+                    format!("Table.AddColumn({}, {}, each {expr}, {ty})", m_ident(&prev), m_string(name)),
+                ));
+                prev = step;
             }
         }
         Source::Parquet { path } => {

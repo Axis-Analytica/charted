@@ -113,9 +113,17 @@ fn fixture() -> Fixture {
         "December",
     ];
     let mut dates = Vec::new();
+    // Each month's last day: time intelligence keeps whole months whole.
+    let last_day = |y: i32, m: i32| match m {
+        2 if y % 4 == 0 => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        _ => 31,
+    };
     for y in [2024, 2025] {
         for m in 1..=12 {
             dates.push(vec![
+                t(&format!("{y}-{m:02}-{:02}", last_day(y, m))),
                 n((y * 100 + m) as f64),
                 n(y as f64),
                 n(m as f64),
@@ -127,6 +135,7 @@ fn fixture() -> Fixture {
     tables.push((
         "Date".into(),
         vec![
+            ("Date".into(), DataType::Date),
             ("DateKey".into(), DataType::Int64),
             ("Year".into(), DataType::Int64),
             ("MonthNumber".into(), DataType::Int64),
@@ -231,6 +240,7 @@ fn fixture() -> Fixture {
         let ty = |d: &DataType| match d {
             DataType::Int64 => "BIGINT",
             DataType::Double => "DOUBLE",
+            DataType::Date => "DATE",
             _ => "VARCHAR",
         };
         let defs: Vec<String> = cols
@@ -518,6 +528,58 @@ const MEASURES: &[(&str, &str)] = &[
         "IF ( ISINSCOPE ( Product[Category] ), 1, 0 )",
     ),
     ("Year Filtered", "IF ( ISFILTERED ( Date[Year] ), 1, 0 )"),
+    // Time intelligence
+    (
+        "Sales LY",
+        "CALCULATE ( [Sales Amount], SAMEPERIODLASTYEAR ( Date[Date] ) )",
+    ),
+    (
+        "YoY %",
+        "DIVIDE ( [Sales Amount] - [Sales LY], [Sales LY] )",
+    ),
+    (
+        "Qty Prev Month",
+        "CALCULATE ( [Quantity], DATEADD ( Date[Date], -1, MONTH ) )",
+    ),
+    (
+        "Qty Next Quarter",
+        "CALCULATE ( [Quantity], DATEADD ( Date[Date], 1, QUARTER ) )",
+    ),
+    ("Sales YTD", "TOTALYTD ( [Sales Amount], Date[Date] )"),
+    ("Qty FYTD", "TOTALYTD ( [Quantity], Date[Date], \"6/30\" )"),
+    ("Qty QTD", "TOTALQTD ( [Quantity], Date[Date] )"),
+    (
+        "Qty MTD",
+        "CALCULATE ( [Quantity], DATESMTD ( Date[Date] ) )",
+    ),
+    (
+        "Camping YTD",
+        "TOTALYTD ( [Quantity], Date[Date], Product[Category] = \"Camping\" )",
+    ),
+    (
+        "Qty Parallel",
+        "CALCULATE ( [Quantity], PARALLELPERIOD ( Date[Date], -1, YEAR ) )",
+    ),
+    (
+        "Qty Prev Year",
+        "CALCULATE ( [Quantity], PREVIOUSYEAR ( Date[Date] ) )",
+    ),
+    (
+        "Qty Prev Quarter",
+        "CALCULATE ( [Quantity], PREVIOUSQUARTER ( Date[Date] ) )",
+    ),
+    (
+        "Qty Next Month",
+        "CALCULATE ( [Quantity], NEXTMONTH ( Date[Date] ) )",
+    ),
+    (
+        "Keep LY",
+        "CALCULATE ( [Quantity], KEEPFILTERS ( SAMEPERIODLASTYEAR ( Date[Date] ) ) )",
+    ),
+    (
+        "Target LY",
+        "CALCULATE ( [Target], SAMEPERIODLASTYEAR ( Date[Date] ) )",
+    ),
     (
         "Scoped Share",
         "IF ( ISINSCOPE ( Product[Category] ), [Share Of Category], BLANK () )",
@@ -570,6 +632,13 @@ fn shapes(m: &Model) -> Vec<(&'static str, VisualQuery)> {
             VisualQuery {
                 groups: vec![c("Store", "Region")],
                 filters: vec![year_2025.clone()],
+                ..Default::default()
+            },
+        ),
+        (
+            "by year and month",
+            VisualQuery {
+                groups: vec![c("Date", "Year"), c("Date", "MonthNumber")],
                 ..Default::default()
             },
         ),
@@ -794,6 +863,10 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "Sales[Qty] > 2",
         "FILTER ( ALL ( Product[ListPrice] ), Product[ListPrice] >= 100 )",
         "ALLSELECTED ( Date[Year] )",
+        "SAMEPERIODLASTYEAR ( Date[Date] )",
+        "DATESYTD ( Date[Date] )",
+        "DATEADD ( Date[Date], -1, QUARTER )",
+        "PREVIOUSMONTH ( Date[Date] )",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",

@@ -11,7 +11,9 @@ pub mod parser;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-pub use bind::{AggFunc, Bound, FilterArg, InfoFunc, ScalarFunc, TableExpr, bind, bind_in};
+pub use bind::{
+    AggFunc, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, bind, bind_in,
+};
 pub use parser::{BinaryOp, Expr, ExprKind, Parsed, UnaryOp, parse};
 
 /// A byte range in the formula text.

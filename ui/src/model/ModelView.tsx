@@ -13,6 +13,7 @@ import { useApp } from "../state/app";
 import { newId } from "../state/report";
 import { arrow, CARD_W, cardHeight, edge, type Point } from "./geometry";
 import { layout, type LayoutResult } from "./layout";
+import { DateTableDialog } from "./DateTableDialog";
 import { RelationshipDialog } from "./RelationshipDialog";
 import "./model.css";
 
@@ -62,6 +63,7 @@ export function ModelView({ model }: { model: Model }) {
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [selected, setSelected] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{ r: Relationship; isNew: boolean } | null>(null);
+  const [dateTable, setDateTable] = useState(false);
   const [drag, setDrag] = useState<Drag | null>(null);
   const canvas = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
@@ -225,6 +227,9 @@ export function ModelView({ model }: { model: Model }) {
       <div className="model-toolbar">
         <Button size="sm" icon={<Link2 size={14} />} onPress={() => newRelationship()}>
           {t("New relationship")}
+        </Button>
+        <Button size="sm" variant="ghost" icon={<CalendarDays size={14} />} onPress={() => setDateTable(true)}>
+          {t("New date table")}
         </Button>
         <Button size="sm" variant="ghost" icon={<LayoutGrid size={14} />} onPress={resetLayout}>
           {t("Arrange")}
@@ -397,6 +402,7 @@ export function ModelView({ model }: { model: Model }) {
           </ul>
         </aside>
       </div>
+      {dateTable && <DateTableDialog model={model} onClose={() => setDateTable(false)} />}
       {dialog && <RelationshipDialog model={model} initial={dialog.r} isNew={dialog.isNew} onClose={() => setDialog(null)} />}
     </div>
   );

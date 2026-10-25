@@ -1,5 +1,6 @@
 ---
 source: crates/core/tests/dax_golden.rs
+assertion_line: 808
 expression: golden
 ---
 ## Sales Amount — card
@@ -613,6 +614,123 @@ expression: golden
 "Apparel" | 0
 "Camping" | 0
 "Footwear" | 0
+
+## Sales LY — card
+7423.5
+
+## Sales LY — by category
+"Apparel" | 1713.5
+"Camping" | 4210
+"Footwear" | 1500
+
+## YoY % — card
+2.1539
+
+## YoY % — by category
+"Apparel" | 2.8955
+"Camping" | 1.4081
+"Footwear" | 3.346
+
+## Qty Prev Month — card
+269
+
+## Qty Prev Month — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Qty Next Quarter — card
+244
+
+## Qty Next Quarter — by category
+∅ | 3
+"Apparel" | 99
+"Camping" | 76
+"Footwear" | 66
+
+## Sales YTD — card
+15989.5
+
+## Sales YTD — by category
+∅ | 81
+"Apparel" | 4961.5
+"Camping" | 5928
+"Footwear" | 5019
+
+## Qty FYTD — card
+76
+
+## Qty FYTD — by category
+"Apparel" | 39
+"Camping" | 21
+"Footwear" | 16
+
+## Qty QTD — card
+18
+
+## Qty QTD — by category
+"Apparel" | 10
+"Camping" | 4
+"Footwear" | 4
+
+## Qty MTD — card
+∅
+
+## Qty MTD — by category
+
+
+## Camping YTD — card
+52
+
+## Camping YTD — by category
+∅ | 52
+"Apparel" | 52
+"Camping" | 52
+"Footwear" | 52
+
+## Qty Parallel — card
+82
+
+## Qty Parallel — by category
+"Apparel" | 38
+"Camping" | 30
+"Footwear" | 14
+
+## Qty Prev Year — card
+∅
+
+## Qty Prev Year — by category
+
+
+## Qty Prev Quarter — card
+∅
+
+## Qty Prev Quarter — by category
+
+
+## Qty Next Month — card
+∅
+
+## Qty Next Month — by category
+
+
+## Keep LY — card
+82
+
+## Keep LY — by category
+"Apparel" | 38
+"Camping" | 30
+"Footwear" | 14
+
+## Target LY — card
+34200
+
+## Target LY — by category
+∅ | 34200
+"Apparel" | 34200
+"Camping" | 34200
+"Footwear" | 34200
 
 ## Scoped Share — card
 ∅

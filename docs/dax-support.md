@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (42 functions)
+## Evaluated (61 functions)
 
 ### Aggregation
 
@@ -82,6 +82,30 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `DISTINCT ( ColumnOrTable )` | The distinct values of a column (without the blank row), or the distinct rows of a table. |
 | `VALUES ( TableOrColumn )` | The distinct values of a column (with the blank row when unmatched rows exist), or a table's rows. |
 
+### Time intelligence
+
+| Function | Description |
+|---|---|
+| `DATEADD ( Dates, NumberOfIntervals, Interval )` | Dates shifted by a number of intervals. |
+| `DATESMTD ( Dates )` | Dates from the start of the month to the last date in context. |
+| `DATESQTD ( Dates )` | Dates from the start of the quarter to the last date in context. |
+| `DATESYTD ( Dates, [YearEndDate] )` | Dates from the start of the year to the last date in context. |
+| `FIRSTDATE ( Dates )` | The first date in context. |
+| `LASTDATE ( Dates )` | The last date in context. |
+| `NEXTDAY ( Dates )` | The day after the last date. |
+| `NEXTMONTH ( Dates )` | The dates of the next month. |
+| `NEXTQUARTER ( Dates )` | The dates of the next quarter. |
+| `NEXTYEAR ( Dates )` | The dates of the next year. |
+| `PARALLELPERIOD ( Dates, NumberOfIntervals, Interval )` | The whole period a number of intervals away. |
+| `PREVIOUSDAY ( Dates )` | The day before the first date. |
+| `PREVIOUSMONTH ( Dates )` | The dates of the previous month. |
+| `PREVIOUSQUARTER ( Dates )` | The dates of the previous quarter. |
+| `PREVIOUSYEAR ( Dates )` | The dates of the previous year. |
+| `SAMEPERIODLASTYEAR ( Dates )` | The dates shifted back one year. |
+| `TOTALMTD ( Expression, Dates, [Filter] )` | An expression over the month to date. |
+| `TOTALQTD ( Expression, Dates, [Filter] )` | An expression over the quarter to date. |
+| `TOTALYTD ( Expression, Dates, [Filter], [YearEndDate] )` | An expression over the year to date. |
+
 Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&` operators, and blank semantics as in Power BI (blank + 1 = 1, blank = 0 is TRUE, DIVIDE by blank is blank).
 
 ## Semantics and limits
@@ -92,8 +116,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **FILTER over measures** used as a CALCULATE filter argument is not supported yet; FILTER over columns is.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (87)
+## Recognised, not yet evaluated (74)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATE`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATE`, `DATEADD`, `DATEDIFF`, `DATESBETWEEN`, `DATESINPERIOD`, `DATESMTD`, `DATESQTD`, `DATESYTD`, `DATEVALUE`, `DAY`, `EARLIER`, `EDATE`, `EOMONTH`, `EXP`, `FIND`, `FIRSTDATE`, `FIRSTNONBLANK`, `FLOOR`, `FORMAT`, `GENERATE`, `HOUR`, `IFERROR`, `INT`, `ISERROR`, `LASTDATE`, `LASTNONBLANK`, `LEFT`, `LEN`, `LN`, `LOG`, `LOOKUPVALUE`, `LOWER`, `MAXA`, `MEDIAN`, `MEDIANX`, `MID`, `MINA`, `MINUTE`, `MOD`, `MONTH`, `NOW`, `PARALLELPERIOD`, `PERCENTILE.INC`, `POWER`, `PREVIOUSMONTH`, `PREVIOUSYEAR`, `PRODUCT`, `PRODUCTX`, `QUARTER`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `RIGHT`, `ROUNDDOWN`, `ROUNDUP`, `SAMEPERIODLASTYEAR`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUBSTITUTE`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TOTALMTD`, `TOTALQTD`, `TOTALYTD`, `TREATAS`, `TRIM`, `TRUNC`, `UPPER`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEAR`, `YEARFRAC`
+`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATE`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATE`, `DATEDIFF`, `DATESBETWEEN`, `DATESINPERIOD`, `DATEVALUE`, `DAY`, `EARLIER`, `EDATE`, `EOMONTH`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `FORMAT`, `GENERATE`, `HOUR`, `IFERROR`, `INT`, `ISERROR`, `LASTNONBLANK`, `LEFT`, `LEN`, `LN`, `LOG`, `LOOKUPVALUE`, `LOWER`, `MAXA`, `MEDIAN`, `MEDIANX`, `MID`, `MINA`, `MINUTE`, `MOD`, `MONTH`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `QUARTER`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `RIGHT`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUBSTITUTE`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TREATAS`, `TRIM`, `TRUNC`, `UPPER`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEAR`, `YEARFRAC`

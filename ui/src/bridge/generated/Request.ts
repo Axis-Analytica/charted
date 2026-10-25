@@ -3,4 +3,16 @@ import type { Change } from "./Change";
 import type { Query } from "./Query";
 import type { QueryFilter } from "./QueryFilter";
 
-export type Request = { "type": "state" } | { "type": "openProject", path: string, } | { "type": "openSample", dir: string | null, } | { "type": "closeProject" } | { "type": "commit", label: string, changes: Array<Change>, } | { "type": "undo" } | { "type": "redo" } | { "type": "save" } | { "type": "restoreRecovery" } | { "type": "discardRecovery" } | { "type": "forgetRecent", path: string, } | { "type": "exportPbip", dir: string, } | { "type": "exportOssie", path: string, } | { "type": "importOssie", path: string, } | { "type": "applyQueries", queries: Array<Query>, } | { "type": "refresh" } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, };
+export type Request = { "type": "state" } | { "type": "openProject", path: string, } | { "type": "openSample", dir: string | null, } | { "type": "closeProject" } | { "type": "commit", label: string, changes: Array<Change>, } | { "type": "undo" } | { "type": "redo" } | { "type": "save" } | { "type": "restoreRecovery" } | { "type": "discardRecovery" } | { "type": "forgetRecent", path: string, } | { "type": "exportPbip", dir: string, } | { "type": "exportOssie", path: string, } | { "type": "importOssie", path: string, } | { "type": "applyQueries", queries: Array<Query>, } | { "type": "refresh" } | { "type": "createDateTable", name: string, 
+/**
+ * ISO dates (YYYY-MM-DD).
+ */
+start: string, end: string, 
+/**
+ * The month the fiscal year starts in (1: calendar years).
+ */
+fiscalStart: number, 
+/**
+ * Date columns to relate to it: (table id, column id).
+ */
+relate: Array<[string, string]>, } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, };

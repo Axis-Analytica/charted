@@ -505,6 +505,120 @@ impl Session {
         self.load_into_model(&queries, &ids, &removed, "Apply query changes")
     }
 
+    /// The date table wizard: a generated calendar query loaded as a table, marked as
+    /// the date table, its month names sorted by month number, and related to the
+    /// given date columns (the first per table active). Clears undo, as Apply does.
+    pub fn create_date_table(
+        &mut self,
+        name: &str,
+        start: &str,
+        end: &str,
+        fiscal_start: u32,
+        relate: &[(charted_model::Id, charted_model::Id)],
+    ) -> Result<(), CoreError> {
+        use charted_compiler::steps::Source;
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(CoreError::Invalid("the date table needs a name".into()));
+        }
+        let model = &self.project.model;
+        if model.table_by_name(name).is_some()
+            || self.project.queries.iter().any(|q| q.name.eq_ignore_ascii_case(name))
+        {
+            return Err(CoreError::Invalid(format!("there's already a table called \"{name}\"")));
+        }
+        let base: String = name
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() { c.to_ascii_lowercase() } else { '_' })
+            .collect();
+        let mut source_table = base.clone();
+        let mut k = 2;
+        while self.project.queries.iter().any(|q| q.table == source_table)
+            || model.tables.iter().any(|t| t.source == source_table)
+        {
+            source_table = format!("{base}_{k}");
+            k += 1;
+        }
+        for (t, c) in relate {
+            let col = model.table(t).and_then(|x| x.column(c)).ok_or_else(|| {
+                CoreError::Invalid("a column to relate to the date table is missing".into())
+            })?;
+            if col.data_type != charted_model::DataType::Date {
+                return Err(CoreError::Invalid(format!(
+                    "[{}] isn't a date column (a date table relates to columns of type Date)",
+                    col.name
+                )));
+            }
+        }
+        let q = Query {
+            id: uuid::Uuid::new_v4().to_string(),
+            name: name.to_string(),
+            table: source_table.clone(),
+            source: Source::Calendar {
+                start: start.to_string(),
+                end: end.to_string(),
+                fiscal_start,
+            },
+            steps: Vec::new(),
+            step_names: Default::default(),
+            no_load: false,
+        };
+        let mut queries = self.project.queries.clone();
+        queries.push(q.clone());
+        self.load_into_model(&queries, std::slice::from_ref(&q.id), &[], "New date table")?;
+        let model = &self.project.model;
+        let table = model
+            .tables
+            .iter()
+            .find(|t| t.source == source_table)
+            .ok_or_else(|| CoreError::Invalid("the date table didn't load".into()))?;
+        let col = |n: &str| table.column_by_name(n).map(|c| c.id.clone());
+        let date = col("Date").ok_or_else(|| CoreError::Invalid("the date table has no Date column".into()))?;
+        let mut changes = vec![
+            Change::SetDateTable {
+                table: table.id.clone(),
+                is_date_table: true,
+            },
+            Change::SetColumn {
+                table: table.id.clone(),
+                column: date.clone(),
+                property: charted_model::ColumnProperty::IsKey(true),
+            },
+        ];
+        for (shown, by) in [("MonthName", "MonthNumber"), ("Weekday", "WeekdayNumber")] {
+            if let (Some(a), Some(b)) = (col(shown), col(by)) {
+                changes.push(Change::SetColumn {
+                    table: table.id.clone(),
+                    column: a,
+                    property: charted_model::ColumnProperty::SortBy(Some(b)),
+                });
+            }
+        }
+        let mut related: Vec<&charted_model::Id> = Vec::new();
+        for (t, c) in relate {
+            changes.push(Change::AddRelationship {
+                relationship: charted_model::Relationship {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    from_table: t.clone(),
+                    from_column: c.clone(),
+                    to_table: table.id.clone(),
+                    to_column: date.clone(),
+                    from_cardinality: charted_model::Cardinality::Many,
+                    to_cardinality: charted_model::Cardinality::One,
+                    cross_filter: charted_model::CrossFilter::Single,
+                    active: !related.contains(&t),
+                    extras: Default::default(),
+                },
+                index: None,
+            });
+            related.push(t);
+        }
+        self.commit("New date table", changes)?;
+        self.history.forget();
+        self.write_recovery();
+        Ok(())
+    }
+
     /// Loads every query again from its sources (Refresh).
     pub fn refresh(&mut self) -> Result<(), CoreError> {
         let queries = self.project.queries.clone();
