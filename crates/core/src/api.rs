@@ -167,6 +167,14 @@ pub enum DataRequest {
     OssieDiff {
         path: String,
     },
+    /// Key counts and a suggested cardinality for a prospective relationship (JSON
+    /// `RelationshipCheck`).
+    CheckRelationship {
+        from_table: Id,
+        from_column: Id,
+        to_table: Id,
+        to_column: Id,
+    },
 }
 
 fn json<T: Serialize>(value: Result<T, CoreError>) -> Result<Vec<u8>, ApiError> {
@@ -178,6 +186,7 @@ pub enum DataJob {
     View(Box<View>, DataRequest),
     Arrow(Database, String),
     FieldValues(Database, String),
+    Relationship(Database, String),
     Ready(Vec<u8>),
 }
 
@@ -187,6 +196,7 @@ impl DataJob {
             DataJob::View(v, r) => (v, r),
             DataJob::Arrow(db, sql) => return Ok(db.arrow(&sql).map_err(CoreError::from)?),
             DataJob::FieldValues(db, sql) => return json(visualq::run_field_values(&db, &sql)),
+            DataJob::Relationship(db, sql) => return json(crate::relcheck::run(&db, &sql)),
             DataJob::Ready(bytes) => return Ok(bytes),
         };
         let v = &*v;
@@ -340,6 +350,16 @@ impl App {
                     *limit,
                 )?;
                 return Ok(DataJob::FieldValues(s.database().clone(), sql));
+            }
+            DataRequest::CheckRelationship {
+                from_table,
+                from_column,
+                to_table,
+                to_column,
+            } => {
+                let sql =
+                    crate::relcheck::plan(model, from_table, from_column, to_table, to_column)?;
+                return Ok(DataJob::Relationship(s.database().clone(), sql));
             }
             DataRequest::OssieDiff { path } => {
                 let d = crate::interop::import_diff(model, Path::new(path))

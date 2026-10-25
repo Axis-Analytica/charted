@@ -654,3 +654,28 @@ fn calculated_columns_and_ambiguous_relationships() {
         .unwrap_err();
     assert!(err.message.contains("two active paths"), "{}", err.message);
 }
+
+#[test]
+fn relationship_check_suggests_cardinality() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(dir.path().join("state"));
+    app.handle(Request::OpenSample {
+        dir: Some(dir.path().join("p").display().to_string()),
+    })
+    .unwrap();
+    let m = app.session().unwrap().project.model.clone();
+    let targets = m.table_by_name("Targets").unwrap();
+    let store = m.table_by_name("Store").unwrap();
+    let bytes = app
+        .data(DataRequest::CheckRelationship {
+            from_table: targets.id.clone(),
+            from_column: targets.column_by_name("StoreKey").unwrap().id.clone(),
+            to_table: store.id.clone(),
+            to_column: store.column_by_name("StoreKey").unwrap().id.clone(),
+        })
+        .unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(v["fromCardinality"], "Many", "{v}");
+    assert_eq!(v["toCardinality"], "One", "{v}");
+    assert_eq!(v["unmatched"], 0, "{v}");
+}

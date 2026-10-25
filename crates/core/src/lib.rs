@@ -13,6 +13,7 @@ pub mod ids;
 pub mod interop;
 pub mod project;
 pub mod recent;
+pub mod relcheck;
 pub mod reportfile;
 pub mod sample;
 pub mod session;
