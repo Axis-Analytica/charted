@@ -8,6 +8,7 @@ import type { Column } from "../bridge/generated/Column";
 import type { FieldRef } from "../bridge/generated/FieldRef";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
+import type { PageSettings } from "../bridge/generated/PageSettings";
 import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { msg } from "../i18n";
@@ -28,6 +29,10 @@ interface ReportStore {
   formula: string | null;
   /** The field selected in the Fields pane. */
   field: FieldRef | null;
+  /** Edit interactions mode: the selected visual's effect on the others is shown on each. */
+  editInteractions: boolean;
+  /** A visual shown on its own over the canvas (focus mode), optionally with its data. */
+  focus: { visual: string; table: boolean } | null;
   set(patch: Partial<Omit<ReportStore, "set" | "select">>): void;
   select(ids: string[]): void;
 }
@@ -41,6 +46,8 @@ export const useReport = create<ReportStore>()((set) => ({
   pointer: null,
   formula: null,
   field: null,
+  editInteractions: false,
+  focus: null,
   set: (patch) => set(patch),
   select: (ids) => set({ selected: ids }),
 }));
@@ -185,6 +192,12 @@ export function newVisual(page: Page, type: string, at: { x: number; y: number }
   y = snap(Math.max(0, Math.min(page.height - h, y)));
   const z = page.visuals.reduce((m, v) => Math.max(m, v.position.z), 0) + 1;
   return { id: newId(), visualType: type, position: { x, y, width: w, height: h, z }, roles: {}, filters: [], objects: {} };
+}
+
+/** A page's settings (everything but its id and visuals), for `setPage`. */
+export function pageSettings(p: Page): PageSettings {
+  const { id: _id, visuals: _visuals, ...settings } = p;
+  return settings;
 }
 
 /** The page shown: the chosen one if it still exists, else the first. */

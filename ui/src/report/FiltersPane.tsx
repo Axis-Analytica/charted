@@ -21,7 +21,7 @@ import { Button } from "../kit/Button";
 import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
-import { columnOf, fieldKey, newId, projectionName, updateVisual, useReport } from "../state/report";
+import { columnOf, fieldKey, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
 import { relativeLabel } from "./relative";
 import { FIELD_MIME } from "./Canvas";
 
@@ -63,7 +63,7 @@ export function FiltersPane({ model, page }: { model: Model; page: Page }) {
         const v = visual && p.visuals.find((x) => x.id === visual.id);
         return v ? [updateVisual(page.id, { ...v, filters: fn(v.filters) })] : null;
       }
-      if (scope === "page") return [{ op: "setPage", page: p.id, settings: { name: p.name, width: p.width, height: p.height, filters: fn(p.filters) } }];
+      if (scope === "page") return [{ op: "setPage", page: p.id, settings: { ...pageSettings(p), filters: fn(p.filters) } }];
       return [{ op: "setReportFilters", filters: fn(m.report.filters) }];
     });
   const listOf = (scope: Scope): ReportFilter[] => (scope === "visual" ? (visual?.filters ?? []) : scope === "page" ? page.filters : model.report.filters);

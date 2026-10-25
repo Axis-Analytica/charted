@@ -65,6 +65,17 @@ if [ "$m" = m3 ] && [ -d "$built" ]; then
       [...item.querySelectorAll(".tree-leaf")].find((e) => e.querySelector(".tree-label")?.textContent === "List Value").click();
     })()' ./target/debug/charted open "$built" --screenshot "$out/m3-window-column-formula.png" >/dev/null
 fi
+if [ "$m" = m4 ] && [ -d "$built" ]; then
+  # A cross-filter (a matrix row chosen) and the new visuals, in the real window.
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=2500 CHARTED_SCREENSHOT_SCRIPT='(async () => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      [...document.querySelectorAll("[role=tab]")].find((e) => e.textContent === "Interactivity").click();
+      await sleep(2500);
+      [...document.querySelectorAll(".matrix-row-head")].find((e) => e.textContent.trim() === "Camping").click();
+    })()' ./target/debug/charted open "$built" --screenshot "$out/m4-window-interactivity.png" >/dev/null
+  CHARTED_SCREENSHOT_DELAY_MS=7000 CHARTED_SCREENSHOT_AFTER_MS=2500 CHARTED_SCREENSHOT_SCRIPT='[...document.querySelectorAll("[role=tab]")].find((e) => e.textContent === "Visuals").click()' \
+    ./target/debug/charted open "$built" --screenshot "$out/m4-window-visuals.png" >/dev/null
+fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."

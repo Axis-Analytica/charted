@@ -3,11 +3,12 @@ import type { Model } from "../../bridge/generated/Model";
 import type { Visual } from "../../bridge/generated/Visual";
 import { useLanguage, useT } from "../../i18n";
 import { isGrouping, projectionName } from "../../state/report";
-import type { VisualData } from "../data";
+import { keysOf, type VisualData } from "../data";
 import { prop, visualDef } from "../registry";
 import { fmt, projectionFormat } from "./common";
+import { additive, type Interact, noInteract } from "./interact";
 
-export function TableVisual({ visual, model, data, onSort }: { visual: Visual; model: Model; data: VisualData; onSort(index: number): void }) {
+export function TableVisual({ visual, model, data, onSort, interact = noInteract }: { visual: Visual; model: Model; data: VisualData; onSort(index: number): void; interact?: Interact }) {
   const { t } = useT();
   const locale = useLanguage((s) => s.locale);
   const def = visualDef("table");
@@ -20,6 +21,10 @@ export function TableVisual({ visual, model, data, onSort }: { visual: Visual; m
   const rowLines = prop<boolean>(visual.objects, def, "grid", "rowLines");
   const totals = prop<boolean>(visual.objects, def, "totals", "show") && data.totals && cols.some((p) => !isGrouping(p));
   const rows = Math.min(data.rows, 5000);
+  // A row is chosen by the values of its grouping columns.
+  const groups = cols.map((p, i) => ({ p, i })).filter((g) => isGrouping(g.p));
+  const keys = groups.map((g) => keysOf(data, `columns:${g.i}`));
+  const tupleAt = (r: number) => keys.map((k) => k[r] ?? null);
   return (
     <div className={`table-visual ${banded ? "is-banded" : ""} ${rowLines ? "has-lines" : ""}`} style={{ fontSize }}>
       <table>
@@ -39,15 +44,29 @@ export function TableVisual({ visual, model, data, onSort }: { visual: Visual; m
           </tr>
         </thead>
         <tbody>
-          {Array.from({ length: rows }, (_, r) => (
-            <tr key={r}>
-              {cols.map((_, i) => (
-                <td key={i} className={numeric[i] ? "is-num tabular" : ""}>
-                  {fmt(vectors[i]?.get(r), formats[i]!, locale)}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {Array.from({ length: rows }, (_, r) => {
+            const chosen = groups.length ? interact.chosen(tupleAt(r)) : null;
+            return (
+              <tr
+                key={r}
+                className={chosen === false ? "is-dim" : chosen ? "is-chosen" : ""}
+                onClick={(e) =>
+                  groups.length &&
+                  interact.choose(
+                    groups.map((g) => g.p),
+                    tupleAt(r),
+                    additive(e),
+                  )
+                }
+              >
+                {cols.map((_, i) => (
+                  <td key={i} className={numeric[i] ? "is-num tabular" : ""}>
+                    {fmt(vectors[i]?.get(r), formats[i]!, locale)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
         {totals && (
           <tfoot>

@@ -13,7 +13,9 @@ import type { Visual } from "../bridge/generated/Visual";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { newVisual, updateVisual, useReport, withField } from "../state/report";
-import { CanvasScale } from "./scale";
+import { useSelection } from "../state/selection";
+import { CanvasScale, ThemeKey } from "./scale";
+import { themeStyle, themeTokens } from "./themes";
 import { VisualContainer } from "./VisualContainer";
 
 export const FIELD_MIME = "application/x-charted-field";
@@ -21,6 +23,15 @@ export const VISUAL_MIME = "application/x-charted-visual";
 
 
 const GRID = 8;
+
+/** The report theme's tokens for page content, or null to follow the desktop. */
+export function usePageTheme(model: Model) {
+  const desktop = useApp((s) => s.env?.desktop);
+  const theme = model.report.theme ?? null;
+  const tokens = useMemo(() => (desktop ? themeTokens(theme, desktop) : null), [theme, desktop]);
+  const key = useMemo(() => JSON.stringify(tokens), [tokens]);
+  return { tokens, key, style: themeStyle(tokens) };
+}
 
 export function Canvas({ model, page, signature }: { model: Model; page: Page; signature: string }) {
   const { t } = useT();
@@ -61,6 +72,8 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
   }, []);
 
   const byId = useMemo(() => new Map(page.visuals.map((v) => [v.id, v])), [page.visuals]);
+  // The report theme's tokens on the page (none: the page follows the desktop theme).
+  const { tokens, key: themeKey, style: pageStyle } = usePageTheme(model);
   const targets = selected.map((id) => els.get(id)).filter((e): e is HTMLElement => !!e);
   const guidelines = page.visuals.filter((v) => !selected.includes(v.id)).map((v) => els.get(v.id)).filter((e): e is HTMLElement => !!e);
 
@@ -117,12 +130,16 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
 
   return (
     <CanvasScale.Provider value={scale}>
+      <ThemeKey.Provider value={themeKey}>
       <div
         ref={scroller}
         className="canvas-scroller"
         tabIndex={-1}
         onPointerDown={(e) => {
-          if (e.target === e.currentTarget) select([]);
+          if (e.target === e.currentTarget) {
+            select([]);
+            useSelection.getState().clear();
+          }
         }}
       >
         <div className="page-frame" style={{ width: page.width * scale, height: page.height * scale }}>
@@ -131,10 +148,14 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
             className="page"
             data-testid="report-page"
             aria-label={t("Page %1", page.name)}
-            style={{ width: page.width, height: page.height, transform: `scale(${scale})` }}
+            data-themed={tokens ? "" : undefined}
+            style={{ ...pageStyle, width: page.width, height: page.height, transform: `scale(${scale})` }}
             onPointerMove={(e) => setReport({ pointer: toPage(e.clientX, e.clientY) })}
             onPointerDown={(e) => {
-              if (e.target === e.currentTarget && !e.shiftKey && !e.ctrlKey) select([]);
+              if (e.target === e.currentTarget && !e.shiftKey && !e.ctrlKey) {
+                select([]);
+                useSelection.getState().clear();
+              }
             }}
             onDragOver={(e) => {
               if (e.dataTransfer.types.includes(FIELD_MIME) || e.dataTransfer.types.includes(VISUAL_MIME)) {
@@ -268,6 +289,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
           />
         </div>
       </div>
+      </ThemeKey.Provider>
     </CanvasScale.Provider>
   );
 }

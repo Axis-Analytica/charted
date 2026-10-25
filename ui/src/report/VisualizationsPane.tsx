@@ -11,7 +11,7 @@ import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
-import { aggregationLabel, columnOf, editVisual, newVisual, projectionName, updateVisual, useReport, withField, withoutField } from "../state/report";
+import { aggregationLabel, columnOf, editVisual, newVisual, pageSettings, projectionName, updateVisual, useReport, withField, withoutField } from "../state/report";
 import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
 import { type ObjectDef, type PropDef, type RoleDef, VISUALS, prop, visualDef } from "./registry";
 import { palette } from "./visuals/common";
@@ -291,7 +291,8 @@ function FormatPane({ page, visual }: { page: Page; visual: Visual }) {
   const { t } = useT();
   const edit = useApp((s) => s.edit);
   const def = visualDef(visual.visualType);
-  const [open, setOpen] = useState<Set<string>>(new Set(["title"]));
+  // The first section starts open (a visual's title, a slicer's settings).
+  const [open, setOpen] = useState<Set<string>>(new Set([def?.objects[0]?.name ?? "title"]));
   if (!def) return null;
   const setProp = (object: string, name: string, value: unknown) =>
     edit(
@@ -355,7 +356,7 @@ const PAGE_SIZES = [
 function PageFormat({ page }: { page: Page }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
-  const settings = { name: page.name, width: page.width, height: page.height, filters: page.filters };
+  const settings = pageSettings(page);
   const size = PAGE_SIZES.find((s) => s.width === page.width && s.height === page.height);
   return (
     <div className="format-pane">

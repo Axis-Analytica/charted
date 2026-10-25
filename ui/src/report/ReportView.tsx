@@ -1,4 +1,9 @@
 import {
+  ArrowLeft,
+  Check,
+  MousePointerClick,
+  Palette,
+  Sheet,
   AlignCenterHorizontal,
   AlignCenterVertical,
   AlignEndHorizontal,
@@ -23,9 +28,16 @@ import { useShortcut } from "../app/shortcuts";
 import { useT } from "../i18n";
 import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
-import { currentPage, newId, updateVisual, useReport } from "../state/report";
-import { Canvas } from "./Canvas";
-import { modelSignature } from "./data";
+import { currentPage, newId, pageSettings, updateVisual, useReport } from "../state/report";
+import { Canvas, usePageTheme } from "./Canvas";
+import { modelSignature, useVisualData } from "./data";
+import { CanvasScale, ThemeKey } from "./scale";
+import { BUILT_IN } from "./themes";
+import { DataTable, VisualContainer } from "./VisualContainer";
+import { Menu } from "../kit/Menu";
+import { Button } from "../kit/Button";
+import { useSelection } from "../state/selection";
+import { transport } from "../bridge";
 import { FieldsPane } from "./FieldsPane";
 import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
@@ -71,13 +83,13 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
   const commit = useApp((s) => s.commit);
   const set = useReport((s) => s.set);
   const [renaming, setRenaming] = useState<string | null>(null);
-  const settings = (p: Page) => ({ name: p.name, width: p.width, height: p.height, filters: p.filters });
+  const settings = pageSettings;
   const addPage = async () => {
     const names = new Set(model.report.pages.map((p) => p.name.toLowerCase()));
     let n = model.report.pages.length + 1;
     while (names.has(t("Page %1", n).toLowerCase())) n++;
     const id = newId();
-    const p: Page = { id, name: t("Page %1", n), width: page.width, height: page.height, filters: [], visuals: [] };
+    const p: Page = { id, name: t("Page %1", n), width: page.width, height: page.height, filters: [], interactions: [], visuals: [] };
     if (await commit("Add page", [{ op: "addPage", page: p, index: null }])) set({ page: id, selected: [] });
   };
   return (
@@ -131,10 +143,68 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
   );
 }
 
+/** One visual over the whole canvas area (focus mode), with its data below it when
+ * shown as a table. */
+function FocusView({ model, page, visual, table, signature }: { model: Model; page: Page; visual: Visual; table: boolean; signature: string }) {
+  const { t } = useT();
+  const set = useReport((s) => s.set);
+  const theme = usePageTheme(model);
+  const { data } = useVisualData(visual, page, model, signature, visual.visualType === "table");
+  const focus = { visual: visual.id, table };
+  return (
+    <div className="focus-view" role="dialog" aria-label={focus.table ? t("Show as a table") : t("Focus mode")}>
+      <div className="focus-bar">
+        <Button variant="ghost" size="sm" icon={<ArrowLeft size={14} />} onPress={() => set({ focus: null })}>
+          {t("Back to report")}
+        </Button>
+        <span className="status-fill" />
+        <IconButton label={t("Show as a table")} icon={<Sheet size={15} />} pressed={focus.table} onPress={() => set({ focus: { ...focus, table: !focus.table } })} />
+      </div>
+      <div className={`focus-body ${focus.table ? "with-table" : ""}`} style={theme.style}>
+        <CanvasScale.Provider value={1}>
+          <ThemeKey.Provider value={theme.key}>
+            <VisualContainer visual={visual} page={page} model={model} signature={signature} selected={false} register={() => {}} onPointerDown={() => {}} standalone />
+          </ThemeKey.Provider>
+        </CanvasScale.Provider>
+        {focus.table && data && <DataTable visual={visual} model={model} data={data} />}
+      </div>
+    </div>
+  );
+}
+
+/** The report theme: the desktop's (live), a built-in one, or a Power BI theme file. */
+function ThemeMenu({ model }: { model: Model }) {
+  const { t } = useT();
+  const rpc = useApp((s) => s.rpc);
+  const commit = useApp((s) => s.commit);
+  const current = model.report.theme?.name ?? null;
+  const mark = (on: boolean) => (on ? <Check size={14} /> : null);
+  return (
+    <Menu
+      label={t("Themes")}
+      trigger={<Palette size={15} />}
+      items={[
+        { id: "omarchy", label: t("Omarchy (follows the desktop)"), icon: mark(!model.report.theme), run: () => model.report.theme && commit("Change theme", [{ op: "setTheme", theme: null }]) },
+        ...BUILT_IN.map((th) => ({ id: `theme-${th.name}`, label: th.name, icon: mark(current === th.name), run: () => commit("Change theme", [{ op: "setTheme", theme: th }]) })),
+        ...(current && !BUILT_IN.some((b) => b.name === current) ? [{ id: "current", label: current, icon: mark(true), run: () => {} }] : []),
+        null,
+        {
+          id: "browse",
+          label: t("Browse for themes…"),
+          run: async () => {
+            const path = await transport.pick({ title: t("Import a Power BI theme"), filters: [{ name: t("Power BI theme"), extensions: ["json"] }] });
+            if (path) await rpc({ type: "importTheme", path });
+          },
+        },
+      ]}
+    />
+  );
+}
+
 export function ReportView({ model }: { model: Model }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
-  const { page: pageId, selected, panes, formula, set, select } = useReport();
+  const { page: pageId, selected, panes, formula, set, select, editInteractions, focus } = useReport();
   const page = currentPage(model, pageId);
   const signature = useMemo(() => modelSignature(model), [model]);
   const pageRef = useRef(page);
@@ -154,6 +224,16 @@ export function ReportView({ model }: { model: Model }) {
   useEffect(() => {
     if (page && page.id !== pageId) set({ page: page.id });
   }, [page, pageId, set]);
+  // Focus mode ends when its visual goes away (undo, another page).
+  const focusVisual = focus ? page?.visuals.find((v) => v.id === focus.visual) : undefined;
+  useEffect(() => {
+    if (focus && !focusVisual) set({ focus: null });
+  }, [focus, focusVisual, set]);
+  // A selection belongs to its page.
+  useEffect(() => {
+    const s = useSelection.getState().selection;
+    if (s && s.page !== page?.id) useSelection.getState().clear();
+  }, [page?.id]);
 
   const chosen = page ? page.visuals.filter((v) => selected.includes(v.id)) : [];
   const apply = (label: string, visuals: Visual[]) => page && visuals.length && commit(label, visuals.map((v) => updateVisual(page.id, v)));
@@ -193,7 +273,18 @@ export function ReportView({ model }: { model: Model }) {
     { id: "visual-up8", keys: "Shift+ArrowUp", label: "Move up by 8", group: "Edit", run: () => nudge(0, -8), enabled: hasSelection },
     { id: "visual-down8", keys: "Shift+ArrowDown", label: "Move down by 8", group: "Edit", run: () => nudge(0, 8), enabled: hasSelection },
     { id: "visual-all", keys: "Ctrl+A", label: "Select all visuals", group: "Edit", run: () => page && select(page.visuals.map((v) => v.id)), enabled: () => useReport.getState().view === "report" && canvasFocused() },
-    { id: "visual-none", keys: "Escape", label: "Clear the selection", group: "Edit", run: () => select([]), enabled: hasSelection },
+    {
+      id: "visual-none",
+      keys: "Escape",
+      label: "Clear the selection",
+      group: "Edit",
+      run: () => {
+        if (useReport.getState().focus) return set({ focus: null });
+        select([]);
+        useSelection.getState().clear();
+      },
+      enabled: () => useReport.getState().view === "report" && canvasFocused() && (useReport.getState().selected.length > 0 || !!useSelection.getState().selection || !!useReport.getState().focus),
+    },
     {
       id: "visual-duplicate",
       keys: "Ctrl+D",
@@ -231,6 +322,9 @@ export function ReportView({ model }: { model: Model }) {
         <span className="topbar-sep" />
         <IconButton label={t("Bring to front")} icon={<BringToFront size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(true)} />
         <IconButton label={t("Send to back")} icon={<SendToBack size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(false)} />
+        <span className="topbar-sep" />
+        <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
+        <ThemeMenu model={model} />
         <span className="status-fill" />
         <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
@@ -239,6 +333,7 @@ export function ReportView({ model }: { model: Model }) {
       <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
         <div className="report-center">
           <Canvas model={model} page={page} signature={signature} />
+          {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}
           <PageTabs model={model} page={page} />
         </div>
         {compact ? (

@@ -57,17 +57,47 @@ export function axisLabel(v: number, f: FieldFormat, locale: string): string {
   return `${v < 0 ? "-" : ""}${prefix}${body}`;
 }
 
-/** The live chart palette from the theme tokens. */
-export function palette(): string[] {
-  const s = getComputedStyle(document.documentElement);
+/** The live chart palette from the theme tokens (the report theme's when `el` is on a
+ * themed page). */
+export function palette(el?: Element | null): string[] {
+  const s = getComputedStyle(el ?? document.documentElement);
   const out: string[] = [];
-  for (let i = 1; i <= 10; i++) {
+  // A report theme with fewer colours marks where its list ends.
+  const n = Number(s.getPropertyValue("--chart-count").trim()) || 10;
+  for (let i = 1; i <= n; i++) {
     const c = s.getPropertyValue(`--chart-${i}`).trim();
     if (c) out.push(c);
   }
   return out.length ? out : ["#4e79a7", "#f28e2b", "#59a14f", "#e15759"];
 }
 
-export function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+export function token(name: string, el?: Element | null): string {
+  return getComputedStyle(el ?? document.documentElement).getPropertyValue(name).trim();
+}
+
+const rgbCache = new Map<string, [number, number, number]>();
+
+/** `color` (any CSS colour) at `alpha` (0–1), as `rgba()` for the chart canvas. */
+export function fade(color: string, alpha: number): string {
+  let rgb = rgbCache.get(color);
+  if (!rgb) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 1;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    rgb = [136, 136, 136];
+    if (ctx) {
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      const d = ctx.getImageData(0, 0, 1, 1).data;
+      rgb = [d[0] ?? 0, d[1] ?? 0, d[2] ?? 0];
+    }
+    rgbCache.set(color, rgb);
+  }
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+/** A cell of an Arrow column as a number, null for blank. */
+export function numberAt(v: { get(i: number): unknown } | undefined, r: number): number | null {
+  const x = v?.get(r);
+  return x === null || x === undefined ? null : Number(x);
 }

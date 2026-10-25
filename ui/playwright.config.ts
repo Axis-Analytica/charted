@@ -5,6 +5,7 @@ import { defineConfig } from "@playwright/test";
 // documents folder so tests never touch the user's files.
 const tmp = process.env.CHARTED_E2E_TMP ?? "/tmp/charted-e2e";
 const bin = process.env.CHARTED_BIN ?? "../target/debug/charted-headless";
+const theme = `${tmp}/home/.local/state/omarchy/current/theme`;
 
 export default defineConfig({
   testDir: "e2e",
@@ -19,7 +20,8 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state && XDG_DOCUMENTS_DIR=${tmp}/docs ${bin} serve --port 7421 --state-dir ${tmp}/state`,
+      // HOME is a copy holding the desktop's Omarchy theme, so tests can switch it.
+      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state ${theme} && (cp -L ${process.env.HOME}/.local/state/omarchy/current/theme/* ${theme}/ 2>/dev/null; cp -L ${process.env.HOME}/.local/state/omarchy/current/theme.name ${theme}/../ 2>/dev/null; true) && HOME=${tmp}/home XDG_DOCUMENTS_DIR=${tmp}/docs ${bin} serve --port 7421 --state-dir ${tmp}/state`,
       port: 7421,
       reuseExistingServer: false,
     },
