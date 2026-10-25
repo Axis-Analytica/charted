@@ -1,0 +1,10 @@
+/target/
+node_modules/
+/ui/dist/
+/ui/src/wasm/pkg/
+*.tmp
+.DS_Store
+# Project caches written by charted inside sample/user projects
+.cache/
+# Local checkpoint screenshots live outside the repo
+*.snap.new

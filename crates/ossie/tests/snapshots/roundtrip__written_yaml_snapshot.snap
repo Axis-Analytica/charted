@@ -1,0 +1,196 @@
+---
+source: crates/ossie/tests/roundtrip.rs
+expression: "write_string(&sample_model(), &generated)"
+---
+# Apache Ossie semantic model, written by charted. https://ossie.apache.org/
+version: 0.2.0.dev0
+name: Harbor & Pine
+description: Retail sales sample
+datasets:
+- name: Sales
+  source: sales
+  fields:
+  - name: OrderDateKey
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: OrderDateKey
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-order-date"}'
+  - name: ShipDateKey
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: ShipDateKey
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-ship-date"}'
+  - name: ProductKey
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: ProductKey
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-prod"}'
+  - name: Amount
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Amount
+    datatype: Decimal
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "formatString": "\\$#,0.00;(\\$#,0.00)", "lineageTag": "c-amt", "summarizeBy": "sum"}'
+  - name: Unit Cost
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: '"unit cost"'
+    datatype: Float
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "isHidden": true, "lineageTag": "c-cost", "sourceColumn": "unit cost"}'
+  - name: Line Margin
+    expression:
+      dialects:
+      - dialect: DAX
+        expression: Sales[Amount] - Sales[Unit Cost]
+    datatype: Decimal
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-margin"}'
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "lineageTag": "11111111-0000-0000-0000-000000000001"}'
+- name: Product
+  source: product
+  primary_key:
+  - ProductKey
+  fields:
+  - name: ProductKey
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: ProductKey
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "isKey": true, "lineageTag": "c-p-key"}'
+  - name: Category
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Category
+    datatype: String
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "dataCategory": "Uncategorized", "lineageTag": "c-p-cat"}'
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "lineageTag": "p-1"}'
+- name: Date
+  source: date
+  primary_key:
+  - DateKey
+  fields:
+  - name: DateKey
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: DateKey
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "isKey": true, "lineageTag": "c-d-key"}'
+  - name: Date
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Date
+    datatype: Date
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "formatString": "yyyy-mm-dd", "lineageTag": "c-d-date"}'
+  - name: MonthNumber
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: MonthNumber
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-d-msort"}'
+  - name: Month Name
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: '"Month Name"'
+    datatype: String
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-d-month", "sortByColumn": "MonthNumber"}'
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "dataCategory": "Time", "lineageTag": "d-1"}'
+relationships:
+- name: Sales_OrderDateKey_to_Date_DateKey
+  from: Sales
+  to: Date
+  from_columns:
+  - OrderDateKey
+  to_columns:
+  - DateKey
+  custom_extensions:
+  - vendor_name: CHARTED
+    data: '{"_v": 1, "id": "r-order"}'
+- name: Sales_ShipDateKey_to_Date_DateKey
+  from: Sales
+  to: Date
+  from_columns:
+  - ShipDateKey
+  to_columns:
+  - DateKey
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "isActive": false, "normalizedEndpoints": ["Sales", "ShipDateKey", "Date", "DateKey"]}'
+  - vendor_name: CHARTED
+    data: '{"_v": 1, "id": "r-ship"}'
+- name: Sales_ProductKey_to_Product_ProductKey
+  from: Sales
+  to: Product
+  from_columns:
+  - ProductKey
+  to_columns:
+  - ProductKey
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "crossFilteringBehavior": "bothDirections", "normalizedEndpoints": ["Sales", "ProductKey", "Product", "ProductKey"]}'
+  - vendor_name: CHARTED
+    data: '{"_v": 1, "id": "r-prod"}'
+metrics:
+- name: Total Sales
+  expression:
+    dialects:
+    - dialect: DAX
+      expression: SUM ( Sales[Amount] )
+    - dialect: OSSIE_SQL_2026
+      expression: SUM(Sales.Amount)
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "displayFolder": "Revenue", "formatString": "#,0", "lineageTag": "m-total", "table": "Sales"}'
+  - vendor_name: CHARTED
+    data: '{"_v": 1, "generated": ["OSSIE_SQL_2026"]}'
+- name: Category Share
+  expression:
+    dialects:
+    - dialect: DAX
+      expression: DIVIDE ( [Total Sales], CALCULATE ( [Total Sales], ALL ( Product[Category] ) ) )
+  description: Share of the selected category
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "formatString": "0.0%", "lineageTag": "m-share", "table": "Sales"}'

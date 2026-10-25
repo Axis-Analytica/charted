@@ -1,0 +1,8 @@
+# This machine (and many laptops) have little RAM; DuckDB's bundled C++ build
+# peaks at several GB per job, so keep parallelism modest by default.
+[build]
+jobs = 3
+
+[env]
+# ts-rs writes TypeScript bindings for API types here when `cargo test` runs.
+TS_RS_EXPORT_DIR = { value = "ui/src/bridge/generated", relative = true }

@@ -1,0 +1,13 @@
+[package]
+name = "charted-engine"
+description = "DuckDB execution engine for charted: loading, querying and Arrow IPC encoding"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+duckdb.workspace = true
+arrow-ipc.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

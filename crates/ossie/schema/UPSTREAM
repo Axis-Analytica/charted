@@ -1,0 +1,7 @@
+repository: https://github.com/apache/ossie
+path: core-spec/ossie-schema.json
+commit: 01a5488d840deda309aac68cc0b312c195369b8d
+spec_version: 0.2.0.dev0
+converter_repository: https://github.com/apache/ossie-converters (microsoft/)
+converter_commit: 62a3066b6cff8b3f94b2cf7e65bfb9a6127c4bfc
+converter_stash_version: 2

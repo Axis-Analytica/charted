@@ -1,0 +1,3 @@
+# Source this file to get the project toolchain on PATH: `. bin/env`
+eval "$(mise env -s bash 2>/dev/null)"
+export PATH="$HOME/.cargo/bin:$PATH"

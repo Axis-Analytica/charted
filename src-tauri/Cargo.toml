@@ -1,0 +1,17 @@
+[package]
+name = "charted"
+description = "A lightweight, local-first Power BI Desktop alternative for Omarchy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+charted-engine.workspace = true
+duckdb.workspace = true
+tauri.workspace = true
+serde.workspace = true
+serde_json.workspace = true

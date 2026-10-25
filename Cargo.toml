@@ -1,0 +1,53 @@
+[workspace]
+resolver = "3"
+members = ["crates/*", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/Axis-Analytica/charted"
+rust-version = "1.90"
+
+[workspace.dependencies]
+duckdb = { version = "1.20000.0", features = ["bundled"] }
+# Must match the arrow major version duckdb re-exports as `duckdb::arrow`.
+arrow-ipc = "60"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml_ng = "0.10"
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+toml = "1"
+notify = "8"
+clap = { version = "4.6", features = ["derive"] }
+ts-rs = { version = "12", features = ["serde-json-impl", "no-serde-warnings"] }
+rand = "0.10"
+rand_chacha = "0.10"
+insta = { version = "1.49", features = ["yaml"] }
+proptest = "1.12"
+jsonschema = { version = "0.60", default-features = false }
+tauri = { version = "2.12" }
+tauri-build = { version = "2.7" }
+
+charted-model = { path = "crates/model" }
+charted-ossie = { path = "crates/ossie" }
+charted-compiler = { path = "crates/compiler" }
+charted-engine = { path = "crates/engine" }
+charted-core = { path = "crates/core" }
+charted-samplegen = { path = "crates/samplegen" }
+
+[profile.dev]
+# Line tables keep backtraces useful while cutting link-time memory.
+debug = "line-tables-only"
+
+# An unoptimised DuckDB is unbearably slow; build it once with optimisation.
+[profile.dev.package.libduckdb-sys]
+opt-level = 2
+debug = false
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
