@@ -84,3 +84,10 @@ jobs:
         working-directory: ui
       - run: pnpm exec playwright test
         working-directory: ui
+      - name: Keep the end-to-end results of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: ui/test-results
+          retention-days: 7

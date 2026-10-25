@@ -58,8 +58,11 @@ async function newMeasure(page: Page) {
   return editor;
 }
 
-async function commitFormula(page: Page) {
+/** Commits the measure in the formula bar and waits for it to land in the Fields pane. */
+async function commitFormula(page: Page, name: string) {
   await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();
+  await expandTable(page, "Sales");
+  await expect(fieldsPane(page).locator(".field-name", { hasText: new RegExp(`^${name}$`) })).toHaveCount(1, { timeout: 15_000 });
 }
 
 test.setTimeout(120_000);
@@ -125,12 +128,12 @@ test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and A
   await page.keyboard.press("Escape");
   await page.keyboard.press("Control+a");
   await page.keyboard.insertText("Ship Sales = CALCULATE ( [Total Sales], USERELATIONSHIP ( Sales[ShipDateKey], 'Date'[DateKey] ) )");
-  await commitFormula(page);
+  await commitFormula(page, "Ship Sales");
   await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Ship Sales = CALCULATE");
 
   await newMeasure(page);
   await page.keyboard.insertText("All Years Sales = CALCULATE ( [Total Sales], ALL ( 'Date' ) )");
-  await commitFormula(page);
+  await commitFormula(page, "All Years Sales");
 
   // A misspelt column is underlined, and the problem is spelled out.
   await newMeasure(page);
