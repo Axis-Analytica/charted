@@ -1,4 +1,4 @@
-import { FilePlus2, FileArchive, FileDown, FileInput, FileUp, FolderOutput, Save, X } from "lucide-react";
+import { FilePlus2, FileArchive, FileDown, FileInput, FileText, FileUp, FolderOutput, Save, X } from "lucide-react";
 import { useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { ModelDiff } from "../bridge/generated/ModelDiff";
@@ -12,6 +12,7 @@ import { dataJson } from "../state/dataview";
 import { toast } from "../state/toasts";
 import { useNewProject } from "./NewProject";
 import { useShortcut } from "./shortcuts";
+import { exportPdf } from "../report/PrintLayout";
 
 const OSSIE = [{ name: "Apache Ossie", extensions: ["yaml", "yml"] }];
 export const POWER_BI = [{ name: "Power BI project", extensions: ["pbip", "bim"] }];
@@ -74,6 +75,7 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
     { id: "import-ossie", keys: "", label: "Import Apache Ossie model…", group: "File", run: importOssie },
     { id: "import-pbip", keys: "", label: "Import Power BI project…", group: "File", run: () => importPowerBi(t) },
     { id: "save-bundle", keys: "", label: "Save as bundle…", group: "File", run: saveBundle },
+    { id: "export-pdf", keys: "", label: "Export to PDF…", group: "File", run: () => void exportPdf(t) },
   );
 
   const diff = pending?.diff;
@@ -90,6 +92,7 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
           { id: "import-pbip", label: t("Import Power BI project…"), icon: <FileInput size={14} />, run: () => importPowerBi(t) },
           { id: "export-pbip", label: t("Export Power BI project…"), icon: <FolderOutput size={14} />, run: exportPbip },
           { id: "export-ossie", label: t("Export Apache Ossie model…"), icon: <FileDown size={14} />, run: exportOssie },
+          { id: "export-pdf", label: t("Export to PDF…"), icon: <FileText size={14} />, run: () => void exportPdf(t) },
           { id: "import-ossie", label: t("Import Apache Ossie model…"), icon: <FileUp size={14} />, run: importOssie },
           null,
           { id: "close", label: t("Close project"), icon: <X size={14} />, shortcut: "Ctrl+W", run: onClose },

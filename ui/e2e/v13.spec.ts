@@ -372,3 +372,38 @@ test("buttons and a page navigator: Ctrl+click while editing, click in reading v
   await expect(page.locator(".viz-pane")).toBeVisible();
   await expect(page.getByRole("tab", { name: "Details" })).toBeVisible();
 });
+
+test("export to PDF: the print layout has every page not hidden, loaded, one per sheet", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Print me");
+  const card = await addVisual(page, "Card", { x: 200, y: 120 });
+  await tick(page, "Sales", "Total Sales");
+  await expect(card.locator(".card-value")).toHaveText(/\$/);
+  await newPage(page, "Hidden detail");
+  await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
+  await page.locator(".viz-pane").getByRole("checkbox", { name: "Hide page" }).click();
+  await expect(page.locator(".page-tab.is-hidden", { hasText: "Hidden detail" })).toHaveCount(1);
+  const shown = await page.locator(".page-tab:not(.is-hidden)").count();
+  expect(shown).toBeGreaterThan(1);
+
+  await fileMenu(page, "Export to PDF…");
+  const layout = page.locator(".print-root");
+  await expect(layout).toBeVisible();
+  await expect(layout).toHaveAttribute("data-print-ready", "", { timeout: 30_000 });
+  await expect(layout.locator(".print-page")).toHaveCount(shown);
+  await expect(layout.locator(".print-page", { hasText: "Hidden detail" })).toHaveCount(0);
+  // Every visual has its data: nothing is still loading, and the card shows its value.
+  await expect(layout.locator("[data-loading]")).toHaveCount(0);
+  await expect(layout.locator(".print-page").nth(shown - 1).locator(".card-value")).toHaveText(/\$/);
+  await shot(page, "v13-06-print-layout");
+
+  const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });
+  const text = pdf.toString("latin1");
+  const sheets = text.match(/\/Type\s*\/Page[^s]/g)?.length ?? 0;
+  expect(sheets).toBe(shown);
+  // Sheets are the report page's size: 1280 × 720 CSS pixels is 960 × 540 points.
+  expect(text).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+960(\.0+)?\s+540(\.0+)?\s*\]/);
+
+  await layout.getByRole("button", { name: "Close" }).click();
+  await expect(layout).toHaveCount(0);
+});

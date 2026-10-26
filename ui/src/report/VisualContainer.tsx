@@ -264,6 +264,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
       data-focus-visual={standalone ? visual.id : undefined}
       data-testid="visual"
       data-type={visual.visualType}
+      data-loading={hasFields && !decor && (loading || (!data && !error)) ? "" : undefined}
       role="figure"
       aria-label={title || (def ? t(def.label) : visual.visualType)}
       aria-selected={standalone ? undefined : selected}

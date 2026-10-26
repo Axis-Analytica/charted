@@ -20,7 +20,7 @@ fn card_value(app: &App, id: &str) -> f64 {
         })
         .unwrap_or_else(|e| panic!("{}", e.message));
     let reader = StreamReader::try_new(std::io::Cursor::new(bytes), None).unwrap();
-    for batch in reader {
+    if let Some(batch) = reader.into_iter().next() {
         let batch = batch.unwrap();
         let i = batch.schema().index_of("values:0").unwrap();
         let f = arrow_cast::display::ArrayFormatter::try_new(batch.column(i), &Default::default())

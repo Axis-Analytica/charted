@@ -55,6 +55,7 @@ import { FieldsPane } from "./FieldsPane";
 import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
 import { QuickMeasureDialog } from "./QuickMeasure";
+import { PrintLayout } from "./PrintLayout";
 import { SelectionPane } from "./SelectionPane";
 import { SyncSlicersPane } from "./SyncSlicersPane";
 import { VISUALS } from "./registry";
@@ -399,6 +400,7 @@ export function ReportView({ model }: { model: Model }) {
     <div className={`report-view ${reading ? "is-reading" : ""}`}>
       {formula && <FormulaBar model={model} />}
       <QuickMeasureDialog model={model} />
+      <PrintLayout model={model} />
       {reading ? (
         <div className="report-toolbar" role="toolbar" aria-label={t("Reading view")}>
           <span className="report-toolbar-label">{t("Reading view")}</span>

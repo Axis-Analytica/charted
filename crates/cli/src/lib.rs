@@ -23,6 +23,10 @@ pub enum Command {
         /// Save a screenshot of the window to FILE once the project has loaded, then exit.
         #[arg(long, value_name = "FILE")]
         screenshot: Option<PathBuf>,
+        /// Export the report's pages (those not hidden) to a PDF once the project has
+        /// loaded, then exit.
+        #[arg(long, value_name = "FILE", conflicts_with = "screenshot")]
+        export_pdf: Option<PathBuf>,
     },
     /// Validate a project: model schema, queries and source files.
     Check {

@@ -1,6 +1,7 @@
 // Prevents an extra console window on Windows release builds; harmless elsewhere.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod pdf;
 mod pick;
 mod screenshot;
 
@@ -134,7 +135,7 @@ fn state_dir() -> PathBuf {
         .join("charted")
 }
 
-fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
+fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<PathBuf>) {
     // The Wayland app id and X11 class come from the program name; it must match the
     // .desktop file so Hyprland and the launcher associate the window with charted.
     glib::set_prgname(Some("charted"));
@@ -157,7 +158,9 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
             pick,
             quit,
             open_issue,
-            spike_arrow
+            spike_arrow,
+            pdf::print_pdf,
+            pdf::exit_with
         ])
         .setup(move |tauri_app| {
             let handle = tauri_app.handle().clone();
@@ -170,6 +173,9 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
             tauri_app.manage(watcher);
             if let Some(file) = screenshot.clone() {
                 screenshot::schedule(tauri_app.handle().clone(), file);
+            }
+            if let Some(file) = export_pdf.clone() {
+                pdf::schedule(tauri_app.handle().clone(), file);
             }
             Ok(())
         })
@@ -195,8 +201,12 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>) {
 fn main() {
     let cli = charted_cli::Cli::parse();
     match cli.command {
-        None => gui(None, None),
-        Some(charted_cli::Command::Open { path, screenshot }) => gui(path, screenshot),
+        None => gui(None, None, None),
+        Some(charted_cli::Command::Open {
+            path,
+            screenshot,
+            export_pdf,
+        }) => gui(path, screenshot, export_pdf),
         Some(cmd) => std::process::exit(charted_cli::run(cmd)),
     }
 }

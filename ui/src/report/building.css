@@ -40,3 +40,20 @@
 .page-nav-button:hover { background: var(--bg-hover); }
 .page-nav-button.is-current { background: var(--nav-selected, var(--accent)); border-color: var(--nav-selected, var(--accent)); color: var(--accent-fg, #fff); font-weight: 600; }
 .page-tab.is-hidden button { font-style: italic; opacity: 0.7; }
+
+/* The print layout (Export to PDF): on screen, the pages stacked over the app; in
+   print, only the pages, one per sheet. */
+.print-root { position: fixed; inset: 0; z-index: 1000; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 56px 16px 24px; background: var(--bg-sunken); }
+.print-bar { position: fixed; top: 0; left: 0; right: 0; z-index: 1; display: flex; align-items: center; gap: 8px; height: 44px; padding-inline: 16px; border-bottom: 1px solid var(--border); background: var(--bg-raised); color: var(--fg); }
+.print-page { position: relative; flex: none; overflow: hidden; background: var(--bg); box-shadow: 0 0 0 1px var(--border); }
+.print-page .page { box-shadow: none; }
+.print-page .visual-header, .print-page .visual-loading { display: none; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; background: none !important; }
+  #root { display: none !important; }
+  .print-root { position: static; display: block; overflow: visible; padding: 0; background: none; }
+  .print-bar { display: none !important; }
+  .print-page { box-shadow: none; break-after: page; page-break-after: always; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-root * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
