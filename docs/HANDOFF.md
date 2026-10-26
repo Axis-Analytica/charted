@@ -1,32 +1,77 @@
-# Handoff: v1.0 pre-release batch built; Power BI Desktop round trip, then tag v1.0.0
+# Handoff: v1.0 candidate pushed; next session starts v1.1–v1.5
 
-Read this first when picking up development. Last updated 2026-10-26.
-**Status:** M0–M5 are done and pushed (CI green). M6 and the pre-release batch the user
-asked for after trying the installed build are committed locally (not pushed). That
-batch covers:
+Read this first when picking up development. Last updated 2026-10-26 (end of the
+pre-release session). Then read docs/ROADMAP.md, which holds the scope of every
+release below.
 
-- search in the visual gallery and slicers;
-- the Fields pane's right-click menu and more quick measures;
-- the icon in Axis orange;
-- awkward files (CSV encodings, decimal commas, ragged rows) and files on the web;
-- export as Desktop writes PBIP;
-- the public PBIP corpus;
-- README screenshots;
-- docs/ROADMAP.md.
+## Where things stand
 
-**Waiting on:** the user opening the exports in `~/Work/charted-checkpoints/pbi-roundtrip/`
-in Power BI Desktop (their Windows VM; see its CHECKLIST.md).
+- **Code:** M0–M6 and the pre-release batch are on `main`, pushed at `332c6bb`.
+  - The pre-release batch: visual and slicer search, the Fields pane menu, quick
+    measures, the Axis-orange icon, awkward files and web files, export as Desktop
+    writes PBIP, about 20 more DAX functions, the public PBIP corpus, README
+    screenshots and the roadmap.
+  - **Nothing is tagged.** No `v1.0.0`, no AUR packages, no omarchy-pkgs PR yet.
+- **CI on `332c6bb`:** Rust passed on x86_64 and arm64. In the UI job,
+  `e2e/m6.spec.ts` "a Trends page…" failed once: the click that drills into 2024 didn't
+  register, so the axis still showed the years. It passes locally every time, and a
+  rerun of the failed job was started.
+  - **Check first:** `gh run list -R Axis-Analytica/charted`.
+  - If it fails again, make the test wait for drill mode (the ↓ button
+    `aria-pressed`) and for the chart to redraw before clicking the bar.
+- **The user is reinstalling** (`bin/install`) to look at the build. They may come
+  back with feedback; take that before new work.
+- **Still open for v1.0:**
+  - The Power BI Desktop check in the user's Windows VM, using
+    `~/Work/charted-checkpoints/pbi-roundtrip/` (three exports plus CHECKLIST.md).
+  - **Then, only with the user's explicit go-ahead** (each is outward-facing): tag
+    `v1.0.0` (the release workflow makes a draft release), fill the checksums into
+    `pkgbuild/PKGBUILD-bin`, publish the AUR packages and open the omarchy-pkgs PR.
 
-**Then, only with the user's go-ahead** (each is outward-facing):
+## Next session: kick off v1.1–v1.5
 
-1. Push.
-2. Tag `v1.0.0` (the release workflow builds both architectures' tarballs into a
-   draft release).
-3. Fill the checksums into `pkgbuild/PKGBUILD-bin`.
-4. Publish the AUR packages.
-5. Open the omarchy-pkgs PR.
+The user wants all five planned and started. Scope is in docs/ROADMAP.md:
 
-**After the release:** docs/ROADMAP.md (v1.1–v1.4, then M7, an agent inside charted).
+| Release | Theme |
+|---|---|
+| v1.1 | Modelling and DAX: running totals (`FILTER(ALLSELECTED(col), col <= MAX(col))`), RANKX/TOPN, LOOKUPVALUE, CONCATENATEX, ADDCOLUMNS/SUMMARIZECOLUMNS/CALCULATETABLE, iterated date sets, reference queries and *Enter data* tables, hierarchies, display folders, sort by column from the Fields pane, groups and bins, calculated tables |
+| v1.2 | Visuals: combo, waterfall, treemap, gauge, KPI, funnel, 100% stacked, new card; Top N filter; conditional formatting; tooltip pages; small multiples; analytics lines |
+| v1.3 | Report building: format painter across visuals, selection pane, copy/paste visuals between pages, sync slicers, buttons and page navigator, export to PDF |
+| v1.4 | Interop depth: field parameters, calculation groups, roles and *View as*, what-if parameters, a theme editor, Excel/Folder M checked in Desktop |
+| v1.5 | Aggregations in calculated columns: CALCULATE with context transition, SUMX/COUNTROWS over RELATEDTABLE, grand totals and ALLEXCEPT shares, EARLIER, measures in columns; all set-based SQL, checked against the interpreter |
+
+**Suggested way in:**
+
+1. Write a plan file per release, or one with phases.
+2. Check feasibility before committing to an order. Running totals, v1.5's context
+   transition in columns and calculated tables all lean on the same compiler
+   machinery, so do them together. That machinery is `calculate_ctx`, `date_set`,
+   `value_set` and `table_filter` in `crates/compiler/src/visual.rs`, with matching
+   changes in `crates/compiler/src/interp.rs`.
+3. Work on independent tracks in parallel. A subagent in a git worktree worked well
+   for the DAX batch: give it a self-contained brief, then cherry-pick its commit.
+   Visuals (v1.2) and report building (v1.3) are mostly UI, separate from v1.1/v1.5,
+   which are compiler and core.
+4. Every DAX feature goes into `crates/core/tests/dax_golden.rs`: fixed cases plus the
+   random generator, with SQL checked against the interpreter. Regenerate
+   `docs/dax-support.md` with `CHARTED_UPDATE_DOCS=1 cargo test -p charted-dax`.
+5. Rerun the corpus after each release to measure progress on real projects:
+   `bin/corpus && cargo test -p charted-core --test corpus -- --ignored --nocapture`.
+   - Last result: Contoso 7/7 visuals, sales-sample 32/33, AurumJet 65/96. The pbip-demo
+     reports are limited by iterated DATESINPERIOD and M (List.Dates, random demo data).
+
+## Session after: plan M7 and beyond
+
+M7 is an agent inside charted that builds report pages. Its first design is in
+docs/ROADMAP.md: a control socket in the running app, `charted mcp` as an MCP server,
+and an Agent pane that runs the user's default Omarchy agent headless, with
+undoable "Agent: …" commits and privacy defaults.
+
+- The default agent comes from `omarchy-default-agent`; on this machine it's `claude`.
+  `/usr/share/omarchy/bin/omarchy-agent` shows the per-agent flags.
+- The user sees M7 as the feature that beats Power BI. Microsoft's Copilot needs
+  capacity, and its MCP server can't touch report pages.
+- Plan it fully then, including what comes after M7.
 
 ## Decisions already made (do not re-litigate)
 
