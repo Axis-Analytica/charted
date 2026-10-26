@@ -43,7 +43,7 @@ test("reference a query, transform it and apply", async ({ page }) => {
   await expect(page.locator(".qe-query").first()).toBeVisible();
 
   // Reference Store: a new query starting from Store's result.
-  await page.getByRole("button", { name: "Options for Store" }).click();
+  await page.getByRole("button", { name: "Options for Store", exact: true }).click();
   await page.getByRole("menuitem", { name: "Reference" }).click();
   await expect(page.locator(".qe-query.is-on")).toContainText("Store (2)");
   await expect(steps(page)).toHaveText(["Source"]);
@@ -65,7 +65,7 @@ test("reference a query, transform it and apply", async ({ page }) => {
   await name.press("Enter");
   await expect(page.locator(".qe-query.is-on")).toContainText("Regions");
   // Store can't be deleted while Regions starts from it.
-  await page.getByRole("button", { name: "Options for Store" }).click();
+  await page.getByRole("button", { name: "Options for Store", exact: true }).click();
   await expect(page.getByRole("menuitem", { name: "Delete" })).toBeDisabled();
   await page.keyboard.press("Escape");
   await shot(page, "v11-01-reference");
