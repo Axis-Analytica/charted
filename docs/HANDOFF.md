@@ -1,12 +1,32 @@
-# Handoff: milestone 6 (interop, polish, release) built; review, then tag v1.0.0
+# Handoff: v1.0 pre-release batch built; Power BI Desktop round trip, then tag v1.0.0
 
-Read this first when picking up development. Last updated 2026-10-26, end of M6 build.
-**Status:** M0–M5 are done and pushed (CI green). M6 is implemented and committed
-locally (not pushed); `bin/test` is green. Waiting on the user's M6 review
-(`docs/demos/m6.md`, screenshots in `~/Work/charted-checkpoints/m6/`). Then, only with
-the user's go-ahead (each is outward-facing): push, tag `v1.0.0` (the release workflow
-builds both architectures' tarballs into a draft release), fill the checksums into
-`pkgbuild/PKGBUILD-bin`, publish the AUR packages and open the omarchy-pkgs PR.
+Read this first when picking up development. Last updated 2026-10-26.
+**Status:** M0–M5 are done and pushed (CI green). M6 and the pre-release batch the user
+asked for after trying the installed build are committed locally (not pushed). That
+batch covers:
+
+- search in the visual gallery and slicers;
+- the Fields pane's right-click menu and more quick measures;
+- the icon in Axis orange;
+- awkward files (CSV encodings, decimal commas, ragged rows) and files on the web;
+- export as Desktop writes PBIP;
+- the public PBIP corpus;
+- README screenshots;
+- docs/ROADMAP.md.
+
+**Waiting on:** the user opening the exports in `~/Work/charted-checkpoints/pbi-roundtrip/`
+in Power BI Desktop (their Windows VM; see its CHECKLIST.md).
+
+**Then, only with the user's go-ahead** (each is outward-facing):
+
+1. Push.
+2. Tag `v1.0.0` (the release workflow builds both architectures' tarballs into a
+   draft release).
+3. Fill the checksums into `pkgbuild/PKGBUILD-bin`.
+4. Publish the AUR packages.
+5. Open the omarchy-pkgs PR.
+
+**After the release:** docs/ROADMAP.md (v1.1–v1.4, then M7, an agent inside charted).
 
 ## Decisions already made (do not re-litigate)
 
@@ -328,6 +348,25 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   Ignore `Access` events or your own reads cause an event loop.
 - Layout: use flex columns (not grid row templates) for containers with optional
   children (banners), or rows shift and the main area collapses.
+- **The CLI binary is `target/debug/charted-headless`**; `target/debug/charted` is the
+  GUI app (stale unless `cargo build -p charted`). Playwright starts charted-headless.
+- **There is no formatter for the UI.** Its code is hand-wrapped at about 200 columns;
+  don't run prettier on it (its defaults rewrap whole files). Rust uses `cargo fmt`.
+- **Hyprland 0.56 has a Lua config:** `hyprctl dispatch` takes Lua (`hl.dispatch(...)`),
+  so old-style dispatch strings fail. README screenshots are therefore taken in
+  Chromium at 1600×1000 (`bin/screenshots`), not by resizing the real window.
+- **CSV detection** (`sources::detect_csv`, stored in `Ctx::sheets` under `csv_key`):
+  - UTF-16 is found by its BOM, Western European by invalid UTF-8.
+  - The decimal comma is detected only in semicolon files with no decimal points.
+  - Ragged bodies get `null_padding` and `parallel = false`. Padding every file breaks
+    DuckDB's title-row skipping, and it can't combine with quoted line breaks when
+    parallel.
+  - Whole-file typing (`sample_size = -1`) is only a retry after a conversion error,
+    because it is 20× slower on large files.
+- DuckDB rounds `'2.5'::BIGINT` to 3: type detection checks a value is integral
+  before calling it whole.
+- **Web files** (`https://` paths) need DuckDB's httpfs extension, behind the same
+  consent as sqlite/postgres. Import doesn't load them; the first Refresh asks.
 - Arrow JS decodes DECIMAL poorly; `Session::preview` casts DECIMAL/HUGEINT to DOUBLE
   for display only. Do the same for any display query.
 - WebKit's first load can race Vite's dependency optimisation; screenshots need a
@@ -525,8 +564,22 @@ Power BI.
   calculated tables, field parameters, dynamic format strings and M beyond the file
   shapes in mquery.rs are reported, not imported. Visual formatting from Power BI is
   limited to titles and text boxes; PBIR export writes `themeCollection: {}` unless the
-  report has a custom theme. Neither direction has been opened in Power BI Desktop
-  itself — only checked against the published schemas.
+  report has a custom theme. Power BI Desktop itself: the round-trip folder is ready
+  (`~/Work/charted-checkpoints/pbi-roundtrip/`), awaiting the user's VM check.
+
+## Deferred from the pre-release batch
+
+- **Quick measures:** no running total. `FILTER(ALLSELECTED(col), col <= MAX(col))`
+  as a CALCULATE filter isn't compiled yet (v1.1).
+- **Power Query:**
+  - Not yet: reference queries (`Source = #"Other query"`), *Enter data* tables
+    (`#table`, compressed JSON), and M beyond the file shapes.
+  - Excel from the web isn't read.
+  - A CSV's decimal comma goes to Power BI as the `"de-DE"` culture on Changed Type,
+    but isn't read back from M on import.
+- **The .NET TOM check** (`TmdlSerializer`) on exports was blocked: installing the
+  .NET SDK from a downloaded script needs the user's permission. Power BI Desktop in
+  the VM is the check instead.
 - Idle memory: 234 MB private in the charted process (DuckDB's cache) plus WebKit's own
   process; see docs/perf.md.
 
