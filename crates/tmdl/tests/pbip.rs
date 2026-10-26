@@ -645,6 +645,7 @@ fn power_bi_visual_types_map_to_charted() {
             s("waterfallChart", &["breakdown", "category", "values"]),
         ]
     );
+}
 
 /// References, entered tables, calendars and decimal-comma CSV files come back from an
 /// export: through charted's annotation, and through their M alone (as after Power BI
