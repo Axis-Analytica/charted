@@ -167,3 +167,79 @@ fn synced_slicers_keep_their_group() {
     }
     assert!(back.pages[1].visuals[0].hidden);
 }
+
+#[test]
+fn buttons_and_page_navigators() {
+    let button = |id: &str, objects: Value| {
+        let mut v = visual(id, "actionButton", 1);
+        v.objects = serde_json::from_value(objects).unwrap();
+        v
+    };
+    let m = model(vec![
+        Page {
+            id: "p1".into(),
+            settings: PageSettings::named("Overview"),
+            visuals: vec![
+                button(
+                    "back1",
+                    json!({ "button": { "kind": "back", "text": "Go back" } }),
+                ),
+                button(
+                    "nav1",
+                    json!({ "button": { "kind": "pageNavigation" }, "action": { "page": "p2", "tooltip": "To details" } }),
+                ),
+                button(
+                    "bm1",
+                    json!({ "button": { "kind": "blank", "text": "Q1" }, "action": { "type": "bookmark", "bookmark": "b-1" } }),
+                ),
+                visual("pages1", "pageNavigator", 2),
+            ],
+        },
+        Page {
+            id: "p2".into(),
+            settings: PageSettings::named("Details"),
+            visuals: vec![],
+        },
+    ]);
+    let files = as_power_bi(&m);
+    let back = file(&files, "back1/visual.json");
+    assert_eq!(back["visual"]["visualType"], json!("actionButton"));
+    assert_eq!(
+        back["visual"]["objects"]["icon"][0]["properties"]["shapeType"]["expr"]["Literal"]["Value"],
+        json!("'back'")
+    );
+    let link = &back["visual"]["visualContainerObjects"]["visualLink"][0]["properties"];
+    assert_eq!(link["type"]["expr"]["Literal"]["Value"], json!("'Back'"));
+    let nav = file(&files, "nav1/visual.json");
+    let link = &nav["visual"]["visualContainerObjects"]["visualLink"][0]["properties"];
+    assert_eq!(
+        link["type"]["expr"]["Literal"]["Value"],
+        json!("'PageNavigation'")
+    );
+    assert_eq!(
+        link["navigationSection"]["expr"]["Literal"]["Value"],
+        json!("'p2'")
+    );
+    assert_eq!(
+        file(&files, "pages1/visual.json")["visual"]["visualType"],
+        json!("pageNavigator")
+    );
+
+    let (r, skipped) = read(&files);
+    assert!(skipped.is_empty(), "{skipped:?}");
+    let p = &r.pages[0];
+    let objects = |id: &str| Value::Object(p.visual(id).unwrap().objects.clone());
+    assert_eq!(
+        objects("back1"),
+        json!({ "button": { "kind": "back", "text": "Go back" }, "action": { "type": "back" } })
+    );
+    assert_eq!(
+        objects("nav1"),
+        json!({ "button": { "kind": "pageNavigation" }, "action": { "type": "pageNavigation", "page": "p2", "tooltip": "To details" } })
+    );
+    assert_eq!(
+        objects("bm1")["action"],
+        json!({ "type": "bookmark", "bookmark": "b-1" })
+    );
+    assert_eq!(p.visual("pages1").unwrap().visual_type, "pageNavigator");
+}

@@ -35,6 +35,8 @@ interface ReportStore {
   quick: string | null;
   /** Edit interactions mode: the selected visual's effect on the others is shown on each. */
   editInteractions: boolean;
+  /** Reading view: no editing; buttons act on a click and hidden pages aren't listed. */
+  reading: boolean;
   /** A visual shown on its own over the canvas (focus mode), optionally with its data. */
   focus: { visual: string; table: boolean } | null;
   set(patch: Partial<Omit<ReportStore, "set" | "select">>): void;
@@ -52,6 +54,7 @@ export const useReport = create<ReportStore>()((set) => ({
   field: null,
   quick: null,
   editInteractions: false,
+  reading: false,
   focus: null,
   set: (patch) => set(patch),
   select: (ids) => set({ selected: ids }),

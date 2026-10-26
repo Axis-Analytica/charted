@@ -14,7 +14,8 @@ const CONTENT: Record<string, string[]> = {
   title: ["text"],
   text: ["content"],
   image: ["src", "alt"],
-  button: ["text", "action", "bookmark", "page"],
+  button: ["text"],
+  action: ["type", "bookmark", "page", "tooltip"],
   syncGroup: ["groupName", "pages", "fieldChanges", "filterChanges"],
 };
 const isContent = (object: string, name: string) => CONTENT[object]?.includes(name) ?? false;

@@ -332,6 +332,24 @@ function Control({ p, value: shown, onChange }: { p: PropDef; value: unknown; on
           </select>
         </label>
       );
+    case "page":
+    case "bookmark": {
+      const model = useApp.getState().state?.project?.model;
+      const items = p.type === "page" ? (model?.report.pages ?? []).map((x) => ({ id: x.id, name: x.name })) : (model?.report.bookmarks ?? []).map((x) => ({ id: x.id, name: x.name }));
+      return (
+        <label className="field">
+          <span className="field-label">{t(p.label)}</span>
+          <select className="select" value={mixed ? "" : String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
+            <option value="">{mixed ? t("Mixed") : t("None")}</option>
+            {items.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    }
     case "color":
       return (
         <div className="field">
@@ -460,6 +478,11 @@ function PageFormat({ page }: { page: Page }) {
         </select>
       </label>
       <TooltipPageSettings page={page} />
+      <label className="check">
+        <input type="checkbox" checked={!!page.hidden} onChange={(e) => commit(e.target.checked ? "Hide page" : "Show page", [{ op: "setPage", page: page.id, settings: { ...settings, hidden: e.target.checked } }])} />
+        {t("Hide page")}
+      </label>
+      <p className="pane-hint">{t("Hidden pages aren't listed in reading view, page navigators or PDF exports: use them for drill-through and tooltip pages.")}</p>
     </div>
   );
 }

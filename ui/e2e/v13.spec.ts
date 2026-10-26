@@ -319,3 +319,56 @@ test("sync slicers: one choice filters every synced page, hidden or visible", as
   await page.getByRole("tab", { name: "Sync B" }).click();
   await expect.poll(() => cardMillions(cardB)).toBeCloseTo(sliced, 1);
 });
+
+test("buttons and a page navigator: Ctrl+click while editing, click in reading view, hidden pages", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Details");
+  await newPage(page, "Buttons");
+  const fmt = page.locator(".viz-pane .format-pane");
+  const button = await addVisual(page, "Button", { x: 200, y: 100 });
+  await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
+  await fmt.getByRole("combobox", { name: "Icon" }).selectOption("pageNavigation");
+  await fmt.getByRole("textbox", { name: "Text", exact: true }).fill("Go to details");
+  await fmt.getByRole("textbox", { name: "Text", exact: true }).press("Enter");
+  await fmt.getByRole("button", { name: "Action" }).click();
+  await fmt.getByRole("combobox", { name: "Destination" }).selectOption({ label: "Details" });
+  await expect(button.getByRole("button", { name: "Go to details" })).toBeVisible();
+
+  // A plain click selects it; Ctrl+click follows it.
+  await button.click();
+  await expect(button).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
+  await button.click({ modifiers: ["Control"] });
+  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+
+  // A Back button returns to the page before.
+  const back = await addVisual(page, "Button", { x: 200, y: 100 });
+  await fmt.getByRole("combobox", { name: "Icon" }).selectOption("back");
+  await back.click({ modifiers: ["Control"] });
+  await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
+
+  // A page navigator lists the pages; hidden ones drop out.
+  const nav = await addVisual(page, "Page navigator", { x: 600, y: 400 });
+  await expect(nav.getByRole("button", { name: "Details" })).toBeVisible();
+  await expect(nav.getByRole("button", { name: "Buttons" })).toHaveAttribute("aria-current", "page");
+  await page.getByRole("tab", { name: "Details" }).click();
+  await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
+  await page.locator(".viz-pane").getByRole("checkbox", { name: "Hide page" }).click();
+  await page.getByRole("tab", { name: "Buttons" }).click();
+  await expect(nav.getByRole("button", { name: "Details" })).toHaveCount(0);
+  await shot(page, "v13-05-buttons");
+
+  // Reading view: hidden pages leave the tabs, and a plain click acts.
+  await page.getByRole("button", { name: "Reading view" }).click();
+  await expect(page.locator(".viz-pane")).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "Details" })).toHaveCount(0);
+  await button.getByRole("button", { name: "Go to details" }).click();
+  await expect(page.locator(".page-tab.is-on")).toHaveText("Details");
+  await page.getByRole("tab", { name: "Buttons" }).click();
+  const first = (await page.locator(".page-tab").first().textContent())!;
+  await nav.locator(".page-nav-button").first().click();
+  await expect(page.locator(".page-tab.is-on")).toHaveText(first);
+  await page.getByRole("button", { name: "Edit report" }).click();
+  await expect(page.locator(".viz-pane")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Details" })).toBeVisible();
+});

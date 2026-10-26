@@ -39,6 +39,7 @@ import { type VisualData, useVisualData } from "./data";
 import { prop, visualDef } from "./registry";
 import { CanvasScale } from "./scale";
 import { VisualBoundary } from "./VisualBoundary";
+import { ActionButton, PageNavigator } from "./visuals/Buttons";
 import { Card } from "./visuals/Card";
 import { fmt, projectionFormat } from "./visuals/common";
 import { Cartesian } from "./visuals/Cartesian";
@@ -195,6 +196,10 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
         return <ImageVisual visual={visual} page={page} />;
       case "shape":
         return <Shape visual={visual} />;
+      case "actionButton":
+        return <ActionButton visual={visual} page={page} model={model} />;
+      case "pageNavigator":
+        return <PageNavigator visual={visual} page={page} model={model} />;
     }
     if (!hasFields)
       return (

@@ -16,6 +16,7 @@ import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { newVisual, updateVisual, useReport, withField } from "../state/report";
 import { useSelection } from "../state/selection";
+import { isActionVisual } from "./actions";
 import { paint, usePainter } from "./painter";
 import { withSync } from "./sync";
 import { CanvasScale, ThemeKey } from "./scale";
@@ -47,6 +48,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
   const pageEl = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const painting = usePainter((s) => s.armed);
+  const reading = useReport((s) => s.reading);
   const [els, setEls] = useState<Map<string, HTMLElement>>(new Map());
   const moveable = useRef<Moveable>(null);
   // Live offsets while dragging/resizing, by visual id.
@@ -191,9 +193,11 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
                 page={page}
                 model={model}
                 signature={signature}
-                selected={selected.includes(v.id)}
+                selected={!reading && selected.includes(v.id)}
                 register={register}
                 onPointerDown={(e) => {
+                  // Reading view selects nothing; Ctrl+click on a button uses it.
+                  if (reading || ((e.ctrlKey || e.metaKey) && isActionVisual(v.visualType))) return;
                   // Canvas shortcuts (Delete, copy, paste) follow a click from a pane.
                   if (!document.activeElement?.closest(".report-center")) (e.currentTarget as HTMLElement).focus({ preventScroll: true });
                   // The format painter gives the clicked visual the copied look.
@@ -226,7 +230,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
               ))}
             <Moveable
               ref={moveable}
-              target={targets}
+              target={reading ? [] : targets}
               draggable
               resizable={targets.length === 1}
               origin={false}
@@ -295,7 +299,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
           <Selecto
             container={scroller.current}
             dragContainer={scroller.current}
-            selectableTargets={[".visual"]}
+            selectableTargets={reading ? [] : [".visual"]}
             hitRate={0}
             selectByClick={false}
             selectFromInside={false}

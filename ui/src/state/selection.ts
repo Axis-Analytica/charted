@@ -57,7 +57,7 @@ export function canHighlight(type: string): boolean {
 
 /** Visuals that show data and so take part in interactions. */
 export function isDataVisual(type: string): boolean {
-  return !["textbox", "image", "shape"].includes(type);
+  return !["textbox", "image", "shape", "actionButton", "pageNavigator"].includes(type);
 }
 
 /** What a selection in `source` does to `target` (matches `Page::interaction` in the core). */

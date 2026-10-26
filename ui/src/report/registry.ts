@@ -16,6 +16,8 @@ import {
   Grid3x3,
   Image,
   ListFilter,
+  GalleryHorizontal,
+  RectangleHorizontal,
   Shapes,
   Table2,
   Type,
@@ -40,7 +42,9 @@ export type PropDef =
   | { name: string; label: string; type: "text"; default: string; placeholder?: string }
   | { name: string; label: string; type: "number"; default: number; min?: number; max?: number; step?: number }
   | { name: string; label: string; type: "select"; default: string; options: { value: string; label: string }[] }
-  | { name: string; label: string; type: "color"; default: string };
+  | { name: string; label: string; type: "color"; default: string }
+  /** A page or a bookmark of the report, by id (a button's destination). */
+  | { name: string; label: string; type: "page" | "bookmark"; default: string };
 
 export interface ObjectDef {
   name: string;
@@ -463,6 +467,108 @@ VISUALS.push(
 );
 
 extendRegistry(VISUALS, VISUAL_KEYWORDS, { title, background, legend, axis, dataLabels, colors, cartesianRoles });
+// Buttons and page navigators (v1.3): they act when clicked in reading view, or
+// Ctrl+clicked while editing, as in Power BI.
+const buttonState = (name: string, label: string): ObjectDef => ({
+  name,
+  label,
+  props: [
+    { name: "fill", label: "Fill", type: "color", default: "" },
+    { name: "color", label: "Text color", type: "color", default: "" },
+  ],
+});
+
+VISUALS.push(
+  {
+    type: "actionButton",
+    label: "Button",
+    icon: RectangleHorizontal,
+    roles: [],
+    decor: true,
+    objects: [
+      {
+        name: "button",
+        label: "Button",
+        props: [
+          {
+            name: "kind",
+            label: "Icon",
+            type: "select",
+            default: "blank",
+            options: [
+              { value: "blank", label: "Blank" },
+              { value: "back", label: "Back" },
+              { value: "bookmark", label: "Bookmark" },
+              { value: "pageNavigation", label: "Page navigation" },
+              { value: "drillthrough", label: "Drill through" },
+              { value: "information", label: "Information" },
+            ],
+          },
+          { name: "text", label: "Text", type: "text", default: "" },
+          { name: "fontSize", label: "Text size", type: "number", default: 14, min: 8, max: 60 },
+          { name: "fill", label: "Fill", type: "color", default: "" },
+          { name: "color", label: "Text color", type: "color", default: "" },
+          { name: "border", label: "Border", type: "bool", default: true },
+          { name: "rounded", label: "Rounded corners", type: "bool", default: true },
+        ],
+      },
+      buttonState("hover", "On hover"),
+      buttonState("pressed", "On press"),
+      {
+        name: "action",
+        label: "Action",
+        toggle: "show",
+        props: [
+          { name: "show", label: "Show", type: "bool", default: true },
+          {
+            name: "type",
+            label: "Type",
+            type: "select",
+            default: "auto",
+            options: [
+              { value: "auto", label: "Same as the icon" },
+              { value: "back", label: "Back" },
+              { value: "bookmark", label: "Bookmark" },
+              { value: "pageNavigation", label: "Page navigation" },
+              { value: "drillthrough", label: "Drill through" },
+              { value: "none", label: "None" },
+            ],
+          },
+          { name: "bookmark", label: "Bookmark", type: "bookmark", default: "" },
+          { name: "page", label: "Destination", type: "page", default: "" },
+          { name: "tooltip", label: "Tooltip", type: "text", default: "" },
+        ],
+      },
+    ],
+    size: { width: 160, height: 48 },
+  },
+  {
+    type: "pageNavigator",
+    label: "Page navigator",
+    icon: GalleryHorizontal,
+    roles: [],
+    decor: true,
+    objects: [
+      {
+        name: "navigator",
+        label: "Pages",
+        props: [
+          { name: "orientation", label: "Orientation", type: "select", default: "horizontal", options: [{ value: "horizontal", label: "Horizontal" }, { value: "vertical", label: "Vertical" }] },
+          { name: "showHidden", label: "Show hidden pages", type: "bool", default: false },
+          { name: "fontSize", label: "Text size", type: "number", default: 13, min: 8, max: 40 },
+          { name: "fill", label: "Fill", type: "color", default: "" },
+          { name: "selectedFill", label: "Selected fill", type: "color", default: "" },
+          { name: "color", label: "Text color", type: "color", default: "" },
+        ],
+      },
+    ],
+    size: { width: 560, height: 44 },
+  },
+);
+Object.assign(VISUAL_KEYWORDS, {
+  actionButton: ["button", "back", "bookmark", "navigation", "link", "action"],
+  pageNavigator: ["pages", "navigation", "tabs", "menu"],
+});
 
 export const visualDef = (type: string): VisualDef | undefined => VISUALS.find((v) => v.type === type);
 

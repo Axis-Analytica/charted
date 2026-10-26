@@ -27,3 +27,16 @@
 .sync-table tr.is-current td.sync-page { font-weight: 600; }
 .sync-advanced { margin-top: 12px; }
 .sync-advanced summary { cursor: pointer; color: var(--fg-muted); font-size: var(--text-sm); margin-bottom: 6px; }
+.action-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; padding: 0 12px; border: 1px solid transparent; border-radius: 0; background: var(--btn-fill, var(--bg-raised)); color: var(--btn-color, var(--fg-strong)); font: inherit; font-weight: 600; overflow: hidden; }
+.action-button.has-border { border-color: var(--border-strong, var(--border)); }
+.action-button.is-rounded { border-radius: var(--radius-md, 8px); }
+.action-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.action-button:hover { background: var(--btn-hover-fill, var(--btn-fill, var(--bg-hover))); color: var(--btn-hover-color, var(--btn-color, var(--fg-strong))); }
+.action-button:active { background: var(--btn-pressed-fill, var(--btn-hover-fill, var(--bg-active))); color: var(--btn-pressed-color, var(--btn-hover-color, var(--btn-color, var(--fg-strong)))); }
+.action-button.is-live, .page-navigator.is-live .page-nav-button { cursor: pointer; }
+.page-navigator { display: flex; gap: 4px; width: 100%; height: 100%; padding: 4px; overflow: hidden; }
+.page-navigator.is-vertical { flex-direction: column; }
+.page-nav-button { flex: 1 1 0; min-width: 0; min-height: 0; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--nav-fill, var(--bg-raised)); color: var(--nav-color, var(--fg)); font: inherit; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-nav-button:hover { background: var(--bg-hover); }
+.page-nav-button.is-current { background: var(--nav-selected, var(--accent)); border-color: var(--nav-selected, var(--accent)); color: var(--accent-fg, #fff); font-weight: 600; }
+.page-tab.is-hidden button { font-style: italic; opacity: 0.7; }

@@ -132,6 +132,8 @@ const TYPES: &[(&str, &str, Roles)] = &[
         ],
     ),
     ("multiRowCard", "multiRowCard", &[("values", "Values")]),
+    ("actionButton", "actionButton", &[]),
+    ("pageNavigator", "pageNavigator", &[]),
 ];
 
 /// The roles of 100% stacked charts (and, with `Rows`, small multiples).
@@ -287,6 +289,136 @@ fn annotation(name: &str, value: &impl serde::Serialize) -> Value {
     json!({ "name": name, "value": serde_json::to_string(value).unwrap_or_default() })
 }
 
+/// The action types of a button, charted's and Power BI's (`visualLink.type`).
+const ACTIONS: &[(&str, &str)] = &[
+    ("back", "Back"),
+    ("bookmark", "Bookmark"),
+    ("pageNavigation", "PageNavigation"),
+    ("drillthrough", "Drillthrough"),
+];
+
+/// A button's icon, text and action in Power BI's objects (`icon`, `text`) and its
+/// `visualLink`, which names bookmarks and pages by their PBIR names.
+fn button_json(v: &Visual, visual: &mut Value) {
+    let get = |object: &str, name: &str| v.objects.get(object).and_then(|o| o.get(name));
+    let text_of =
+        |object: &str, name: &str| get(object, name).and_then(Value::as_str).unwrap_or("");
+    let kind = get("button", "kind")
+        .and_then(Value::as_str)
+        .unwrap_or("blank");
+    let mut objects =
+        json!({ "icon": [{ "properties": { "shapeType": { "expr": text_literal(kind) } } }] });
+    let text = text_of("button", "text");
+    if !text.is_empty() {
+        objects["text"] = json!([{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": text_literal(text) } } }]);
+    }
+    visual["objects"] = objects;
+    let show = get("action", "show")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let own = get("action", "type")
+        .and_then(Value::as_str)
+        .unwrap_or("auto");
+    let ty = if own == "auto" { kind } else { own };
+    let Some((_, theirs)) = ACTIONS.iter().find(|(o, _)| *o == ty) else {
+        return;
+    };
+    let mut link = serde_json::Map::new();
+    link.insert(
+        "show".into(),
+        json!({ "expr": { "Literal": { "Value": show.to_string() } } }),
+    );
+    link.insert("type".into(), json!({ "expr": text_literal(theirs) }));
+    let target = |name: &str| short(text_of("action", name));
+    match ty {
+        "bookmark" if !target("bookmark").is_empty() => {
+            link.insert(
+                "bookmark".into(),
+                json!({ "expr": text_literal(&target("bookmark")) }),
+            );
+        }
+        "pageNavigation" if !target("page").is_empty() => {
+            link.insert(
+                "navigationSection".into(),
+                json!({ "expr": text_literal(&target("page")) }),
+            );
+        }
+        "drillthrough" if !target("page").is_empty() => {
+            link.insert(
+                "drillthroughSection".into(),
+                json!({ "expr": text_literal(&target("page")) }),
+            );
+        }
+        _ => {}
+    }
+    let tooltip = text_of("action", "tooltip");
+    if !tooltip.is_empty() {
+        link.insert("tooltip".into(), json!({ "expr": text_literal(tooltip) }));
+    }
+    if !visual["visualContainerObjects"].is_object() {
+        visual["visualContainerObjects"] = json!({});
+    }
+    visual["visualContainerObjects"]["visualLink"] = json!([{ "properties": link }]);
+}
+
+/// A Power BI button's icon, text and action as charted's objects.
+fn button_objects(vis: &Value, objects: &mut serde_json::Map<String, Value>) {
+    let lit = |p: &str| {
+        vis.pointer(p)
+            .and_then(|x| x.get("expr"))
+            .and_then(literal_text)
+            .flatten()
+    };
+    let mut button = serde_json::Map::new();
+    if let Some(kind) = lit("/objects/icon/0/properties/shapeType") {
+        let known = [
+            "blank",
+            "back",
+            "bookmark",
+            "pageNavigation",
+            "drillthrough",
+            "information",
+        ];
+        let kind = known
+            .iter()
+            .find(|k| k.eq_ignore_ascii_case(&kind))
+            .copied()
+            .unwrap_or("blank");
+        button.insert("kind".into(), json!(kind));
+    }
+    if let Some(text) = lit("/objects/text/0/properties/text") {
+        button.insert("text".into(), json!(text));
+    }
+    if !button.is_empty() {
+        objects.insert("button".into(), Value::Object(button));
+    }
+    let link = "/visualContainerObjects/visualLink/0/properties";
+    let Some(ty) = lit(&format!("{link}/type")) else {
+        return;
+    };
+    let ours = ACTIONS
+        .iter()
+        .find(|(_, t)| t.eq_ignore_ascii_case(&ty))
+        .map(|(o, _)| *o)
+        .unwrap_or("none");
+    let mut action = serde_json::Map::new();
+    action.insert("type".into(), json!(ours));
+    if lit(&format!("{link}/show")).as_deref() == Some("false") {
+        action.insert("show".into(), json!(false));
+    }
+    for (theirs, name) in [
+        ("bookmark", "bookmark"),
+        ("navigationSection", "page"),
+        ("drillthroughSection", "page"),
+        ("tooltip", "tooltip"),
+    ] {
+        if let Some(x) = lit(&format!("{link}/{theirs}")) {
+            action.insert(name.into(), json!(x));
+        }
+    }
+    objects.insert("action".into(), Value::Object(action));
+}
+
 /// A slicer's sync group (`objects.syncGroup.groupName`).
 fn sync_group(v: &Visual) -> Option<&str> {
     v.objects
@@ -368,6 +500,9 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     }
     if !title_props.is_empty() {
         visual["visualContainerObjects"] = json!({ "title": [{ "properties": title_props }] });
+    }
+    if v.visual_type == "actionButton" {
+        button_json(v, &mut visual);
     }
     if v.visual_type == "textbox"
         && let Some(text) = v
@@ -819,6 +954,9 @@ fn import_visual(
             })
             .collect();
         objects.insert("text".into(), json!({ "content": text.join("\n") }));
+    }
+    if ours == "actionButton" {
+        button_objects(vis, &mut objects);
     }
     if ours == "slicer"
         && let Some(g) = vis.pointer("/syncGroup/groupName").and_then(Value::as_str)

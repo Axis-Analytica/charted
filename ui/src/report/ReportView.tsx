@@ -1,10 +1,12 @@
 import {
   ArrowLeft,
+  BookOpen,
   Bookmark as BookmarkIcon,
   Check,
   MousePointerClick,
   Paintbrush,
   Palette,
+  Pencil,
   Sheet,
   AlignCenterHorizontal,
   AlignCenterVertical,
@@ -93,7 +95,7 @@ function arrange(visuals: Visual[], how: Align | "distributeH" | "distributeV"):
   });
 }
 
-function PageTabs({ model, page }: { model: Model; page: Page }) {
+function PageTabs({ model, page, reading }: { model: Model; page: Page; reading: boolean }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
   const set = useReport((s) => s.set);
@@ -111,8 +113,8 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
   return (
     <nav className="page-tabs" aria-label={t("Pages")}>
       <div role="tablist" className="page-tab-list">
-        {model.report.pages.map((p, i) => (
-          <div key={p.id} className={`page-tab ${p.id === page.id ? "is-on" : ""} ${p.tooltip ? "is-tooltip" : ""}`}>
+        {model.report.pages.map((p, i) => (reading && p.hidden && p.id !== page.id ? null : (
+          <div key={p.id} className={`page-tab ${p.id === page.id ? "is-on" : ""} ${p.hidden ? "is-hidden" : ""} ${p.tooltip ? "is-tooltip" : ""}`} title={p.hidden && !reading ? t("Hidden page") : undefined}>
             {renaming === p.id ? (
               <input
                 className="page-tab-input"
@@ -137,8 +139,9 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
                 role="tab"
                 aria-selected={p.id === page.id}
                 onClick={() => set({ page: p.id, selected: [] })}
-                onDoubleClick={() => setRenaming(p.id)}
+                onDoubleClick={() => !reading && setRenaming(p.id)}
                 onKeyDown={(e) => {
+                  if (reading) return;
                   if (e.key === "F2") setRenaming(p.id);
                   if (e.key === "Delete" && model.report.pages.length > 1) commit("Delete page", [{ op: "removePage", page: p.id }]);
                   if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
@@ -153,9 +156,9 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
               </button>
             )}
           </div>
-        ))}
+        )))}
       </div>
-      <IconButton label={t("New page")} icon={<Plus size={14} />} onPress={addPage} />
+      {!reading && <IconButton label={t("New page")} icon={<Plus size={14} />} onPress={addPage} />}
     </nav>
   );
 }
@@ -221,7 +224,7 @@ function ThemeMenu({ model }: { model: Model }) {
 export function ReportView({ model }: { model: Model }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
-  const { page: pageId, selected, panes, formula, set, select, editInteractions, focus } = useReport();
+  const { page: pageId, selected, panes, formula, set, select, editInteractions, focus, reading } = useReport();
   const page = currentPage(model, pageId);
   const signature = useMemo(() => modelSignature(model), [model]);
   const pageRef = useRef(page);
@@ -271,7 +274,7 @@ export function ReportView({ model }: { model: Model }) {
     const a = document.activeElement;
     return !a || a === document.body || !!a.closest(".report-center");
   };
-  const hasSelection = () => useReport.getState().selected.length > 0 && useReport.getState().view === "report" && canvasFocused();
+  const hasSelection = () => useReport.getState().selected.length > 0 && useReport.getState().view === "report" && !useReport.getState().reading && canvasFocused();
   const zOrder = (front: boolean) => {
     if (!page) return;
     const zs = page.visuals.map((v) => v.position.z);
@@ -318,7 +321,7 @@ export function ReportView({ model }: { model: Model }) {
     if (await commit(visuals.length > 1 ? "Paste visuals" : "Paste visual", visuals.map((v): Change => ({ op: "addVisual", page: p.id, visual: v, index: null })))) select(visuals.map((v) => v.id));
     if (dropped) toast({ kind: "info", title: t("Some fields aren't in this model"), detail: t("%1 fields were left out of the pasted visuals.", dropped) });
   };
-  const canPaste = () => useReport.getState().view === "report" && canvasFocused() && !window.getSelection()?.toString();
+  const canPaste = () => useReport.getState().view === "report" && !useReport.getState().reading && canvasFocused() && !window.getSelection()?.toString();
 
   useBookmarkShortcuts(model);
   useShortcut(
@@ -393,9 +396,18 @@ export function ReportView({ model }: { model: Model }) {
   const togglePane = (k: keyof typeof panes) => set({ panes: { ...panes, [k]: !panes[k] } });
 
   return (
-    <div className="report-view">
+    <div className={`report-view ${reading ? "is-reading" : ""}`}>
       {formula && <FormulaBar model={model} />}
       <QuickMeasureDialog model={model} />
+      {reading ? (
+        <div className="report-toolbar" role="toolbar" aria-label={t("Reading view")}>
+          <span className="report-toolbar-label">{t("Reading view")}</span>
+          <span className="status-fill" />
+          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onPress={() => set({ reading: false })}>
+            {t("Edit report")}
+          </Button>
+        </div>
+      ) : (
       <div className="report-toolbar" role="toolbar" aria-label={t("Arrange")}>
         <span className="report-toolbar-label">{chosen.length > 1 ? t("%1 visuals selected", chosen.length) : chosen.length === 1 ? t("1 visual selected") : t("Arrange")}</span>
         <IconButton label={t("Align left")} icon={<AlignStartVertical size={15} />} isDisabled={chosen.length < 2} onPress={() => align("left")} />
@@ -420,6 +432,7 @@ export function ReportView({ model }: { model: Model }) {
         <span className="topbar-sep" />
         <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
         <ThemeMenu model={model} />
+        <IconButton label={t("Reading view")} icon={<BookOpen size={15} />} onPress={() => set({ reading: true, selected: [], editInteractions: false })} />
         <span className="status-fill" />
         <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
         <IconButton label={t("Selection pane")} icon={<Layers size={15} />} pressed={panes.selection} onPress={() => togglePane("selection")} />
@@ -428,14 +441,15 @@ export function ReportView({ model }: { model: Model }) {
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
       </div>
+      )}
       <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
         <div className="report-center">
           <DrillBar model={model} page={page} />
           <Canvas model={model} page={page} signature={signature} />
           {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}
-          <PageTabs model={model} page={page} />
+          <PageTabs model={model} page={page} reading={reading} />
         </div>
-        {compact ? (
+        {reading ? null : compact ? (
           PANES.some((k) => panes[k]) && (
             <div className="pane-stack">
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
