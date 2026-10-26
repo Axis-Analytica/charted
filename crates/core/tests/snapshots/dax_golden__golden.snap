@@ -509,6 +509,64 @@ expression: golden
 "Camping" | 269
 "Footwear" | 214
 
+## Avg Qty Last 3 Months — card
+18
+
+## Avg Qty Last 3 Months — by category
+"Apparel" | 10
+"Camping" | 4
+"Footwear" | 4
+
+## Best Month YTD — card
+30
+
+## Best Month YTD — by category
+∅ | 3
+"Apparel" | 21
+"Camping" | 11
+"Footwear" | 15
+
+## Months In Half Year — card
+6
+
+## Months In Half Year — by category
+∅ | 6
+"Apparel" | 6
+"Camping" | 6
+"Footwear" | 6
+
+## Qty 3 Months To Last Month — card
+39
+
+## Qty 3 Months To Last Month — by category
+"Apparel" | 14
+"Camping" | 10
+"Footwear" | 15
+
+## Qty Since Today — card
+∅
+
+## Qty Since Today — by category
+
+
+## Qty Until Today — card
+269
+
+## Qty Until Today — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Qty From Mid 2024 — card
+220
+
+## Qty From Mid 2024 — by category
+∅ | 3
+"Apparel" | 86
+"Camping" | 69
+"Footwear" | 62
+
 ## Neither Apparel Nor Camping — card
 76
 

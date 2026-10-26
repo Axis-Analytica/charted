@@ -197,18 +197,18 @@ fn binds_text_math_and_date_functions() {
     assert!(err("MID ( \"abc\", 2 )").contains("takes 3 argument(s)"));
 }
 
+/// The first time-intelligence filter in an expression.
 fn dates_op(src: &str) -> DateOp {
-    let mut b = ok(src);
-    while let Bound::Let { body, .. } = b {
-        b = *body;
-    }
-    let Bound::Calculate { filters, .. } = b else {
-        panic!("{src}: not a CALCULATE")
-    };
-    match &filters[0] {
-        FilterArg::Table(TableExpr::Dates { op, .. }) => *op,
-        other => panic!("{src}: {other:?}"),
-    }
+    let mut found = None;
+    charted_dax::bind::walk(&ok(src), &mut |b| {
+        if let Bound::Calculate { filters, .. } = b
+            && let Some(FilterArg::Table(TableExpr::Dates { op, .. })) = filters.first()
+            && found.is_none()
+        {
+            found = Some(op.clone());
+        }
+    });
+    found.unwrap_or_else(|| panic!("{src}: no time-intelligence filter"))
 }
 
 #[test]
@@ -239,24 +239,42 @@ fn binds_rolling_periods_and_date_ranges() {
         ),
         DateOp::Between(Anchor::Last, Anchor::Last)
     );
-    let anchor_err = "can only use MAX, MIN, LASTDATE or FIRSTDATE";
-    assert!(
-        err("CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Ship Date] ), -1, YEAR ) )")
-            .contains(anchor_err)
-    );
-    assert!(
-        err("CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], BLANK (), -1, YEAR ) )")
-            .contains(anchor_err)
-    );
-    assert!(
-        err("CALCULATE ( [Total], DATESBETWEEN ( 'Date'[Date], TODAY (), BLANK () ) )")
-            .contains(anchor_err)
-    );
-    // Defined outside an iterator, the variable's value isn't its definition per row.
-    assert!(
-        err("VAR d = MAX ( 'Date'[Date] ) RETURN SUMX ( VALUES ( Product[Category] ), CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], d, -1, YEAR ) ) )")
-            .contains(anchor_err)
-    );
+    // Other dates are expressions evaluated in the outer context.
+    let expr = |op: DateOp| match op {
+        DateOp::InPeriod(Anchor::Expr(e), ..) | DateOp::Between(Anchor::Expr(e), _) => *e,
+        other => panic!("not an expression anchor: {other:?}"),
+    };
+    assert!(matches!(
+        expr(dates_op(
+            "CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Ship Date] ), -1, YEAR ) )"
+        )),
+        Bound::Aggregate { .. }
+    ));
+    assert!(matches!(
+        expr(dates_op(
+            "CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], EOMONTH ( MAX ( 'Date'[Date] ), -1 ), -3, MONTH ) )"
+        )),
+        Bound::Call {
+            func: ScalarFunc::EoMonth,
+            ..
+        }
+    ));
+    assert!(matches!(
+        expr(dates_op(
+            "CALCULATE ( [Total], DATESBETWEEN ( 'Date'[Date], TODAY (), BLANK () ) )"
+        )),
+        Bound::Call {
+            func: ScalarFunc::Today,
+            ..
+        }
+    ));
+    // Defined outside an iterator, the variable keeps its outer value.
+    assert!(matches!(
+        expr(dates_op(
+            "VAR d = MAX ( 'Date'[Date] ) RETURN SUMX ( VALUES ( Product[Category] ), CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], d, -1, YEAR ) ) )"
+        )),
+        Bound::Var(_)
+    ));
 }
 
 #[test]

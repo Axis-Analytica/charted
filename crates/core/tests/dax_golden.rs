@@ -486,6 +486,35 @@ const MEASURES: &[(&str, &str)] = &[
         "Cheaper Or Equal",
         "CALCULATE ( [Quantity], FILTER ( ALL ( Product ), Product[ListPrice] <= MAX ( Product[ListPrice] ) ) )",
     ),
+    // Date sets iterated, and ends computed from expressions.
+    (
+        "Avg Qty Last 3 Months",
+        "AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), [Quantity] )",
+    ),
+    (
+        "Best Month YTD",
+        "MAXX ( DATESYTD ( Date[Date] ), [Quantity] )",
+    ),
+    (
+        "Months In Half Year",
+        "COUNTROWS ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -6, MONTH ) )",
+    ),
+    (
+        "Qty 3 Months To Last Month",
+        "CALCULATE ( [Quantity], DATESINPERIOD ( Date[Date], EOMONTH ( MAX ( Date[Date] ), -1 ), -3, MONTH ) )",
+    ),
+    (
+        "Qty Since Today",
+        "CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], TODAY (), BLANK () ) )",
+    ),
+    (
+        "Qty Until Today",
+        "CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], BLANK (), TODAY () ) )",
+    ),
+    (
+        "Qty From Mid 2024",
+        "VAR start = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( Store[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], start, MAX ( Date[Date] ) ) ) )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1101,6 +1130,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "FILTER ( ALLSELECTED ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) )",
         "FILTER ( VALUES ( Product[Category] ), [Orders] > 10 )",
         "FILTER ( ALL ( Store[Region] ), [Quantity] > 30 )",
+        "DATESINPERIOD ( Date[Date], EOMONTH ( MAX ( Date[Date] ), -1 ), -2, MONTH )",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",
@@ -1110,6 +1140,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MINX ( VALUES ( Date[Quarter] ), {} )",
         "SUMX ( ALLSELECTED ( Product[Color] ), {} )",
         "MAXX ( ALLSELECTED ( Date[MonthNumber] ), {} )",
+        "AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), {} )",
     ];
     if depth == 0 {
         return r.pick(AGGS).to_string();

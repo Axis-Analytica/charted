@@ -110,6 +110,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 | ScalarFunc::Format(_)
                 | ScalarFunc::Date
                 | ScalarFunc::EoMonth
+                | ScalarFunc::Today
                 | ScalarFunc::EDate
                 | ScalarFunc::DateDiff(_) => return None,
             }

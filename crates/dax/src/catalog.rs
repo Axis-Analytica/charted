@@ -235,10 +235,11 @@ pub fn support_markdown() -> String {
            A filter on the date column of a marked date table (or on a date column used in a \
            relationship) replaces every filter on that table, as in Power BI. As a table, \
            ALLSELECTED returns the rows visible without the visual's own grouping.\n\
-         - **DATESINPERIOD and DATESBETWEEN** take their dates as MAX, MIN, LASTDATE or \
-           FIRSTDATE of the same date column, `DATE ( … )` of numbers, BLANK () for an open \
-           end of DATESBETWEEN, or a variable defined as one of these just outside the \
-           CALCULATE.\n\
+         - **DATESINPERIOD and DATESBETWEEN** take any date expression for their ends \
+           (`MAX ( 'Date'[Date] )`, `EOMONTH ( MAX ( 'Date'[Date] ), -1 )`, `TODAY ()`, a \
+           variable), evaluated in the outer filter context; a blank end of DATESBETWEEN is \
+           open. Time-intelligence tables can be iterated \
+           (`AVERAGEX ( DATESINPERIOD ( … ), [Sales] )`) as well as used as filters.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

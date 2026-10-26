@@ -59,6 +59,8 @@ pub enum ScalarFunc {
     Date,
     /// EOMONTH ( date, months ): the last day of the month `months` away.
     EoMonth,
+    /// TODAY: the current date.
+    Today,
     /// EDATE ( date, months ): the same day `months` away (clamped to the month's end).
     EDate,
     /// DATEDIFF ( date1, date2, unit ): the unit boundaries crossed from date1 to date2.
@@ -98,7 +100,7 @@ impl Period {
 }
 
 /// How a time-intelligence function turns the visible dates into other dates.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum DateOp {
     /// DATEADD, SAMEPERIODLASTYEAR: each date moved by `n` units; a month's last day
     /// also brings the rest of the target month (so whole months stay whole).
@@ -123,7 +125,7 @@ pub enum DateOp {
 
 /// A date argument of DATESINPERIOD and DATESBETWEEN, evaluated in the outer filter
 /// context like the other time-intelligence inputs.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Anchor {
     /// FIRSTDATE or MIN of the date column: the first visible date.
     First,
@@ -133,6 +135,9 @@ pub enum Anchor {
     Date(i32, i32, i32),
     /// BLANK (): no bound (DATESBETWEEN only).
     Open,
+    /// Any other date expression (`EOMONTH ( MAX ( 'Date'[Date] ), -1 )`, `TODAY ()`),
+    /// evaluated in the outer filter context.
+    Expr(Box<Bound>),
 }
 
 /// Rows to iterate or filter by.
@@ -329,7 +334,6 @@ pub const KNOWN: &[&str] = &[
     "STDEV.S",
     "SUMMARIZE",
     "SUMMARIZECOLUMNS",
-    "TODAY",
     "TOPN",
     "TREATAS",
     "TRUNC",
@@ -415,6 +419,7 @@ pub const SUPPORTED: &[&str] = &[
     "SUM",
     "SUMX",
     "SWITCH",
+    "TODAY",
     "TOTALMTD",
     "TOTALQTD",
     "TOTALYTD",
@@ -777,7 +782,13 @@ impl<'a> Binder<'a> {
     }
 
     /// SAMEPERIODLASTYEAR, DATEADD, PARALLELPERIOD, DATESYTD/QTD/MTD, PREVIOUS… and NEXT….
-    fn dates(&mut self, name: &str, args: &[Expr], span: Span) -> Option<TableExpr> {
+    fn dates(
+        &mut self,
+        name: &str,
+        args: &[Expr],
+        span: Span,
+        rows: Rows<'a, '_>,
+    ) -> Option<TableExpr> {
         let (min, max) = match name {
             "DATEADD" | "PARALLELPERIOD" | "DATESBETWEEN" => (3, 3),
             "DATESINPERIOD" => (4, 4),
@@ -806,14 +817,14 @@ impl<'a> Binder<'a> {
                 },
             ),
             "DATESINPERIOD" => {
-                let anchor = self.anchor(&args[1], &c.id, false);
+                let anchor = self.anchor(&args[1], &c.id, false, rows);
                 let n = self.whole(&args[2]);
                 let p = self.period(&args[3]);
                 DateOp::InPeriod(anchor?, n?, p?)
             }
             "DATESBETWEEN" => {
-                let start = self.anchor(&args[1], &c.id, true);
-                let end = self.anchor(&args[2], &c.id, true);
+                let start = self.anchor(&args[1], &c.id, true, rows);
+                let end = self.anchor(&args[2], &c.id, true, rows);
                 DateOp::Between(start?, end?)
             }
             "DATESQTD" => DateOp::ToDate(Period::Quarter, None),
@@ -838,63 +849,69 @@ impl<'a> Binder<'a> {
 
     /// A date argument of DATESINPERIOD or DATESBETWEEN: MAX, MIN, LASTDATE or
     /// FIRSTDATE of the date column itself, a DATE of constants, BLANK (when `open` is
-    /// allowed), or a variable defined as one of these in the same context.
-    fn anchor(&mut self, e: &Expr, column: &Id, open: bool) -> Option<Anchor> {
-        self.anchor_in(e, column, open, self.vars.len())
+    /// allowed), a variable defined as one of these in the same context, or any other
+    /// date expression.
+    fn anchor(&mut self, e: &Expr, column: &Id, open: bool, rows: Rows<'a, '_>) -> Option<Anchor> {
+        self.anchor_in(e, column, open, self.vars.len(), rows)
     }
 
     /// `anchor` with only the first `scope` variables visible (a variable's definition
     /// sees only those defined before it).
-    fn anchor_in(&mut self, e: &Expr, column: &Id, open: bool, scope: usize) -> Option<Anchor> {
-        let fail = |b: &mut Self| {
-            let blank = if open { ", BLANK ()" } else { "" };
-            b.err(
-                e.span,
-                format!("charted can only use MAX, MIN, LASTDATE or FIRSTDATE of the same date column, DATE ( year, month, day ) with numbers{blank}, or a variable holding one of these here"),
-            )
-            .and(None)
+    fn anchor_in(
+        &mut self,
+        e: &Expr,
+        column: &Id,
+        open: bool,
+        scope: usize,
+        rows: Rows<'a, '_>,
+    ) -> Option<Anchor> {
+        let number = |e: &Expr| match &e.kind {
+            ExprKind::Number(_) => true,
+            ExprKind::Unary {
+                op: UnaryOp::Neg,
+                expr,
+            } => matches!(expr.kind, ExprKind::Number(_)),
+            _ => false,
         };
-        match &e.kind {
-            ExprKind::Call { name, args } => {
-                let upper = name.to_ascii_uppercase();
-                match (upper.as_str(), args.len()) {
-                    ("MAX" | "LASTDATE" | "MIN" | "FIRSTDATE", 1) => {
-                        let (_, c) = self.column_arg(&args[0])?;
-                        if &c.id != column {
-                            return fail(self);
-                        }
-                        Some(if matches!(upper.as_str(), "MAX" | "LASTDATE") {
+        if let ExprKind::Call { name, args } = &e.kind {
+            let upper = name.to_ascii_uppercase();
+            match (upper.as_str(), args.len()) {
+                ("MAX" | "LASTDATE" | "MIN" | "FIRSTDATE", 1)
+                    if matches!(&args[0].kind, ExprKind::Ref { table: Some(_), .. }) =>
+                {
+                    let (_, c) = self.column_arg(&args[0])?;
+                    if &c.id == column {
+                        return Some(if matches!(upper.as_str(), "MAX" | "LASTDATE") {
                             Anchor::Last
                         } else {
                             Anchor::First
-                        })
+                        });
                     }
-                    ("DATE", 3) => {
-                        let y = self.whole(&args[0])?;
-                        let m = self.whole(&args[1])?;
-                        let d = self.whole(&args[2])?;
-                        Some(Anchor::Date(y, m, d))
-                    }
-                    ("BLANK", 0) if open => Some(Anchor::Open),
-                    _ => fail(self),
                 }
-            }
-            ExprKind::Table(name) | ExprKind::Ref { table: None, name } => {
-                let found = self.vars[..scope]
-                    .iter()
-                    .rposition(|v| v.name.eq_ignore_ascii_case(name));
-                match found {
-                    // Defined in another context (outside CALCULATE or an iterator), the
-                    // variable's value can differ from its definition evaluated here.
-                    Some(i) if self.vars[i].depth == self.depth => {
-                        let value = self.vars[i].value.clone();
-                        self.anchor_in(&value, column, open, i)
-                    }
-                    _ => fail(self),
+                ("DATE", 3) if args.iter().all(number) => {
+                    let y = self.whole(&args[0])?;
+                    let m = self.whole(&args[1])?;
+                    let d = self.whole(&args[2])?;
+                    return Some(Anchor::Date(y, m, d));
                 }
+                ("BLANK", 0) if open => return Some(Anchor::Open),
+                _ => {}
             }
-            _ => fail(self),
         }
+        if let ExprKind::Table(name) | ExprKind::Ref { table: None, name } = &e.kind {
+            let found = self.vars[..scope]
+                .iter()
+                .rposition(|v| v.name.eq_ignore_ascii_case(name));
+            // A variable from the same context stands for its definition.
+            if let Some(i) = found
+                && self.vars[i].depth == self.depth
+            {
+                let value = self.vars[i].value.clone();
+                return self.anchor_in(&value, column, open, i, rows);
+            }
+        }
+        // Anything else is a date expression evaluated in the outer context.
+        Some(Anchor::Expr(Box::new(self.expr(e, rows)?)))
     }
 
     fn arity(&mut self, name: &str, args: &[Expr], span: Span, min: usize, max: usize) -> bool {
@@ -963,7 +980,7 @@ impl<'a> Binder<'a> {
                             condition: Box::new(condition),
                         })
                     }
-                    "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.dates(&upper, args, e.span),
+                    "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.dates(&upper, args, e.span, rows),
                     _ => self
                         .err(
                             e.span,
@@ -1367,7 +1384,7 @@ impl<'a> Binder<'a> {
                 };
                 let mut dargs = vec![args[1].clone()];
                 dargs.extend(year_end.cloned());
-                let dates = self.dates(period, &dargs, span);
+                let dates = self.dates(period, &dargs, span, rows);
                 let mut filters = vec![FilterArg::Table(dates?)];
                 if let Some(f) = filter {
                     filters.push(self.filter_arg(f, rows)?);
@@ -1424,6 +1441,7 @@ impl<'a> Binder<'a> {
                     "SUBSTITUTE" => (ScalarFunc::Substitute, 3, 4),
                     "DATE" => (ScalarFunc::Date, 3, 3),
                     "EOMONTH" => (ScalarFunc::EoMonth, 2, 2),
+                    "TODAY" => (ScalarFunc::Today, 0, 0),
                     "EDATE" => (ScalarFunc::EDate, 2, 2),
                     _ if KNOWN.contains(&upper.as_str()) => {
                         return self.err(span, format!("{upper} isn't supported by charted yet (see docs/dax-support.md)"));
@@ -1548,6 +1566,18 @@ fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
             walk(condition, f);
         }
         TableExpr::List(items) => items.iter().for_each(|a| walk(a, f)),
+        TableExpr::Dates { op, .. } => {
+            let anchors: Vec<&Anchor> = match op {
+                DateOp::InPeriod(a, ..) => vec![a],
+                DateOp::Between(a, b) => vec![a, b],
+                _ => Vec::new(),
+            };
+            for a in anchors {
+                if let Anchor::Expr(e) = a {
+                    walk(e, f);
+                }
+            }
+        }
         _ => {}
     }
 }

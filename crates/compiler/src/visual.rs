@@ -742,6 +742,7 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 ValueType::Date,
             )
         }
+        ScalarFunc::Today => ("current_date".into(), ValueType::Date),
         ScalarFunc::EoMonth => (
             format!(
                 "last_day(CAST(date_trunc('month', {}) + to_months(CAST({} AS INTEGER)) AS DATE))",
@@ -1720,11 +1721,77 @@ impl<'a> Compiler<'a> {
         &mut self,
         table_id: &str,
         column: &str,
-        op: DateOp,
+        op: &DateOp,
         outer: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
     ) -> Result<CFilter> {
-        let (keys, preds, from, _) = self.scope(table_id, outer, &[table_id.to_string()], true)?;
+        let (mut keys, preds, from, _) =
+            self.scope(table_id, outer, &[table_id.to_string()], true)?;
         let col = format!("CAST({} AS DATE)", self.column_sql(table_id, column)?.0);
+        // Ends given as expressions (`EOMONTH ( MAX ( … ), -1 )`, `TODAY ()`) are values
+        // of the outer frame: then the first and last visible dates are too, and the set
+        // is keyed by the frame's keys.
+        let exprs: Vec<&Bound> = match op {
+            DateOp::InPeriod(a, ..) => vec![a],
+            DateOp::Between(a, b) => vec![a, b],
+            _ => Vec::new(),
+        }
+        .into_iter()
+        .filter_map(|a| match a {
+            Anchor::Expr(e) => Some(&**e),
+            _ => None,
+        })
+        .collect();
+        let per_frame = if exprs.is_empty() {
+            None
+        } else {
+            let date_of = |f: AggFunc| Bound::Aggregate {
+                func: f,
+                source: TableExpr::Table(table_id.to_string()),
+                arg: Some(Box::new(Bound::Column {
+                    table: table_id.to_string(),
+                    column: column.to_string(),
+                })),
+            };
+            let mut parts = vec![
+                self.scalar(&date_of(AggFunc::Min), outer, frame, rows)?,
+                self.scalar(&date_of(AggFunc::Max), outer, frame, rows)?,
+            ];
+            for e in &exprs {
+                parts.push(self.scalar(e, outer, frame, rows)?);
+            }
+            let rel = if frame.rel == "k" {
+                self.domain()?
+            } else {
+                frame.rel.clone()
+            };
+            let all = Scalar {
+                sql: parts.iter().map(|p| p.sql.clone()).collect(),
+                ty: ValueType::Date,
+            };
+            let (_, from) = self.render(&all, &rel);
+            let mut select: Vec<String> = frame
+                .keys
+                .iter()
+                .map(|k| format!("f.{0} AS {0}", k.name))
+                .collect();
+            for (i, p) in parts.iter().enumerate() {
+                let (v, _) = self.render(p, &rel);
+                let name = match i {
+                    0 => "lo".to_string(),
+                    1 => "hi".to_string(),
+                    _ => format!("a{}", i - 2),
+                };
+                select.push(format!("{} AS {name}", date_sql(&(v, p.ty))));
+            }
+            keys = frame
+                .keys
+                .iter()
+                .map(|k| (k.clone(), String::new()))
+                .collect();
+            Some(format!("(SELECT {} FROM {from})", select.join(", ")))
+        };
         let names: Vec<String> = keys.iter().map(|(k, _)| k.name.clone()).collect();
         let mut select: Vec<String> = keys
             .iter()
@@ -1756,41 +1823,49 @@ impl<'a> Compiler<'a> {
         let trunc = |p: Period, e: &str| date(format!("date_trunc('{}', {e})", p.sql()));
         // DATESINPERIOD and DATESBETWEEN dates: the first or last visible date, a DATE,
         // or `open` for no bound.
-        let anchor = |a: Anchor, open: &str| -> Result<String> {
+        let mut next_expr = 0;
+        let mut anchor = |a: &Anchor, open: &str| -> Result<String> {
             Ok(match a {
                 Anchor::First => "s.lo".into(),
                 Anchor::Last => "s.hi".into(),
                 Anchor::Date(y, m, d) => {
                     let n = |x: i32| (x.to_string(), ValueType::Number);
-                    call_sql(&ScalarFunc::Date, &[n(y), n(m), n(d)])?.0
+                    call_sql(&ScalarFunc::Date, &[n(*y), n(*m), n(*d)])?.0
                 }
                 Anchor::Open => open.into(),
+                // A blank end of DATESBETWEEN is open, as BLANK () is.
+                Anchor::Expr(_) => {
+                    next_expr += 1;
+                    format!("coalesce(s.a{}, {open})", next_expr - 1)
+                }
             })
         };
         // The first and last visible date per key.
-        let span = format!(
-            "(SELECT {}min(v) AS lo, max(v) AS hi FROM ({visible}) AS b{})",
-            by("b"),
-            if names.is_empty() {
-                String::new()
-            } else {
-                format!(
-                    " GROUP BY {}",
-                    names
-                        .iter()
-                        .map(|k| format!("b.{k}"))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-        );
+        let span = per_frame.unwrap_or_else(|| {
+            format!(
+                "(SELECT {}min(v) AS lo, max(v) AS hi FROM ({visible}) AS b{})",
+                by("b"),
+                if names.is_empty() {
+                    String::new()
+                } else {
+                    format!(
+                        " GROUP BY {}",
+                        names
+                            .iter()
+                            .map(|k| format!("b.{k}"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                }
+            )
+        });
         let between = |lo: String, hi: String| {
             format!(
                 "SELECT DISTINCT {}a.d AS v0 FROM {span} AS s JOIN ({all}) AS a ON a.d BETWEEN {lo} AND {hi}",
                 by("s")
             )
         };
-        let sql = match op {
+        let sql = match op.clone() {
             DateOp::Shift(n, p) => {
                 let moved = date(format!("b.v + {}", iv(n, p)));
                 let month_end = if p == Period::Day {
@@ -1834,7 +1909,7 @@ impl<'a> Compiler<'a> {
                 )
             }
             DateOp::InPeriod(a, n, p) => {
-                let at = anchor(a, "s.lo")?;
+                let at = anchor(&a, "s.lo")?;
                 if n < 0 {
                     let moved = date(format!("{at} + {}", iv(n, p)));
                     // Back from a month's last day to the target month's last day.
@@ -1854,8 +1929,8 @@ impl<'a> Compiler<'a> {
                 }
             }
             DateOp::Between(a, b) => between(
-                anchor(a, "DATE '0001-01-01'")?,
-                anchor(b, "DATE '9999-12-31'")?,
+                anchor(&a, "DATE '0001-01-01'")?,
+                anchor(&b, "DATE '9999-12-31'")?,
             ),
         };
         let set = self.add_cte(sql, Vec::new(), false);
@@ -1986,7 +2061,7 @@ impl<'a> Compiler<'a> {
                 ));
             }
             TableExpr::Dates { table, column, op } => {
-                added.push((self.date_set(table, column, *op, outer)?, keep))
+                added.push((self.date_set(table, column, op, outer, frame, rows)?, keep))
             }
         }
         Ok(())
@@ -2208,6 +2283,41 @@ impl<'a> Compiler<'a> {
             Some((t, c)) => (t, c),
             None => (cur, ctx),
         };
+        // A time-intelligence table: the dates of its set, per row of the frame.
+        if let TableExpr::Dates { table, column, op } = cur {
+            let f = self.date_set(table, column, op, rows_ctx, frame, rows)?;
+            let Pred::InSet { set, keys, .. } = &f.pred else {
+                unreachable!("date sets are value sets")
+            };
+            let reach: Vec<String> = keys
+                .iter()
+                .filter(|k| frame.keys.iter().any(|x| x.name == k.name))
+                .map(|k| k.name.clone())
+                .collect();
+            let n = self.fresh("r");
+            let mut select = reach.clone();
+            select.push(format!("v0 AS {n}"));
+            let rows_name = self.fresh("rows");
+            let sql = format!(
+                "SELECT DISTINCT {} FROM {}",
+                select.join(", "),
+                self.ctes[*set].name
+            );
+            self.ctes.push(CteDef {
+                name: rows_name.clone(),
+                sql,
+                keys: Vec::new(),
+                exact: true,
+            });
+            let binding = RowBinding {
+                table: table.clone(),
+                columns: vec![(column.clone(), n)],
+                identity: vec![column.clone()],
+                covers: vec![column.clone()],
+                related: Vec::new(),
+            };
+            return self.join_rows(&rows_name, &reach, binding, conds, ctx, frame, rows);
+        }
         let (t, cols, apply_ctx) = match cur {
             TableExpr::Table(t) => (t.clone(), None, true),
             TableExpr::Values { table, columns } => (table.clone(), Some(columns.clone()), true),
@@ -2225,13 +2335,8 @@ impl<'a> Compiler<'a> {
                     "iterating a list of values".into(),
                 ));
             }
-            TableExpr::Dates { .. } => {
-                return Err(CompileError::Unsupported(
-                    "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
-                ));
-            }
-            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } => {
-                unreachable!("filters and ALLSELECTED were unwrapped")
+            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } | TableExpr::Dates { .. } => {
+                unreachable!("filters, ALLSELECTED and dates were handled")
             }
         };
         let tab = table(self.model, &t)?;
@@ -2316,6 +2421,24 @@ impl<'a> Compiler<'a> {
             keys: Vec::new(),
             exact: true,
         });
+        let reach: Vec<String> = reach_keys.into_iter().map(|(k, _)| k.name).collect();
+        self.join_rows(&rows_name, &reach, binding, later, ctx, frame, rows)
+    }
+
+    /// The frame of an iterated rows CTE: each outer frame row joined to its rows (on
+    /// the frame keys in `reach`), with the conditions that need the frame.
+    #[allow(clippy::too_many_arguments)]
+    fn join_rows(
+        &mut self,
+        rows_name: &str,
+        reach: &[String],
+        binding: RowBinding,
+        later: Vec<&Bound>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<RowFrame> {
+        let t = binding.table.clone();
         // The new frame: outer frame rows joined to the iterated rows.
         let row_cols: Vec<String> = binding
             .columns
@@ -2323,14 +2446,14 @@ impl<'a> Compiler<'a> {
             .map(|(_, n)| n.clone())
             .chain(binding.related.iter().map(|(_, n)| n.clone()))
             .collect();
-        let join = if reach_keys.is_empty() {
+        let join = if reach.is_empty() {
             format!("CROSS JOIN {rows_name} AS r")
         } else {
             format!(
                 "JOIN {rows_name} AS r ON {}",
-                reach_keys
+                reach
                     .iter()
-                    .map(|(k, _)| format!("o.{0} IS NOT DISTINCT FROM r.{0}", k.name))
+                    .map(|k| format!("o.{k} IS NOT DISTINCT FROM r.{k}"))
                     .collect::<Vec<_>>()
                     .join(" AND ")
             )
@@ -2461,7 +2584,8 @@ impl<'a> Compiler<'a> {
                         ok &= local(condition);
                         t = source;
                     }
-                    ok
+                    // Date sets are per frame row: they always take the frame path.
+                    ok && !matches!(t, TableExpr::Dates { .. })
                 };
                 if pure {
                     self.simple_aggregate(*func, source, arg.as_deref(), ctx)

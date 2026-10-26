@@ -559,14 +559,41 @@ impl<'a> Interp<'a> {
                     .collect();
                 let all: std::collections::BTreeSet<i64> =
                     td.rows.iter().filter_map(|r| day(&r[ci])).collect();
-                let (Some(&lo), Some(&hi)) = (visible.iter().min(), visible.iter().max()) else {
-                    return Ok(Vec::new());
+                // Ends given as expressions are evaluated in the outer context; only ends
+                // that are the first or last visible date need visible dates.
+                let anchors: Vec<&Anchor> = match op {
+                    DateOp::InPeriod(a, ..) => vec![a],
+                    DateOp::Between(a, b) => vec![a, b],
+                    _ => Vec::new(),
                 };
-                let anchor = |a: Anchor, open: i64| match a {
+                let mut ends: Vec<Option<i64>> = Vec::new();
+                for a in &anchors {
+                    if let Anchor::Expr(e) = a {
+                        let v = self.eval(e, ctx, rows)?;
+                        ends.push(day(&v));
+                    }
+                }
+                let needs_visible = anchors.is_empty()
+                    || anchors
+                        .iter()
+                        .any(|a| matches!(a, Anchor::First | Anchor::Last));
+                let (lo, hi) = match (visible.iter().min(), visible.iter().max()) {
+                    (Some(&lo), Some(&hi)) => (lo, hi),
+                    _ if needs_visible => return Ok(Vec::new()),
+                    _ => (0, 0),
+                };
+                let next_end = std::cell::Cell::new(0);
+                // A blank end falls back to `open`, as BLANK () does.
+                let anchor = |a: &Anchor, open: i64| match a {
                     Anchor::First => lo,
                     Anchor::Last => hi,
-                    Anchor::Date(y, m, d) => cal::date(y as i64, m as i64, d as i64),
+                    Anchor::Date(y, m, d) => cal::date(*y as i64, *m as i64, *d as i64),
                     Anchor::Open => open,
+                    Anchor::Expr(_) => {
+                        let i = next_end.get();
+                        next_end.set(i + 1);
+                        ends[i].unwrap_or(open)
+                    }
                 };
                 let within = |a: i64, b: i64| {
                     if a > b {
@@ -575,7 +602,7 @@ impl<'a> Interp<'a> {
                         all.range(a..=b).copied().collect::<Vec<_>>()
                     }
                 };
-                let picked: Vec<i64> = match *op {
+                let picked: Vec<i64> = match op.clone() {
                     DateOp::Shift(n, p) => {
                         let mut out = std::collections::BTreeSet::new();
                         for &v in &visible {
@@ -609,7 +636,7 @@ impl<'a> Interp<'a> {
                         within(start, hi)
                     }
                     DateOp::InPeriod(a, n, p) => {
-                        let at = anchor(a, lo);
+                        let at = anchor(&a, lo);
                         if n < 0 {
                             // Back from a month's last day to the target month's last day.
                             let back = if p != Period::Day && at == cal::last_day(at) {
@@ -622,7 +649,7 @@ impl<'a> Interp<'a> {
                             within(at, cal::add(at, n, p) - 1)
                         }
                     }
-                    DateOp::Between(a, b) => within(anchor(a, i64::MIN), anchor(b, i64::MAX)),
+                    DateOp::Between(a, b) => within(anchor(&a, i64::MIN), anchor(&b, i64::MAX)),
                 };
                 Ok(picked
                     .into_iter()
@@ -1120,6 +1147,22 @@ fn whole(v: &Value) -> i64 {
 }
 
 /// The text, math and date functions (the logical ones are evaluated in `eval`).
+/// Today as days since 1970-01-01 (UTC; DuckDB's `current_date` is local, which only
+/// differs around midnight).
+fn today() -> i64 {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| (d.as_secs() / 86_400) as i64)
+            .unwrap_or(0)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        0
+    }
+}
+
 fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
     let date = |z: i64| Value::Text(cal::format(z));
     Ok(match func {
@@ -1212,6 +1255,7 @@ fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
             _ => return Err("FORMAT's value doesn't match its format string".into()),
         },
         ScalarFunc::Date => date(cal::date(whole(&a[0]), whole(&a[1]), whole(&a[2]))),
+        ScalarFunc::Today => date(today()),
         ScalarFunc::EoMonth => match day(&a[0]) {
             Some(z) => date(cal::last_day(cal::add(
                 cal::trunc(z, Period::Month),
