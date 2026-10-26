@@ -25,7 +25,8 @@
 //!   zero or blank gives the alternate result, counts of nothing are blank.
 
 use charted_dax::{
-    AggFunc, BinaryOp, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, UnaryOp,
+    AggFunc, Anchor, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc, Period,
+    ScalarFunc, TableExpr, UnaryOp,
 };
 use charted_model::{
     Aggregation, ColumnKind, Condition, DataType, DateUnit, FieldRef, FilterKind, FilterOp, Id,
@@ -438,9 +439,104 @@ fn eq_sql(a: &(String, ValueType), b: &(String, ValueType)) -> String {
     format!("({} = {})", blank_as(a, like), blank_as(b, like))
 }
 
-fn call_sql(func: ScalarFunc, a: &[(String, ValueType)]) -> (String, ValueType) {
+/// A value as text, as the interpreter's `Value::key` writes it (whole numbers without
+/// decimals), or NULL when it is blank.
+fn text_or_null(x: &(String, ValueType)) -> String {
+    match x.1 {
+        ValueType::Text => x.0.clone(),
+        ValueType::Number => format!(
+            "(CASE WHEN {d} = trunc({d}) AND abs({d}) < 1e15 THEN CAST(CAST({d} AS BIGINT) AS VARCHAR) ELSE CAST({d} AS VARCHAR) END)",
+            d = format!("CAST({} AS DOUBLE)", x.0)
+        ),
+        ValueType::Bool | ValueType::Date => format!("CAST({} AS VARCHAR)", x.0),
+    }
+}
+
+/// A text argument of the text functions: blank is empty text.
+fn text_sql(x: &(String, ValueType)) -> String {
+    format!("coalesce({}, '')", text_or_null(x))
+}
+
+/// A whole-number argument: blank counts as zero, decimals are truncated.
+fn whole_sql(x: &(String, ValueType)) -> String {
+    format!(
+        "CAST(trunc(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
+        x.0
+    )
+}
+
+/// A date argument (bad text is blank, as in the interpreter).
+fn date_sql(x: &(String, ValueType)) -> String {
+    format!("TRY_CAST({} AS DATE)", x.0)
+}
+
+/// FORMAT's text for a value, or an error when the value and the format don't match.
+fn format_sql(spec: &FormatSpec, x: &(String, ValueType)) -> Result<String> {
+    let body = match (spec, x.1) {
+        (FormatSpec::General, ValueType::Number) => text_or_null(x),
+        (
+            FormatSpec::Number {
+                decimals,
+                thousands,
+                percent,
+                prefix,
+            },
+            ValueType::Number,
+        ) => {
+            // Rounded first (halves away from zero, like the interpreter), then written
+            // without the sign, which goes before the currency symbol.
+            let scaled = if *percent {
+                format!("CAST({} AS DOUBLE) * 100", x.0)
+            } else {
+                format!("CAST({} AS DOUBLE)", x.0)
+            };
+            let r = format!("round({scaled}, {decimals})");
+            let digits = format!(
+                "format('{{:{}.{decimals}f}}', abs({r}))",
+                if *thousands { "," } else { "" }
+            );
+            format!(
+                "(CASE WHEN {r} < 0 THEN '-' ELSE '' END || {} || {digits} || {})",
+                string(prefix),
+                string(if *percent { "%" } else { "" })
+            )
+        }
+        (FormatSpec::Date(parts), ValueType::Date | ValueType::Text) => {
+            let pattern: String = parts
+                .iter()
+                .map(|p| match p {
+                    DatePart::Year => "%Y".to_string(),
+                    DatePart::Year2 => "%y".into(),
+                    DatePart::MonthName => "%B".into(),
+                    DatePart::MonthAbbr => "%b".into(),
+                    DatePart::Month2 => "%m".into(),
+                    DatePart::Month => "%-m".into(),
+                    DatePart::DayName => "%A".into(),
+                    DatePart::DayAbbr => "%a".into(),
+                    DatePart::Day2 => "%d".into(),
+                    DatePart::Day => "%-d".into(),
+                    DatePart::Literal(l) => l.replace('%', "%%"),
+                })
+                .collect();
+            format!("strftime({}, {})", date_sql(x), string(&pattern))
+        }
+        (FormatSpec::Date(_), _) => {
+            return Err(CompileError::Unsupported(
+                "FORMAT with a date format string of a value that isn't a date".into(),
+            ));
+        }
+        _ => {
+            return Err(CompileError::Unsupported(
+                "FORMAT with a number format string of a value that isn't a number".into(),
+            ));
+        }
+    };
+    Ok(format!("coalesce({body}, '')"))
+}
+
+fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, ValueType)> {
     let num = ValueType::Number;
-    match func {
+    Ok(match func {
         ScalarFunc::Divide => {
             let alt = a.get(2).map(|x| x.0.as_str()).unwrap_or("NULL");
             (
@@ -512,7 +608,114 @@ fn call_sql(func: ScalarFunc, a: &[(String, ValueType)]) -> (String, ValueType) 
                 num,
             )
         }
-    }
+        ScalarFunc::Int => (format!("floor({})", a[0].0), num),
+        ScalarFunc::Min | ScalarFunc::Max => {
+            let f = if matches!(func, ScalarFunc::Min) {
+                "least"
+            } else {
+                "greatest"
+            };
+            let numeric = |t: ValueType| matches!(t, ValueType::Number | ValueType::Bool);
+            if numeric(a[0].1) && numeric(a[1].1) {
+                // Numbers: blank counts as zero unless both are blank.
+                (
+                    format!(
+                        "(CASE WHEN ({x}) IS NULL AND ({y}) IS NULL THEN NULL ELSE {f}(coalesce(CAST({x} AS DOUBLE), 0), coalesce(CAST({y} AS DOUBLE), 0)) END)",
+                        x = a[0].0,
+                        y = a[1].0
+                    ),
+                    num,
+                )
+            } else {
+                // Text and dates: least/greatest ignore the blank one.
+                let (p, ty) = unify(a);
+                (format!("{f}({}, {})", p[0], p[1]), ty)
+            }
+        }
+        ScalarFunc::Upper => (format!("upper({})", text_sql(&a[0])), ValueType::Text),
+        ScalarFunc::Lower => (format!("lower({})", text_sql(&a[0])), ValueType::Text),
+        ScalarFunc::Len => (format!("length({})", text_sql(&a[0])), num),
+        ScalarFunc::Trim => (
+            format!("trim(regexp_replace({}, ' +', ' ', 'g'))", text_sql(&a[0])),
+            ValueType::Text,
+        ),
+        ScalarFunc::Left | ScalarFunc::Right => {
+            let n = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());
+            let f = if matches!(func, ScalarFunc::Left) {
+                "left"
+            } else {
+                "right"
+            };
+            (
+                format!("{f}({}, greatest({n}, 0))", text_sql(&a[0])),
+                ValueType::Text,
+            )
+        }
+        ScalarFunc::Mid => (
+            format!(
+                "substring({}, greatest({}, 1), greatest({}, 0))",
+                text_sql(&a[0]),
+                whole_sql(&a[1]),
+                whole_sql(&a[2])
+            ),
+            ValueType::Text,
+        ),
+        ScalarFunc::Substitute => {
+            let (t, old, new) = (text_sql(&a[0]), text_sql(&a[1]), text_sql(&a[2]));
+            let sql = match a.get(3) {
+                None => {
+                    format!("(CASE WHEN {old} = '' THEN {t} ELSE replace({t}, {old}, {new}) END)")
+                }
+                // Only the k-th occurrence: the parts around it, joined back.
+                Some(k) => {
+                    let k = whole_sql(k);
+                    let parts = format!("string_split({t}, {old})");
+                    format!(
+                        "(CASE WHEN {old} = '' OR {k} < 1 OR {k} >= len({parts}) THEN {t} ELSE array_to_string(list_slice({parts}, 1, {k}), {old}) || {new} || array_to_string(list_slice({parts}, {k} + 1, len({parts})), {old}) END)"
+                    )
+                }
+            };
+            (sql, ValueType::Text)
+        }
+        ScalarFunc::Format(spec) => (format_sql(spec, &a[0])?, ValueType::Text),
+        ScalarFunc::Date => {
+            let y = whole_sql(&a[0]);
+            (
+                format!(
+                    "CAST(make_date(CASE WHEN {y} BETWEEN 0 AND 1899 THEN {y} + 1900 ELSE {y} END, 1, 1) + to_months(CAST({} - 1 AS INTEGER)) + to_days(CAST({} - 1 AS INTEGER)) AS DATE)",
+                    whole_sql(&a[1]),
+                    whole_sql(&a[2])
+                ),
+                ValueType::Date,
+            )
+        }
+        ScalarFunc::EoMonth => (
+            format!(
+                "last_day(CAST(date_trunc('month', {}) + to_months(CAST({} AS INTEGER)) AS DATE))",
+                date_sql(&a[0]),
+                whole_sql(&a[1])
+            ),
+            ValueType::Date,
+        ),
+        ScalarFunc::EDate => (
+            format!(
+                "CAST({} + to_months(CAST({} AS INTEGER)) AS DATE)",
+                date_sql(&a[0]),
+                whole_sql(&a[1])
+            ),
+            ValueType::Date,
+        ),
+        // date_diff counts the unit boundaries crossed, as DATEDIFF does.
+        ScalarFunc::DateDiff(p) => (
+            format!(
+                "date_diff('{}', {}, {})",
+                p.sql(),
+                date_sql(&a[0]),
+                date_sql(&a[1])
+            ),
+            num,
+        ),
+    })
 }
 
 fn unary_sql(op: UnaryOp, x: &(String, ValueType)) -> (String, ValueType) {
@@ -1168,24 +1371,13 @@ impl<'a> Compiler<'a> {
         let exact = self.is_visual_ctx(ctx);
         let i = self.add_cte(sql, key_names, exact);
         let ty = match (func, arg) {
-            (AggFunc::Min | AggFunc::Max, Some(a)) => self.row_type(a),
+            (AggFunc::Min | AggFunc::Max, Some(a)) => self.row(a, None)?.1,
             _ => ValueType::Number,
         };
         Ok(Scalar {
             sql: format!("\u{1}{i}\u{1}"),
             ty,
         })
-    }
-
-    fn row_type(&self, b: &Bound) -> ValueType {
-        match b {
-            Bound::Column { table, column } | Bound::Related { table, column } => {
-                ValueType::of(self.column_type(table, column))
-            }
-            Bound::Text(_) => ValueType::Text,
-            Bound::Bool(_) => ValueType::Bool,
-            _ => ValueType::Number,
-        }
     }
 
     /// A row expression over table aliases (`names`: columns renamed in a subquery).
@@ -1207,7 +1399,7 @@ impl<'a> Compiler<'a> {
                     .iter()
                     .map(|a| self.row(a, names))
                     .collect::<Result<Vec<_>>>()?;
-                call_sql(*func, &args)
+                call_sql(func, &args)?
             }
             Bound::Switch {
                 value,
@@ -1394,6 +1586,10 @@ impl<'a> Compiler<'a> {
                     });
                 }
                 FilterArg::UseRelationship(r) => c.use_rels.push(r.clone()),
+                FilterArg::RemoveAll => {
+                    c.keys.clear();
+                    c.filters.clear();
+                }
                 FilterArg::Table(t) => {
                     if let TableExpr::Dates {
                         table: tid, column, ..
@@ -1496,6 +1692,19 @@ impl<'a> Compiler<'a> {
         };
         let date = |e: String| format!("CAST({e} AS DATE)");
         let trunc = |p: Period, e: &str| date(format!("date_trunc('{}', {e})", p.sql()));
+        // DATESINPERIOD and DATESBETWEEN dates: the first or last visible date, a DATE,
+        // or `open` for no bound.
+        let anchor = |a: Anchor, open: &str| -> Result<String> {
+            Ok(match a {
+                Anchor::First => "s.lo".into(),
+                Anchor::Last => "s.hi".into(),
+                Anchor::Date(y, m, d) => {
+                    let n = |x: i32| (x.to_string(), ValueType::Number);
+                    call_sql(&ScalarFunc::Date, &[n(y), n(m), n(d)])?.0
+                }
+                Anchor::Open => open.into(),
+            })
+        };
         // The first and last visible date per key.
         let span = format!(
             "(SELECT {}min(v) AS lo, max(v) AS hi FROM ({visible}) AS b{})",
@@ -1562,6 +1771,30 @@ impl<'a> Compiler<'a> {
                     "s.hi".into(),
                 )
             }
+            DateOp::InPeriod(a, n, p) => {
+                let at = anchor(a, "s.lo")?;
+                if n < 0 {
+                    let moved = date(format!("{at} + {}", iv(n, p)));
+                    // Back from a month's last day to the target month's last day.
+                    let back = if p == Period::Day {
+                        moved
+                    } else {
+                        format!(
+                            "(CASE WHEN {at} = last_day({at}) THEN last_day({moved}) ELSE {moved} END)"
+                        )
+                    };
+                    between(date(format!("{back} + to_days(1)")), at)
+                } else {
+                    between(
+                        at.clone(),
+                        date(format!("{at} + {} - to_days(1)", iv(n, p))),
+                    )
+                }
+            }
+            DateOp::Between(a, b) => between(
+                anchor(a, "DATE '0001-01-01'")?,
+                anchor(b, "DATE '9999-12-31'")?,
+            ),
         };
         let set = self.add_cte(sql, Vec::new(), false);
         Ok(CFilter {
@@ -2055,7 +2288,7 @@ impl<'a> Compiler<'a> {
                     .iter()
                     .map(|x| self.scalar(x, ctx, frame, rows).map(|s| (s.sql, s.ty)))
                     .collect::<Result<Vec<_>>>()?;
-                let (sql, ty) = call_sql(*func, &a);
+                let (sql, ty) = call_sql(func, &a)?;
                 lit(sql, ty)
             }
             Bound::Info {

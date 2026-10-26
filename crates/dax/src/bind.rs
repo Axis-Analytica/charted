@@ -5,6 +5,7 @@
 
 use charted_model::{Cardinality, DataType, Id, Model, Table};
 
+use crate::format::FormatSpec;
 use crate::parser::{BinaryOp, Expr, ExprKind, UnaryOp};
 use crate::{Diagnostic, Span};
 
@@ -21,7 +22,7 @@ pub enum AggFunc {
     DistinctCount,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarFunc {
     Divide,
     If,
@@ -37,6 +38,31 @@ pub enum ScalarFunc {
     Month,
     Day,
     Quarter,
+    /// INT: rounds down, towards negative infinity.
+    Int,
+    /// MIN and MAX of two values: blank counts as zero unless both are blank.
+    Min,
+    Max,
+    /// Text functions. A blank argument counts as empty text.
+    Upper,
+    Lower,
+    Len,
+    Trim,
+    Left,
+    Right,
+    Mid,
+    /// SUBSTITUTE ( text, old, new, [instance] ).
+    Substitute,
+    /// FORMAT ( value, "literal format string" ), the format parsed by the binder.
+    Format(FormatSpec),
+    /// DATE ( year, month, day ): months and days past their range carry over.
+    Date,
+    /// EOMONTH ( date, months ): the last day of the month `months` away.
+    EoMonth,
+    /// EDATE ( date, months ): the same day `months` away (clamped to the month's end).
+    EDate,
+    /// DATEDIFF ( date1, date2, unit ): the unit boundaries crossed from date1 to date2.
+    DateDiff(Period),
 }
 
 /// Facts about the filter context.
@@ -86,6 +112,27 @@ pub enum DateOp {
     /// DATESMTD/QTD/YTD: from the start of the last date's period to the last date. A
     /// year can end on another day (month, day), as in "6/30".
     ToDate(Period, Option<(u32, u32)>),
+    /// DATESINPERIOD: `n` units starting at the anchor date (backwards when `n` is
+    /// negative, ending at the anchor). Going back from a month's last day lands on the
+    /// target month's last day, so "the last 12 months" from a month end is 12 whole
+    /// months.
+    InPeriod(Anchor, i32, Period),
+    /// DATESBETWEEN: the dates from the first anchor to the second, inclusive.
+    Between(Anchor, Anchor),
+}
+
+/// A date argument of DATESINPERIOD and DATESBETWEEN, evaluated in the outer filter
+/// context like the other time-intelligence inputs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Anchor {
+    /// FIRSTDATE or MIN of the date column: the first visible date.
+    First,
+    /// LASTDATE or MAX of the date column: the last visible date.
+    Last,
+    /// DATE ( year, month, day ) with constant parts (they carry over as in DATE).
+    Date(i32, i32, i32),
+    /// BLANK (): no bound (DATESBETWEEN only).
+    Open,
 }
 
 /// Rows to iterate or filter by.
@@ -155,6 +202,8 @@ pub enum FilterArg {
     Keep(Box<FilterArg>),
     /// USERELATIONSHIP: uses this (inactive) relationship instead of the active one.
     UseRelationship(Id),
+    /// REMOVEFILTERS () or ALL () without arguments: removes every filter in the model.
+    RemoveAll,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -231,39 +280,26 @@ pub const KNOWN: &[&str] = &[
     "AVERAGEA",
     "CALCULATETABLE",
     "CEILING",
-    "CONCATENATE",
     "CONCATENATEX",
     "COUNTAX",
     "CROSSFILTER",
-    "DATE",
-    "DATEDIFF",
-    "DATESBETWEEN",
-    "DATESINPERIOD",
     "DATEVALUE",
     "EARLIER",
-    "EDATE",
-    "EOMONTH",
     "EXP",
     "FIND",
     "FIRSTNONBLANK",
     "FLOOR",
-    "FORMAT",
     "GENERATE",
     "HOUR",
     "IFERROR",
-    "INT",
     "ISERROR",
     "LASTNONBLANK",
-    "LEFT",
-    "LEN",
     "LN",
     "LOG",
     "LOOKUPVALUE",
-    "LOWER",
     "MAXA",
     "MEDIAN",
     "MEDIANX",
-    "MID",
     "MINA",
     "MINUTE",
     "MOD",
@@ -275,7 +311,6 @@ pub const KNOWN: &[&str] = &[
     "RANKX",
     "RELATEDTABLE",
     "REPLACE",
-    "RIGHT",
     "ROUNDDOWN",
     "ROUNDUP",
     "SEARCH",
@@ -284,15 +319,12 @@ pub const KNOWN: &[&str] = &[
     "SQRT",
     "STDEV.P",
     "STDEV.S",
-    "SUBSTITUTE",
     "SUMMARIZE",
     "SUMMARIZECOLUMNS",
     "TODAY",
     "TOPN",
     "TREATAS",
-    "TRIM",
     "TRUNC",
-    "UPPER",
     "VALUE",
     "WEEKDAY",
     "WEEKNUM",
@@ -311,12 +343,17 @@ pub const SUPPORTED: &[&str] = &[
     "BLANK",
     "CALCULATE",
     "COALESCE",
+    "CONCATENATE",
     "COUNT",
     "COUNTA",
     "COUNTBLANK",
     "COUNTROWS",
     "COUNTX",
+    "DATE",
     "DATEADD",
+    "DATEDIFF",
+    "DATESBETWEEN",
+    "DATESINPERIOD",
     "DATESMTD",
     "DATESQTD",
     "DATESYTD",
@@ -324,18 +361,26 @@ pub const SUPPORTED: &[&str] = &[
     "DISTINCT",
     "DISTINCTCOUNT",
     "DIVIDE",
+    "EDATE",
+    "EOMONTH",
     "FALSE",
     "FILTER",
     "FIRSTDATE",
+    "FORMAT",
     "HASONEVALUE",
     "IF",
+    "INT",
     "ISBLANK",
     "ISFILTERED",
     "ISINSCOPE",
     "KEEPFILTERS",
     "LASTDATE",
+    "LEFT",
+    "LEN",
+    "LOWER",
     "MAX",
     "MAXX",
+    "MID",
     "MIN",
     "MINX",
     "MONTH",
@@ -346,6 +391,7 @@ pub const SUPPORTED: &[&str] = &[
     "NOT",
     "OR",
     "PARALLELPERIOD",
+    "PI",
     "PREVIOUSDAY",
     "PREVIOUSMONTH",
     "PREVIOUSQUARTER",
@@ -353,16 +399,20 @@ pub const SUPPORTED: &[&str] = &[
     "QUARTER",
     "RELATED",
     "REMOVEFILTERS",
+    "RIGHT",
     "ROUND",
     "SAMEPERIODLASTYEAR",
     "SELECTEDVALUE",
+    "SUBSTITUTE",
     "SUM",
     "SUMX",
     "SWITCH",
     "TOTALMTD",
     "TOTALQTD",
     "TOTALYTD",
+    "TRIM",
     "TRUE",
+    "UPPER",
     "USERELATIONSHIP",
     "VALUES",
     "YEAR",
@@ -383,6 +433,7 @@ pub fn bind_in(
         model,
         diags: Vec::new(),
         vars: Vec::new(),
+        depth: 0,
     };
     let rows: Vec<&Table> = row_table.and_then(|t| model.table(t)).into_iter().collect();
     let bound = b.expr(expr, &rows);
@@ -394,7 +445,18 @@ struct Binder<'a> {
     model: &'a Model,
     diags: Vec<Diagnostic>,
     /// Variables in scope, innermost last.
-    vars: Vec<String>,
+    vars: Vec<Var>,
+    /// How many filter or row context changes (CALCULATE, iterators, FILTER) enclose
+    /// the expression being bound.
+    depth: usize,
+}
+
+/// A variable in scope: its definition, and the context depth it was defined at (its
+/// value can stand in for the definition only at that same depth).
+struct Var {
+    name: String,
+    value: Expr,
+    depth: usize,
 }
 
 /// Tables whose rows are being iterated, innermost last.
@@ -462,9 +524,9 @@ impl<'a> Binder<'a> {
                     .vars
                     .iter()
                     .rev()
-                    .find(|v| v.eq_ignore_ascii_case(name))
+                    .find(|v| v.name.eq_ignore_ascii_case(name))
                 {
-                    return Some(Bound::Var(v.clone()));
+                    return Some(Bound::Var(v.name.clone()));
                 }
                 self.table(name, e.span)?;
                 self.err(
@@ -478,7 +540,11 @@ impl<'a> Binder<'a> {
                 name, value, body, ..
             } => {
                 let v = self.expr(value, rows);
-                self.vars.push(name.clone());
+                self.vars.push(Var {
+                    name: name.clone(),
+                    value: (**value).clone(),
+                    depth: self.depth,
+                });
                 let b = self.expr(body, rows);
                 self.vars.pop();
                 Some(Bound::Let {
@@ -705,7 +771,8 @@ impl<'a> Binder<'a> {
     /// SAMEPERIODLASTYEAR, DATEADD, PARALLELPERIOD, DATESYTD/QTD/MTD, PREVIOUS… and NEXT….
     fn dates(&mut self, name: &str, args: &[Expr], span: Span) -> Option<TableExpr> {
         let (min, max) = match name {
-            "DATEADD" | "PARALLELPERIOD" => (3, 3),
+            "DATEADD" | "PARALLELPERIOD" | "DATESBETWEEN" => (3, 3),
+            "DATESINPERIOD" => (4, 4),
             "DATESYTD" => (1, 2),
             _ => (1, 1),
         };
@@ -730,6 +797,17 @@ impl<'a> Binder<'a> {
                     None => None,
                 },
             ),
+            "DATESINPERIOD" => {
+                let anchor = self.anchor(&args[1], &c.id, false);
+                let n = self.whole(&args[2]);
+                let p = self.period(&args[3]);
+                DateOp::InPeriod(anchor?, n?, p?)
+            }
+            "DATESBETWEEN" => {
+                let start = self.anchor(&args[1], &c.id, true);
+                let end = self.anchor(&args[2], &c.id, true);
+                DateOp::Between(start?, end?)
+            }
             "DATESQTD" => DateOp::ToDate(Period::Quarter, None),
             "DATESMTD" => DateOp::ToDate(Period::Month, None),
             n if n.starts_with("PREVIOUS") => DateOp::Previous(unit(n)),
@@ -740,6 +818,75 @@ impl<'a> Binder<'a> {
             column: c.id.clone(),
             op,
         })
+    }
+
+    /// Binds inside a filter or row context change (see `Var`).
+    fn nested<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        self.depth += 1;
+        let out = f(self);
+        self.depth -= 1;
+        out
+    }
+
+    /// A date argument of DATESINPERIOD or DATESBETWEEN: MAX, MIN, LASTDATE or
+    /// FIRSTDATE of the date column itself, a DATE of constants, BLANK (when `open` is
+    /// allowed), or a variable defined as one of these in the same context.
+    fn anchor(&mut self, e: &Expr, column: &Id, open: bool) -> Option<Anchor> {
+        self.anchor_in(e, column, open, self.vars.len())
+    }
+
+    /// `anchor` with only the first `scope` variables visible (a variable's definition
+    /// sees only those defined before it).
+    fn anchor_in(&mut self, e: &Expr, column: &Id, open: bool, scope: usize) -> Option<Anchor> {
+        let fail = |b: &mut Self| {
+            let blank = if open { ", BLANK ()" } else { "" };
+            b.err(
+                e.span,
+                format!("charted can only use MAX, MIN, LASTDATE or FIRSTDATE of the same date column, DATE ( year, month, day ) with numbers{blank}, or a variable holding one of these here"),
+            )
+            .and(None)
+        };
+        match &e.kind {
+            ExprKind::Call { name, args } => {
+                let upper = name.to_ascii_uppercase();
+                match (upper.as_str(), args.len()) {
+                    ("MAX" | "LASTDATE" | "MIN" | "FIRSTDATE", 1) => {
+                        let (_, c) = self.column_arg(&args[0])?;
+                        if &c.id != column {
+                            return fail(self);
+                        }
+                        Some(if matches!(upper.as_str(), "MAX" | "LASTDATE") {
+                            Anchor::Last
+                        } else {
+                            Anchor::First
+                        })
+                    }
+                    ("DATE", 3) => {
+                        let y = self.whole(&args[0])?;
+                        let m = self.whole(&args[1])?;
+                        let d = self.whole(&args[2])?;
+                        Some(Anchor::Date(y, m, d))
+                    }
+                    ("BLANK", 0) if open => Some(Anchor::Open),
+                    _ => fail(self),
+                }
+            }
+            ExprKind::Table(name) | ExprKind::Ref { table: None, name } => {
+                let found = self.vars[..scope]
+                    .iter()
+                    .rposition(|v| v.name.eq_ignore_ascii_case(name));
+                match found {
+                    // Defined in another context (outside CALCULATE or an iterator), the
+                    // variable's value can differ from its definition evaluated here.
+                    Some(i) if self.vars[i].depth == self.depth => {
+                        let value = self.vars[i].value.clone();
+                        self.anchor_in(&value, column, open, i)
+                    }
+                    _ => fail(self),
+                }
+            }
+            _ => fail(self),
+        }
     }
 
     fn arity(&mut self, name: &str, args: &[Expr], span: Span, min: usize, max: usize) -> bool {
@@ -798,13 +945,13 @@ impl<'a> Binder<'a> {
                         };
                         let mut inner: Vec<&Table> = rows.to_vec();
                         inner.push(t);
-                        let condition = self.expr(&args[1], &inner)?;
+                        let condition = self.nested(|b| b.expr(&args[1], &inner))?;
                         Some(TableExpr::Filter {
                             source: Box::new(source),
                             condition: Box::new(condition),
                         })
                     }
-                    "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.dates(&upper, args, e.span),
+                    "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.dates(&upper, args, e.span),
                     _ => self
                         .err(
                             e.span,
@@ -826,7 +973,7 @@ impl<'a> Binder<'a> {
                 .err(
                     span,
                     format!(
-                        "{name} without arguments isn't supported yet; name a table or columns"
+                        "{name} without arguments only works as a CALCULATE filter; name a table or columns"
                     ),
                 )
                 .and(None);
@@ -863,6 +1010,9 @@ impl<'a> Binder<'a> {
         if let ExprKind::Call { name, args } = &e.kind {
             let upper = name.to_ascii_uppercase();
             match upper.as_str() {
+                // Without arguments, they clear the whole model's filters (only allowed
+                // as a CALCULATE filter, as in DAX).
+                "ALL" | "REMOVEFILTERS" if args.is_empty() => return Some(FilterArg::RemoveAll),
                 "ALL" | "REMOVEFILTERS" => {
                     let (table, columns) = self.all_args(&upper, args, e.span)?;
                     return Some(FilterArg::RemoveFilters { table, columns });
@@ -920,9 +1070,9 @@ impl<'a> Binder<'a> {
                     };
                 }
                 "FILTER" | "VALUES" | "DISTINCT" | "SAMEPERIODLASTYEAR" | "DATEADD"
-                | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY"
-                | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY"
-                | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
+                | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD"
+                | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER"
+                | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
                     return Some(FilterArg::Table(self.table_expr(e, rows)?));
                 }
                 _ => {}
@@ -955,7 +1105,7 @@ impl<'a> Binder<'a> {
         let t = self.model.table(&table)?;
         let mut inner: Vec<&Table> = rows.to_vec();
         inner.push(t);
-        let condition = self.expr(e, &inner)?;
+        let condition = self.nested(|b| b.expr(e, &inner))?;
         let mut columns: Vec<Id> = Vec::new();
         for (_, c) in cols {
             if !columns.contains(&c) {
@@ -1026,7 +1176,7 @@ impl<'a> Binder<'a> {
             };
             let mut inner: Vec<&Table> = rows.to_vec();
             inner.push(t);
-            let arg = self.expr(&args[1], &inner)?;
+            let arg = self.nested(|b| b.expr(&args[1], &inner))?;
             return Some(Bound::Aggregate {
                 func,
                 source,
@@ -1052,7 +1202,7 @@ impl<'a> Binder<'a> {
                 if !self.arity(&upper, args, span, 1, usize::MAX) {
                     return None;
                 }
-                let expr = self.expr(&args[0], rows);
+                let expr = self.nested(|b| b.expr(&args[0], rows));
                 let filters: Vec<Option<FilterArg>> = args[1..].iter().map(|a| self.filter_arg(a, rows)).collect();
                 Some(Bound::Calculate {
                     expr: Box::new(expr?),
@@ -1136,13 +1286,61 @@ impl<'a> Binder<'a> {
                 })
             }
             "BLANK" => self.arity(&upper, args, span, 0, 0).then_some(Bound::Blank),
+            "PI" => self
+                .arity(&upper, args, span, 0, 0)
+                .then_some(Bound::Number(std::f64::consts::PI)),
+            // CONCATENATE is the & operator with two arguments.
+            "CONCATENATE" => {
+                if !self.arity(&upper, args, span, 2, 2) {
+                    return None;
+                }
+                let l = self.expr(&args[0], rows);
+                let r = self.expr(&args[1], rows);
+                Some(Bound::Binary {
+                    op: BinaryOp::Concat,
+                    left: Box::new(l?),
+                    right: Box::new(r?),
+                })
+            }
+            "FORMAT" => {
+                if !self.arity(&upper, args, span, 2, 2) {
+                    return None;
+                }
+                let value = self.expr(&args[0], rows);
+                let ExprKind::Text(f) = &args[1].kind else {
+                    return self.err(
+                        args[1].span,
+                        "charted needs FORMAT's format string written out as text, such as \"0.0%\"",
+                    );
+                };
+                let spec = match crate::format::parse(f) {
+                    Ok(spec) => spec,
+                    Err(message) => return self.err(args[1].span, message),
+                };
+                Some(Bound::Call {
+                    func: ScalarFunc::Format(spec),
+                    args: vec![value?],
+                })
+            }
+            "DATEDIFF" => {
+                if !self.arity(&upper, args, span, 3, 3) {
+                    return None;
+                }
+                let a = self.expr(&args[0], rows);
+                let b = self.expr(&args[1], rows);
+                let p = self.period(&args[2]);
+                Some(Bound::Call {
+                    func: ScalarFunc::DateDiff(p?),
+                    args: vec![a?, b?],
+                })
+            }
             "TRUE" | "FALSE" => self.arity(&upper, args, span, 0, 0).then_some(Bound::Bool(upper == "TRUE")),
             "TOTALYTD" | "TOTALQTD" | "TOTALMTD" => {
                 let ytd = upper == "TOTALYTD";
                 if !self.arity(&upper, args, span, 2, if ytd { 4 } else { 3 }) {
                     return None;
                 }
-                let expr = self.expr(&args[0], rows);
+                let expr = self.nested(|b| b.expr(&args[0], rows));
                 let period = match upper.as_str() {
                     "TOTALYTD" => "DATESYTD",
                     "TOTALQTD" => "DATESQTD",
@@ -1182,7 +1380,7 @@ impl<'a> Binder<'a> {
                 })
             }
             "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
-            | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
+            | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
             ),
@@ -1201,9 +1399,20 @@ impl<'a> Binder<'a> {
                     "MONTH" => (ScalarFunc::Month, 1, 1),
                     "DAY" => (ScalarFunc::Day, 1, 1),
                     "QUARTER" => (ScalarFunc::Quarter, 1, 1),
-                    "MIN" | "MAX" => {
-                        return self.err(span, format!("{upper} of two values isn't supported yet"));
-                    }
+                    "MIN" => (ScalarFunc::Min, 2, 2),
+                    "MAX" => (ScalarFunc::Max, 2, 2),
+                    "INT" => (ScalarFunc::Int, 1, 1),
+                    "UPPER" => (ScalarFunc::Upper, 1, 1),
+                    "LOWER" => (ScalarFunc::Lower, 1, 1),
+                    "LEN" => (ScalarFunc::Len, 1, 1),
+                    "TRIM" => (ScalarFunc::Trim, 1, 1),
+                    "LEFT" => (ScalarFunc::Left, 1, 2),
+                    "RIGHT" => (ScalarFunc::Right, 1, 2),
+                    "MID" => (ScalarFunc::Mid, 3, 3),
+                    "SUBSTITUTE" => (ScalarFunc::Substitute, 3, 4),
+                    "DATE" => (ScalarFunc::Date, 3, 3),
+                    "EOMONTH" => (ScalarFunc::EoMonth, 2, 2),
+                    "EDATE" => (ScalarFunc::EDate, 2, 2),
                     _ if KNOWN.contains(&upper.as_str()) => {
                         return self.err(span, format!("{upper} isn't supported by charted yet (see docs/dax-support.md)"));
                     }

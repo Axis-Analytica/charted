@@ -50,7 +50,7 @@ DATE|Year; Month; Day|Date and time|A date from its parts.
 DATEADD|Dates; NumberOfIntervals; Interval|Time intelligence|Dates shifted by a number of intervals.
 DATEDIFF|Date1; Date2; Interval|Date and time|The number of interval boundaries between two dates.
 DATESBETWEEN|Dates; StartDate; EndDate|Time intelligence|Dates between two dates.
-DATESINPERIOD|Dates; StartDate; NumberOfIntervals; Interval|Time intelligence|Dates in a period starting at a date.
+DATESINPERIOD|Dates; StartDate; NumberOfIntervals; Interval|Time intelligence|Dates in a period starting at a date (ending at it when the number is negative).
 DATESMTD|Dates|Time intelligence|Dates from the start of the month to the last date in context.
 DATESQTD|Dates|Time intelligence|Dates from the start of the quarter to the last date in context.
 DATESYTD|Dates; [YearEndDate]|Time intelligence|Dates from the start of the year to the last date in context.
@@ -110,6 +110,7 @@ NOW||Date and time|The current date and time.
 OR|Logical1; Logical2|Logical|TRUE when either argument is TRUE.
 PARALLELPERIOD|Dates; NumberOfIntervals; Interval|Time intelligence|The whole period a number of intervals away.
 PERCENTILE.INC|Column; K|Aggregation|The k-th percentile, inclusive.
+PI||Math|The number π, 3.14159265358979.
 POWER|Number; Power|Math|A number raised to a power.
 PREVIOUSDAY|Dates|Time intelligence|The day before the first date.
 PREVIOUSMONTH|Dates|Time intelligence|The dates of the previous month.
@@ -147,7 +148,7 @@ TOTALMTD|Expression; Dates; [Filter]|Time intelligence|An expression over the mo
 TOTALQTD|Expression; Dates; [Filter]|Time intelligence|An expression over the quarter to date.
 TOTALYTD|Expression; Dates; [Filter]; [YearEndDate]|Time intelligence|An expression over the year to date.
 TREATAS|Table; Column…|Filter|Applies the rows of a table as filters on unrelated columns.
-TRIM|Text|Text|Removes extra spaces.
+TRIM|Text|Text|Removes spaces from both ends and repeated spaces between words.
 TRUE||Logical|The logical value TRUE.
 TRUNC|Number; [NumberOfDigits]|Math|Truncates to an integer or digits.
 UPPER|Text|Text|Text in upper case.
@@ -230,6 +231,18 @@ pub fn support_markdown() -> String {
            calculated columns are not supported yet.\n\
          - **FILTER over measures** used as a CALCULATE filter argument is not supported yet; \
            FILTER over columns is.\n\
+         - **DATESINPERIOD and DATESBETWEEN** take their dates as MAX, MIN, LASTDATE or \
+           FIRSTDATE of the same date column, `DATE ( … )` of numbers, BLANK () for an open \
+           end of DATESBETWEEN, or a variable defined as one of these just outside the \
+           CALCULATE.\n\
+         - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
+           `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
+           formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \
+           the separators `- / . ,` and space (month and day names in English), and the named \
+           formats General Number, Fixed, Standard and Percent. Other format strings are \
+           reported as unsupported.\n\
+         - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat \
+           blank as zero unless both are blank.\n\
          - A measure that is never blank shows a row only where the visual's tables have data \
            (Power BI shows every combination for some such measures).\n\n",
     );

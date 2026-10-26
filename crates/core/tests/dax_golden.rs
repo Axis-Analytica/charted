@@ -589,6 +589,127 @@ const MEASURES: &[(&str, &str)] = &[
         "Scoped Share",
         "IF ( ISINSCOPE ( Product[Category] ), [Share Of Category], BLANK () )",
     ),
+    // Rolling periods and date ranges
+    (
+        "Rolling 12M",
+        "CALCULATE ( [Sales Amount], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -12, MONTH ) )",
+    ),
+    (
+        "Rolling 3M Var",
+        "VAR last = LASTDATE ( 'Date'[Date] ) RETURN CALCULATE ( [Quantity], DATESINPERIOD ( 'Date'[Date], last, -3, MONTH ) )",
+    ),
+    (
+        "Next 2 Quarters",
+        "CALCULATE ( [Quantity], DATESINPERIOD ( 'Date'[Date], MIN ( 'Date'[Date] ), 2, QUARTER ) )",
+    ),
+    (
+        "Last 45 Days",
+        "CALCULATE ( [Quantity], DATESINPERIOD ( 'Date'[Date], LASTDATE ( 'Date'[Date] ), -45, DAY ) )",
+    ),
+    (
+        "Year Back",
+        "CALCULATE ( [Quantity], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -1, YEAR ) )",
+    ),
+    (
+        "H1 2025",
+        "CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], DATE ( 2025, 1, 1 ), DATE ( 2025, 6, 30 ) ) )",
+    ),
+    (
+        "Running Qty",
+        "CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], BLANK (), MAX ( 'Date'[Date] ) ) )",
+    ),
+    (
+        "From First",
+        "CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], FIRSTDATE ( 'Date'[Date] ), BLANK () ) )",
+    ),
+    ("No Filters", "CALCULATE ( [Quantity], REMOVEFILTERS () )"),
+    (
+        "Share Of All",
+        "DIVIDE ( [Quantity], CALCULATE ( [Quantity], ALL () ) )",
+    ),
+    // Math, text and date functions
+    ("Int Price", "INT ( [Avg Price] )"),
+    ("Int Negative", "INT ( -[Price Per Unit] )"),
+    ("Pi Qty", "ROUND ( PI () * [Quantity], 2 )"),
+    ("Smaller", "MIN ( [Sales Amount], [Target] )"),
+    ("At Least 10", "MAX ( [Quantity], 10 )"),
+    ("Max With Blank", "MAX ( [Missing Amounts], -1 )"),
+    (
+        "Later Date",
+        "MAX ( LASTDATE ( 'Date'[Date] ), DATE ( 2025, 6, 30 ) )",
+    ),
+    (
+        "Upper Category",
+        "IF ( [Quantity] > 0, UPPER ( SELECTEDVALUE ( Product[Category] ) ) )",
+    ),
+    (
+        "Category Code",
+        "IF ( [Quantity] > 0, LEFT ( SELECTEDVALUE ( Product[Category] ) & \"all\", 3 ) & \"-\" & RIGHT ( SELECTEDVALUE ( Product[Category] ), 2 ) & LEFT ( \"xyz\" ) )",
+    ),
+    (
+        "Category Length",
+        "IF ( [Quantity] > 0, LEN ( SELECTEDVALUE ( Product[Color] ) ) )",
+    ),
+    (
+        "Mid Lower",
+        "IF ( [Quantity] > 0, LOWER ( MID ( SELECTEDVALUE ( Product[Category] ) & \" Products\", 2, 4 ) ) )",
+    ),
+    (
+        "Trimmed",
+        "IF ( [Quantity] > 0, TRIM ( \"  big   \" & SELECTEDVALUE ( Product[Category] ) & \"  \" ) )",
+    ),
+    (
+        "Substituted",
+        "IF ( [Quantity] > 0, SUBSTITUTE ( SELECTEDVALUE ( Product[Category] ) & \" aaa\", \"a\", \"o\" ) )",
+    ),
+    (
+        "Second A",
+        "IF ( [Quantity] > 0, SUBSTITUTE ( \"banana \" & SELECTEDVALUE ( Product[Category] ), \"a\", \"_\", 2 ) )",
+    ),
+    (
+        "Joined",
+        "IF ( [Quantity] > 0, CONCATENATE ( SELECTEDVALUE ( Product[Category] ) & \"-\", FORMAT ( [Quantity], \"0\" ) ) )",
+    ),
+    (
+        "Blank Arguments",
+        "IF ( [Quantity] > 0, LEN ( BLANK () ) + LEN ( UPPER ( BLANK () ) & LEFT ( BLANK (), 2 ) ) + LEN ( FORMAT ( BLANK (), \"0\" ) ) + MIN ( BLANK (), 3 ) + LEN ( SUBSTITUTE ( BLANK (), BLANK (), \"x\" ) ) )",
+    ),
+    ("Amount Text", "FORMAT ( [Sales Amount], \"#,0.00\" )"),
+    ("Share Text", "FORMAT ( [Share Of Category], \"0.0%\" )"),
+    ("Price Text", "FORMAT ( [Avg Price], \"$#,##0.00\" )"),
+    ("Gap Text", "FORMAT ( [Gap], \"#,0\" )"),
+    (
+        "General Text",
+        "FORMAT ( [Price Per Unit], \"General Number\" )",
+    ),
+    (
+        "Last Month Name",
+        "FORMAT ( LASTDATE ( 'Date'[Date] ), \"mmm yyyy\" )",
+    ),
+    (
+        "Last Date Text",
+        "FORMAT ( MAX ( 'Date'[Date] ), \"dddd dd/mm/yy\" )",
+    ),
+    (
+        "First Month",
+        "FORMAT ( MIN ( 'Date'[Date] ), \"yyyy-MM\" ) & \" \" & FORMAT ( MIN ( 'Date'[Date] ), \"MMMM d\" )",
+    ),
+    ("Month End", "EOMONTH ( MIN ( 'Date'[Date] ), 1 )"),
+    ("Quarter Back", "EOMONTH ( MAX ( 'Date'[Date] ), -3 )"),
+    ("Month Later", "EDATE ( MAX ( 'Date'[Date] ), 1 )"),
+    ("Date Overflow", "DATE ( 2024, 14, 0 )"),
+    (
+        "Next Month Start",
+        "DATE ( MAX ( 'Date'[Year] ), MAX ( 'Date'[MonthNumber] ) + 1, 1 )",
+    ),
+    (
+        "Date Span",
+        "DATEDIFF ( FIRSTDATE ( 'Date'[Date] ), LASTDATE ( 'Date'[Date] ), MONTH ) * 100 + DATEDIFF ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ), QUARTER ) * 10 + DATEDIFF ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ), YEAR )",
+    ),
+    (
+        "Days Before",
+        "DATEDIFF ( MAX ( 'Date'[Date] ), DATE ( 2024, 1, 1 ), DAY )",
+    ),
 ];
 
 /// The visual shapes every measure is evaluated in.
@@ -850,6 +971,14 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "[Quantity]",
         "[Orders]",
         "[Target]",
+        "INT ( [Sales Amount] / 7 )",
+        "IF ( [Orders] > 0, LEN ( SELECTEDVALUE ( Product[Category] ) ) )",
+        "DATEDIFF ( MIN ( Date[Date] ), MAX ( Date[Date] ), MONTH )",
+        "MIN ( [Quantity], 20 )",
+        "MAX ( [Orders], [Target] / 100 )",
+        "YEAR ( EOMONTH ( MAX ( Date[Date] ), 2 ) )",
+        "MONTH ( EDATE ( MIN ( Date[Date] ), 5 ) )",
+        "LEN ( FORMAT ( [Sales Amount], \"#,0\" ) )",
     ];
     const FILTERS: &[&str] = &[
         "Product[Category] = \"Camping\"",
@@ -872,6 +1001,9 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "DATESYTD ( Date[Date] )",
         "DATEADD ( Date[Date], -1, QUARTER )",
         "PREVIOUSMONTH ( Date[Date] )",
+        "DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH )",
+        "DATESBETWEEN ( Date[Date], DATE ( 2024, 6, 1 ), LASTDATE ( Date[Date] ) )",
+        "REMOVEFILTERS ()",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",

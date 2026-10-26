@@ -1,4 +1,6 @@
-use charted_dax::{AggFunc, Bound, FilterArg, TableExpr, check};
+use charted_dax::{
+    AggFunc, Anchor, Bound, DateOp, FilterArg, FormatSpec, Period, ScalarFunc, TableExpr, check,
+};
 use charted_model::*;
 
 fn col(id: &str, name: &str, ty: DataType) -> Column {
@@ -62,6 +64,20 @@ fn model() -> Model {
                 is_date_table: false,
                 extras: Default::default(),
             },
+            Table {
+                id: "t-d".into(),
+                name: "Date".into(),
+                description: None,
+                source: "date".into(),
+                columns: vec![
+                    col("c-date", "Date", DataType::Date),
+                    col("c-ship", "Ship Date", DataType::Date),
+                ],
+                measures: vec![],
+                hidden: false,
+                is_date_table: true,
+                extras: Default::default(),
+            },
         ],
         ..Default::default()
     }
@@ -118,6 +134,144 @@ fn calculate_filter_arguments() {
         err("CALCULATE ( [Total], 'Sales Lines'[Qty] > Product[Category] )")
             .contains("columns of one table")
     );
+}
+
+fn func(src: &str) -> ScalarFunc {
+    match ok(src) {
+        Bound::Call { func, .. } => func,
+        other => panic!("{src}: not a call: {other:?}"),
+    }
+}
+
+#[test]
+fn binds_text_math_and_date_functions() {
+    for src in [
+        "UPPER ( SELECTEDVALUE ( Product[Category] ) ) & LOWER ( \"A\" )",
+        "LEN ( TRIM ( \" a  b \" ) ) + INT ( [Total] / 3 )",
+        "LEFT ( \"abc\" ) & RIGHT ( \"abc\", 2 ) & MID ( \"abcdef\", 2, 3 )",
+        "SUBSTITUTE ( \"a-b-c\", \"-\", \"+\" ) & SUBSTITUTE ( \"a-b-c\", \"-\", \"+\", 2 )",
+        "EOMONTH ( MAX ( 'Date'[Date] ), -1 )",
+        "EDATE ( DATE ( 2024, 13, 1 ), 2 )",
+    ] {
+        ok(src);
+    }
+    assert!(matches!(ok("PI ()"), Bound::Number(x) if x == std::f64::consts::PI));
+    assert!(matches!(
+        ok("CONCATENATE ( \"a\", [Total] )"),
+        Bound::Binary {
+            op: charted_dax::BinaryOp::Concat,
+            ..
+        }
+    ));
+    // MIN and MAX of a column aggregate; of two values they compare.
+    assert!(matches!(
+        ok("MIN ( 'Sales Lines'[Qty] )"),
+        Bound::Aggregate {
+            func: AggFunc::Min,
+            ..
+        }
+    ));
+    assert_eq!(func("MIN ( [Total], 0 )"), ScalarFunc::Min);
+    assert_eq!(func("MAX ( [Total], BLANK () )"), ScalarFunc::Max);
+    assert_eq!(
+        func("DATEDIFF ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ), quarter )"),
+        ScalarFunc::DateDiff(Period::Quarter)
+    );
+    assert!(matches!(
+        func("FORMAT ( [Total], \"$#,0.0%\" )"),
+        ScalarFunc::Format(FormatSpec::Number {
+            decimals: 1,
+            thousands: true,
+            percent: true,
+            prefix: "$"
+        })
+    ));
+    assert!(matches!(
+        func("FORMAT ( MAX ( 'Date'[Date] ), \"mmm yyyy\" )"),
+        ScalarFunc::Format(FormatSpec::Date(_))
+    ));
+    assert!(err("FORMAT ( [Total], \"0.##\" )").contains("\"0.##\" isn't supported yet"));
+    assert!(err("FORMAT ( [Total], \"0\", \"en-US\" )").contains("takes 2 argument(s)"));
+    assert!(err("VAR f = \"0\" RETURN FORMAT ( [Total], f )").contains("written out as text"));
+    assert!(err("DATEDIFF ( 1, 2, WEEK )").contains("DAY, MONTH, QUARTER or YEAR"));
+    assert!(err("MID ( \"abc\", 2 )").contains("takes 3 argument(s)"));
+}
+
+fn dates_op(src: &str) -> DateOp {
+    let mut b = ok(src);
+    while let Bound::Let { body, .. } = b {
+        b = *body;
+    }
+    let Bound::Calculate { filters, .. } = b else {
+        panic!("{src}: not a CALCULATE")
+    };
+    match &filters[0] {
+        FilterArg::Table(TableExpr::Dates { op, .. }) => *op,
+        other => panic!("{src}: {other:?}"),
+    }
+}
+
+#[test]
+fn binds_rolling_periods_and_date_ranges() {
+    assert_eq!(
+        dates_op(
+            "CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -12, MONTH ) )"
+        ),
+        DateOp::InPeriod(Anchor::Last, -12, Period::Month)
+    );
+    // A variable defined just outside CALCULATE stands for its definition.
+    assert_eq!(
+        dates_op(
+            "VAR d = FIRSTDATE ( 'Date'[Date] ) RETURN CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], d, 2, QUARTER ) )"
+        ),
+        DateOp::InPeriod(Anchor::First, 2, Period::Quarter)
+    );
+    assert_eq!(
+        dates_op(
+            "CALCULATE ( [Total], DATESBETWEEN ( 'Date'[Date], DATE ( 2024, 1, 1 ), BLANK () ) )"
+        ),
+        DateOp::Between(Anchor::Date(2024, 1, 1), Anchor::Open)
+    );
+    // A variable's definition sees only the variables defined before it.
+    assert_eq!(
+        dates_op(
+            "VAR d = MAX ( 'Date'[Date] ) VAR d = d RETURN CALCULATE ( [Total], DATESBETWEEN ( 'Date'[Date], d, d ) )"
+        ),
+        DateOp::Between(Anchor::Last, Anchor::Last)
+    );
+    let anchor_err = "can only use MAX, MIN, LASTDATE or FIRSTDATE";
+    assert!(
+        err("CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Ship Date] ), -1, YEAR ) )")
+            .contains(anchor_err)
+    );
+    assert!(
+        err("CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], BLANK (), -1, YEAR ) )")
+            .contains(anchor_err)
+    );
+    assert!(
+        err("CALCULATE ( [Total], DATESBETWEEN ( 'Date'[Date], TODAY (), BLANK () ) )")
+            .contains(anchor_err)
+    );
+    // Defined outside an iterator, the variable's value isn't its definition per row.
+    assert!(
+        err("VAR d = MAX ( 'Date'[Date] ) RETURN SUMX ( VALUES ( Product[Category] ), CALCULATE ( [Total], DATESINPERIOD ( 'Date'[Date], d, -1, YEAR ) ) )")
+            .contains(anchor_err)
+    );
+}
+
+#[test]
+fn removefilters_without_arguments_clears_everything() {
+    let Bound::Calculate { filters, .. } =
+        ok("CALCULATE ( [Total], REMOVEFILTERS (), Product[Category] = \"A\" )")
+    else {
+        panic!("not a CALCULATE")
+    };
+    assert_eq!(filters[0], FilterArg::RemoveAll);
+    assert!(matches!(
+        ok("CALCULATE ( [Total], ALL () )"),
+        Bound::Calculate { filters, .. } if filters == vec![FilterArg::RemoveAll]
+    ));
+    assert!(err("COUNTROWS ( ALL () )").contains("only works as a CALCULATE filter"));
 }
 
 #[test]

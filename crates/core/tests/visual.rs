@@ -726,6 +726,11 @@ fn time_intelligence_matches_sql() {
                     "Sales FYTD",
                     "TOTALYTD ( [Total Sales], 'Date'[Date], \"6/30\" )",
                 ),
+                add(
+                    "m-12m",
+                    "Sales 12M",
+                    "CALCULATE ( [Total Sales], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -12, MONTH ) )",
+                ),
             ],
         })
         .unwrap();
@@ -739,6 +744,7 @@ fn time_intelligence_matches_sql() {
                 measure(&f, "Sales LY"),
                 measure(&f, "Sales YTD"),
                 measure(&f, "Sales FYTD"),
+                measure(&f, "Sales 12M"),
             ],
         ),
     );
@@ -751,7 +757,8 @@ fn time_intelligence_matches_sql() {
            (SELECT l.amt FROM m l WHERE l.Year = m.Year - 1 AND l.MonthNumber = m.MonthNumber),
            sum(amt) OVER (PARTITION BY Year ORDER BY MonthNumber),
            sum(amt) OVER (PARTITION BY Year + CASE WHEN MonthNumber >= 7 THEN 1 ELSE 0 END
-                          ORDER BY Year, MonthNumber)
+                          ORDER BY Year, MonthNumber),
+           sum(amt) OVER (ORDER BY Year * 12 + MonthNumber RANGE BETWEEN 11 PRECEDING AND CURRENT ROW)
          FROM m ORDER BY 1, 2",
     );
     let got = rounded(rows);

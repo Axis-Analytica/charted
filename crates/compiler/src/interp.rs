@@ -17,7 +17,8 @@
 //!   columns, cross joined, minus rows where every value is blank.
 
 use charted_dax::{
-    AggFunc, BinaryOp, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, UnaryOp,
+    AggFunc, Anchor, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc, Period,
+    ScalarFunc, TableExpr, UnaryOp,
 };
 use charted_model::{
     Aggregation, Cardinality, Condition, FieldRef, FilterKind, FilterOp, Id, Model, Projection,
@@ -548,6 +549,12 @@ impl<'a> Interp<'a> {
                 let (Some(&lo), Some(&hi)) = (visible.iter().min(), visible.iter().max()) else {
                     return Ok(Vec::new());
                 };
+                let anchor = |a: Anchor, open: i64| match a {
+                    Anchor::First => lo,
+                    Anchor::Last => hi,
+                    Anchor::Date(y, m, d) => cal::date(y as i64, m as i64, d as i64),
+                    Anchor::Open => open,
+                };
                 let within = |a: i64, b: i64| {
                     if a > b {
                         Vec::new()
@@ -588,6 +595,21 @@ impl<'a> Interp<'a> {
                         let start = if hi > end(y) { end(y) } else { end(y - 1) } + 1;
                         within(start, hi)
                     }
+                    DateOp::InPeriod(a, n, p) => {
+                        let at = anchor(a, lo);
+                        if n < 0 {
+                            // Back from a month's last day to the target month's last day.
+                            let back = if p != Period::Day && at == cal::last_day(at) {
+                                cal::last_day(cal::add(at, n, p))
+                            } else {
+                                cal::add(at, n, p)
+                            };
+                            within(back + 1, at)
+                        } else {
+                            within(at, cal::add(at, n, p) - 1)
+                        }
+                    }
+                    DateOp::Between(a, b) => within(anchor(a, i64::MIN), anchor(b, i64::MAX)),
                 };
                 Ok(picked
                     .into_iter()
@@ -695,6 +717,7 @@ impl<'a> Interp<'a> {
                         && (columns.is_empty() || f.columns.iter().any(|x| columns.contains(x))))
                 }),
                 FilterArg::UseRelationship(r) => c.use_rels.push(r.clone()),
+                FilterArg::RemoveAll => c.filters.clear(),
                 _ => {}
             }
         }
@@ -903,21 +926,19 @@ impl<'a> Interp<'a> {
                     ScalarFunc::Year
                     | ScalarFunc::Month
                     | ScalarFunc::Day
-                    | ScalarFunc::Quarter => match &a[0] {
-                        Value::Text(t) => match cal::parse(t) {
-                            Some(z) => {
-                                let (y, m, d) = cal::civil(z);
-                                Value::Num(match func {
-                                    ScalarFunc::Year => y as f64,
-                                    ScalarFunc::Month => m as f64,
-                                    ScalarFunc::Day => d as f64,
-                                    _ => ((m - 1) / 3 + 1) as f64,
-                                })
-                            }
-                            None => Value::Blank,
-                        },
-                        _ => Value::Blank,
+                    | ScalarFunc::Quarter => match day(&a[0]) {
+                        Some(z) => {
+                            let (y, m, d) = cal::civil(z);
+                            Value::Num(match func {
+                                ScalarFunc::Year => y as f64,
+                                ScalarFunc::Month => m as f64,
+                                ScalarFunc::Day => d as f64,
+                                _ => ((m - 1) / 3 + 1) as f64,
+                            })
+                        }
+                        None => Value::Blank,
                     },
+                    other => scalar(other, &a)?,
                 }
             }
             Bound::Info {
@@ -1067,6 +1088,198 @@ fn binary(op: BinaryOp, l: &Value, r: &Value) -> Value {
             })
         }
     }
+}
+
+/// A date value (dates are ISO text here, as DuckDB writes them) as days since 1970.
+fn day(v: &Value) -> Option<i64> {
+    match v {
+        Value::Text(t) => cal::parse(t),
+        _ => None,
+    }
+}
+
+/// Text as the text functions see it: blank is empty.
+fn text(v: &Value) -> String {
+    v.key().unwrap_or_default()
+}
+
+/// A whole-number argument: blank counts as zero, decimals are truncated.
+fn whole(v: &Value) -> i64 {
+    v.num().unwrap_or(0.0).trunc() as i64
+}
+
+/// The text, math and date functions (the logical ones are evaluated in `eval`).
+fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
+    let date = |z: i64| Value::Text(cal::format(z));
+    Ok(match func {
+        ScalarFunc::Int => a[0]
+            .num()
+            .map(|x| Value::Num(x.floor()))
+            .unwrap_or(Value::Blank),
+        ScalarFunc::Min | ScalarFunc::Max => {
+            let max = matches!(func, ScalarFunc::Max);
+            let text_like = |v: &Value| matches!(v, Value::Text(_));
+            if a[0].is_blank() && a[1].is_blank() {
+                Value::Blank
+            } else if !text_like(&a[0]) && !text_like(&a[1]) {
+                // Numbers: blank counts as zero.
+                let (x, y) = (a[0].num().unwrap_or(0.0), a[1].num().unwrap_or(0.0));
+                Value::Num(if max { x.max(y) } else { x.min(y) })
+            } else if a[0].is_blank() || a[1].is_blank() {
+                // Text and dates: the blank one is ignored.
+                if a[0].is_blank() {
+                    a[1].clone()
+                } else {
+                    a[0].clone()
+                }
+            } else if cmp(&a[0], &a[1]).is_lt() == max {
+                a[1].clone()
+            } else {
+                a[0].clone()
+            }
+        }
+        ScalarFunc::Upper => Value::Text(text(&a[0]).to_uppercase()),
+        ScalarFunc::Lower => Value::Text(text(&a[0]).to_lowercase()),
+        ScalarFunc::Len => Value::Num(text(&a[0]).chars().count() as f64),
+        // Leading and trailing spaces go; runs of spaces inside become one.
+        ScalarFunc::Trim => Value::Text(
+            text(&a[0])
+                .split(' ')
+                .filter(|p| !p.is_empty())
+                .collect::<Vec<_>>()
+                .join(" "),
+        ),
+        ScalarFunc::Left | ScalarFunc::Right => {
+            let n = a.get(1).map(whole).unwrap_or(1).max(0) as usize;
+            let chars: Vec<char> = text(&a[0]).chars().collect();
+            let cut = if matches!(func, ScalarFunc::Left) {
+                &chars[..n.min(chars.len())]
+            } else {
+                &chars[chars.len().saturating_sub(n)..]
+            };
+            Value::Text(cut.iter().collect())
+        }
+        ScalarFunc::Mid => {
+            let start = whole(&a[1]).max(1) as usize;
+            let n = whole(&a[2]).max(0) as usize;
+            Value::Text(text(&a[0]).chars().skip(start - 1).take(n).collect())
+        }
+        ScalarFunc::Substitute => {
+            let (s, old, new) = (text(&a[0]), text(&a[1]), text(&a[2]));
+            Value::Text(match a.get(3) {
+                _ if old.is_empty() => s,
+                None => s.replace(&old, &new),
+                // Only the k-th occurrence.
+                Some(i) => {
+                    let k = whole(i);
+                    let parts: Vec<&str> = s.split(old.as_str()).collect();
+                    if k >= 1 && (k as usize) < parts.len() {
+                        let k = k as usize;
+                        format!("{}{new}{}", parts[..k].join(&old), parts[k..].join(&old))
+                    } else {
+                        s
+                    }
+                }
+            })
+        }
+        ScalarFunc::Format(spec) => match (&a[0], spec) {
+            (Value::Blank, _) => Value::Text(String::new()),
+            (Value::Num(x), FormatSpec::General) => Value::Text(text(&Value::Num(*x))),
+            (
+                Value::Num(x),
+                FormatSpec::Number {
+                    decimals,
+                    thousands,
+                    percent,
+                    prefix,
+                },
+            ) => Value::Text(format_number(*x, *decimals, *thousands, *percent, prefix)),
+            (v @ Value::Text(_), FormatSpec::Date(parts)) => match day(v) {
+                Some(z) => Value::Text(format_date(z, parts)),
+                None => return Err("FORMAT with a date format needs a date".into()),
+            },
+            _ => return Err("FORMAT's value doesn't match its format string".into()),
+        },
+        ScalarFunc::Date => date(cal::date(whole(&a[0]), whole(&a[1]), whole(&a[2]))),
+        ScalarFunc::EoMonth => match day(&a[0]) {
+            Some(z) => date(cal::last_day(cal::add(
+                cal::trunc(z, Period::Month),
+                whole(&a[1]) as i32,
+                Period::Month,
+            ))),
+            None => Value::Blank,
+        },
+        ScalarFunc::EDate => match day(&a[0]) {
+            Some(z) => date(cal::add(z, whole(&a[1]) as i32, Period::Month)),
+            None => Value::Blank,
+        },
+        // The unit boundaries crossed, as Power BI counts them.
+        ScalarFunc::DateDiff(p) => match (day(&a[0]), day(&a[1])) {
+            (Some(x), Some(y)) => {
+                let ((y1, m1, _), (y2, m2, _)) = (cal::civil(x), cal::civil(y));
+                let months = |y: i64, m: u32| y * 12 + m as i64 - 1;
+                Value::Num(match p {
+                    Period::Day => y - x,
+                    Period::Month => months(y2, m2) - months(y1, m1),
+                    Period::Quarter => months(y2, m2).div_euclid(3) - months(y1, m1).div_euclid(3),
+                    Period::Year => y2 - y1,
+                } as f64)
+            }
+            _ => Value::Blank,
+        },
+        _ => return Err("unexpected scalar function".into()),
+    })
+}
+
+/// A number with a fixed number of decimals (halves rounded away from zero), as FORMAT
+/// writes it: the sign, the currency symbol, the digits, the percent sign.
+fn format_number(x: f64, decimals: usize, thousands: bool, percent: bool, prefix: &str) -> String {
+    let v = if percent { x * 100.0 } else { x };
+    let m = 10f64.powi(decimals as i32);
+    let r = (v * m).round() / m;
+    let digits = format!("{:.decimals$}", r.abs());
+    let digits = if thousands {
+        let (int, frac) = digits.split_at(digits.find('.').unwrap_or(digits.len()));
+        let mut grouped = String::new();
+        for (i, c) in int.chars().enumerate() {
+            if i > 0 && (int.len() - i) % 3 == 0 {
+                grouped.push(',');
+            }
+            grouped.push(c);
+        }
+        grouped + frac
+    } else {
+        digits
+    };
+    format!(
+        "{}{prefix}{digits}{}",
+        if r < 0.0 { "-" } else { "" },
+        if percent { "%" } else { "" }
+    )
+}
+
+fn format_date(z: i64, parts: &[DatePart]) -> String {
+    use charted_dax::format::{MONTHS, WEEKDAYS};
+    let (y, m, d) = cal::civil(z);
+    let month = MONTHS[m as usize - 1];
+    // 1970-01-01 was a Thursday.
+    let weekday = WEEKDAYS[(z + 4).rem_euclid(7) as usize];
+    parts
+        .iter()
+        .map(|p| match p {
+            DatePart::Year => format!("{y:04}"),
+            DatePart::Year2 => format!("{:02}", y.rem_euclid(100)),
+            DatePart::MonthName => month.to_string(),
+            DatePart::MonthAbbr => month[..3].to_string(),
+            DatePart::Month2 => format!("{m:02}"),
+            DatePart::Month => m.to_string(),
+            DatePart::DayName => weekday.to_string(),
+            DatePart::DayAbbr => weekday[..3].to_string(),
+            DatePart::Day2 => format!("{d:02}"),
+            DatePart::Day => d.to_string(),
+            DatePart::Literal(l) => l.clone(),
+        })
+        .collect()
 }
 
 /// The expression behind a projection: a measure, or a summarised column.
@@ -1431,6 +1644,15 @@ mod cal {
         Some(days(y, m, d))
     }
 
+    /// DATE ( y, m, d ): years 0 to 1899 count from 1900, and months and days outside
+    /// their range carry over (month 13 is January of the next year, day 0 the last
+    /// day of the month before).
+    pub fn date(y: i64, m: i64, d: i64) -> i64 {
+        let y = if (0..1900).contains(&y) { y + 1900 } else { y };
+        let total = y * 12 + m - 1;
+        days(total.div_euclid(12), (total.rem_euclid(12) + 1) as u32, 1) + d - 1
+    }
+
     pub fn format(z: i64) -> String {
         let (y, m, d) = civil(z);
         format!("{y:04}-{m:02}-{d:02}")
@@ -1491,5 +1713,71 @@ mod cal {
             );
             assert_eq!(format(last_day(parse("2023-02-03").unwrap())), "2023-02-28");
         }
+
+        #[test]
+        fn dates_carry_over_like_dax() {
+            assert_eq!(format(date(2024, 13, 1)), "2025-01-01");
+            assert_eq!(format(date(2024, 3, 0)), "2024-02-29");
+            assert_eq!(format(date(2024, 0, 1)), "2023-12-01");
+            assert_eq!(format(date(2024, 1, 366)), "2024-12-31");
+            assert_eq!(format(date(24, 1, 1)), "1924-01-01");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn formats_numbers_and_dates() {
+        assert_eq!(format_number(1234.5, 0, true, false, ""), "1,235");
+        assert_eq!(format_number(-1234.5, 2, true, false, "$"), "-$1,234.50");
+        assert_eq!(format_number(0.1234, 1, false, true, ""), "12.3%");
+        assert_eq!(format_number(-0.004, 2, false, false, ""), "0.00");
+        assert_eq!(
+            format_number(999999.999, 2, true, false, ""),
+            "1,000,000.00"
+        );
+        let parts = match charted_dax::format::parse("dddd d mmm yy").unwrap() {
+            FormatSpec::Date(p) => p,
+            _ => unreachable!(),
+        };
+        assert_eq!(
+            format_date(cal::parse("2024-03-05").unwrap(), &parts),
+            "Tuesday 5 Mar 24"
+        );
+    }
+
+    #[test]
+    fn text_functions_treat_blank_as_empty() {
+        let t = |s: &str| Value::Text(s.into());
+        let run = |f: ScalarFunc, a: &[Value]| scalar(&f, a).unwrap();
+        assert_eq!(run(ScalarFunc::Len, &[Value::Blank]), Value::Num(0.0));
+        assert_eq!(run(ScalarFunc::Upper, &[Value::Blank]), t(""));
+        assert_eq!(run(ScalarFunc::Trim, &[t("  a   b ")]), t("a b"));
+        assert_eq!(
+            run(ScalarFunc::Right, &[t("abc"), Value::Num(5.0)]),
+            t("abc")
+        );
+        assert_eq!(
+            run(
+                ScalarFunc::Substitute,
+                &[t("a-b-c"), t("-"), t("+"), Value::Num(2.0)]
+            ),
+            t("a-b+c")
+        );
+        assert_eq!(run(ScalarFunc::Int, &[Value::Num(-2.5)]), Value::Num(-3.0));
+        assert_eq!(
+            run(ScalarFunc::Min, &[Value::Num(1.0), Value::Blank]),
+            Value::Num(0.0)
+        );
+        assert_eq!(
+            run(
+                ScalarFunc::DateDiff(Period::Month),
+                &[t("2024-03-31"), t("2024-01-01")]
+            ),
+            Value::Num(-2.0)
+        );
     }
 }

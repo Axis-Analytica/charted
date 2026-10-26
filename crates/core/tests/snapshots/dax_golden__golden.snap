@@ -1,6 +1,5 @@
 ---
 source: crates/core/tests/dax_golden.rs
-assertion_line: 813
 expression: golden
 ---
 ## Sales Amount — card
@@ -758,3 +757,367 @@ expression: golden
 "Apparel" | 0.2851
 "Camping" | 0.433
 "Footwear" | 0.2784
+
+## Rolling 12M — card
+15989.5
+
+## Rolling 12M — by category
+∅ | 81
+"Apparel" | 4961.5
+"Camping" | 5928
+"Footwear" | 5019
+
+## Rolling 3M Var — card
+18
+
+## Rolling 3M Var — by category
+"Apparel" | 10
+"Camping" | 4
+"Footwear" | 4
+
+## Next 2 Quarters — card
+57
+
+## Next 2 Quarters — by category
+"Apparel" | 25
+"Camping" | 21
+"Footwear" | 11
+
+## Last 45 Days — card
+∅
+
+## Last 45 Days — by category
+
+
+## Year Back — card
+187
+
+## Year Back — by category
+∅ | 3
+"Apparel" | 73
+"Camping" | 52
+"Footwear" | 59
+
+## H1 2025 — card
+111
+
+## H1 2025 — by category
+∅ | 3
+"Apparel" | 34
+"Camping" | 31
+"Footwear" | 43
+
+## Running Qty — card
+269
+
+## Running Qty — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## From First — card
+269
+
+## From First — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## No Filters — card
+269
+
+## No Filters — by category
+∅ | 269
+"Apparel" | 269
+"Camping" | 269
+"Footwear" | 269
+
+## Share Of All — card
+1
+
+## Share Of All — by category
+∅ | 0.0112
+"Apparel" | 0.4126
+"Camping" | 0.3048
+"Footwear" | 0.2714
+
+## Int Price — card
+101
+
+## Int Price — by category
+∅ | 27
+"Apparel" | 70
+"Camping" | 152
+"Footwear" | 92
+
+## Int Negative — card
+-88
+
+## Int Negative — by category
+∅ | -27
+"Apparel" | -61
+"Camping" | -124
+"Footwear" | -90
+
+## Pi Qty — card
+845.09
+
+## Pi Qty — by category
+∅ | 9.42
+"Apparel" | 348.72
+"Camping" | 257.61
+"Footwear" | 229.34
+
+## Smaller — card
+23413
+
+## Smaller — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## At Least 10 — card
+269
+
+## At Least 10 — by category
+∅ | 10
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Max With Blank — card
+8
+
+## Max With Blank — by category
+∅ | 0
+"Apparel" | 4
+"Camping" | 2
+"Footwear" | 2
+
+## Later Date — card
+"2025-12-31"
+
+## Later Date — by category
+∅ | "2025-12-31"
+"Apparel" | "2025-12-31"
+"Camping" | "2025-12-31"
+"Footwear" | "2025-12-31"
+
+## Upper Category — card
+""
+
+## Upper Category — by category
+∅ | ""
+"Apparel" | "APPAREL"
+"Camping" | "CAMPING"
+"Footwear" | "FOOTWEAR"
+
+## Category Code — card
+"all-x"
+
+## Category Code — by category
+∅ | "all-x"
+"Apparel" | "App-elx"
+"Camping" | "Cam-ngx"
+"Footwear" | "Foo-arx"
+
+## Category Length — card
+0
+
+## Category Length — by category
+∅ | 0
+"Apparel" | 0
+"Camping" | 0
+"Footwear" | 0
+
+## Mid Lower — card
+"prod"
+
+## Mid Lower — by category
+∅ | "prod"
+"Apparel" | "ppar"
+"Camping" | "ampi"
+"Footwear" | "ootw"
+
+## Trimmed — card
+"big"
+
+## Trimmed — by category
+∅ | "big"
+"Apparel" | "big Apparel"
+"Camping" | "big Camping"
+"Footwear" | "big Footwear"
+
+## Substituted — card
+" ooo"
+
+## Substituted — by category
+∅ | " ooo"
+"Apparel" | "Apporel ooo"
+"Camping" | "Comping ooo"
+"Footwear" | "Footweor ooo"
+
+## Second A — card
+"ban_na "
+
+## Second A — by category
+∅ | "ban_na "
+"Apparel" | "ban_na Apparel"
+"Camping" | "ban_na Camping"
+"Footwear" | "ban_na Footwear"
+
+## Joined — card
+"-269"
+
+## Joined — by category
+∅ | "-3"
+"Apparel" | "Apparel-111"
+"Camping" | "Camping-82"
+"Footwear" | "Footwear-73"
+
+## Blank Arguments — card
+0
+
+## Blank Arguments — by category
+∅ | 0
+"Apparel" | 0
+"Camping" | 0
+"Footwear" | 0
+
+## Amount Text — card
+"23,413.00"
+
+## Amount Text — by category
+∅ | "81.00"
+"Apparel" | "6,675.00"
+"Camping" | "10,138.00"
+"Footwear" | "6,519.00"
+
+## Share Text — card
+"100.0%"
+
+## Share Text — by category
+∅ | "0.3%"
+"Apparel" | "28.5%"
+"Camping" | "43.3%"
+"Footwear" | "27.8%"
+
+## Price Text — card
+"$101.72"
+
+## Price Text — by category
+∅ | "$27.00"
+"Apparel" | "$70.58"
+"Camping" | "$152.34"
+"Footwear" | "$92.18"
+
+## Gap Text — card
+"-44,987"
+
+## Gap Text — by category
+∅ | "-68,319"
+"Apparel" | "-61,725"
+"Camping" | "-58,262"
+"Footwear" | "-61,881"
+
+## General Text — card
+"87.03717472118959"
+
+## General Text — by category
+∅ | "27"
+"Apparel" | "60.13513513513514"
+"Camping" | "123.63414634146342"
+"Footwear" | "89.3013698630137"
+
+## Last Month Name — card
+"Dec 2025"
+
+## Last Month Name — by category
+∅ | "Dec 2025"
+"Apparel" | "Dec 2025"
+"Camping" | "Dec 2025"
+"Footwear" | "Dec 2025"
+
+## Last Date Text — card
+"Wednesday 31/12/25"
+
+## Last Date Text — by category
+∅ | "Wednesday 31/12/25"
+"Apparel" | "Wednesday 31/12/25"
+"Camping" | "Wednesday 31/12/25"
+"Footwear" | "Wednesday 31/12/25"
+
+## First Month — card
+"2024-01 January 31"
+
+## First Month — by category
+∅ | "2024-01 January 31"
+"Apparel" | "2024-01 January 31"
+"Camping" | "2024-01 January 31"
+"Footwear" | "2024-01 January 31"
+
+## Month End — card
+"2024-02-29"
+
+## Month End — by category
+∅ | "2024-02-29"
+"Apparel" | "2024-02-29"
+"Camping" | "2024-02-29"
+"Footwear" | "2024-02-29"
+
+## Quarter Back — card
+"2025-09-30"
+
+## Quarter Back — by category
+∅ | "2025-09-30"
+"Apparel" | "2025-09-30"
+"Camping" | "2025-09-30"
+"Footwear" | "2025-09-30"
+
+## Month Later — card
+"2026-01-31"
+
+## Month Later — by category
+∅ | "2026-01-31"
+"Apparel" | "2026-01-31"
+"Camping" | "2026-01-31"
+"Footwear" | "2026-01-31"
+
+## Date Overflow — card
+"2025-01-31"
+
+## Date Overflow — by category
+∅ | "2025-01-31"
+"Apparel" | "2025-01-31"
+"Camping" | "2025-01-31"
+"Footwear" | "2025-01-31"
+
+## Next Month Start — card
+"2026-01-01"
+
+## Next Month Start — by category
+∅ | "2026-01-01"
+"Apparel" | "2026-01-01"
+"Camping" | "2026-01-01"
+"Footwear" | "2026-01-01"
+
+## Date Span — card
+2371
+
+## Date Span — by category
+∅ | 2371
+"Apparel" | 2371
+"Camping" | 2371
+"Footwear" | 2371
+
+## Days Before — card
+-730
+
+## Days Before — by category
+∅ | -730
+"Apparel" | -730
+"Camping" | -730
+"Footwear" | -730

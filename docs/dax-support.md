@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (65 functions)
+## Evaluated (83 functions)
 
 ### Aggregation
 
@@ -28,7 +28,11 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 
 | Function | Description |
 |---|---|
+| `DATE ( Year, Month, Day )` | A date from its parts. |
+| `DATEDIFF ( Date1, Date2, Interval )` | The number of interval boundaries between two dates. |
 | `DAY ( Date )` | The day of the month. |
+| `EDATE ( StartDate, Months )` | The date a number of months before or after. |
+| `EOMONTH ( StartDate, Months )` | The last day of the month a number of months away. |
 | `MONTH ( Date )` | The month, 1 to 12. |
 | `QUARTER ( Date )` | The quarter, 1 to 4. |
 | `YEAR ( Date )` | The year of a date. |
@@ -75,6 +79,8 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 |---|---|
 | `ABS ( Number )` | The absolute value of a number. |
 | `DIVIDE ( Numerator, Denominator, [AlternateResult] )` | Divides, returning the alternate result (blank by default) when the denominator is zero. |
+| `INT ( Number )` | Rounds down to an integer. |
+| `PI (  )` | The number π, 3.14159265358979. |
 | `ROUND ( Number, NumberOfDigits )` | Rounds a number to the given number of digits. |
 
 ### Relationships
@@ -91,11 +97,28 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `DISTINCT ( ColumnOrTable )` | The distinct values of a column (without the blank row), or the distinct rows of a table. |
 | `VALUES ( TableOrColumn )` | The distinct values of a column (with the blank row when unmatched rows exist), or a table's rows. |
 
+### Text
+
+| Function | Description |
+|---|---|
+| `CONCATENATE ( Text1, Text2 )` | Joins two text strings. |
+| `FORMAT ( Value, FormatString )` | Converts a value to text with a format string. |
+| `LEFT ( Text, [NumberOfCharacters] )` | Characters from the start of text. |
+| `LEN ( Text )` | The number of characters. |
+| `LOWER ( Text )` | Text in lower case. |
+| `MID ( Text, StartPosition, NumberOfCharacters )` | Characters from the middle of text. |
+| `RIGHT ( Text, [NumberOfCharacters] )` | Characters from the end of text. |
+| `SUBSTITUTE ( Text, OldText, NewText, [InstanceNumber] )` | Replaces text by matching. |
+| `TRIM ( Text )` | Removes spaces from both ends and repeated spaces between words. |
+| `UPPER ( Text )` | Text in upper case. |
+
 ### Time intelligence
 
 | Function | Description |
 |---|---|
 | `DATEADD ( Dates, NumberOfIntervals, Interval )` | Dates shifted by a number of intervals. |
+| `DATESBETWEEN ( Dates, StartDate, EndDate )` | Dates between two dates. |
+| `DATESINPERIOD ( Dates, StartDate, NumberOfIntervals, Interval )` | Dates in a period starting at a date (ending at it when the number is negative). |
 | `DATESMTD ( Dates )` | Dates from the start of the month to the last date in context. |
 | `DATESQTD ( Dates )` | Dates from the start of the quarter to the last date in context. |
 | `DATESYTD ( Dates, [YearEndDate] )` | Dates from the start of the year to the last date in context. |
@@ -123,10 +146,13 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Relationships.** Active many-to-one and one-to-one relationships filter from the one side to the many side; *Both* also filters the other way. USERELATIONSHIP switches an inactive relationship on inside CALCULATE. Changes that would give filters two active paths between tables are refused, as in Power BI. Many-to-many relationships are stored and exported but do not filter yet.
 - **Calculated columns** are evaluated per row with the table's columns, RELATED and scalar functions, and stored with the data; aggregates, measures and CALCULATE in calculated columns are not supported yet.
 - **FILTER over measures** used as a CALCULATE filter argument is not supported yet; FILTER over columns is.
+- **DATESINPERIOD and DATESBETWEEN** take their dates as MAX, MIN, LASTDATE or FIRSTDATE of the same date column, `DATE ( … )` of numbers, BLANK () for an open end of DATESBETWEEN, or a variable defined as one of these just outside the CALCULATE.
+- **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
+- **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (70)
+## Recognised, not yet evaluated (53)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATE`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATE`, `DATEDIFF`, `DATESBETWEEN`, `DATESINPERIOD`, `DATEVALUE`, `EARLIER`, `EDATE`, `EOMONTH`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `FORMAT`, `GENERATE`, `HOUR`, `IFERROR`, `INT`, `ISERROR`, `LASTNONBLANK`, `LEFT`, `LEN`, `LN`, `LOG`, `LOOKUPVALUE`, `LOWER`, `MAXA`, `MEDIAN`, `MEDIANX`, `MID`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `RIGHT`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUBSTITUTE`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TREATAS`, `TRIM`, `TRUNC`, `UPPER`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`
+`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `CONCATENATEX`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EARLIER`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `LOOKUPVALUE`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `RANKX`, `RELATEDTABLE`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TODAY`, `TOPN`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`

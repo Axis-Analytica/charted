@@ -4,6 +4,7 @@
 
 pub mod bind;
 pub mod catalog;
+pub mod format;
 pub mod ide;
 pub mod lexer;
 pub mod parser;
@@ -12,8 +13,10 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 pub use bind::{
-    AggFunc, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, bind, bind_in,
+    AggFunc, Anchor, Bound, DateOp, FilterArg, InfoFunc, Period, ScalarFunc, TableExpr, bind,
+    bind_in,
 };
+pub use format::{DatePart, FormatSpec};
 pub use parser::{BinaryOp, Expr, ExprKind, Parsed, UnaryOp, parse};
 
 /// A byte range in the formula text.

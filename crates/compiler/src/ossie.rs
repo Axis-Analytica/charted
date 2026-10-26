@@ -91,6 +91,27 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 ScalarFunc::Month => format!("EXTRACT(MONTH FROM {})", a[0]),
                 ScalarFunc::Day => format!("EXTRACT(DAY FROM {})", a[0]),
                 ScalarFunc::Quarter => format!("EXTRACT(QUARTER FROM {})", a[0]),
+                ScalarFunc::Int => format!("FLOOR({})", a[0]),
+                ScalarFunc::Upper => format!("UPPER({})", a[0]),
+                ScalarFunc::Lower => format!("LOWER({})", a[0]),
+                ScalarFunc::Len => format!("CHAR_LENGTH({})", a[0]),
+                ScalarFunc::Left => format!("LEFT({}, {})", a[0], a.get(1).map_or("1", |n| n)),
+                ScalarFunc::Right => format!("RIGHT({}, {})", a[0], a.get(1).map_or("1", |n| n)),
+                ScalarFunc::Mid => format!("SUBSTRING({}, {}, {})", a[0], a[1], a[2]),
+                ScalarFunc::Substitute if a.len() == 3 => {
+                    format!("REPLACE({}, {}, {})", a[0], a[1], a[2])
+                }
+                // Blank handling (MIN/MAX), space collapsing (TRIM), date overflow and
+                // format strings have no portable SQL spelling: no generated expression.
+                ScalarFunc::Min
+                | ScalarFunc::Max
+                | ScalarFunc::Trim
+                | ScalarFunc::Substitute
+                | ScalarFunc::Format(_)
+                | ScalarFunc::Date
+                | ScalarFunc::EoMonth
+                | ScalarFunc::EDate
+                | ScalarFunc::DateDiff(_) => return None,
             }
         }
         Bound::Unary { op, expr } => {
