@@ -11,5 +11,5 @@ if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$newest" ] && [ -f "$out/charted_wa
   exit 0
 fi
 cargo build -q --release --target wasm32-unknown-unknown -p charted-wasm
-wasm-bindgen --target web --out-dir "$out" target/wasm32-unknown-unknown/release/charted_wasm.wasm
+wasm-bindgen --target web --out-dir "$out" "${CARGO_TARGET_DIR:-target}"/wasm32-unknown-unknown/release/charted_wasm.wasm
 echo "$newest" > "$stamp"
