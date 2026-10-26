@@ -541,6 +541,35 @@ const MEASURES: &[(&str, &str)] = &[
         "Category Rank",
         "RANKX ( ALL ( Product[Category] ), [Sales Amount] )",
     ),
+    // TOPN and CONCATENATEX
+    (
+        "Top 3 Products Sales",
+        "CALCULATE ( [Sales Amount], TOPN ( 3, ALL ( Product[Product] ), [Sales Amount] ) )",
+    ),
+    (
+        "Top 2 Products Qty",
+        "SUMX ( TOPN ( 2, VALUES ( Product[Product] ), [Quantity] ), [Quantity] )",
+    ),
+    (
+        "Top Tens Count",
+        "COUNTROWS ( TOPN ( 1, VALUES ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ), DESC ) )",
+    ),
+    (
+        "Cheapest Two",
+        "SUMX ( TOPN ( 2, Product, Product[ListPrice], ASC ), Product[ListPrice] )",
+    ),
+    (
+        "Colors List",
+        "CONCATENATEX ( VALUES ( Product[Color] ), Product[Color], \", \" )",
+    ),
+    (
+        "Products By Qty",
+        "CONCATENATEX ( VALUES ( Product[Product] ), Product[Product], \", \", [Quantity], DESC )",
+    ),
+    (
+        "Region Quantities",
+        "CONCATENATEX ( VALUES ( Store[Region] ), [Quantity], \"|\" )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1129,6 +1158,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MONTH ( EDATE ( MIN ( Date[Date] ), 5 ) )",
         "LEN ( FORMAT ( [Sales Amount], \"#,0\" ) )",
         "RANKX ( ALL ( Product[Category] ), [Quantity] )",
+        "LEN ( CONCATENATEX ( VALUES ( Store[Region] ), Store[Region], \",\" ) )",
         "RANKX ( ALLSELECTED ( Store[Region] ), [Orders], , ASC, DENSE )",
     ];
     const FILTERS: &[&str] = &[
@@ -1159,6 +1189,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "FILTER ( VALUES ( Product[Category] ), [Orders] > 10 )",
         "FILTER ( ALL ( Store[Region] ), [Quantity] > 30 )",
         "DATESINPERIOD ( Date[Date], EOMONTH ( MAX ( Date[Date] ), -1 ), -2, MONTH )",
+        "TOPN ( 3, ALL ( Product[Product] ), [Sales Amount] )",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",
@@ -1169,6 +1200,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "SUMX ( ALLSELECTED ( Product[Color] ), {} )",
         "MAXX ( ALLSELECTED ( Date[MonthNumber] ), {} )",
         "AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), {} )",
+        "SUMX ( TOPN ( 2, VALUES ( Product[Product] ), [Quantity] ), {} )",
     ];
     if depth == 0 {
         return r.pick(AGGS).to_string();

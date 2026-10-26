@@ -160,6 +160,13 @@ pub enum TableExpr {
     List(Vec<Bound>),
     /// Dates of a date column computed from the visible ones (time intelligence).
     Dates { table: Id, column: Id, op: DateOp },
+    /// TOPN: the rows of `source` ranked within the first `n` by the order expressions
+    /// (evaluated per row; `true` ascending), ties at the cut kept.
+    TopN {
+        n: Box<Bound>,
+        source: Box<TableExpr>,
+        order: Vec<(Bound, bool)>,
+    },
 }
 
 impl TableExpr {
@@ -171,7 +178,7 @@ impl TableExpr {
             | TableExpr::All { table: t, .. }
             | TableExpr::AllSelected { table: t, .. }
             | TableExpr::Dates { table: t, .. } => Some(t),
-            TableExpr::Filter { source, .. } => source.table(),
+            TableExpr::Filter { source, .. } | TableExpr::TopN { source, .. } => source.table(),
             TableExpr::List(_) => None,
         }
     }
@@ -191,7 +198,7 @@ impl TableExpr {
                 None
             }
             TableExpr::Dates { column, .. } => Some(std::slice::from_ref(column)),
-            TableExpr::Filter { source, .. } => source.columns(),
+            TableExpr::Filter { source, .. } | TableExpr::TopN { source, .. } => source.columns(),
             TableExpr::List(_) => Some(&[]),
         }
     }
@@ -252,6 +259,14 @@ pub enum Bound {
         source: TableExpr,
         arg: Option<Box<Bound>>,
     },
+    /// CONCATENATEX: `expr` per row of `source` as text, joined by `delimiter`, in the
+    /// order of `order` (`true` ascending) or else of the text.
+    ConcatX {
+        source: TableExpr,
+        expr: Box<Bound>,
+        delimiter: String,
+        order: Option<(Box<Bound>, bool)>,
+    },
     /// RANKX: 1 + how many rows of `source` have an `expr` beating `value` (`expr` in
     /// the current context when omitted); with `dense`, how many distinct values.
     Rank {
@@ -302,7 +317,6 @@ pub const KNOWN: &[&str] = &[
     "AVERAGEA",
     "CALCULATETABLE",
     "CEILING",
-    "CONCATENATEX",
     "COUNTAX",
     "CROSSFILTER",
     "DATEVALUE",
@@ -342,7 +356,6 @@ pub const KNOWN: &[&str] = &[
     "STDEV.S",
     "SUMMARIZE",
     "SUMMARIZECOLUMNS",
-    "TOPN",
     "TREATAS",
     "TRUNC",
     "VALUE",
@@ -364,6 +377,7 @@ pub const SUPPORTED: &[&str] = &[
     "CALCULATE",
     "COALESCE",
     "CONCATENATE",
+    "CONCATENATEX",
     "COUNT",
     "COUNTA",
     "COUNTBLANK",
@@ -429,6 +443,7 @@ pub const SUPPORTED: &[&str] = &[
     "SUMX",
     "SWITCH",
     "TODAY",
+    "TOPN",
     "TOTALMTD",
     "TOTALQTD",
     "TOTALYTD",
@@ -974,6 +989,38 @@ impl<'a> Binder<'a> {
                         let (table, columns) = self.all_args(&upper, args, e.span)?;
                         Some(TableExpr::AllSelected { table, columns })
                     }
+                    "TOPN" => {
+                        if !self.arity(&upper, args, e.span, 3, usize::MAX) {
+                            return None;
+                        }
+                        let n = self.expr(&args[0], rows);
+                        let source = self.table_expr(&args[1], rows)?;
+                        let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
+                            return self.err(args[1].span, "TOPN over a list of values isn't supported yet").and(None);
+                        };
+                        let mut inner: Vec<&Table> = rows.to_vec();
+                        inner.push(t);
+                        // Order expressions, each optionally followed by ASC or DESC.
+                        let mut order: Vec<(Bound, bool)> = Vec::new();
+                        let mut i = 2;
+                        while i < args.len() {
+                            let o = self.nested(|b| b.expr(&args[i], &inner))?;
+                            let asc = match args.get(i + 1).and_then(order_keyword) {
+                                Some(a) => {
+                                    i += 1;
+                                    a
+                                }
+                                None => false,
+                            };
+                            order.push((o, asc));
+                            i += 1;
+                        }
+                        Some(TableExpr::TopN {
+                            n: Box::new(n?),
+                            source: Box::new(source),
+                            order,
+                        })
+                    }
                     "FILTER" => {
                         if !self.arity(&upper, args, e.span, 2, 2) {
                             return None;
@@ -1108,7 +1155,7 @@ impl<'a> Binder<'a> {
                             .and(None),
                     };
                 }
-                "FILTER" | "VALUES" | "DISTINCT" | "SAMEPERIODLASTYEAR" | "DATEADD"
+                "FILTER" | "VALUES" | "DISTINCT" | "TOPN" | "SAMEPERIODLASTYEAR" | "DATEADD"
                 | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD"
                 | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER"
                 | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
@@ -1223,6 +1270,37 @@ impl<'a> Binder<'a> {
             });
         }
         match upper.as_str() {
+            "CONCATENATEX" => {
+                if !self.arity(&upper, args, span, 2, 5) {
+                    return None;
+                }
+                let source = self.table_expr(&args[0], rows)?;
+                let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
+                    return self.err(args[0].span, "CONCATENATEX over a list of values isn't supported yet");
+                };
+                let mut inner: Vec<&Table> = rows.to_vec();
+                inner.push(t);
+                let expr = self.nested(|b| b.expr(&args[1], &inner));
+                let delimiter = match args.get(2).map(|a| &a.kind) {
+                    Some(ExprKind::Text(d)) => d.clone(),
+                    Some(ExprKind::Omitted) | None => String::new(),
+                    Some(_) => return self.err(args[2].span, "charted needs the delimiter written as text"),
+                };
+                let order = match args.get(3) {
+                    Some(Expr { kind: ExprKind::Omitted, .. }) | None => None,
+                    Some(o) => {
+                        let o = self.nested(|b| b.expr(o, &inner))?;
+                        let asc = args.get(4).and_then(order_keyword).unwrap_or(true);
+                        Some((Box::new(o), asc))
+                    }
+                };
+                Some(Bound::ConcatX {
+                    source,
+                    expr: Box::new(expr?),
+                    delimiter,
+                    order,
+                })
+            }
             "RANKX" => {
                 if !self.arity(&upper, args, span, 2, 5) {
                     return None;
@@ -1458,7 +1536,7 @@ impl<'a> Binder<'a> {
                     })),
                 })
             }
-            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
+            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
             | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
@@ -1572,6 +1650,18 @@ pub fn walk(b: &Bound, f: &mut dyn FnMut(&Bound)) {
                 walk(a, f);
             }
         }
+        Bound::ConcatX {
+            source,
+            expr,
+            order,
+            ..
+        } => {
+            walk_table(source, f);
+            walk(expr, f);
+            if let Some((o, _)) = order {
+                walk(o, f);
+            }
+        }
         Bound::Rank {
             source,
             expr,
@@ -1621,6 +1711,24 @@ pub fn walk(b: &Bound, f: &mut dyn FnMut(&Bound)) {
     }
 }
 
+/// ASC/DESC (or 1/0, TRUE/FALSE) as an order argument: `true` ascending.
+fn order_keyword(e: &Expr) -> Option<bool> {
+    match &e.kind {
+        ExprKind::Table(n)
+        | ExprKind::Ref {
+            table: None,
+            name: n,
+        } => match n.to_ascii_uppercase().as_str() {
+            "ASC" => Some(true),
+            "DESC" => Some(false),
+            _ => None,
+        },
+        ExprKind::Number(n) => Some(*n != 0.0),
+        ExprKind::Bool(b) => Some(*b),
+        _ => None,
+    }
+}
+
 fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
     match t {
         TableExpr::Filter { source, condition } => {
@@ -1628,6 +1736,11 @@ fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
             walk(condition, f);
         }
         TableExpr::List(items) => items.iter().for_each(|a| walk(a, f)),
+        TableExpr::TopN { n, source, order } => {
+            walk(n, f);
+            walk_table(source, f);
+            order.iter().for_each(|(o, _)| walk(o, f));
+        }
         TableExpr::Dates { op, .. } => {
             let anchors: Vec<&Anchor> = match op {
                 DateOp::InPeriod(a, ..) => vec![a],

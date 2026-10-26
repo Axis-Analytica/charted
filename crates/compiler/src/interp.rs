@@ -534,6 +534,9 @@ impl<'a> Interp<'a> {
             }
             TableExpr::Filter { source, condition } => {
                 let src = self.eval_table(source, ctx, rows)?;
+                // Rows read to test the condition (other colours' sales in FILTER ( VALUES
+                // ( Product[Color] ), [Sales] > 0 )) don't give the visual row data.
+                let touched = self.touched;
                 let mut out = Vec::new();
                 for r in src {
                     let mut stack = rows.to_vec();
@@ -542,9 +545,52 @@ impl<'a> Interp<'a> {
                         out.push(r);
                     }
                 }
+                self.touched = touched;
                 Ok(out)
             }
             TableExpr::List(_) => Err("lists are not tables here".into()),
+            TableExpr::TopN { n, source, order } => {
+                let n = self.eval(n, ctx, rows)?.num().unwrap_or(0.0);
+                let mut keyed = Vec::new();
+                for r in self.eval_table(source, ctx, rows)? {
+                    let mut stack = rows.to_vec();
+                    stack.push(r.clone());
+                    let keys = order
+                        .iter()
+                        .map(|(o, _)| self.eval(o, ctx, &stack))
+                        .collect::<Result<Vec<_>>>()?;
+                    keyed.push((r, keys));
+                }
+                // Blank orders as zero (or empty text); ties at the cut are all kept.
+                let likes: Vec<Value> = (0..order.len())
+                    .map(|i| {
+                        keyed
+                            .iter()
+                            .map(|(_, k)| &k[i])
+                            .find(|v| !v.is_blank())
+                            .cloned()
+                            .unwrap_or(Value::Num(0.0))
+                    })
+                    .collect();
+                let before = |a: &[Value], b: &[Value]| {
+                    for (i, (_, asc)) in order.iter().enumerate() {
+                        let o = cmp(&coerced(&a[i], &likes[i]), &coerced(&b[i], &likes[i]));
+                        let o = if *asc { o } else { o.reverse() };
+                        if !o.is_eq() {
+                            return o.is_lt();
+                        }
+                    }
+                    false
+                };
+                Ok(keyed
+                    .iter()
+                    .filter(|(_, k)| {
+                        let rank = 1 + keyed.iter().filter(|(_, o)| before(o, k)).count();
+                        (rank as f64) <= n
+                    })
+                    .map(|(r, _)| r.clone())
+                    .collect())
+            }
             TableExpr::Dates { table, column, op } => {
                 let td = self.table(table)?;
                 let ci = td.col(column).ok_or("missing date column")?;
@@ -922,6 +968,50 @@ impl<'a> Interp<'a> {
             }
             Bound::Aggregate { func, source, arg } => {
                 self.aggregate(*func, source, arg.as_deref(), ctx, rows)?
+            }
+            Bound::ConcatX {
+                source,
+                expr,
+                delimiter,
+                order,
+            } => {
+                let mut parts = Vec::new();
+                for r in self.eval_table(source, ctx, rows)? {
+                    let mut stack = rows.to_vec();
+                    stack.push(r);
+                    let v = self.eval(expr, ctx, &stack)?;
+                    let o = match order {
+                        Some((o, _)) => self.eval(o, ctx, &stack)?,
+                        None => Value::Blank,
+                    };
+                    parts.push((o, text(&v)));
+                }
+                if parts.is_empty() {
+                    Value::Blank
+                } else {
+                    // The iterated rows are data (the visual shows the row).
+                    self.touched = true;
+                    let like = parts
+                        .iter()
+                        .map(|(o, _)| o)
+                        .find(|o| !o.is_blank())
+                        .cloned()
+                        .unwrap_or(Value::Num(0.0));
+                    let asc = order.as_ref().is_none_or(|(_, a)| *a);
+                    parts.sort_by(|(oa, ta), (ob, tb)| {
+                        let o = cmp(&coerced(oa, &like), &coerced(ob, &like));
+                        (if asc { o } else { o.reverse() })
+                            .then_with(|| ta.to_lowercase().cmp(&tb.to_lowercase()))
+                            .then_with(|| ta.cmp(tb))
+                    });
+                    Value::Text(
+                        parts
+                            .into_iter()
+                            .map(|(_, t)| t)
+                            .collect::<Vec<_>>()
+                            .join(delimiter),
+                    )
+                }
             }
             Bound::Rank {
                 source,
@@ -1667,7 +1757,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
 fn reads_rows(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> bool {
     let mut found = false;
     charted_dax::bind::walk(b, &mut |x| match x {
-        Bound::Aggregate { .. } => found = true,
+        Bound::Aggregate { .. } | Bound::Rank { .. } | Bound::ConcatX { .. } => found = true,
         Bound::Info {
             func: InfoFunc::SelectedValue | InfoFunc::HasOneValue,
             ..

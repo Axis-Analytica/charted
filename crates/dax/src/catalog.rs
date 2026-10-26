@@ -243,6 +243,10 @@ pub fn support_markdown() -> String {
          - **RANKX** ranks with blank as zero (or empty text), descending by default; ties \
            share a rank and skip the next ones unless DENSE. The value argument may be left \
            out (`RANKX ( T, e, , ASC )`).\n\
+         - **TOPN** keeps the rows tied at the cut (so it can return more than N), orders \
+           descending by default with blank as zero, and works as a CALCULATE filter or an \
+           iterated table. **CONCATENATEX** takes its delimiter as text and orders by its \
+           order expression, then by the text.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

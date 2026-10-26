@@ -629,6 +629,68 @@ expression: golden
 "Camping" | 1
 "Footwear" | 3
 
+## Top 3 Products Sales — card
+15285
+
+## Top 3 Products Sales — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Top 2 Products Qty — card
+81
+
+## Top 2 Products Qty — by category
+∅ | 3
+"Apparel" | 81
+"Camping" | 57
+"Footwear" | 73
+
+## Top Tens Count — card
+4
+
+## Top Tens Count — by category
+∅ | 1
+"Apparel" | 2
+"Camping" | 3
+"Footwear" | 2
+
+## Cheapest Two — card
+55
+
+## Cheapest Two — by category
+"Apparel" | 55
+"Camping" | 160
+"Footwear" | 210
+
+## Colors List — card
+", Black, Brown, Green, Red"
+
+## Colors List — by category
+∅ | ""
+"Apparel" | ", Red"
+"Camping" | "Black, Green"
+"Footwear" | "Black, Brown"
+
+## Products By Qty — card
+"Cap, Scarf, Boots, Sandals, Jacket, Stove, Lamp, Tent, "
+
+## Products By Qty — by category
+∅ | ""
+"Apparel" | "Cap, Scarf, Jacket"
+"Camping" | "Stove, Lamp, Tent"
+"Footwear" | "Boots, Sandals"
+
+## Region Quantities — card
+"112|71|86"
+
+## Region Quantities — by category
+∅ | "||3"
+"Apparel" | "26|27|58"
+"Camping" | "21|24|37"
+"Footwear" | "17|23|33"
+
 ## Neither Apparel Nor Camping — card
 76
 

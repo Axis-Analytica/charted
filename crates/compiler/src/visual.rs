@@ -330,6 +330,7 @@ fn row_pure(b: &Bound) -> bool {
             Bound::Measure { .. }
                 | Bound::Aggregate { .. }
                 | Bound::Rank { .. }
+                | Bound::ConcatX { .. }
                 | Bound::Calculate { .. }
                 | Bound::Info { .. }
                 | Bound::Var(_)
@@ -1327,8 +1328,8 @@ impl<'a> Compiler<'a> {
                     "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
-            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } => {
-                unreachable!("filters and ALLSELECTED were unwrapped")
+            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } | TableExpr::TopN { .. } => {
+                unreachable!("filters and ALLSELECTED were unwrapped; TOPN takes the frame path")
             }
         };
         let mut related: Vec<(Id, Id)> = Vec::new();
@@ -2010,6 +2011,15 @@ impl<'a> Compiler<'a> {
                     _ => unreachable!("matched above"),
                 }
             }
+            // TOPN as a filter: its rows per frame row.
+            TableExpr::TopN { source, .. } => {
+                let replaces = matches!(
+                    &**source,
+                    TableExpr::All { .. } | TableExpr::AllSelected { .. }
+                );
+                let f = self.filter_set(t, outer, frame, rows)?;
+                added.push((f, keep || !replaces));
+            }
             // Conditions that need the frame (measures, outer values, outer rows), and
             // FILTERs over other tables: the passing rows per frame row.
             TableExpr::Filter { source, .. } => {
@@ -2147,7 +2157,7 @@ impl<'a> Compiler<'a> {
         frame: &Frame,
         rows: &[RowBinding],
     ) -> Result<Scalar> {
-        let rf = self.row_frame(source, Some(arg), ctx, frame, rows)?;
+        let rf = self.row_frame(source, &[arg], ctx, frame, rows)?;
         let frame_name = rf.frame.rel.clone();
         let filter_sql = rf.conds;
         let value = self.scalar(arg, ctx, &rf.frame, &rf.rows)?;
@@ -2203,6 +2213,203 @@ impl<'a> Compiler<'a> {
         })
     }
 
+    /// TOPN's rows: the source's frame rows ranked by the order values within each outer
+    /// frame row (blank as zero), the first `n` kept with their ties.
+    #[allow(clippy::too_many_arguments)]
+    fn top_rows(
+        &mut self,
+        n: &Bound,
+        source: &TableExpr,
+        order: &[(Bound, bool)],
+        conds: Vec<&Bound>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<RowFrame> {
+        let exprs: Vec<&Bound> = order.iter().map(|(o, _)| o).collect();
+        let rf = self.row_frame(source, &exprs, ctx, frame, rows)?;
+        let binding = rf.rows.last().cloned().expect("the iterated row");
+        let mut parts = Vec::new();
+        for (o, _) in order {
+            parts.push(self.scalar(o, ctx, &rf.frame, &rf.rows)?);
+        }
+        let count = self.scalar(n, ctx, frame, rows)?;
+        let rel = rf.frame.rel.clone();
+        let combined = Scalar {
+            sql: parts
+                .iter()
+                .map(|p| p.sql.clone())
+                .chain([count.sql.clone()])
+                .chain(rf.conds.iter().cloned())
+                .collect(),
+            ty: ValueType::Number,
+        };
+        let (_, from) = self.render(&combined, &rel);
+        let mut by = Vec::new();
+        for (p, (_, asc)) in parts.iter().zip(order) {
+            let (x, _) = self.render(p, &rel);
+            let x = blank_as(&(x, p.ty), p.ty);
+            let x = if p.ty == ValueType::Text {
+                format!("lower({x})")
+            } else {
+                x
+            };
+            by.push(format!("{x} {}", if *asc { "ASC" } else { "DESC" }));
+        }
+        let (n_sql, _) = self.render(&count, &rel);
+        let inner_conds: Vec<String> = rf
+            .conds
+            .iter()
+            .map(|c| {
+                self.render(
+                    &Scalar {
+                        sql: c.clone(),
+                        ty: ValueType::Bool,
+                    },
+                    &rel,
+                )
+                .0
+            })
+            .collect();
+        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+        let partition = if keys.is_empty() {
+            String::new()
+        } else {
+            format!(
+                "PARTITION BY {} ",
+                keys.iter()
+                    .map(|k| format!("f.{k}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
+        let order_by = if by.is_empty() {
+            "1".to_string()
+        } else {
+            by.join(", ")
+        };
+        let wh = if inner_conds.is_empty() {
+            String::new()
+        } else {
+            format!(" WHERE {}", inner_conds.join(" AND "))
+        };
+        let row_cols: Vec<String> = binding
+            .columns
+            .iter()
+            .map(|(_, c)| c.clone())
+            .chain(binding.related.iter().map(|(_, c)| c.clone()))
+            .collect();
+        let select: Vec<String> = keys
+            .iter()
+            .chain(row_cols.iter())
+            .map(|c| format!("f.{c} AS {c}"))
+            .collect();
+        let rows_name = self.fresh("rows");
+        let sql = format!(
+            "SELECT {} FROM (SELECT f.*, rank() OVER ({partition}ORDER BY {order_by}) AS rk, {n_sql} AS n FROM {from}{wh}) AS f WHERE f.rk <= f.n",
+            if select.is_empty() {
+                "1 AS one".to_string()
+            } else {
+                select.join(", ")
+            }
+        );
+        self.ctes.push(CteDef {
+            name: rows_name.clone(),
+            sql,
+            keys: Vec::new(),
+            exact: true,
+        });
+        self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows)
+    }
+
+    /// CONCATENATEX: per outer frame row, the iterated rows' text joined in order.
+    #[allow(clippy::too_many_arguments)]
+    fn concat_x(
+        &mut self,
+        source: &TableExpr,
+        expr: &Bound,
+        delimiter: &str,
+        order: Option<(&Bound, bool)>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<Scalar> {
+        let mut exprs = vec![expr];
+        if let Some((o, _)) = order {
+            exprs.push(o);
+        }
+        let rf = self.row_frame(source, &exprs, ctx, frame, rows)?;
+        let value = self.scalar(expr, ctx, &rf.frame, &rf.rows)?;
+        let ord = match order {
+            Some((o, asc)) => Some((self.scalar(o, ctx, &rf.frame, &rf.rows)?, asc)),
+            None => None,
+        };
+        let rel = rf.frame.rel.clone();
+        let combined = Scalar {
+            sql: [value.sql.clone()]
+                .into_iter()
+                .chain(ord.iter().map(|(o, _)| o.sql.clone()))
+                .chain(rf.conds.iter().cloned())
+                .collect(),
+            ty: ValueType::Text,
+        };
+        let (_, from) = self.render(&combined, &rel);
+        let (v, _) = self.render(&value, &rel);
+        let t = text_sql(&(v, value.ty));
+        let mut by = Vec::new();
+        if let Some((o, asc)) = &ord {
+            let (x, _) = self.render(o, &rel);
+            let x = blank_as(&(x, o.ty), o.ty);
+            let x = if o.ty == ValueType::Text {
+                format!("lower({x})")
+            } else {
+                x
+            };
+            by.push(format!("{x} {}", if *asc { "ASC" } else { "DESC" }));
+        }
+        by.push(format!("lower({t})"));
+        by.push(t.clone());
+        let conds: Vec<String> = rf
+            .conds
+            .iter()
+            .map(|c| {
+                self.render(
+                    &Scalar {
+                        sql: c.clone(),
+                        ty: ValueType::Bool,
+                    },
+                    &rel,
+                )
+                .0
+            })
+            .collect();
+        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+        let mut select: Vec<String> = keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
+        select.push(format!(
+            "string_agg({t}, {} ORDER BY {}) AS v",
+            string(delimiter),
+            by.join(", ")
+        ));
+        let mut sql = format!("SELECT {} FROM {from}", select.join(", "));
+        if !conds.is_empty() {
+            sql.push_str(&format!(" WHERE {}", conds.join(" AND ")));
+        }
+        if !keys.is_empty() {
+            sql.push_str(&format!(
+                " GROUP BY {}",
+                keys.iter()
+                    .map(|k| format!("f.{k}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        let i = self.add_cte(sql, keys, true);
+        Ok(Scalar {
+            sql: format!("\u{1}{i}\u{1}"),
+            ty: ValueType::Text,
+        })
+    }
+
     /// RANKX: per outer frame row, 1 + the iterated rows whose value beats the outer
     /// value (distinct values when dense). Blank compares as zero or empty text.
     #[allow(clippy::too_many_arguments)]
@@ -2217,7 +2424,7 @@ impl<'a> Compiler<'a> {
         frame: &Frame,
         rows: &[RowBinding],
     ) -> Result<Scalar> {
-        let rf = self.row_frame(source, Some(expr), ctx, frame, rows)?;
+        let rf = self.row_frame(source, &[expr], ctx, frame, rows)?;
         let inner = self.scalar(expr, ctx, &rf.frame, &rf.rows)?;
         let outer = self.scalar(value.unwrap_or(expr), ctx, frame, rows)?;
         let rel = rf.frame.rel.clone();
@@ -2309,7 +2516,7 @@ impl<'a> Compiler<'a> {
         frame: &Frame,
         rows: &[RowBinding],
     ) -> Result<CFilter> {
-        let rf = self.row_frame(source, None, ctx, frame, rows)?;
+        let rf = self.row_frame(source, &[], ctx, frame, rows)?;
         let b = rf.rows.last().expect("the iterated row");
         let ident: Vec<(Id, String)> = b
             .columns
@@ -2364,7 +2571,7 @@ impl<'a> Compiler<'a> {
     fn row_frame(
         &mut self,
         source: &TableExpr,
-        arg: Option<&Bound>,
+        exprs: &[&Bound],
         ctx: &Ctx,
         frame: &Frame,
         rows: &[RowBinding],
@@ -2382,6 +2589,10 @@ impl<'a> Compiler<'a> {
             Some((t, c)) => (t, c),
             None => (cur, ctx),
         };
+        // TOPN: its source's rows per row of the frame, ranked within each.
+        if let TableExpr::TopN { n, source, order } = cur {
+            return self.top_rows(n, source, order, conds, ctx, frame, rows);
+        }
         // A time-intelligence table: the dates of its set, per row of the frame.
         if let TableExpr::Dates { table, column, op } = cur {
             let f = self.date_set(table, column, op, rows_ctx, frame, rows)?;
@@ -2434,8 +2645,11 @@ impl<'a> Compiler<'a> {
                     "iterating a list of values".into(),
                 ));
             }
-            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } | TableExpr::Dates { .. } => {
-                unreachable!("filters, ALLSELECTED and dates were handled")
+            TableExpr::Filter { .. }
+            | TableExpr::AllSelected { .. }
+            | TableExpr::Dates { .. }
+            | TableExpr::TopN { .. } => {
+                unreachable!("filters, ALLSELECTED, dates and TOPN were handled")
             }
         };
         let tab = table(self.model, &t)?;
@@ -2452,7 +2666,7 @@ impl<'a> Compiler<'a> {
             }
         };
         let mut related = Vec::new();
-        if let Some(a) = arg {
+        for a in exprs {
             related_refs(a, &mut related);
         }
         for c in &conds {
@@ -2673,6 +2887,20 @@ impl<'a> Compiler<'a> {
                 self.vars.pop();
                 out
             }
+            Bound::ConcatX {
+                source,
+                expr,
+                delimiter,
+                order,
+            } => self.concat_x(
+                source,
+                expr,
+                delimiter,
+                order.as_ref().map(|(o, asc)| (&**o, *asc)),
+                ctx,
+                frame,
+                rows,
+            ),
             Bound::Rank {
                 source,
                 expr,
@@ -2700,7 +2928,7 @@ impl<'a> Compiler<'a> {
                         t = source;
                     }
                     // Date sets are per frame row: they always take the frame path.
-                    ok && !matches!(t, TableExpr::Dates { .. })
+                    ok && !matches!(t, TableExpr::Dates { .. } | TableExpr::TopN { .. })
                 };
                 if pure {
                     self.simple_aggregate(*func, source, arg.as_deref(), ctx)
@@ -3186,6 +3414,10 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         .map(|x| format!("{} AS ({})", x.name, x.sql))
         .collect();
     with.push(format!("k AS ({k_sql})"));
+    // Materialised: DuckDB 2.0 pushes the blank-row filter below into this query and
+    // then evaluates some CASE expressions over cross-joined CTEs wrongly (an IF took
+    // its ELSE branch for one row only when the filter was there).
+    with.push(format!("res AS MATERIALIZED ({inner})"));
 
     let visible: Vec<String> = keys
         .iter()
@@ -3198,7 +3430,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
     let mut outer_cols = visible.clone();
     outer_cols.extend(hidden.iter().cloned());
     let mut sql = format!(
-        "WITH {} SELECT {} FROM ({inner}) AS r",
+        "WITH {} SELECT {} FROM res AS r",
         with.join(", "),
         if outer_cols.is_empty() {
             "1 AS one".into()
