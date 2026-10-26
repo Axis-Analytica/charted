@@ -158,7 +158,10 @@ fn source_path(s: &mut Source) -> Option<&mut String> {
         | Source::Excel { path, .. }
         | Source::Folder { path, .. }
         | Source::Sqlite { path, .. } => Some(path),
-        Source::Postgres { .. } | Source::Calendar { .. } => None,
+        Source::Postgres { .. }
+        | Source::Calendar { .. }
+        | Source::Reference { .. }
+        | Source::Table { .. } => None,
     }
 }
 
@@ -287,13 +290,18 @@ pub fn import(input: &Path, parent: &Path) -> Result<(PathBuf, ImportReport), Co
     for q in project.queries.iter().filter(|q| !q.no_load) {
         // Nothing is downloaded without asking: files on the web load on the first
         // Refresh, which asks before getting DuckDB's web reader.
-        if q.source.is_web() {
+        // A query starting from such a query waits for it too.
+        if let Some(web) = q
+            .sources_read(&project.queries)
+            .into_iter()
+            .find(|s| s.is_web())
+        {
             skipped.push(Skipped {
                 kind: "data".into(),
                 name: q.name.clone(),
                 reason: format!(
                     "it reads {} from the web; Refresh to load it (charted asks before downloading)",
-                    q.source.path()
+                    web.path()
                 ),
             });
             continue;

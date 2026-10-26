@@ -854,3 +854,142 @@ fn a_new_project_starts_empty_and_takes_data() {
     assert_eq!(m.tables.len(), 1);
     assert_eq!(m.tables[0].columns.len(), 2);
 }
+
+#[test]
+fn references_and_entered_tables_load_and_follow_their_sources() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(dir.path().join("state"));
+    app.handle(Request::NewProject {
+        name: "Refs".into(),
+        dir: Some(dir.path().display().to_string()),
+    })
+    .unwrap();
+    app.handle(Request::OpenProject {
+        path: dir.path().join("Refs").display().to_string(),
+    })
+    .unwrap();
+    let file = dir.path().join("sales.csv");
+    std::fs::write(&file, "Region,Amount\nNorth,10\nSouth,32\nNorth,5\n").unwrap();
+    let mut sales = query("sales", "Sales", csv(file.to_str().unwrap(), true), vec![]);
+    let big = query(
+        "big",
+        "Big sales",
+        Source::Reference {
+            query: "sales".into(),
+        },
+        vec![Step::FilterRows {
+            column: "Amount".into(),
+            conditions: vec![cond(FilterOp::Greater, "6")],
+            or: false,
+        }],
+    );
+    let targets = query(
+        "targets",
+        "Targets",
+        Source::Table {
+            columns: vec![
+                ("Region".into(), DataType::String),
+                ("Target".into(), DataType::Int64),
+                ("Share".into(), DataType::Double),
+            ],
+            rows: vec![
+                vec![Some("North".into()), Some("12".into()), Some("0.5".into())],
+                vec![Some("South".into()), Some("2.5".into()), None],
+            ],
+        },
+        vec![],
+    );
+    app.handle(Request::ApplyQueries {
+        queries: vec![sales.clone(), big.clone(), targets.clone()],
+    })
+    .unwrap();
+    let get = |app: &App, sql: &str| rows(app.session().unwrap().database().arrow(sql).unwrap());
+    assert_eq!(get(&app, "SELECT count(*) FROM big"), [["2"]]);
+    assert_eq!(
+        get(&app, "SELECT * FROM targets"),
+        [["North", "12", "0.5"], ["South", "", ""]]
+    );
+    let m = &app.session().unwrap().project.model;
+    let t = m.table_by_name("Targets").unwrap();
+    assert_eq!(
+        t.columns.iter().map(|c| c.data_type).collect::<Vec<_>>(),
+        [DataType::String, DataType::Int64, DataType::Double]
+    );
+    // Changing Sales reloads the query that references it.
+    sales.steps.push(Step::FilterRows {
+        column: "Region".into(),
+        conditions: vec![cond(FilterOp::Equals, "North")],
+        or: false,
+    });
+    app.handle(Request::ApplyQueries {
+        queries: vec![sales, big, targets],
+    })
+    .unwrap();
+    assert_eq!(get(&app, "SELECT count(*) FROM big"), [["1"]]);
+}
+
+/// A calendar written in M (as in public Power BI projects), imported and loaded: its
+/// columns hold what Power Query gives.
+#[test]
+fn an_imported_m_calendar_loads_as_power_query_makes_it() {
+    let m = r#"let
+    StartDate = #date(2024, 1, 1),
+    EndDate = #date(2024, 12, 31),
+    DateList = List.Dates(StartDate, Duration.Days(EndDate - StartDate) + 1, #duration(1, 0, 0, 0)),
+    Calendar = Table.FromList(DateList, Splitter.SplitByNothing(), {"Date"}),
+    AddYear = Table.AddColumn(Calendar, "Year", each Date.Year([Date])),
+    AddMonthName = Table.AddColumn(AddYear, "Month Name", each Date.ToText([Date], "MMM")),
+    AddYearMonth = Table.AddColumn(AddMonthName, "Year-Month", each Text.From(Date.Year([Date])) & " " & Date.ToText([Date], "MMM")),
+    AddQuarter = Table.AddColumn(AddYearMonth, "Quarter", each "Q" & Text.From(Date.QuarterOfYear([Date]))),
+    AddWeek = Table.AddColumn(AddQuarter, "Week Number", each Date.WeekOfYear([Date])),
+    AddDayOfWeek = Table.AddColumn(AddWeek, "Day of Week", each Date.DayOfWeek([Date]) + 1),
+    AddIsoDay = Table.AddColumn(AddDayOfWeek, "ISO Day", each Date.DayOfWeek([Date], Day.Monday) + 1),
+    AddDayName = Table.AddColumn(AddIsoDay, "Day Name", each Date.ToText([Date], "dddd")),
+    AddIsWeekend = Table.AddColumn(AddDayName, "Is Weekend", each if Date.DayOfWeek([Date]) >= 5 then true else false),
+    AddFiscalYear = Table.AddColumn(AddIsWeekend, "Fiscal Year", each if Date.Month([Date]) >= 7 then Date.Year([Date]) + 1 else Date.Year([Date])),
+    AddFiscalQuarter = Table.AddColumn(AddFiscalYear, "Fiscal Quarter", each "FQ" & Text.From(Number.IntegerDivide((Date.Month([Date]) + 5), 3))),
+    #"Changed Type" = Table.TransformColumnTypes(AddFiscalQuarter, {{"Date", type date}, {"Year", Int64.Type}, {"Is Weekend", type logical}})
+in
+    #"Changed Type""#;
+    let (source, steps) = charted_tmdl::mquery::to_query(m, &BTreeMap::new()).unwrap();
+    let fx = Fx::new();
+    let q = query("cal", "Calendar", source, steps);
+    let r = fx.preview(&q, &[]);
+    assert_eq!(r.len(), 366);
+    // Monday 1 January, Sunday 7 January (a new week), Saturday 6 July.
+    assert_eq!(
+        r[0],
+        [
+            "2024-01-01",
+            "2024",
+            "Jan",
+            "2024 Jan",
+            "Q1",
+            "1",
+            "2",
+            "1",
+            "Monday",
+            "false",
+            "2024",
+            "FQ2"
+        ]
+    );
+    assert_eq!(r[6][4..7], ["Q1", "2", "1"]);
+    assert_eq!(
+        r[187],
+        [
+            "2024-07-06",
+            "2024",
+            "Jul",
+            "2024 Jul",
+            "Q3",
+            "27",
+            "7",
+            "6",
+            "Saturday",
+            "true",
+            "2025",
+            "FQ4"
+        ]
+    );
+}

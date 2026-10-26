@@ -24,6 +24,12 @@ enum M {
     Field(Box<M>, String),
     /// `type text`, `Int64.Type`…
     Type(String),
+    /// `type table [A = text, B = _t]`: the columns and their types.
+    TableType(Vec<(String, M)>),
+    /// `a + b`, `a - b`, `a * b`, `a / b`.
+    Bin(Box<M>, char, Box<M>),
+    /// A nested `let … in …` expression.
+    Let(Vec<(String, M)>, Box<M>),
     /// Anything this reader doesn't model (an `each` function, operators…).
     Other(String),
 }
@@ -131,10 +137,11 @@ fn primary(l: &mut Lexer) -> Result<M, String> {
         Tok::Num(n) => M::Num(n),
         Tok::Ident(w) if w == "null" => M::Null,
         Tok::Ident(w) if w == "true" || w == "false" => M::Bool(w == "true"),
-        Tok::Ident(w) if w == "type" => match l.next() {
-            Tok::Ident(t) => M::Type(t),
-            t => return Err(format!("unexpected {t:?} after type")),
-        },
+        Tok::Ident(w) if w == "type" => type_expr(l)?,
+        Tok::Ident(w) if w == "let" => {
+            let (steps, result) = let_body(l)?;
+            M::Let(steps, Box::new(result))
+        }
         Tok::Ident(w) if w == "each" => {
             let start = l.i;
             // The function body runs to the end of the argument.
@@ -202,12 +209,17 @@ fn primary(l: &mut Lexer) -> Result<M, String> {
             }
             Tok::Sym('[') if !matches!(e, M::Str(_) | M::Num(_)) => {
                 l.next();
-                let name = match l.next() {
-                    Tok::Ident(n) | Tok::Str(n) => n,
-                    t => return Err(format!("unexpected {t:?} in a field access")),
-                };
-                expect(l, ']')?;
-                e = M::Field(Box::new(e), name);
+                // A generalized identifier: `[Order Date]` is one name.
+                let mut parts = Vec::new();
+                loop {
+                    match l.next() {
+                        Tok::Ident(n) | Tok::Str(n) => parts.push(n),
+                        Tok::Num(n) => parts.push(n.to_string()),
+                        Tok::Sym(']') if !parts.is_empty() => break,
+                        t => return Err(format!("unexpected {t:?} in a field access")),
+                    }
+                }
+                e = M::Field(Box::new(e), parts.join(" "));
             }
             _ => return Ok(e),
         }
@@ -230,11 +242,71 @@ fn items(l: &mut Lexer, close: char) -> Result<Vec<M>, String> {
     }
 }
 
-fn expr(l: &mut Lexer) -> Result<M, String> {
+/// After `type`: `nullable text`, `table [A = text]`, `number`…
+fn type_expr(l: &mut Lexer) -> Result<M, String> {
+    match l.next() {
+        Tok::Ident(n) if n == "nullable" => type_expr(l),
+        Tok::Ident(n) if n == "table" && l.peek() == Tok::Sym('[') => match primary(l)? {
+            M::Record(fields) => Ok(M::TableType(fields)),
+            _ => Err("unexpected table type".into()),
+        },
+        Tok::Ident(t) => Ok(M::Type(t)),
+        Tok::Sym('(') => {
+            let e = expr(l)?;
+            expect(l, ')')?;
+            Ok(e)
+        }
+        t => Err(format!("unexpected {t:?} after type")),
+    }
+}
+
+/// After `let`: the named steps, `in`, and the result.
+fn let_body(l: &mut Lexer) -> Result<(Vec<(String, M)>, M), String> {
+    let mut steps = Vec::new();
+    loop {
+        let name = match l.next() {
+            Tok::Ident(n) => n,
+            t => return Err(format!("unexpected {t:?} where a step name belongs")),
+        };
+        expect(l, '=')?;
+        steps.push((name, expr(l)?));
+        match l.next() {
+            Tok::Sym(',') => continue,
+            Tok::Ident(w) if w == "in" => break,
+            t => {
+                return Err(format!(
+                    "unexpected {t:?} after step {}",
+                    steps.last().unwrap().0
+                ));
+            }
+        }
+    }
+    Ok((steps, expr(l)?))
+}
+
+fn product(l: &mut Lexer) -> Result<M, String> {
     let mut e = primary(l)?;
-    while l.peek() == Tok::Sym('&') {
+    while let Tok::Sym(c @ ('*' | '/')) = l.peek() {
         l.next();
-        e = M::Concat(Box::new(e), Box::new(primary(l)?));
+        e = M::Bin(Box::new(e), c, Box::new(primary(l)?));
+    }
+    Ok(e)
+}
+
+fn expr(l: &mut Lexer) -> Result<M, String> {
+    let mut e = product(l)?;
+    loop {
+        match l.peek() {
+            Tok::Sym('&') => {
+                l.next();
+                e = M::Concat(Box::new(e), Box::new(product(l)?));
+            }
+            Tok::Sym(c @ ('+' | '-')) => {
+                l.next();
+                e = M::Bin(Box::new(e), c, Box::new(product(l)?));
+            }
+            _ => break,
+        }
     }
     // ` meta [...]` on parameters: the value is what matters.
     if l.peek() == Tok::Ident("meta".into()) {
@@ -252,30 +324,10 @@ fn document(text: &str) -> Result<(Vec<(String, M)>, String), String> {
         return Ok((vec![("Source".into(), e)], "Source".into()));
     }
     l.next();
-    let mut steps = Vec::new();
-    loop {
-        let name = match l.next() {
-            Tok::Ident(n) => n,
-            t => return Err(format!("unexpected {t:?} where a step name belongs")),
-        };
-        expect(&mut l, '=')?;
-        steps.push((name, expr(&mut l)?));
-        match l.next() {
-            Tok::Sym(',') => continue,
-            Tok::Ident(w) if w == "in" => break,
-            t => {
-                return Err(format!(
-                    "unexpected {t:?} after step {}",
-                    steps.last().unwrap().0
-                ));
-            }
-        }
+    match let_body(&mut l)? {
+        (steps, M::Ident(result)) => Ok((steps, result)),
+        _ => Err("its result isn't one of its steps".into()),
     }
-    let result = match l.next() {
-        Tok::Ident(n) => n,
-        t => return Err(format!("unexpected {t:?} after in")),
-    };
-    Ok((steps, result))
 }
 
 /// A text value: a literal, or a literal with `meta` (a parameter's definition).
@@ -385,6 +437,252 @@ fn m_type(t: &M) -> Option<DataType> {
     })
 }
 
+/// A value worked out while importing: what a calendar's bounds are made of.
+#[derive(Debug, Clone, PartialEq)]
+enum V {
+    Num(f64),
+    /// Days since 1970-01-01.
+    Date(i64),
+    Text(String),
+    Bool(bool),
+}
+
+/// Days since 1970-01-01 of a civil date (Howard Hinnant's algorithm).
+fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y - era * 400;
+    let mp = (m + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146097 + doe - 719468
+}
+
+fn civil_from_days(z: i64) -> (i64, i64, i64) {
+    let z = z + 719468;
+    let era = z.div_euclid(146097);
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    (
+        if m <= 2 {
+            yoe + era * 400 + 1
+        } else {
+            yoe + era * 400
+        },
+        m,
+        d,
+    )
+}
+
+fn iso_date(days: i64) -> String {
+    let (y, m, d) = civil_from_days(days);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+fn today() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| (d.as_secs() / 86400) as i64)
+        .unwrap_or(0)
+}
+
+/// Evaluates the constant parts of M a calendar's bounds use: dates, numbers, the
+/// current date, and earlier steps holding such values.
+fn eval(m: &M, env: &BTreeMap<String, V>) -> Option<V> {
+    let num = |x: &M| match eval(x, env)? {
+        V::Num(n) => Some(n),
+        _ => None,
+    };
+    let date = |x: &M| match eval(x, env)? {
+        V::Date(d) => Some(d),
+        _ => None,
+    };
+    Some(match m {
+        M::Num(n) => V::Num(*n),
+        M::Str(s) => V::Text(s.clone()),
+        M::Bool(b) => V::Bool(*b),
+        M::Ident(n) => env.get(n)?.clone(),
+        M::Bin(a, op, b) => match (eval(a, env)?, *op, eval(b, env)?) {
+            (V::Num(a), '+', V::Num(b)) => V::Num(a + b),
+            (V::Num(a), '-', V::Num(b)) => V::Num(a - b),
+            (V::Num(a), '*', V::Num(b)) => V::Num(a * b),
+            (V::Num(a), '/', V::Num(b)) if b != 0.0 => V::Num(a / b),
+            // Durations are numbers of days.
+            (V::Date(a), '-', V::Date(b)) => V::Num((a - b) as f64),
+            (V::Date(a), '+', V::Num(b)) if b.fract() == 0.0 => V::Date(a + b as i64),
+            (V::Date(a), '-', V::Num(b)) if b.fract() == 0.0 => V::Date(a - b as i64),
+            _ => return None,
+        },
+        M::Call(f, args) => {
+            let M::Ident(f) = &**f else { return None };
+            let arg = |i: usize| args.get(i);
+            match (f.as_str(), args.len()) {
+                ("#date", 3) => {
+                    let (y, mo, d) = (num(arg(0)?)?, num(arg(1)?)?, num(arg(2)?)?);
+                    if !(1.0..=12.0).contains(&mo) || !(1.0..=31.0).contains(&d) {
+                        return None;
+                    }
+                    V::Date(days_from_civil(y as i64, mo as i64, d as i64))
+                }
+                ("#duration", 4) => {
+                    let parts: Vec<f64> = args.iter().map(num).collect::<Option<_>>()?;
+                    if parts[1..].iter().any(|p| *p != 0.0) {
+                        return None;
+                    }
+                    V::Num(parts[0])
+                }
+                (
+                    "DateTime.LocalNow"
+                    | "DateTime.FixedLocalNow"
+                    | "DateTimeZone.LocalNow"
+                    | "DateTimeZone.FixedLocalNow"
+                    | "DateTimeZone.UtcNow"
+                    | "DateTimeZone.FixedUtcNow",
+                    0,
+                ) => V::Date(today()),
+                ("Date.From" | "DateTime.Date" | "Date.FromText", 1) => match eval(arg(0)?, env)? {
+                    V::Text(t) => {
+                        let p: Vec<i64> = t
+                            .split('-')
+                            .map(|x| x.parse().ok())
+                            .collect::<Option<_>>()?;
+                        match p[..] {
+                            [y, mo, d] => V::Date(days_from_civil(y, mo, d)),
+                            _ => return None,
+                        }
+                    }
+                    v @ V::Date(_) => v,
+                    _ => return None,
+                },
+                ("Duration.Days" | "Duration.From" | "Number.From", 1) => V::Num(num(arg(0)?)?),
+                ("Date.Year", 1) => V::Num(civil_from_days(date(arg(0)?)?).0 as f64),
+                ("Date.Month", 1) => V::Num(civil_from_days(date(arg(0)?)?).1 as f64),
+                ("Date.Day", 1) => V::Num(civil_from_days(date(arg(0)?)?).2 as f64),
+                ("Date.StartOfYear", 1) => {
+                    V::Date(days_from_civil(civil_from_days(date(arg(0)?)?).0, 1, 1))
+                }
+                ("Date.EndOfYear", 1) => {
+                    V::Date(days_from_civil(civil_from_days(date(arg(0)?)?).0, 12, 31))
+                }
+                ("Date.AddDays", 2) => V::Date(date(arg(0)?)? + num(arg(1)?)? as i64),
+                ("Date.AddYears", 2) => {
+                    let (y, mo, d) = civil_from_days(date(arg(0)?)?);
+                    V::Date(days_from_civil(y + num(arg(1)?)? as i64, mo, d.min(28)))
+                }
+                _ => return None,
+            }
+        }
+        _ => return None,
+    })
+}
+
+/// A cell of a `#table` or literal row list, as charted keeps entered values (text).
+fn cell(m: &M, env: &BTreeMap<String, V>) -> Result<Option<String>, String> {
+    Ok(match m {
+        M::Null => None,
+        M::Str(s) => Some(s.clone()),
+        M::Bool(b) => Some(b.to_string()),
+        _ => match eval(m, env) {
+            Some(V::Num(n)) if n.fract() == 0.0 && n.abs() < 1e15 => Some(format!("{}", n as i64)),
+            Some(V::Num(n)) => Some(n.to_string()),
+            // Only a written date: "today" would be frozen at import.
+            Some(V::Date(d)) if !matches!(m, M::Ident(_)) && !uses_now(m) => Some(iso_date(d)),
+            _ => return Err("a value in its table isn't a constant".into()),
+        },
+    })
+}
+
+fn uses_now(m: &M) -> bool {
+    match m {
+        M::Call(f, args) => {
+            matches!(&**f, M::Ident(n) if n.ends_with("Now")) || args.iter().any(uses_now)
+        }
+        M::Bin(a, _, b) | M::Concat(a, b) => uses_now(a) || uses_now(b),
+        _ => false,
+    }
+}
+
+/// The rows of a literal list of lists.
+fn literal_rows(m: &M, env: &BTreeMap<String, V>) -> Result<Vec<Vec<Option<String>>>, String> {
+    let M::List(rows) = m else {
+        return Err("its rows aren't a list".into());
+    };
+    rows.iter()
+        .map(|r| match r {
+            M::List(cells) => cells.iter().map(|c| cell(c, env)).collect(),
+            _ => Err("its rows aren't lists".into()),
+        })
+        .collect()
+}
+
+/// The type of a column in `type table [A = text]` (or `#table`'s list of names).
+fn column_type(m: &M) -> Option<DataType> {
+    match m {
+        M::Ident(t) => m_type(&M::Type(t.clone())),
+        t => m_type(t),
+    }
+}
+
+/// The type the values of an untyped column read as: numbers, dates, true/false or text.
+fn literal_type(rows: &[Vec<Option<String>>], i: usize, m_rows: &M) -> DataType {
+    let M::List(rows_m) = m_rows else {
+        return DataType::String;
+    };
+    let cells: Vec<&M> = rows_m
+        .iter()
+        .filter_map(|r| match r {
+            M::List(c) => c.get(i).filter(|c| **c != M::Null),
+            _ => None,
+        })
+        .collect();
+    if cells.is_empty() {
+        return DataType::String;
+    }
+    if cells.iter().all(|c| matches!(c, M::Num(_) | M::Bin(..))) {
+        let whole = rows
+            .iter()
+            .filter_map(|r| r.get(i).cloned().flatten())
+            .all(|v| !v.contains('.'));
+        return if whole {
+            DataType::Int64
+        } else {
+            DataType::Double
+        };
+    }
+    if cells.iter().all(|c| matches!(c, M::Bool(_))) {
+        return DataType::Boolean;
+    }
+    if cells
+        .iter()
+        .all(|c| matches!(c, M::Call(f, _) if matches!(&**f, M::Ident(n) if n == "#date")))
+    {
+        return DataType::Date;
+    }
+    DataType::String
+}
+
+/// Cultures that write numbers "1.234,5" (their decimal separator is a comma).
+pub fn decimal_comma_culture(culture: &str) -> bool {
+    let c = culture.to_ascii_lowercase().replace('_', "-");
+    let lang = c.split('-').next().unwrap_or("");
+    const COMMA: &[&str] = &[
+        "af", "az", "be", "bg", "bs", "ca", "cs", "da", "de", "el", "es", "et", "eu", "fi", "fo",
+        "fr", "gl", "hr", "hu", "hy", "id", "is", "it", "ka", "kk", "ky", "lt", "lv", "mk", "mn",
+        "nb", "nl", "nn", "no", "pl", "pt", "ro", "ru", "sk", "sl", "sq", "sr", "sv", "tr", "uk",
+        "uz", "vi",
+    ];
+    // Regions that write a decimal point although their language usually doesn't.
+    const POINT: &[&str] = &[
+        "de-ch", "de-li", "fr-ch", "it-ch", "es-mx", "es-us", "es-pr", "es-do", "es-gt", "es-hn",
+        "es-ni", "es-pa", "es-pe", "es-sv",
+    ];
+    COMMA.contains(&lang) && !POINT.contains(&c.as_str())
+}
+
 fn count(m: &M) -> Option<u32> {
     match m {
         M::Num(n) if *n >= 0.0 && n.fract() == 0.0 => Some(*n as u32),
@@ -393,7 +691,44 @@ fn count(m: &M) -> Option<u32> {
 }
 
 /// A source and steps for an M query that loads a file, or why it can't be.
+///
+/// A query that starts from another one (`Source = #"Other"`) gives a
+/// `Source::Reference` holding the other query's *name*: the caller resolves it.
 pub fn to_query(
+    text_m: &str,
+    params: &BTreeMap<String, String>,
+) -> Result<(Source, Vec<Step>), String> {
+    let (source, mut steps) = to_query_at(text_m, params)?;
+    // charted's own calendar comes back as just its source.
+    if let Source::Calendar { start, end, .. } = &source {
+        for fiscal_start in 1..=12 {
+            let own = Source::Calendar {
+                start: start.clone(),
+                end: end.clone(),
+                fiscal_start,
+            };
+            let q = charted_compiler::steps::Query {
+                id: String::new(),
+                name: String::new(),
+                table: String::new(),
+                source: own.clone(),
+                steps: vec![],
+                step_names: Default::default(),
+                no_load: false,
+            };
+            let text = charted_compiler::steps::to_m(&q, &[]);
+            if let Ok((_, made)) = to_query_at(&text, params)
+                && steps.starts_with(&made)
+            {
+                steps.drain(..made.len());
+                return Ok((own, steps));
+            }
+        }
+    }
+    Ok((source, steps))
+}
+
+fn to_query_at(
     text_m: &str,
     params: &BTreeMap<String, String>,
 ) -> Result<(Source, Vec<Step>), String> {
@@ -407,6 +742,12 @@ pub fn to_query(
     let mut prev: Option<&str> = None;
     // Whether the previous step only named a workbook (its sheet comes next).
     let mut workbook: Option<String> = None;
+    // Steps holding values (a calendar's bounds), by name.
+    let mut env: BTreeMap<String, V> = BTreeMap::new();
+    // A calendar's list of dates, not yet a table.
+    let mut dates = false;
+    // An entered table's columns are text until its first type change.
+    let mut untyped = false;
     for (name, e) in &steps[..=end] {
         let call = match e {
             M::Call(f, args) => Some((name_of(f), args.as_slice())),
@@ -415,7 +756,110 @@ pub fn to_query(
         // The first argument of a table function must be the previous step.
         let on_prev =
             |args: &[M]| matches!(args.first(), Some(M::Ident(p)) if Some(p.as_str()) == prev);
+        if dates && !matches!(&call, Some((f, args)) if f == "Table.FromList" && on_prev(args)) {
+            return Err(format!(
+                "step \"{name}\" uses its list of dates as something other than a table"
+            ));
+        }
         match (&source, call, e) {
+            (None, Some((f, args)), _) if f == "List.Dates" => {
+                let (Some(V::Date(start)), Some(V::Num(n)), Some(V::Num(by))) = (
+                    args.first().and_then(|a| eval(a, &env)),
+                    args.get(1).and_then(|a| eval(a, &env)),
+                    args.get(2).and_then(|a| eval(a, &env)),
+                ) else {
+                    return Err(
+                        "its list of dates doesn't start and end on dates charted can work out"
+                            .into(),
+                    );
+                };
+                if by != 1.0 || n < 1.0 || n.fract() != 0.0 {
+                    return Err("its list of dates isn't one row per day".into());
+                }
+                source = Some(Source::Calendar {
+                    start: iso_date(start),
+                    end: iso_date(start + n as i64 - 1),
+                    fiscal_start: 1,
+                });
+                dates = true;
+            }
+            (None, Some((f, args)), _) if f == "Table.FromRows" || f == "#table" => {
+                let (names, rows_m) = if f == "#table" {
+                    (args.first(), args.get(1))
+                } else {
+                    (args.get(1), args.first())
+                };
+                let rows = match rows_m {
+                    // Enter data: the rows as compressed JSON.
+                    Some(M::Call(j, a)) if name_of(j) == "Json.Document" => {
+                        let text = match a.first() {
+                            Some(M::Call(d, a)) if name_of(d) == "Binary.Decompress" => {
+                                match a.first() {
+                                    Some(M::Call(b, a)) if name_of(b) == "Binary.FromText" => {
+                                        match a.first() {
+                                            Some(M::Str(s)) => Some(s.clone()),
+                                            _ => None,
+                                        }
+                                    }
+                                    _ => None,
+                                }
+                            }
+                            _ => None,
+                        };
+                        charted_compiler::steps::table_rows_from_m(
+                            &text.ok_or("its table's data isn't written in the query")?,
+                        )?
+                    }
+                    Some(m) => literal_rows(m, &env)?,
+                    None => return Err(format!("{f} needs rows")),
+                };
+                let names = match names {
+                    Some(M::Let(_, t)) => &**t,
+                    Some(t) => t,
+                    None => return Err(format!("{f} needs columns")),
+                };
+                let mut columns: Vec<(String, DataType)> = match names {
+                    M::TableType(fields) => fields
+                        .iter()
+                        .map(|(n, t)| (n.clone(), column_type(t).unwrap_or(DataType::String)))
+                        .collect(),
+                    M::Num(n) if n.fract() == 0.0 && *n >= 1.0 => (1..=*n as usize)
+                        .map(|i| (format!("Column{i}"), DataType::String))
+                        .collect(),
+                    m => texts(m)
+                        .ok_or("its columns aren't named")?
+                        .into_iter()
+                        .map(|n| (n, DataType::String))
+                        .collect(),
+                };
+                // A #table of numbers or dates has them as such.
+                if let (M::List(_), Some(r)) = (names, rows_m) {
+                    for (i, c) in columns.iter_mut().enumerate() {
+                        c.1 = literal_type(&rows, i, r);
+                    }
+                }
+                let rows = rows
+                    .into_iter()
+                    .map(|mut r| {
+                        r.resize(columns.len(), None);
+                        r
+                    })
+                    .collect();
+                untyped = matches!(names, M::TableType(_) | M::Num(_))
+                    && columns.iter().all(|c| c.1 == DataType::String);
+                source = Some(Source::Table { columns, rows });
+            }
+            (None, None, M::Ident(other))
+                if !params.contains_key(other) && !env.contains_key(other) =>
+            {
+                source = Some(Source::Reference {
+                    query: other.clone(),
+                });
+            }
+            (None, _, _) if eval(e, &env).is_some() => {
+                env.insert(name.clone(), eval(e, &env).unwrap_or(V::Num(0.0)));
+                continue;
+            }
             (None, Some((f, args)), _) if f == "Csv.Document" => {
                 let path = file(args.first().ok_or("Csv.Document needs a file")?, params)?;
                 let option = |key: &str| match args.get(1) {
@@ -497,6 +941,40 @@ pub fn to_query(
                 },
                 "Table.FromRecords" | "Table.FromList"
                     if out.is_empty() && matches!(source, Some(Source::Json { .. })) => {}
+                "Table.FromList" if dates => {
+                    // The calendar's own columns go; the query adds those it wants.
+                    let column = match args.get(2) {
+                        None | Some(M::Null) => "Column1".to_string(),
+                        Some(M::TableType(fields)) if fields.len() == 1 => fields[0].0.clone(),
+                        Some(m) => match texts(m).as_deref() {
+                            Some([one]) => one.clone(),
+                            _ => return Err("its dates become more than one column".into()),
+                        },
+                    };
+                    out.push(Step::SelectColumns {
+                        columns: vec!["Date".into()],
+                    });
+                    if column != "Date" {
+                        out.push(Step::RenameColumns {
+                            renames: vec![("Date".into(), column)],
+                        });
+                    }
+                    dates = false;
+                }
+                "Table.AddColumn" => {
+                    let (Some(M::Str(column)), Some(M::Other(f))) = (args.get(1), args.get(2))
+                    else {
+                        return Err(format!("step \"{name}\" adds a column charted can't read"));
+                    };
+                    let formula = f.strip_prefix("each").unwrap_or(f).trim().to_string();
+                    charted_compiler::mformula::parse(&formula, &[]).map_err(|e| {
+                        format!("step \"{name}\" adds a column with a formula charted doesn't know ({e})")
+                    })?;
+                    out.push(Step::CustomColumn {
+                        name: column.clone(),
+                        formula,
+                    });
+                }
                 "Table.TransformColumnTypes" => {
                     let M::List(pairs) = args
                         .get(1)
@@ -518,7 +996,35 @@ pub fn to_query(
                             }
                         }
                     }
-                    out.push(Step::ChangeTypes { columns });
+                    // The culture numbers are read in: "1.234,5" in German.
+                    let culture = match args.get(2) {
+                        Some(M::Str(c)) => Some(c.as_str()),
+                        Some(M::Record(fs)) => fs.iter().find_map(|(k, v)| match v {
+                            M::Str(c) if k == "Culture" => Some(c.as_str()),
+                            _ => None,
+                        }),
+                        _ => None,
+                    };
+                    if let (Some(c), Some(Source::Csv { decimal, .. })) = (culture, source.as_mut())
+                        && decimal_comma_culture(c)
+                    {
+                        *decimal = Some(",".into());
+                    }
+                    // An entered table's first type change sets its columns' types.
+                    if let Some(Source::Table { columns: cols, .. }) = source.as_mut()
+                        && untyped
+                        && out.is_empty()
+                        && columns.iter().all(|(c, _)| cols.iter().any(|x| x.0 == *c))
+                    {
+                        for (c, t) in columns {
+                            if let Some(x) = cols.iter_mut().find(|x| x.0 == c) {
+                                x.1 = t;
+                            }
+                        }
+                        untyped = false;
+                    } else {
+                        out.push(Step::ChangeTypes { columns });
+                    }
                 }
                 "Table.RemoveColumns" => out.push(Step::RemoveColumns {
                     columns: args
@@ -573,6 +1079,7 @@ pub fn to_query(
         prev = Some(name);
     }
     match source {
+        _ if dates => Err("it makes a list of dates, not a table".into()),
         Some(s) => Ok((s, out)),
         None if workbook.is_some() => Err("it reads a whole workbook, not one sheet".into()),
         None => Err("it doesn't read a file".into()),
@@ -616,6 +1123,197 @@ in
                 ]
             }
         );
+    }
+
+    #[test]
+    fn references_name_the_other_query() {
+        let m = "let\n    Source = #\"RAW-Customer\",\n    #\"Renamed Columns\" = Table.RenameColumns(Source,{{\"Name\", \"Customer\"}})\nin\n    #\"Renamed Columns\"";
+        let (s, steps) = to_query(m, &BTreeMap::new()).unwrap();
+        assert_eq!(
+            s,
+            Source::Reference {
+                query: "RAW-Customer".into()
+            }
+        );
+        assert_eq!(steps.len(), 1);
+        // A parameter isn't a query.
+        let params = BTreeMap::from([("Folder".to_string(), "/x".to_string())]);
+        assert!(to_query("let Source = Folder in Source", &params).is_err());
+    }
+
+    #[test]
+    fn entered_tables_from_power_bi_and_table_literals() {
+        // As Power BI's Enter data writes it.
+        let m = r#"let
+    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WSlTSUTJUitWJVkoCsoyUYmMB", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Key = _t, #"Sort Order" = _t]),
+    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Key", type text}, {"Sort Order", Int64.Type}})
+in
+    #"Changed Type""#;
+        let (s, steps) = to_query(m, &BTreeMap::new()).unwrap();
+        assert_eq!(
+            s,
+            Source::Table {
+                columns: vec![
+                    ("Key".into(), DataType::String),
+                    ("Sort Order".into(), DataType::Int64)
+                ],
+                rows: vec![
+                    vec![Some("a".into()), Some("1".into())],
+                    vec![Some("b".into()), Some("2".into())]
+                ]
+            }
+        );
+        assert!(steps.is_empty());
+        // charted's own export of the same comes back the same.
+        let q = charted_compiler::steps::Query {
+            id: "q".into(),
+            name: "T".into(),
+            table: "t".into(),
+            source: s.clone(),
+            steps: vec![Step::RemoveTopRows { count: 1 }],
+            step_names: Default::default(),
+            no_load: false,
+        };
+        let back = to_query(&charted_compiler::steps::to_m(&q, &[]), &BTreeMap::new()).unwrap();
+        assert_eq!(back, (s, q.steps.clone()));
+        // #table with names and values.
+        let m = r#"let Source = #table({"Key", "Value", "When"}, {{"a", 1.5, #date(2024, 2, 29)}, {"b", null, #date(2024, 3, 1)}}) in Source"#;
+        let (s, _) = to_query(m, &BTreeMap::new()).unwrap();
+        assert_eq!(
+            s,
+            Source::Table {
+                columns: vec![
+                    ("Key".into(), DataType::String),
+                    ("Value".into(), DataType::Double),
+                    ("When".into(), DataType::Date)
+                ],
+                rows: vec![
+                    vec![
+                        Some("a".into()),
+                        Some("1.5".into()),
+                        Some("2024-02-29".into())
+                    ],
+                    vec![Some("b".into()), None, Some("2024-03-01".into())]
+                ]
+            }
+        );
+        let typed =
+            r#"let Source = #table(type table [N = Int64.Type, T = text], {{1, "x"}}) in Source"#;
+        let (s, _) = to_query(typed, &BTreeMap::new()).unwrap();
+        assert!(
+            matches!(&s, Source::Table { columns, .. } if columns[0].1 == DataType::Int64 && columns[1].1 == DataType::String),
+            "{s:?}"
+        );
+        // A value worked out when the query runs isn't kept.
+        let now = r#"let Source = #table({"K", "V"}, {{"Last Refresh", DateTime.ToText(DateTime.LocalNow(), "yyyy")}}) in Source"#;
+        assert!(
+            to_query(now, &BTreeMap::new())
+                .unwrap_err()
+                .contains("isn't a constant")
+        );
+    }
+
+    #[test]
+    fn calendars_from_lists_of_dates() {
+        // charted's own, with a fiscal year from July, comes back as its source.
+        let own = Source::Calendar {
+            start: "2023-01-01".into(),
+            end: "2024-12-31".into(),
+            fiscal_start: 7,
+        };
+        let q = charted_compiler::steps::Query {
+            id: "q".into(),
+            name: "Calendar".into(),
+            table: "calendar".into(),
+            source: own.clone(),
+            steps: vec![],
+            step_names: Default::default(),
+            no_load: false,
+        };
+        let m = charted_compiler::steps::to_m(&q, &[]);
+        assert_eq!(to_query(&m, &BTreeMap::new()).unwrap(), (own, vec![]));
+        // A common hand-written one: its columns become custom columns.
+        let m = r#"let
+    StartDate = #date(2020, 1, 1),
+    EndDate = #date(2020, 12, 31),
+    // Generate a list of dates
+    DateList = List.Dates(StartDate, Duration.Days(EndDate - StartDate) + 1, #duration(1, 0, 0, 0)),
+    Calendar = Table.FromList(DateList, Splitter.SplitByNothing(), {"Date"}),
+    AddYear = Table.AddColumn(Calendar, "Year", each Date.Year([Date])),
+    AddMonthName = Table.AddColumn(AddYear, "Month Name", each Date.ToText([Date], "MMM")),
+    AddFiscalQuarter = Table.AddColumn(
+        AddMonthName, "Fiscal Quarter", each "FQ" & Text.From(Number.IntegerDivide((Date.Month([Date]) + 5), 3))
+    ),
+    #"Changed Type" = Table.TransformColumnTypes(AddFiscalQuarter, {{"Date", type date}, {"Year", Int64.Type}})
+in
+    #"Changed Type""#;
+        let (s, steps) = to_query(m, &BTreeMap::new()).unwrap();
+        assert_eq!(
+            s,
+            Source::Calendar {
+                start: "2020-01-01".into(),
+                end: "2020-12-31".into(),
+                fiscal_start: 1
+            }
+        );
+        assert_eq!(
+            steps[..3],
+            [
+                Step::SelectColumns {
+                    columns: vec!["Date".into()]
+                },
+                Step::CustomColumn {
+                    name: "Year".into(),
+                    formula: "Date.Year([Date])".into()
+                },
+                Step::CustomColumn {
+                    name: "Month Name".into(),
+                    formula: "Date.ToText([Date], \"MMM\")".into()
+                },
+            ]
+        );
+        assert_eq!(steps.len(), 5);
+        // Relative to today: the bounds are worked out when importing.
+        let m = "let P_Today = DateTime.LocalNow(), S = #date(Date.Year(P_Today) - 3, 1, 1), E = #date(Date.Year(P_Today), 12, 31), L = List.Dates(S, Duration.Days(Duration.From(E - S)) + 1, #duration(1,0,0,0)), T = Table.FromList(L, Splitter.SplitByNothing()) in T";
+        let (s, steps) = to_query(m, &BTreeMap::new()).unwrap();
+        let year = civil_from_days(today()).0;
+        assert_eq!(
+            s,
+            Source::Calendar {
+                start: format!("{}-01-01", year - 3),
+                end: format!("{year}-12-31"),
+                fiscal_start: 1
+            }
+        );
+        assert_eq!(
+            steps[1],
+            Step::RenameColumns {
+                renames: vec![("Date".into(), "Column1".into())]
+            }
+        );
+        // Bounds read from another query's data can't be worked out.
+        let m = "let S = List.Min(#\"Sales\"[Date]), L = List.Dates(S, 10, #duration(1,0,0,0)), T = Table.FromList(L, Splitter.SplitByNothing()) in T";
+        assert!(to_query(m, &BTreeMap::new()).is_err());
+        assert_eq!(iso_date(days_from_civil(2024, 2, 29)), "2024-02-29");
+        assert_eq!(days_from_civil(1970, 1, 1), 0);
+    }
+
+    #[test]
+    fn csv_culture_sets_the_decimal_comma() {
+        let m = |culture: &str| {
+            format!(
+                "let Source = Csv.Document(File.Contents(\"/d/a.csv\"), [Delimiter=\";\"]), #\"Changed Type\" = Table.TransformColumnTypes(Source, {{{{\"Amount\", type number}}}}{culture}) in #\"Changed Type\""
+            )
+        };
+        let decimal = |culture: &str| match to_query(&m(culture), &BTreeMap::new()).unwrap().0 {
+            Source::Csv { decimal, .. } => decimal,
+            s => panic!("{s:?}"),
+        };
+        assert_eq!(decimal(", \"de-DE\"").as_deref(), Some(","));
+        assert_eq!(decimal(", [Culture = \"da-DK\"]").as_deref(), Some(","));
+        assert_eq!(decimal(", \"en-US\""), None);
+        assert_eq!(decimal(", \"de-CH\""), None);
+        assert_eq!(decimal(""), None);
     }
 
     #[test]

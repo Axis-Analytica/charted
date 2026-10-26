@@ -903,9 +903,11 @@ dependencies = [
 name = "charted-compiler"
 version = "1.0.0"
 dependencies = [
+ "base64 0.23.1",
  "charted-dax",
  "charted-model",
  "insta",
+ "miniz_oxide 0.9.1",
  "serde",
  "serde_json",
  "thiserror 2.0.21",

@@ -62,7 +62,113 @@ pub const FUNCTIONS: &[(&str, usize, usize, &str)] = &[
     ("Date.Year", 1, 1, "year($1)"),
     ("Date.Month", 1, 1, "month($1)"),
     ("Date.Day", 1, 1, "day($1)"),
+    ("Date.QuarterOfYear", 1, 1, "quarter($1)"),
+    // The day of the week from 0, the week starting on Sunday unless `Day.…` says.
+    ("Date.DayOfWeek", 1, 2, "((dayofweek($1) - ($2) + 7) % 7)"),
+    // Week 1 holds 1 January; weeks start on Sunday unless `Day.…` says.
+    (
+        "Date.WeekOfYear",
+        1,
+        2,
+        "((dayofyear($1) - 1 + (dayofweek(date_trunc('year', $1)) - ($2) + 7) % 7) // 7 + 1)",
+    ),
+    // English names, whatever the culture.
+    ("Date.MonthName", 1, 2, "monthname($1)"),
+    ("Date.DayOfWeekName", 1, 2, "dayname($1)"),
+    // The format is a .NET date format ("yyyy-MM", "MMM", "dddd"), see `date_format`.
+    ("Date.ToText", 1, 3, "CAST($1 AS VARCHAR)"),
+    (
+        "Number.IntegerDivide",
+        2,
+        2,
+        "CAST(trunc(($1) / ($2)) AS BIGINT)",
+    ),
 ];
+
+/// Power Query's days of the week (`Day.Monday`), as the numbers M gives them.
+const DAYS: [&str; 7] = [
+    "Day.Sunday",
+    "Day.Monday",
+    "Day.Tuesday",
+    "Day.Wednesday",
+    "Day.Thursday",
+    "Day.Friday",
+    "Day.Saturday",
+];
+
+/// A .NET custom date format ("yyyy-MM", "MMM d") as a DuckDB strftime format, or
+/// None for one it can't write (standard one-letter formats such as "d").
+pub fn date_format(f: &str) -> Option<String> {
+    if f.chars().count() == 1 {
+        return None;
+    }
+    let cs: Vec<char> = f.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < cs.len() {
+        let c = cs[i];
+        let mut n = 1;
+        while i + n < cs.len() && cs[i + n] == c {
+            n += 1;
+        }
+        let spec = match (c, n) {
+            ('y', 1 | 2) => "%y",
+            ('y', _) => "%Y",
+            ('M', 1) => "%-m",
+            ('M', 2) => "%m",
+            ('M', 3) => "%b",
+            ('M', _) => "%B",
+            ('d', 1) => "%-d",
+            ('d', 2) => "%d",
+            ('d', 3) => "%a",
+            ('d', _) => "%A",
+            ('H', 1) => "%-H",
+            ('H', _) => "%H",
+            ('h', 1) => "%-I",
+            ('h', _) => "%I",
+            ('m', 1) => "%-M",
+            ('m', _) => "%M",
+            ('s', 1) => "%-S",
+            ('s', _) => "%S",
+            ('t', _) => "%p",
+            ('\'' | '"', _) => {
+                // A quoted literal.
+                let end = cs[i + 1..].iter().position(|x| *x == c)?;
+                for x in &cs[i + 1..i + 1 + end] {
+                    if *x == '%' {
+                        out.push('%');
+                    }
+                    out.push(*x);
+                }
+                i += end + 2;
+                continue;
+            }
+            ('\\', _) => {
+                let x = *cs.get(i + 1)?;
+                if x == '%' {
+                    out.push('%');
+                }
+                out.push(x);
+                i += 2;
+                continue;
+            }
+            ('%', _) => {
+                out.push_str(&"%%".repeat(n));
+                i += n;
+                continue;
+            }
+            (c, _) if c.is_ascii_alphabetic() => return None,
+            _ => {
+                out.extend(std::iter::repeat_n(c, n));
+                i += n;
+                continue;
+            }
+        };
+        out.push_str(spec);
+        i += n;
+    }
+    Some(out)
+}
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[error("{0}")]
@@ -298,6 +404,9 @@ impl Parser {
                 "true" => Ok(Expr::Bool(true)),
                 "false" => Ok(Expr::Bool(false)),
                 "null" => Ok(Expr::Null),
+                w if DAYS.contains(&w) => Ok(Expr::Number(
+                    DAYS.iter().position(|d| *d == w).unwrap_or(0) as f64,
+                )),
                 _ => {
                     let (name, min, max, _) =
                         FUNCTIONS.iter().find(|f| f.0 == w).ok_or_else(|| {
@@ -325,6 +434,22 @@ impl Parser {
                                 format!("{min} to {max} arguments")
                             }
                         )));
+                    }
+                    if *name == "Date.ToText" {
+                        match args.get(1) {
+                            None => {}
+                            Some(Expr::Text(f)) if date_format(f).is_some() => {}
+                            Some(Expr::Text(f)) => {
+                                return Err(FormulaError(format!(
+                                    "the date format \"{f}\" isn't one charted can write"
+                                )));
+                            }
+                            Some(_) => {
+                                return Err(FormulaError(
+                                    "Date.ToText's format must be text, such as \"yyyy-MM\"".into(),
+                                ));
+                            }
+                        }
                     }
                     Ok(Expr::Call(name, args))
                 }
@@ -429,6 +554,13 @@ pub fn to_sql(e: &Expr) -> String {
             to_sql(a),
             to_sql(b)
         ),
+        Expr::Call("Date.ToText", args) if args.len() > 1 => {
+            let f = match &args[1] {
+                Expr::Text(f) => date_format(f).unwrap_or_default(),
+                _ => String::new(),
+            };
+            format!("strftime({}, {})", to_sql(&args[0]), quote::string(&f))
+        }
         Expr::Call(name, args) => {
             let (_, _, _, tpl) = FUNCTIONS.iter().find(|f| f.0 == *name).expect("known");
             let mut out = tpl.to_string();
@@ -516,6 +648,38 @@ mod tests {
             to_sql(&parse("Number.Round([Price])", &cols()).unwrap()),
             r#"round("Price", 0)"#
         );
+    }
+
+    #[test]
+    fn date_functions_of_calendars() {
+        let sql = |s: &str| to_sql(&parse(s, &[]).unwrap());
+        assert_eq!(
+            sql("Date.ToText([Date], \"yyyy-MM 'Q'\")"),
+            "strftime(\"Date\", '%Y-%m Q')"
+        );
+        assert_eq!(
+            sql("Date.ToText([Date], \"dddd d MMMM\")"),
+            "strftime(\"Date\", '%A %-d %B')"
+        );
+        assert_eq!(
+            sql("Date.DayOfWeek([Date], Day.Monday) + 1"),
+            "(((dayofweek(\"Date\") - (1) + 7) % 7) + 1)"
+        );
+        assert_eq!(
+            sql("Date.DayOfWeek([Date])"),
+            "((dayofweek(\"Date\") - (0) + 7) % 7)"
+        );
+        assert_eq!(
+            to_m(&parse("Date.DayOfWeek([Date], Day.Monday)", &[]).unwrap()),
+            "Date.DayOfWeek([Date], 1)"
+        );
+        assert!(
+            parse("Date.ToText([Date], \"d\")", &[])
+                .unwrap_err()
+                .0
+                .contains("isn't one charted can write")
+        );
+        assert_eq!(date_format("100%"), Some("100%%".into()));
     }
 
     #[test]

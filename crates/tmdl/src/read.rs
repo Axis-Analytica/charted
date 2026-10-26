@@ -751,6 +751,8 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
         ..Default::default()
     };
     let mut queries: Vec<Query> = Vec::new();
+    // Queries read from M, whose references name other queries rather than give ids.
+    let mut by_name: Vec<String> = Vec::new();
     let mut taken: Vec<String> = Vec::new();
     let mut tables = sm.tables.clone();
     if !sm.order.is_empty() {
@@ -790,15 +792,19 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             (Some(q), _) => Some(q),
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("m") => {
                 match mquery::to_query(&p.source, &params) {
-                    Ok((source, steps)) => Some(Query {
-                        id: new_id(),
-                        name: t.name.clone(),
-                        table: source_name(&t.name, &taken),
-                        source,
-                        steps,
-                        step_names: Default::default(),
-                        no_load: false,
-                    }),
+                    Ok((source, steps)) => {
+                        let id = new_id();
+                        by_name.push(id.clone());
+                        Some(Query {
+                            id,
+                            name: t.name.clone(),
+                            table: source_name(&t.name, &taken),
+                            source,
+                            steps,
+                            step_names: Default::default(),
+                            no_load: false,
+                        })
+                    }
                     Err(why) => {
                         skip(
                             "query",
@@ -935,15 +941,19 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
         match own {
             Some(q) => queries.push(q),
             None => match mquery::to_query(&e.expression, &params) {
-                Ok((source, steps)) => queries.push(Query {
-                    id: new_id(),
-                    name: e.name.clone(),
-                    table: source_name(&e.name, &taken),
-                    source,
-                    steps,
-                    step_names: Default::default(),
-                    no_load: true,
-                }),
+                Ok((source, steps)) => {
+                    let id = new_id();
+                    by_name.push(id.clone());
+                    queries.push(Query {
+                        id,
+                        name: e.name.clone(),
+                        table: source_name(&e.name, &taken),
+                        source,
+                        steps,
+                        step_names: Default::default(),
+                        no_load: true,
+                    })
+                }
                 Err(why) => skip(
                     "query",
                     e.name.clone(),
@@ -951,6 +961,48 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 ),
             },
         }
+    }
+    // Queries read from M refer to others by name: now every query has its id. Those
+    // starting from a query that didn't come in don't either.
+    let ids: BTreeMap<String, String> = queries
+        .iter()
+        .map(|q| (q.name.clone(), q.id.clone()))
+        .collect();
+    let mut gone: Vec<(String, String)> = Vec::new();
+    for q in queries.iter_mut() {
+        if let charted_compiler::steps::Source::Reference { query } = &mut q.source
+            && by_name.contains(&q.id)
+        {
+            match ids.get(query.as_str()) {
+                Some(id) => *query = id.clone(),
+                None => gone.push((q.id.clone(), query.clone())),
+            }
+        }
+    }
+    // Queries starting from one that didn't come in don't either.
+    while let Some((id, other)) = gone.pop() {
+        let Some(i) = queries.iter().position(|q| q.id == id) else {
+            continue;
+        };
+        let q = queries.remove(i);
+        for o in &queries {
+            if matches!(&o.source, charted_compiler::steps::Source::Reference { query } if *query == q.id)
+            {
+                gone.push((o.id.clone(), q.name.clone()));
+            }
+        }
+        skip(
+            "query",
+            q.name,
+            &format!(
+                "it starts from the query \"{other}\", which wasn't imported{}",
+                if q.no_load {
+                    ""
+                } else {
+                    "; the table comes in without data"
+                }
+            ),
+        );
     }
     for r in &sm.relationships {
         let find = |(tn, cn): &(String, String)| {

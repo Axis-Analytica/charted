@@ -645,4 +645,159 @@ fn power_bi_visual_types_map_to_charted() {
             s("waterfallChart", &["breakdown", "category", "values"]),
         ]
     );
+
+/// References, entered tables, calendars and decimal-comma CSV files come back from an
+/// export: through charted's annotation, and through their M alone (as after Power BI
+/// rewrites the files).
+#[test]
+fn power_query_sources_come_back_from_their_m() {
+    let table = |id: &str, name: &str, cols: Vec<Column>| Table {
+        id: id.into(),
+        name: name.into(),
+        description: None,
+        source: name.to_lowercase(),
+        columns: cols,
+        measures: vec![],
+        hidden: false,
+        is_date_table: false,
+        extras: Default::default(),
+    };
+    let q = |id: &str, name: &str, source: Source, steps: Vec<Step>| Query {
+        id: id.into(),
+        name: name.into(),
+        table: name.to_lowercase(),
+        source,
+        steps,
+        step_names: Default::default(),
+        no_load: false,
+    };
+    let model = Model {
+        name: "Shop".into(),
+        tables: vec![
+            table(
+                "t1",
+                "Sales",
+                vec![
+                    col("c1", "Region", DataType::String),
+                    col("c2", "Amount", DataType::Double),
+                ],
+            ),
+            table(
+                "t2",
+                "Big",
+                vec![
+                    col("c3", "Region", DataType::String),
+                    col("c4", "Amount", DataType::Double),
+                ],
+            ),
+            table(
+                "t3",
+                "Targets",
+                vec![
+                    col("c5", "Region", DataType::String),
+                    col("c6", "Target", DataType::Int64),
+                ],
+            ),
+            table("t4", "Calendar", vec![col("c7", "Date", DataType::Date)]),
+        ],
+        ..Default::default()
+    };
+    let queries = vec![
+        q(
+            "q1",
+            "Sales",
+            Source::Csv {
+                path: "data/sales.csv".into(),
+                delimiter: Some(";".into()),
+                header: true,
+                encoding: None,
+                decimal: Some(",".into()),
+            },
+            vec![],
+        ),
+        q(
+            "q2",
+            "Big",
+            Source::Reference { query: "q1".into() },
+            vec![Step::RemoveTopRows { count: 1 }],
+        ),
+        q(
+            "q3",
+            "Targets",
+            Source::Table {
+                columns: vec![
+                    ("Region".into(), DataType::String),
+                    ("Target".into(), DataType::Int64),
+                ],
+                rows: vec![
+                    vec![Some("North".into()), Some("10".into())],
+                    vec![Some("Sø \"x\"".into()), None],
+                ],
+            },
+            vec![],
+        ),
+        q(
+            "q4",
+            "Calendar",
+            Source::Calendar {
+                start: "2024-01-01".into(),
+                end: "2025-06-30".into(),
+                fiscal_start: 4,
+            },
+            vec![],
+        ),
+    ];
+    let files = charted_tmdl::pbip("Shop", &model, &queries, "/data");
+    let def: std::collections::BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(p, t)| {
+            Some((
+                p.strip_prefix("Shop.SemanticModel/definition/")?
+                    .to_string(),
+                t.clone(),
+            ))
+        })
+        .collect();
+    let mut back = charted_tmdl::read::from_tmdl(&def, "Shop");
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
+    back.queries.sort_by(|a, b| a.id.cmp(&b.id));
+    assert_eq!(back.queries, queries);
+    // Without charted's annotations, from the M alone.
+    let bare: std::collections::BTreeMap<String, String> = def
+        .iter()
+        .map(|(p, t)| {
+            let lines: Vec<&str> = t
+                .lines()
+                .filter(|l| !l.contains("annotation chartedQuery"))
+                .collect();
+            (p.clone(), lines.join("\n"))
+        })
+        .collect();
+    let back = charted_tmdl::read::from_tmdl(&bare, "Shop");
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
+    let name_of = |qs: &[Query], id: &str| qs.iter().find(|q| q.id == id).map(|q| q.name.clone());
+    for want in &queries {
+        let got = back.queries.iter().find(|q| q.name == want.name).unwrap();
+        match (&got.source, &want.source) {
+            (Source::Reference { query: a }, Source::Reference { query: b }) => {
+                assert_eq!(name_of(&back.queries, a), name_of(&queries, b))
+            }
+            // Read through the SourceFolder parameter; the culture keeps the comma.
+            (Source::Csv { path, decimal, .. }, Source::Csv { .. }) => {
+                assert_eq!(path, "/data/data/sales.csv");
+                assert_eq!(decimal.as_deref(), Some(","));
+            }
+            (a, b) => assert_eq!(a, b, "{}", want.name),
+        }
+        // The CSV's type change (from the table's columns) comes back as a step.
+        if want.name == "Sales" {
+            assert!(
+                matches!(got.steps.as_slice(), [Step::ChangeTypes { .. }]),
+                "{:?}",
+                got.steps
+            );
+        } else {
+            assert_eq!(got.steps, want.steps, "{}", want.name);
+        }
+    }
 }

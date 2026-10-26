@@ -122,8 +122,14 @@ pub fn m_query(q: &Query, table: Option<&Table>, queries: &[Query]) -> String {
             steps.push((
                 name,
                 format!(
-                    "Table.TransformColumnTypes({prev}, {{{}}})",
-                    types.join(", ")
+                    "Table.TransformColumnTypes({prev}, {{{}}}{})",
+                    types.join(", "),
+                    // Numbers written "1.234,5" read in a culture that writes them so.
+                    if matches!(&q.source, Source::Csv { decimal: Some(d), .. } if d == ",") {
+                        ", \"de-DE\""
+                    } else {
+                        ""
+                    }
                 ),
             ));
         }

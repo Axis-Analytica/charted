@@ -478,16 +478,12 @@ impl Session {
             .filter(|q| old.iter().find(|o| o.id == q.id) != Some(*q))
             .map(|q| q.id.clone())
             .collect();
-        // Queries that read a changed query (merges, appends) change with it.
+        // Queries that read a changed query (references, merges, appends) change with it.
         loop {
             let more: Vec<String> = queries
                 .iter()
                 .filter(|q| !ids.contains(&q.id))
-                .filter(|q| {
-                    q.steps
-                        .iter()
-                        .any(|s| s.references().iter().any(|r| ids.iter().any(|i| i == r)))
-                })
+                .filter(|q| q.references().iter().any(|r| ids.iter().any(|i| i == r)))
                 .map(|q| q.id.clone())
                 .collect();
             if more.is_empty() {
@@ -676,11 +672,12 @@ impl Session {
                     loaded = self.db.materialise(&tmp, &select);
                 }
                 loaded.map_err(|e| {
-                    CoreError::Invalid(format!(
-                        "could not load \"{}\" from {}: {e}",
-                        q.name,
-                        q.source.path()
-                    ))
+                    let path = q.source.path();
+                    CoreError::Invalid(if path.is_empty() {
+                        format!("could not load \"{}\": {e}", q.name)
+                    } else {
+                        format!("could not load \"{}\" from {path}: {e}", q.name)
+                    })
                 })?;
                 staged.push((tmp, q.table.clone()));
             }

@@ -108,6 +108,16 @@ pub enum Source {
         #[ts(type = "number")]
         fiscal_start: u32,
     },
+    /// Another query's result, by id (Power Query's Reference).
+    Reference {
+        query: String,
+    },
+    /// A table typed in (Power Query's Enter data): each cell as text (blank is null),
+    /// converted to its column's type when loaded.
+    Table {
+        columns: Vec<(String, DataType)>,
+        rows: Vec<Vec<Option<String>>>,
+    },
 }
 
 /// A calendar bound: an ISO date (YYYY-MM-DD).
@@ -405,13 +415,21 @@ impl Source {
                 database,
                 ..
             } => format!("postgresql://{host}:{port}/{database}"),
-            Source::Calendar { .. } => String::new(),
+            Source::Calendar { .. } | Source::Reference { .. } | Source::Table { .. } => {
+                String::new()
+            }
         }
     }
 
     /// Whether the source is a local file or folder (watched for changes).
     pub fn is_file(&self) -> bool {
-        !matches!(self, Source::Postgres { .. } | Source::Calendar { .. }) && !self.is_web()
+        !matches!(
+            self,
+            Source::Postgres { .. }
+                | Source::Calendar { .. }
+                | Source::Reference { .. }
+                | Source::Table { .. }
+        ) && !self.is_web()
     }
 
     /// A file read from the web (an https:// path).
@@ -476,6 +494,37 @@ impl Step {
 }
 
 impl Query {
+    /// Other queries the query reads: the one it references, and those its steps merge
+    /// or append.
+    pub fn references(&self) -> Vec<&str> {
+        let mut out = match &self.source {
+            Source::Reference { query } => vec![query.as_str()],
+            _ => vec![],
+        };
+        out.extend(self.steps.iter().flat_map(Step::references));
+        out
+    }
+
+    /// The sources the query reads data from: its own, and those of the queries it
+    /// reads, through theirs (each once, loops ignored).
+    pub fn sources_read<'a>(&'a self, queries: &'a [Query]) -> Vec<&'a Source> {
+        let mut seen = vec![self.id.as_str()];
+        let mut todo = vec![self];
+        let mut out = Vec::new();
+        while let Some(q) = todo.pop() {
+            out.push(&q.source);
+            for r in q.references() {
+                if !seen.contains(&r)
+                    && let Some(other) = queries.iter().find(|x| x.id == r)
+                {
+                    seen.push(r);
+                    todo.push(other);
+                }
+            }
+        }
+        out
+    }
+
     /// Display names of the source and each step, unique as Power Query makes them
     /// ("Changed Type", "Changed Type 2", …).
     pub fn step_display_names(&self) -> Vec<String> {
@@ -700,6 +749,9 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
                  FROM generate_series(DATE '{a}', DATE '{b}', INTERVAL 1 DAY) AS t(d)"
             )
         }
+        Source::Table { columns, rows } => table_sql(columns, rows)?,
+        // Compiled with the query it references (see `sql_upto`).
+        Source::Reference { query } => return Err(StepError::UnknownQuery(query.clone())),
         Source::Parquet { path } => format!("SELECT * FROM read_parquet({})", file(path)),
         Source::Json { path } => format!("SELECT * FROM read_json_auto({})", file(path)),
         Source::Excel {
@@ -749,6 +801,61 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
             quote::ident(schema),
             quote::ident(table)
         ),
+    })
+}
+
+/// A typed-in table as SQL: its text values in a VALUES list, each column converted to
+/// its type (values that don't convert are blank, as with a type change).
+fn table_sql(
+    columns: &[(String, DataType)],
+    rows: &[Vec<Option<String>>],
+) -> Result<String, StepError> {
+    if columns.is_empty() {
+        return Err(StepError::Invalid("the table has no columns".into()));
+    }
+    let select = columns
+        .iter()
+        .enumerate()
+        .map(|(i, (name, t))| {
+            let v = format!("c{i}");
+            let e = match t {
+                DataType::String | DataType::Unknown => v,
+                // A whole number only from a whole value (DuckDB rounds "2.5" to 3).
+                DataType::Int64 => format!(
+                    "CASE WHEN TRY_CAST({v} AS DOUBLE) = round(TRY_CAST({v} AS DOUBLE)) THEN TRY_CAST(TRY_CAST({v} AS DOUBLE) AS BIGINT) END"
+                ),
+                t => format!("TRY_CAST({v} AS {})", duckdb_type(*t)),
+            };
+            format!("{e} AS {}", quote::ident(name))
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let names = (0..columns.len())
+        .map(|i| format!("c{i}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let value = |v: Option<&Option<String>>| match v {
+        Some(Some(s)) => format!("CAST({} AS VARCHAR)", quote::string(s)),
+        _ => "CAST(NULL AS VARCHAR)".into(),
+    };
+    let row = |r: &[Option<String>]| {
+        format!(
+            "({})",
+            (0..columns.len())
+                .map(|i| value(r.get(i)))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    };
+    Ok(if rows.is_empty() {
+        // No rows: a blank row filtered out keeps the columns and their types.
+        format!(
+            "SELECT {select} FROM (VALUES {}) AS t({names}) WHERE false",
+            row(&[])
+        )
+    } else {
+        let values = rows.iter().map(|r| row(r)).collect::<Vec<_>>().join(", ");
+        format!("SELECT {select} FROM (VALUES {values}) AS t({names})")
     })
 }
 
@@ -1282,7 +1389,10 @@ fn sql_upto(
         return Err(StepError::Cycle(names.join(", ")));
     }
     seen.push(query.id.clone());
-    let source = source_sql(&query.source, ctx)?;
+    let source = match &query.source {
+        Source::Reference { query: other } => query_sql(lookup(ctx, other)?, ctx, seen)?,
+        s => source_sql(s, ctx)?,
+    };
     let comma = decimal_comma(&query.source, ctx.sheets);
     let n = upto.min(query.steps.len());
     let out = if n == 0 {
@@ -1620,6 +1730,7 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
                 ),
             ));
         }
+        Source::Reference { .. } | Source::Table { .. } => {}
     }
     let name_of = |id: &str| {
         queries
@@ -1628,6 +1739,24 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
             .map(|x| m_ident(&x.name))
             .unwrap_or_else(|| m_ident(id))
     };
+    match &q.source {
+        Source::Reference { query } => steps.push(("Source".into(), name_of(query))),
+        Source::Table { columns, rows } => {
+            steps.push(("Source".into(), table_m(columns, rows)));
+            steps.push((
+                "Changed Type".into(),
+                format!(
+                    "Table.TransformColumnTypes(Source, {{{}}})",
+                    columns
+                        .iter()
+                        .map(|(c, t)| format!("{{{}, {}}}", m_string(c), m_type(*t)))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+            ));
+        }
+        _ => {}
+    }
     let names = q.step_display_names();
     for (i, s) in q.steps.iter().enumerate() {
         let prev = m_ident(&steps.last().unwrap().0);
@@ -1948,6 +2077,56 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
     steps
 }
 
+/// A typed-in table as Power BI's Enter data writes it: the rows as JSON, compressed
+/// (raw deflate) and in base64, with every column text (a type change follows).
+pub fn table_m(columns: &[(String, DataType)], rows: &[Vec<Option<String>>]) -> String {
+    use base64::Engine;
+    let rows: Vec<Vec<Option<&str>>> = rows
+        .iter()
+        .map(|r| {
+            (0..columns.len())
+                .map(|i| r.get(i).and_then(|v| v.as_deref()))
+                .collect()
+        })
+        .collect();
+    let json = serde_json::to_string(&rows).unwrap_or_else(|_| "[]".into());
+    let packed = miniz_oxide::deflate::compress_to_vec(json.as_bytes(), 9);
+    let text = base64::engine::general_purpose::STANDARD.encode(packed);
+    format!(
+        "Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText({}, BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [{}])",
+        m_string(&text),
+        columns
+            .iter()
+            .map(|(c, _)| format!("{} = _t", m_ident(c)))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
+/// The rows of an Enter data table from its base64 text (see `table_m`).
+pub fn table_rows_from_m(text: &str) -> Result<Vec<Vec<Option<String>>>, String> {
+    use base64::Engine;
+    let packed = base64::engine::general_purpose::STANDARD
+        .decode(text.trim())
+        .map_err(|e| format!("its data isn't base64 ({e})"))?;
+    let json = miniz_oxide::inflate::decompress_to_vec_with_limit(&packed, 256 << 20)
+        .map_err(|e| format!("its data doesn't decompress ({e:?})"))?;
+    let rows: Vec<Vec<serde_json::Value>> =
+        serde_json::from_slice(&json).map_err(|e| format!("its data isn't rows ({e})"))?;
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            r.into_iter()
+                .map(|v| match v {
+                    serde_json::Value::Null => None,
+                    serde_json::Value::String(s) => Some(s),
+                    v => Some(v.to_string()),
+                })
+                .collect()
+        })
+        .collect())
+}
+
 /// The query as an M `let … in` expression.
 pub fn to_m(q: &Query, queries: &[Query]) -> String {
     m_document(&m_steps(q, queries))
@@ -2076,6 +2255,113 @@ mod tests {
             to_sql(&raw, &ctx(&all, &sheets)),
             Err(StepError::Cycle(_))
         ));
+    }
+
+    #[test]
+    fn references_start_from_another_query() {
+        let store = Query {
+            id: "store".into(),
+            name: "RAW Store".into(),
+            ..q(vec![])
+        };
+        let mut copy = q(vec![Step::RemoveColumns {
+            columns: vec!["junk".into()],
+        }]);
+        copy.id = "copy".into();
+        copy.source = Source::Reference {
+            query: "store".into(),
+        };
+        let all = vec![store.clone(), copy.clone()];
+        let sheets = BTreeMap::new();
+        insta::assert_snapshot!(to_sql(&copy, &ctx(&all, &sheets)).unwrap(), @r#"
+        WITH s0 AS (SELECT * FROM read_csv('/home/me/Sales/data/it''s.csv', header = true, delim = ';')),
+        s1 AS (SELECT * EXCLUDE ("junk") FROM s0)
+        SELECT * FROM s1
+        "#);
+        assert_eq!(copy.references(), ["store"]);
+        let m = to_m(&copy, &all);
+        assert!(m.starts_with("let\n    Source = #\"RAW Store\",\n"), "{m}");
+        assert!(m.contains("Table.RemoveColumns(Source, {\"junk\"})"), "{m}");
+        // Referring to itself through another query is a loop.
+        let looped = Query {
+            source: Source::Reference {
+                query: "copy".into(),
+            },
+            ..store
+        };
+        let all = vec![looped, copy.clone()];
+        assert!(matches!(
+            to_sql(&copy, &ctx(&all, &sheets)),
+            Err(StepError::Cycle(_))
+        ));
+        assert!(matches!(
+            to_sql(&copy, &ctx(&[], &sheets)),
+            Err(StepError::UnknownQuery(_))
+        ));
+    }
+
+    #[test]
+    fn entered_tables_compile_to_values_and_power_bi_m() {
+        let mut t = q(vec![]);
+        t.source = Source::Table {
+            columns: vec![
+                ("Region".into(), DataType::String),
+                ("Target".into(), DataType::Int64),
+                ("Since".into(), DataType::Date),
+            ],
+            rows: vec![
+                vec![
+                    Some("North".into()),
+                    Some("10".into()),
+                    Some("2024-01-31".into()),
+                ],
+                vec![Some("It's".into()), None],
+            ],
+        };
+        let sheets = BTreeMap::new();
+        insta::assert_snapshot!(to_sql(&t, &ctx(&[], &sheets)).unwrap(), @r#"SELECT c0 AS "Region", CASE WHEN TRY_CAST(c1 AS DOUBLE) = round(TRY_CAST(c1 AS DOUBLE)) THEN TRY_CAST(TRY_CAST(c1 AS DOUBLE) AS BIGINT) END AS "Target", TRY_CAST(c2 AS DATE) AS "Since" FROM (VALUES (CAST('North' AS VARCHAR), CAST('10' AS VARCHAR), CAST('2024-01-31' AS VARCHAR)), (CAST('It''s' AS VARCHAR), CAST(NULL AS VARCHAR), CAST(NULL AS VARCHAR))) AS t(c0, c1, c2)"#);
+        let m = to_m(&t, &[]);
+        assert!(
+            m.contains(
+                "Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText(\""
+            ),
+            "{m}"
+        );
+        assert!(
+            m.contains("in type table [Region = _t, Target = _t, Since = _t]),\n"),
+            "{m}"
+        );
+        assert!(m.contains("#\"Changed Type\" = Table.TransformColumnTypes(Source, {{\"Region\", type text}, {\"Target\", Int64.Type}, {\"Since\", type date}})"), "{m}");
+        let b64 = m
+            .split("Binary.FromText(\"")
+            .nth(1)
+            .unwrap()
+            .split('"')
+            .next()
+            .unwrap();
+        let Source::Table { rows, .. } = &t.source else {
+            unreachable!()
+        };
+        let mut padded = rows.clone();
+        padded[1].push(None);
+        assert_eq!(table_rows_from_m(b64).unwrap(), padded);
+        // As zlib (and Power BI) writes [["a","1"],["b","2"]].
+        assert_eq!(
+            table_rows_from_m("i45WSlTSUTJUitWJVkoCsoyUYmMB").unwrap(),
+            vec![
+                vec![Some("a".into()), Some("1".into())],
+                vec![Some("b".into()), Some("2".into())]
+            ]
+        );
+        let empty = Source::Table {
+            columns: vec![("A".into(), DataType::Double)],
+            rows: vec![],
+        };
+        assert!(
+            source_sql(&empty, &ctx(&[], &sheets))
+                .unwrap()
+                .ends_with("WHERE false")
+        );
     }
 
     #[test]

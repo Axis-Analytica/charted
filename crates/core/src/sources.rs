@@ -115,7 +115,10 @@ pub fn stamp(project_dir: &str, source: &Source) -> Option<(u64, u64)> {
         })
     };
     match source {
-        Source::Postgres { .. } | Source::Calendar { .. } => None,
+        Source::Postgres { .. }
+        | Source::Calendar { .. }
+        | Source::Reference { .. }
+        | Source::Table { .. } => None,
         Source::Folder { pattern, .. } => {
             let ext = pattern.trim_start_matches('*').to_lowercase();
             let entries = std::fs::read_dir(&path).ok()?;
@@ -149,7 +152,10 @@ pub fn content_hash(project_dir: &str, source: &Source) -> Option<u64> {
         }
     };
     match source {
-        Source::Postgres { .. } | Source::Calendar { .. } => return None,
+        Source::Postgres { .. }
+        | Source::Calendar { .. }
+        | Source::Reference { .. }
+        | Source::Table { .. } => return None,
         Source::Folder { pattern, .. } => {
             let ext = pattern.trim_start_matches('*').to_lowercase();
             let mut files: Vec<(String, u64)> = std::fs::read_dir(&path)
