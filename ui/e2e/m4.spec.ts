@@ -74,13 +74,23 @@ async function dropInWell(page: Page, table: string, field: string, role: string
 /** Clicks a bar (by category index) of a column chart, through the chart's own geometry. */
 async function clickBar(page: Page, visual: Locator, index: number, modifiers: ("Control" | "Shift")[] = []) {
   const chart = visual.locator(".cartesian");
-  const at = await chart.evaluate((el, i) => {
-    const c = (el as unknown as { chart: { getOption(): { series: { data: { value: number }[] }[] }; convertToPixel(f: object, v: number[]): number[] } }).chart;
-    const v = c.getOption().series[0]!.data[i]!.value;
-    // Chart pixels are before the canvas zoom; the bounding box is after it.
-    const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
-    return c.convertToPixel({ seriesIndex: 0 }, [i, v / 2]).map((x) => x * zoom);
-  }, index);
+  const probe = () =>
+    chart.evaluate((el, i) => {
+      type Chart = {
+        getOption(): { series: { data: { value: number }[] }[] };
+        convertToPixel(f: object, v: number[]): number[];
+        getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
+      };
+      const c = (el as unknown as { chart: Chart }).chart;
+      const v = c.getOption().series[0]!.data[i]!.value;
+      // Chart pixels are before the canvas zoom; the bounding box is after it.
+      const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
+      const px = c.convertToPixel({ seriesIndex: 0 }, [i, v / 2]);
+      // Charts animate in when motion is on (as on CI): wait for the bar to be there.
+      return { at: px.map((x) => x * zoom), drawn: !!c.getZr().handler.findHover(px[0]!, px[1]!).target };
+    }, index);
+  await expect.poll(async () => (await probe()).drawn).toBe(true);
+  const { at } = await probe();
   const box = (await chart.boundingBox())!;
   await page.mouse.move(box.x + at[0]!, box.y + at[1]!);
   for (const m of modifiers) await page.keyboard.down(m);

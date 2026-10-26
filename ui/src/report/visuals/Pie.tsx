@@ -182,7 +182,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
       },
       { notMerge: true },
     );
-  }, [slices, visual.objects, def, val, model, locale, t, env, themeKey, donut, interact]);
+  }, [slices, visual.objects, def, val, model, locale, t, env, themeKey, donut, interact.chosen]);
 
   return <div ref={el} className="cartesian" />;
 }

@@ -71,18 +71,24 @@ function useInteract(visual: Visual, page: Page, onMenu: (m: PointMenu) => void)
   const selection = useSelection((s) => s.selection);
   const drillMode = useDrillMode((s) => s.on.includes(visual.id));
   const canDown = !!hierarchy(visual)?.canDown;
-  return useMemo(() => {
+  // Renderers redraw when `chosen` changes, so it changes only with the selection: a
+  // redraw replays the chart's entry animation (turning on drill mode must not).
+  const chosen = useMemo(() => {
     const mine = selection && selection.source === visual.id && selection.page === page.id ? selection : null;
-    return {
+    return (tuple: (string | null)[]) => (mine ? mine.tuples.some((t) => t.length === tuple.length && t.every((x, i) => x === tuple[i])) : null);
+  }, [selection, visual.id, page.id]);
+  return useMemo(
+    () => ({
       drill: drillMode && canDown ? (keys) => void drillInto(page.id, visual, keys) : undefined,
       menu: (fields, tuple, at) => onMenu({ fields, tuple, ...at }),
       choose: (fields, tuple, additive) => useSelection.getState().choose(page.id, visual.id, fields, tuple, additive),
       clear: () => {
         if (useSelection.getState().selection?.source === visual.id) useSelection.getState().clear();
       },
-      chosen: (tuple) => (mine ? mine.tuples.some((t) => t.length === tuple.length && t.every((x, i) => x === tuple[i])) : null),
-    };
-  }, [selection, visual, page.id, drillMode, canDown, onMenu]);
+      chosen,
+    }),
+    [chosen, visual, page.id, drillMode, canDown, onMenu],
+  );
 }
 
 export function VisualContainer({ visual, page, model, signature, selected, register, onPointerDown, standalone }: Props) {

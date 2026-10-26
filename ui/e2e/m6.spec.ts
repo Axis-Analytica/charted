@@ -84,18 +84,28 @@ const categories = async (visual: Locator) => {
 };
 const values = async (visual: Locator, series: number) => ((await option(visual)).series[series]?.data ?? []).map((d) => (d && typeof d === "object" ? d.value : d));
 
-/** A bar's centre on screen, through the chart's own geometry. */
+/** A bar's centre on screen, through the chart's own geometry, once the bar is drawn
+ * there (charts animate in when motion is on, as on CI). */
 async function barAt(visual: Locator, index: number): Promise<{ x: number; y: number }> {
   const chart = visual.locator(".cartesian");
-  const at = await chart.evaluate((el, i) => {
-    const c = (el as unknown as { chart: { getOption(): { series: { data: { value: number }[] }[]; yAxis: { type: string }[] }; convertToPixel(f: object, v: number[]): number[] } }).chart;
-    const o = c.getOption();
-    const v = o.series[0]!.data[i]!.value;
-    const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
-    // Bar charts put the categories on the y axis.
-    const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];
-    return c.convertToPixel({ seriesIndex: 0 }, point).map((x) => x * zoom);
-  }, index);
+  const probe = () =>
+    chart.evaluate((el, i) => {
+      type Chart = {
+        getOption(): { series: { data: { value: number }[] }[]; yAxis: { type: string }[] };
+        convertToPixel(f: object, v: number[]): number[];
+        getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
+      };
+      const c = (el as unknown as { chart: Chart }).chart;
+      const o = c.getOption();
+      const v = o.series[0]!.data[i]!.value;
+      const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
+      // Bar charts put the categories on the y axis.
+      const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];
+      const px = c.convertToPixel({ seriesIndex: 0 }, point);
+      return { at: px.map((x) => x * zoom), drawn: !!c.getZr().handler.findHover(px[0]!, px[1]!).target };
+    }, index);
+  await expect.poll(async () => (await probe()).drawn).toBe(true);
+  const { at } = await probe();
   const box = (await chart.boundingBox())!;
   return { x: box.x + at[0]!, y: box.y + at[1]! };
 }

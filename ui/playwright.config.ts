@@ -20,8 +20,9 @@ export default defineConfig({
   },
   webServer: [
     {
-      // HOME is a copy holding the desktop's Omarchy theme, so tests can switch it.
-      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state ${theme} && (cp -L ${process.env.HOME}/.local/state/omarchy/current/theme/* ${theme}/ 2>/dev/null; cp -L ${process.env.HOME}/.local/state/omarchy/current/theme.name ${theme}/../ 2>/dev/null; true) && HOME=${tmp}/home XDG_DOCUMENTS_DIR=${tmp}/docs ${bin} serve --port 7421 --state-dir ${tmp}/state`,
+      // HOME is a copy holding the desktop's Omarchy theme, so tests can switch it. The
+      // desktop's Hyprland is hidden, so motion is on as on CI (Hyprland may turn it off).
+      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state ${theme} && (cp -L ${process.env.HOME}/.local/state/omarchy/current/theme/* ${theme}/ 2>/dev/null; cp -L ${process.env.HOME}/.local/state/omarchy/current/theme.name ${theme}/../ 2>/dev/null; true) && env -u HYPRLAND_INSTANCE_SIGNATURE HOME=${tmp}/home XDG_DOCUMENTS_DIR=${tmp}/docs ${bin} serve --port 7421 --state-dir ${tmp}/state`,
       port: 7421,
       reuseExistingServer: false,
     },

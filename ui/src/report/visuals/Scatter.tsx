@@ -184,7 +184,7 @@ export function Scatter({ visual, model, data, interact }: { visual: Visual; mod
       },
       { notMerge: true },
     );
-  }, [shaped, visual.objects, def, xp, yp, sp, model, locale, t, env, themeKey, interact]);
+  }, [shaped, visual.objects, def, xp, yp, sp, model, locale, t, env, themeKey, interact.chosen]);
 
   return <div ref={el} className="cartesian" />;
 }
