@@ -149,6 +149,18 @@ fn quick_measures_compute_what_they_say() {
         prev = Some(t);
     }
 
+    // A running total over dates, by year: each year adds its total.
+    let running = s.measure(
+        "Running",
+        "CALCULATE ( [Total], FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) ) )",
+    );
+    let r = s.by(vec![year.clone()], vec![total.clone(), running]);
+    let mut acc = 0.0;
+    for row in &r {
+        acc += num(row, "v0");
+        assert!(close(num(row, "v1"), acc), "running total {row:?}");
+    }
+
     // Shares of the grand total add up to one.
     let share = s.measure(
         "Share",

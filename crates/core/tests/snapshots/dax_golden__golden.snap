@@ -457,6 +457,82 @@ expression: golden
 "Camping" | 1
 "Footwear" | 1
 
+## Running Qty — card
+269
+
+## Running Qty — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Running Qty In Year — card
+269
+
+## Running Qty In Year — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Running Qty All Time — card
+269
+
+## Running Qty All Time — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Busy Products Sales — card
+23332
+
+## Busy Products Sales — by category
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Busy Colors Kept — card
+23413
+
+## Busy Colors Kept — by category
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Cheaper Or Equal — card
+269
+
+## Cheaper Or Equal — by category
+∅ | 3
+"Apparel" | 244
+"Camping" | 269
+"Footwear" | 214
+
+## Neither Apparel Nor Camping — card
+76
+
+## Neither Apparel Nor Camping — by category
+∅ | 76
+"Apparel" | 76
+"Camping" | 76
+"Footwear" | 76
+
+## Camping If Busy — card
+10138
+
+## Camping If Busy — by category
+"Camping" | 10138
+
+## Since March 2025 — card
+151
+
+## Since March 2025 — by category
+∅ | 3
+"Apparel" | 61
+"Camping" | 49
+"Footwear" | 38
+
 ## Camping Sales — card
 10138
 

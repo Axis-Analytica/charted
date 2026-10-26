@@ -13,6 +13,7 @@ export type Calc =
   | "maxPer"
   | "minPer"
   | "shareOfTotal"
+  | "runningTotal"
   | "filtered"
   | "ytd"
   | "qtd"
@@ -52,6 +53,7 @@ export const CALCS: CalcDef[] = [
   { calc: "maxPer", label: msg("Largest per category"), group: msg("Per category"), value: true, category: true },
   { calc: "minPer", label: msg("Smallest per category"), group: msg("Per category"), value: true, category: true },
   { calc: "shareOfTotal", label: msg("Percentage of total"), group: msg("Per category"), value: true, category: true },
+  { calc: "runningTotal", label: msg("Running total"), group: msg("Totals"), value: true, category: true },
   { calc: "filtered", label: msg("Filtered value"), group: msg("Filters"), value: true, category: true, text: true },
   { calc: "ytd", label: msg("Year-to-date total"), group: msg("Time intelligence"), value: true, date: true },
   { calc: "qtd", label: msg("Quarter-to-date total"), group: msg("Time intelligence"), value: true, date: true },
@@ -131,6 +133,8 @@ export function quickMeasure(calc: Calc, p: Picks, fields: FieldOption[]): { nam
       return out(`Smallest ${label(p.value)} per ${label(p.category)}`, `MINX ( VALUES ( ${p.category} ), ${V} )`);
     case "shareOfTotal":
       return out(`${label(p.value)} % of total`, `DIVIDE ( ${V}, CALCULATE ( ${V}, ALLSELECTED ( ${p.category} ) ) )`, pct);
+    case "runningTotal":
+      return out(`${label(p.value)} running total in ${label(p.category)}`, `CALCULATE ( ${V}, FILTER ( ALLSELECTED ( ${p.category} ), ${p.category} <= MAX ( ${p.category} ) ) )`);
     case "filtered":
       return out(`${label(p.value)} for ${p.text}`, `CALCULATE ( ${V}, ${p.category} = "${p.text.replace(/"/g, '""')}" )`);
     case "ytd":

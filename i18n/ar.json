@@ -921,5 +921,6 @@
   "Western European (Windows)": "أوروبية غربية (Windows)",
   "Year-over-year change %": "نسبة التغيّر السنوي %",
   "Year-over-year change": "التغيّر السنوي",
-  "Year-to-date total": "الإجمالي من بداية السنة"
+  "Year-to-date total": "الإجمالي من بداية السنة",
+  "Running total": "الإجمالي التراكمي"
 }

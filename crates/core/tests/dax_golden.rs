@@ -461,6 +461,44 @@ const MEASURES: &[(&str, &str)] = &[
         "Share Of Selected",
         "DIVIDE ( [Quantity], SUMX ( ALLSELECTED ( Product[Product] ), [Quantity] ) )",
     ),
+    // FILTER over measures and outer values as CALCULATE filters
+    (
+        "Running Qty",
+        "CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) ) )",
+    ),
+    (
+        "Running Qty In Year",
+        "CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( Date[MonthNumber] ), Date[MonthNumber] <= MAX ( Date[MonthNumber] ) ) )",
+    ),
+    (
+        "Running Qty All Time",
+        "CALCULATE ( [Quantity], FILTER ( ALL ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) ) )",
+    ),
+    (
+        "Busy Products Sales",
+        "CALCULATE ( [Sales Amount], FILTER ( VALUES ( Product[Product] ), [Quantity] > 10 ) )",
+    ),
+    (
+        "Busy Colors Kept",
+        "CALCULATE ( [Sales Amount], KEEPFILTERS ( FILTER ( ALL ( Product[Color] ), [Quantity] > 5 ) ) )",
+    ),
+    (
+        "Cheaper Or Equal",
+        "CALCULATE ( [Quantity], FILTER ( ALL ( Product ), Product[ListPrice] <= MAX ( Product[ListPrice] ) ) )",
+    ),
+    // Several filters on one column are ANDed.
+    (
+        "Neither Apparel Nor Camping",
+        "CALCULATE ( [Quantity], Product[Category] <> \"Apparel\", Product[Category] <> \"Camping\" )",
+    ),
+    (
+        "Camping If Busy",
+        "CALCULATE ( [Sales Amount], Product[Category] = \"Camping\", FILTER ( VALUES ( Product[Category] ), [Orders] > 10 ) )",
+    ),
+    (
+        "Since March 2025",
+        "CALCULATE ( [Quantity], Date[Date] >= DATE ( 2025, 3, 1 ) )",
+    ),
     // CALCULATE
     (
         "Camping Sales",
@@ -1060,6 +1098,9 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH )",
         "DATESBETWEEN ( Date[Date], DATE ( 2024, 6, 1 ), LASTDATE ( Date[Date] ) )",
         "REMOVEFILTERS ()",
+        "FILTER ( ALLSELECTED ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) )",
+        "FILTER ( VALUES ( Product[Category] ), [Orders] > 10 )",
+        "FILTER ( ALL ( Store[Region] ), [Quantity] > 30 )",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",
@@ -1298,4 +1339,70 @@ fn both_directions_agree_with_the_reference_interpreter() {
         failures.len(),
         failures.join("\n\n")
     );
+}
+
+/// Agreement isn't correctness: running totals must accumulate. By year and month,
+/// the running total never falls and ends at the grand total; the one over month
+/// numbers starts again each year.
+#[test]
+fn running_totals_accumulate() {
+    let f = fixture();
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let col = |t: &str, c: &str| Projection {
+        field: FieldRef::Column {
+            table: t.into(),
+            column: format!("{t}.{c}"),
+        },
+        aggregation: None,
+        display_name: None,
+    };
+    let m = |name: &str| Projection {
+        field: FieldRef::Measure {
+            table: "Sales".into(),
+            measure: format!("m:{name}"),
+        },
+        aggregation: None,
+        display_name: None,
+    };
+    let q = VisualQuery {
+        groups: vec![col("Date", "Year"), col("Date", "MonthNumber")],
+        values: vec![m("Quantity"), m("Running Qty"), m("Running Qty In Year")],
+        order: vec![
+            OrderBy {
+                target: OrderTarget::Group(0),
+                descending: false,
+            },
+            OrderBy {
+                target: OrderTarget::Group(1),
+                descending: false,
+            },
+        ],
+        ..Default::default()
+    };
+    let compiled = visual::compile(&f.model, &schema, &q).unwrap();
+    let rows = arrow_values(f.db.arrow(&compiled.sql).unwrap());
+    let num = |v: &Value| match v {
+        Value::Num(x) => *x,
+        _ => 0.0,
+    };
+    let (mut total, mut year_total, mut last_year) = (0.0, 0.0, 0.0);
+    for r in &rows {
+        if num(&r[0]) != last_year {
+            year_total = 0.0;
+            last_year = num(&r[0]);
+        }
+        total += num(&r[2]);
+        year_total += num(&r[2]);
+        assert_eq!(num(&r[3]), total, "running total at {:?}", &r[..2]);
+        assert_eq!(
+            num(&r[4]),
+            year_total,
+            "running total in year at {:?}",
+            &r[..2]
+        );
+    }
+    assert_eq!(total, 269.0);
 }

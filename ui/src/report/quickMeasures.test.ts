@@ -18,6 +18,7 @@ describe("quick measures", () => {
     expect(dax("maxPer")).toBe("MAXX ( VALUES ( Product[Category] ), [Total] )");
     expect(dax("weightedAverage", { value: "Sales[UnitPrice]" })).toBe("DIVIDE ( SUMX ( Sales, Sales[UnitPrice] * Sales[Quantity] ), SUM ( Sales[Quantity] ) )");
     expect(dax("filtered")).toBe('CALCULATE ( [Total], Product[Category] = "Bikes" )');
+    expect(dax("runningTotal", { category: "'Date'[Date]" })).toBe("CALCULATE ( [Total], FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) ) )");
     // A column is summed.
     expect(dax("sum", { value: "Sales[UnitPrice]" })).toBe("SUM ( Sales[UnitPrice] )");
   });

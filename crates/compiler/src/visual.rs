@@ -258,6 +258,15 @@ struct Frame {
     keys: Vec<Key>,
 }
 
+/// An iterated table's rows joined to a frame (`Compiler::row_frame`).
+struct RowFrame {
+    frame: Frame,
+    /// The outer rows' bindings and the iterated row's, last.
+    rows: Vec<RowBinding>,
+    /// FILTER conditions evaluated over the frame (unrendered).
+    conds: Vec<String>,
+}
+
 /// SQL for a value, with `\u{1}n\u{1}` standing for CTE n's value column, and `f.` for
 /// the frame.
 #[derive(Debug, Clone)]
@@ -1190,7 +1199,13 @@ impl<'a> Compiler<'a> {
         };
         let mut needed: Vec<Id> = keys.iter().map(|k| k.table.clone()).collect();
         for f in &filters {
-            needed.extend(Self::pred_tables(f));
+            // A value set's keys from tables out of reach are carried, not joined: the
+            // aggregate is computed per set key instead.
+            needed.extend(
+                Self::pred_tables(f)
+                    .into_iter()
+                    .filter(|t| t == &f.table || t == base || reach.reaches(base, t)),
+            );
         }
         needed.extend(extra_tables.iter().cloned());
         for t in &needed {
@@ -1611,6 +1626,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         ctx: &Ctx,
         filters: &[FilterArg],
+        frame: &Frame,
         rows: &[RowBinding],
     ) -> Result<Ctx> {
         // Filter arguments see the context before transition; the result starts after it.
@@ -1642,20 +1658,14 @@ impl<'a> Compiler<'a> {
                     c.filters.clear();
                 }
                 FilterArg::Table(t) => {
-                    if let TableExpr::Dates {
-                        table: tid, column, ..
-                    } = t
-                        && !keep
-                        && (table(self.model, tid)?.is_date_table
-                            || self
-                                .model
-                                .relationships
-                                .iter()
-                                .any(|r| &r.from_column == column || &r.to_column == column))
-                    {
-                        date_tables.push(tid.clone());
+                    let before = added.len();
+                    self.table_filter(t, keep, &outer, frame, rows, &mut added)?;
+                    // A filter on a date table's date column replaces all its filters.
+                    for (f, _) in &added[before..] {
+                        if !keep && crate::replaces_date_table(self.model, &f.table, &f.columns) {
+                            date_tables.push(f.table.clone());
+                        }
                     }
-                    self.table_filter(t, keep, &outer, &mut added)?
                 }
                 FilterArg::Keep(_) => {
                     return Err(CompileError::Unsupported(
@@ -1666,14 +1676,15 @@ impl<'a> Compiler<'a> {
         }
         c.keys.retain(|k| !date_tables.contains(&k.table));
         c.filters.retain(|f| !date_tables.contains(&f.table));
-        for (f, keep) in added {
+        // Filter arguments replace the filters already there, and are ANDed together.
+        for (f, keep) in &added {
             if !keep && !f.columns.is_empty() {
                 c.keys.retain(|k| !f.columns.contains(&k.column));
                 c.filters
                     .retain(|x| !x.columns.iter().any(|col| f.columns.contains(col)));
             }
-            c.filters.push(f);
         }
+        c.filters.extend(added.into_iter().map(|(f, _)| f));
         Ok(c)
     }
 
@@ -1886,45 +1897,61 @@ impl<'a> Compiler<'a> {
         t: &TableExpr,
         keep: bool,
         outer: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
         added: &mut Vec<(CFilter, bool)>,
     ) -> Result<()> {
+        let local = |c: &Bound, src: &TableExpr| src.table().is_some_and(|tb| row_local(c, tb));
         match t {
-            TableExpr::Filter { source, condition } if row_pure(condition) => match &**source {
-                // FILTER ( ALL ( columns ), condition ): the condition replaces those columns' filters.
-                TableExpr::All { table, columns } => added.push((
-                    CFilter {
-                        table: table.clone(),
-                        columns: columns.clone(),
-                        pred: Pred::Cond((**condition).clone()),
-                    },
-                    keep,
-                )),
-                // FILTER ( Table or VALUES, condition ): visible rows that satisfy it.
-                TableExpr::Table(table) | TableExpr::Values { table, .. } => added.push((
-                    CFilter {
-                        table: table.clone(),
-                        columns: Vec::new(),
-                        pred: Pred::Cond((**condition).clone()),
-                    },
-                    true,
-                )),
-                _ => {
-                    return Err(CompileError::Unsupported(
-                        "this FILTER as a CALCULATE filter".into(),
-                    ));
+            TableExpr::Filter { source, condition }
+                if local(condition, source)
+                    && matches!(
+                        &**source,
+                        TableExpr::All { .. } | TableExpr::Table(_) | TableExpr::Values { .. }
+                    ) =>
+            {
+                match &**source {
+                    // FILTER ( ALL ( columns ), condition ): the condition replaces those columns' filters.
+                    TableExpr::All { table, columns } => added.push((
+                        CFilter {
+                            table: table.clone(),
+                            columns: columns.clone(),
+                            pred: Pred::Cond((**condition).clone()),
+                        },
+                        keep,
+                    )),
+                    // FILTER ( Table or VALUES, condition ): visible rows that satisfy it.
+                    TableExpr::Table(table) | TableExpr::Values { table, .. } => added.push((
+                        CFilter {
+                            table: table.clone(),
+                            columns: Vec::new(),
+                            pred: Pred::Cond((**condition).clone()),
+                        },
+                        true,
+                    )),
+                    _ => unreachable!("matched above"),
                 }
-            },
-            TableExpr::Filter { .. } => {
-                return Err(CompileError::Unsupported(
-                    "FILTER with measures or aggregates in its condition, used as a CALCULATE filter,".into(),
-                ));
+            }
+            // Conditions that need the frame (measures, outer values, outer rows), and
+            // FILTERs over other tables: the passing rows per frame row.
+            TableExpr::Filter { source, .. } => {
+                let mut base = &**source;
+                while let TableExpr::Filter { source, .. } = base {
+                    base = source;
+                }
+                // Over ALL or ALLSELECTED the rows replace the filters on their columns;
+                // over visible rows they can only narrow them.
+                let replaces =
+                    matches!(base, TableExpr::All { .. } | TableExpr::AllSelected { .. });
+                let f = self.filter_set(t, outer, frame, rows)?;
+                added.push((f, keep || !replaces));
             }
             TableExpr::Values { table, columns } => {
                 added.push((self.value_set(table, columns, outer)?, keep))
             }
             TableExpr::AllSelected { .. } => {
                 let (t, c) = unselect(t, outer).expect("ALLSELECTED");
-                self.table_filter(&t, keep, &c, added)?
+                self.table_filter(&t, keep, &c, frame, rows, added)?
             }
             TableExpr::Table(table) => {
                 // VALUES ( Table ): its rows, by the key column when it has one.
@@ -2042,6 +2069,132 @@ impl<'a> Compiler<'a> {
         frame: &Frame,
         rows: &[RowBinding],
     ) -> Result<Scalar> {
+        let rf = self.row_frame(source, Some(arg), ctx, frame, rows)?;
+        let frame_name = rf.frame.rel.clone();
+        let filter_sql = rf.conds;
+        let value = self.scalar(arg, ctx, &rf.frame, &rf.rows)?;
+        let ty = value.ty;
+        // Join every CTE the value and the conditions use, then render each.
+        let combined = Scalar {
+            sql: std::iter::once(value.sql.clone())
+                .chain(filter_sql.iter().cloned())
+                .collect(),
+            ty,
+        };
+        let (_, from) = self.render(&combined, &frame_name);
+        let (val_sql, _) = self.render(&value, &frame_name);
+        let cond_sql: Vec<String> = filter_sql
+            .iter()
+            .map(|f| {
+                self.render(
+                    &Scalar {
+                        sql: f.clone(),
+                        ty: ValueType::Bool,
+                    },
+                    &frame_name,
+                )
+                .0
+            })
+            .collect();
+        let (agg, _) = agg_sql(func, Some((val_sql, ty)));
+        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+        let mut select: Vec<String> = keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
+        select.push(format!("{agg} AS v"));
+        let mut out = format!("SELECT {} FROM {from}", select.join(", "));
+        if !cond_sql.is_empty() {
+            out.push_str(&format!(" WHERE {}", cond_sql.join(" AND ")));
+        }
+        if !keys.is_empty() {
+            out.push_str(&format!(
+                " GROUP BY {}",
+                keys.iter()
+                    .map(|k| format!("f.{k}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        // Built over the key domain, so its keys are combinations the visual can show.
+        let i = self.add_cte(out, keys, true);
+        Ok(Scalar {
+            sql: format!("\u{1}{i}\u{1}"),
+            ty: if matches!(func, AggFunc::Min | AggFunc::Max) {
+                ty
+            } else {
+                ValueType::Number
+            },
+        })
+    }
+
+    /// A FILTER whose condition needs the outer frame (its measures, or values such as
+    /// `MAX ( 'Date'[Date] )` from the outer context), used as a CALCULATE filter: the
+    /// rows that pass, per row of the frame, as a value set keyed by the frame's keys.
+    fn filter_set(
+        &mut self,
+        source: &TableExpr,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<CFilter> {
+        let rf = self.row_frame(source, None, ctx, frame, rows)?;
+        let b = rf.rows.last().expect("the iterated row");
+        let ident: Vec<(Id, String)> = b
+            .columns
+            .iter()
+            .filter(|(c, _)| b.identity.contains(c))
+            .cloned()
+            .collect();
+        let table = b.table.clone();
+        let covers = b.covers.clone();
+        let cond = Scalar {
+            sql: if rf.conds.is_empty() {
+                "TRUE".into()
+            } else {
+                rf.conds
+                    .iter()
+                    .map(|c| format!("({c})"))
+                    .collect::<Vec<_>>()
+                    .join(" AND ")
+            },
+            ty: ValueType::Bool,
+        };
+        let (cond_sql, from) = self.render(&cond, &rf.frame.rel);
+        let mut select: Vec<String> = frame
+            .keys
+            .iter()
+            .map(|k| format!("f.{0} AS {0}", k.name))
+            .collect();
+        for (i, (_, n)) in ident.iter().enumerate() {
+            select.push(format!("f.{n} AS v{i}"));
+        }
+        let sql = format!(
+            "SELECT DISTINCT {} FROM {from} WHERE {cond_sql}",
+            select.join(", ")
+        );
+        let set = self.add_cte(sql, Vec::new(), false);
+        // Matched on the columns that identify a row; replaces filters on all it has.
+        let columns: Vec<Id> = ident.into_iter().map(|(c, _)| c).collect();
+        Ok(CFilter {
+            table,
+            columns: covers,
+            pred: Pred::InSet {
+                set,
+                columns,
+                keys: frame.keys.clone(),
+            },
+        })
+    }
+
+    /// The rows of a table expression joined to the frame: a frame with a row per outer
+    /// row and iterated row, the bindings that read them, and the FILTER conditions
+    /// that need the frame (unrendered SQL; row-level ones are already applied).
+    fn row_frame(
+        &mut self,
+        source: &TableExpr,
+        arg: Option<&Bound>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<RowFrame> {
         let mut conds: Vec<&Bound> = Vec::new();
         let mut cur = source;
         while let TableExpr::Filter { source, condition } = cur {
@@ -2095,7 +2248,9 @@ impl<'a> Compiler<'a> {
             }
         };
         let mut related = Vec::new();
-        related_refs(arg, &mut related);
+        if let Some(a) = arg {
+            related_refs(a, &mut related);
+        }
         for c in &conds {
             related_refs(c, &mut related);
         }
@@ -2216,61 +2371,15 @@ impl<'a> Compiler<'a> {
         let mut inner_rows = rows.to_vec();
         inner_rows.push(binding);
         // Conditions with measures filter the frame rows.
-        let mut filter_sql = Vec::new();
+        let mut conds_sql = Vec::new();
         for c in later {
             let s = self.scalar(c, ctx, &inner_frame, &inner_rows)?;
-            filter_sql.push(bool_of(&(s.sql, s.ty)));
+            conds_sql.push(bool_of(&(s.sql, s.ty)));
         }
-        let value = self.scalar(arg, ctx, &inner_frame, &inner_rows)?;
-        let ty = value.ty;
-        // Join every CTE the value and the conditions use, then render each.
-        let combined = Scalar {
-            sql: std::iter::once(value.sql.clone())
-                .chain(filter_sql.iter().cloned())
-                .collect(),
-            ty,
-        };
-        let (_, from) = self.render(&combined, &frame_name);
-        let (val_sql, _) = self.render(&value, &frame_name);
-        let cond_sql: Vec<String> = filter_sql
-            .iter()
-            .map(|f| {
-                self.render(
-                    &Scalar {
-                        sql: f.clone(),
-                        ty: ValueType::Bool,
-                    },
-                    &frame_name,
-                )
-                .0
-            })
-            .collect();
-        let (agg, _) = agg_sql(func, Some((val_sql, ty)));
-        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
-        let mut select: Vec<String> = keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
-        select.push(format!("{agg} AS v"));
-        let mut out = format!("SELECT {} FROM {from}", select.join(", "));
-        if !cond_sql.is_empty() {
-            out.push_str(&format!(" WHERE {}", cond_sql.join(" AND ")));
-        }
-        if !keys.is_empty() {
-            out.push_str(&format!(
-                " GROUP BY {}",
-                keys.iter()
-                    .map(|k| format!("f.{k}"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ));
-        }
-        // Built over the key domain, so its keys are combinations the visual can show.
-        let i = self.add_cte(out, keys, true);
-        Ok(Scalar {
-            sql: format!("\u{1}{i}\u{1}"),
-            ty: if matches!(func, AggFunc::Min | AggFunc::Max) {
-                ty
-            } else {
-                ValueType::Number
-            },
+        Ok(RowFrame {
+            frame: inner_frame,
+            rows: inner_rows,
+            conds: conds_sql,
         })
     }
 
@@ -2372,7 +2481,7 @@ impl<'a> Compiler<'a> {
                 }
             }
             Bound::Calculate { expr, filters } => {
-                let c = self.calculate_ctx(ctx, filters, rows)?;
+                let c = self.calculate_ctx(ctx, filters, frame, rows)?;
                 self.scalar(expr, &c, frame, rows)
             }
             Bound::Call { func, args } => {

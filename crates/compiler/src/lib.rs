@@ -11,7 +11,29 @@ pub mod quote;
 pub mod steps;
 pub mod visual;
 
-use charted_model::DataType;
+use charted_model::{DataType, Model};
+
+/// Whether a filter on these columns of a table replaces every filter on the table, as
+/// DAX does for the date column of a marked date table and for date columns used in
+/// relationships (an empty list stands for every column).
+pub fn replaces_date_table(model: &Model, table: &str, columns: &[String]) -> bool {
+    let Some(t) = model.table(table) else {
+        return false;
+    };
+    t.columns
+        .iter()
+        .filter(|c| columns.is_empty() || columns.contains(&c.id))
+        .any(|c| {
+            matches!(
+                c.data_type,
+                DataType::Date | DataType::DateTime | DataType::DateTimeTz
+            ) && (t.is_date_table
+                || model
+                    .relationships
+                    .iter()
+                    .any(|r| r.from_column == c.id || r.to_column == c.id))
+        })
+}
 
 /// The physical column a calculated column's values are stored in, next to the loaded
 /// columns of its table.

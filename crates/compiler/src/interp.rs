@@ -659,9 +659,12 @@ impl<'a> Interp<'a> {
         ctx: &Ctx,
         rows: &[Row],
     ) -> Result<Value> {
-        // Filter arguments see the outer context.
+        // Filter arguments see the outer context. Rows they read (other regions' sales
+        // in `FILTER ( ALL ( Store[Region] ), [Sales] > 0 )`) don't give the visual row
+        // data.
+        let touched = self.touched;
         let mut new: Vec<(Filter, bool)> = Vec::new();
-        // Time intelligence on a date table replaces the filters on all of its columns.
+        // Filters on a date table's date column replace the filters on all of its columns.
         let mut date_tables: Vec<Id> = Vec::new();
         for fa in filters {
             let (inner, keep) = match fa {
@@ -670,21 +673,14 @@ impl<'a> Interp<'a> {
             };
             if let FilterArg::Table(t) = inner {
                 let table = t.table().ok_or("a list can't filter")?.clone();
-                if let TableExpr::Dates { column, .. } = t
-                    && !keep
-                    && (self.model.table(&table).is_some_and(|x| x.is_date_table)
-                        || self
-                            .model
-                            .relationships
-                            .iter()
-                            .any(|r| &r.from_column == column || &r.to_column == column))
-                {
-                    date_tables.push(table.clone());
-                }
                 let columns: Vec<Id> = match t.columns() {
                     Some(cs) => cs.to_vec(),
                     None => self.table(&table)?.columns.clone(),
                 };
+                // A filter on a date table's date column replaces all its filters.
+                if !keep && crate::replaces_date_table(self.model, &table, &columns) {
+                    date_tables.push(table.clone());
+                }
                 let tuples = self
                     .eval_table(t, ctx, rows)?
                     .into_iter()
@@ -706,6 +702,7 @@ impl<'a> Interp<'a> {
                 ));
             }
         }
+        self.touched = touched;
         let mut c = self.transition(ctx, rows);
         for fa in filters {
             match fa {
@@ -735,13 +732,14 @@ impl<'a> Interp<'a> {
             }
         }
         c.filters.retain(|f| !date_tables.contains(&f.table));
-        for (f, keep) in new {
+        // Filter arguments replace the filters already there, and are ANDed together.
+        for (f, keep) in &new {
             if !keep {
                 c.filters
                     .retain(|x| !x.columns.iter().any(|col| f.columns.contains(col)));
             }
-            c.filters.push(f);
         }
+        c.filters.extend(new.into_iter().map(|(f, _)| f));
         self.eval(expr, &c, rows)
     }
 

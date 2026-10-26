@@ -229,8 +229,12 @@ pub fn support_markdown() -> String {
          - **Calculated columns** are evaluated per row with the table's columns, RELATED and \
            scalar functions, and stored with the data; aggregates, measures and CALCULATE in \
            calculated columns are not supported yet.\n\
-         - **FILTER over measures** used as a CALCULATE filter argument is not supported yet; \
-           FILTER over columns is.\n\
+         - **FILTER as a CALCULATE filter** may test measures and values from the outer \
+           context, as running totals do: \
+           `FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) )`. \
+           A filter on the date column of a marked date table (or on a date column used in a \
+           relationship) replaces every filter on that table, as in Power BI. As a table, \
+           ALLSELECTED returns the rows visible without the visual's own grouping.\n\
          - **DATESINPERIOD and DATESBETWEEN** take their dates as MAX, MIN, LASTDATE or \
            FIRSTDATE of the same date column, `DATE ( … )` of numbers, BLANK () for an open \
            end of DATESBETWEEN, or a variable defined as one of these just outside the \
