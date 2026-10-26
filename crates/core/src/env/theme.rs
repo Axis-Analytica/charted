@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use ts_rs::TS;
 
-/// Omarchy's accent fallback, used when not running on Omarchy.
-pub const DEFAULT_ACCENT: &str = "#FFD60A";
+/// The accent used when not running on Omarchy (Axis Analytica orange).
+pub const DEFAULT_ACCENT: &str = "#f97316";
 
 /// The desktop theme's palette. `colors` holds every key from `colors.toml` (accent,
 /// background, foreground, red, …); the UI derives its design tokens from it.
@@ -27,17 +27,17 @@ pub fn theme_dir(home: &Path) -> PathBuf {
 pub fn fallback() -> Theme {
     let colors = [
         ("accent", DEFAULT_ACCENT),
-        ("background", "#121212"),
-        ("foreground", "#e8e8e8"),
-        ("selection", "#2a2a2a"),
-        ("muted", "#3a3a3a"),
+        ("background", "#0a0a0f"),
+        ("foreground", "#e4e4e7"),
+        ("selection", "#2f2f38"),
+        ("muted", "#3f3f46"),
         ("red", "#ef5f5f"),
-        ("yellow", "#FFD60A"),
+        ("yellow", "#facc15"),
         ("green", "#5fd38d"),
         ("cyan", "#4fd6d6"),
         ("blue", "#6aa6ff"),
         ("magenta", "#c78cff"),
-        ("orange", "#ff9f43"),
+        ("orange", "#f97316"),
     ];
     Theme {
         name: None,

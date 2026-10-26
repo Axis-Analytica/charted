@@ -2,7 +2,7 @@ import type { Desktop } from "../bridge/generated/Desktop";
 import type { Theme } from "../bridge/generated/Theme";
 import { contrast, distance, ensureContrast, mix } from "./color";
 
-export const DEFAULT_ACCENT = "#FFD60A";
+export const DEFAULT_ACCENT = "#f97316";
 
 export interface Tokens {
   [name: string]: string;
