@@ -710,6 +710,7 @@ fn power_query_sources_come_back_from_their_m() {
         measures: vec![],
         hidden: false,
         is_date_table: false,
+        hierarchies: Vec::new(),
         extras: Default::default(),
     };
     let q = |id: &str, name: &str, source: Source, steps: Vec<Step>| Query {
