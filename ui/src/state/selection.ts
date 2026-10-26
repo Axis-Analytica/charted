@@ -52,7 +52,7 @@ export const useSelection = create<SelectionStore>()((set, get) => ({
 
 /** Whether a visual type can show a selection elsewhere as a highlight (matches the core). */
 export function canHighlight(type: string): boolean {
-  return ["columnChart", "barChart", "stackedColumnChart", "stackedBarChart", "pieChart", "donutChart", "scatterChart"].includes(type);
+  return ["columnChart", "barChart", "stackedColumnChart", "stackedBarChart", "hundredPercentStackedColumnChart", "hundredPercentStackedBarChart", "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "pieChart", "donutChart", "scatterChart"].includes(type);
 }
 
 /** Visuals that show data and so take part in interactions. */

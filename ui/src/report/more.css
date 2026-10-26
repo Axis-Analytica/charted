@@ -1,0 +1,42 @@
+/* v1.2 visuals: the multi-row card, the KPI, conditional formatting, report-page
+   tooltips and the conditional formatting dialog. */
+.multi-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); align-content: center; gap: 8px 16px; padding: 8px 12px; height: 100%; overflow: auto; }
+.multi-card-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-inline-start: 10px; }
+.multi-card.has-accent .multi-card-item { border-inline-start: 3px solid var(--chart-1, var(--accent)); }
+.multi-card-item .card-value { overflow: hidden; text-overflow: ellipsis; }
+
+.kpi-visual { position: relative; height: 100%; overflow: hidden; }
+.kpi-trend { position: absolute; inset: 40% 0 0 0; width: auto; height: auto; }
+.kpi-body { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 2px; padding: 8px; }
+.kpi-value { font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; color: var(--fg-strong); white-space: nowrap; }
+.kpi-visual.is-good .kpi-value { color: var(--success); }
+.kpi-visual.is-bad .kpi-value { color: var(--danger); }
+.kpi-goal { color: var(--fg-muted); font-size: 12px; white-space: nowrap; }
+
+/* Conditional formatting in tables and matrices. */
+.table-visual td.has-bar { position: relative; }
+.table-visual td .cf-bar { position: absolute; inset-block: 3px; border-radius: 2px; pointer-events: none; }
+.table-visual td .cf-text { position: relative; }
+.table-visual td .cf-icon { display: inline-block; vertical-align: -2px; margin-inline-end: 4px; }
+
+.cf-list { display: flex; flex-direction: column; gap: 6px; padding: 4px 12px 10px; }
+.cf-column { display: flex; flex-direction: column; gap: 4px; }
+.cf-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg); font-size: 12px; }
+.cf-kinds { display: flex; flex-wrap: wrap; gap: 4px; }
+.cf-kind { border: 1px solid var(--border); background: var(--bg); color: var(--fg-muted); border-radius: var(--radius-sm); font: inherit; font-size: 11px; padding: 2px 6px; cursor: pointer; }
+.cf-kind.is-on { border-color: var(--accent); color: var(--accent-text, var(--accent)); background: var(--accent-soft); }
+
+.cf-form { display: flex; flex-direction: column; gap: 12px; }
+.cf-rules { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.cf-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.cf-rule { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px; font-size: 12px; width: 100%; }
+.cf-rule-then { display: inline-flex; align-items: center; gap: 4px; }
+.cf-rule input[type="color"], .cf-grid input[type="color"] { width: 32px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; }
+.cf-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Report-page tooltips. */
+.page-tooltip { position: fixed; z-index: 70; pointer-events: none; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.page-tooltip-page { position: relative; transform-origin: 0 0; }
+.page-tooltip-visual { position: absolute; display: flex; }
+.page-tooltip-visual > .visual { flex: 1; }
+.page-tab.is-tooltip .page-tab-tip { margin-inline-start: 4px; color: var(--fg-faint); vertical-align: -1px; }

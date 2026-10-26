@@ -49,6 +49,14 @@ import { Pie } from "./visuals/Pie";
 import { Scatter } from "./visuals/Scatter";
 import { Slicer } from "./visuals/Slicer";
 import { TableVisual } from "./visuals/TableVisual";
+import { Funnel } from "./visuals/Funnel";
+import { Gauge } from "./visuals/Gauge";
+import { Kpi } from "./visuals/Kpi";
+import { MultiRowCard } from "./visuals/MultiRowCard";
+import { Treemap } from "./visuals/Treemap";
+import { Waterfall } from "./visuals/Waterfall";
+import { PageTooltip, tipFilters, tooltipPageFor, usePageTip } from "./tooltipPages";
+import "./more.css";
 
 interface Props {
   visual: Visual;
@@ -62,12 +70,24 @@ interface Props {
   standalone?: boolean;
 }
 
-const CARTESIAN = ["columnChart", "barChart", "lineChart", "stackedColumnChart", "stackedBarChart"];
+const CARTESIAN = [
+  "columnChart",
+  "barChart",
+  "lineChart",
+  "stackedColumnChart",
+  "stackedBarChart",
+  "hundredPercentStackedColumnChart",
+  "hundredPercentStackedBarChart",
+  "lineClusteredColumnComboChart",
+  "lineStackedColumnComboChart",
+];
+/** Visuals of one row of values (no grouping), shown even when blank. */
+const SINGLE = ["card", "multiRowCard", "gauge"];
 
 /** The visual's own choice of points, as the renderers use it. */
 type PointMenu = { fields: Projection[]; tuple: (string | null)[]; x: number; y: number };
 
-function useInteract(visual: Visual, page: Page, onMenu: (m: PointMenu) => void): Interact {
+function useInteract(visual: Visual, page: Page, model: Model, onMenu: (m: PointMenu) => void, standalone?: boolean): Interact {
   const selection = useSelection((s) => s.selection);
   const drillMode = useDrillMode((s) => s.on.includes(visual.id));
   const canDown = !!hierarchy(visual)?.canDown;
@@ -77,6 +97,16 @@ function useInteract(visual: Visual, page: Page, onMenu: (m: PointMenu) => void)
     const mine = selection && selection.source === visual.id && selection.page === page.id ? selection : null;
     return (tuple: (string | null)[]) => (mine ? mine.tuples.some((t) => t.length === tuple.length && t.every((x, i) => x === tuple[i])) : null);
   }, [selection, visual.id, page.id]);
+  // A report page as the tooltip: hovering a point shows it, filtered to the point.
+  const tipPage = standalone ? null : tooltipPageFor(model, page, visual);
+  const tipId = tipPage?.id ?? null;
+  const hover = useMemo<Interact["hover"]>(() => {
+    if (!tipId) return undefined;
+    return (fields, tuple, at) => {
+      if (!fields?.length) return usePageTip.getState().hide(visual.id);
+      usePageTip.getState().show({ visual: visual.id, page: tipId, filters: tipFilters(page, visual, fields, tuple), key: JSON.stringify(tuple), ...at });
+    };
+  }, [tipId, page, visual]);
   return useMemo(
     () => ({
       drill: drillMode && canDown ? (keys) => void drillInto(page.id, visual, keys) : undefined,
@@ -86,8 +116,9 @@ function useInteract(visual: Visual, page: Page, onMenu: (m: PointMenu) => void)
         if (useSelection.getState().selection?.source === visual.id) useSelection.getState().clear();
       },
       chosen,
+      hover,
     }),
-    [chosen, visual, page.id, drillMode, canDown, onMenu],
+    [chosen, visual, page.id, drillMode, canDown, onMenu, hover],
   );
 }
 
@@ -105,7 +136,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const isTable = visual.visualType === "table";
   const decor = !!def?.decor;
   const { data, error, loading } = useVisualData(visual, page, model, signature, isTable);
-  const interact = useInteract(visual, page, setPointMenu);
+  const interact = useInteract(visual, page, model, setPointMenu, standalone);
   const hasFields = Object.values(visual.roles).some((r) => r && r.length > 0);
   const o = visual.objects;
   const showTitle = prop<boolean>(o, def, "title", "show");
@@ -138,7 +169,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
     return () => window.removeEventListener("mousedown", close, true);
   }, [menu]);
 
-  const sortable = isDataVisual(visual.visualType) && !["card", "slicer", "matrix"].includes(visual.visualType) ? Object.entries(visual.roles).flatMap(([role, ps]) => (ps ?? []).map((p, index) => ({ role, index, name: projectionName(model, p, t) }))) : [];
+  const sortable = isDataVisual(visual.visualType) && ![...SINGLE, "slicer", "matrix", "kpi"].includes(visual.visualType) ? Object.entries(visual.roles).flatMap(([role, ps]) => (ps ?? []).map((p, index) => ({ role, index, name: projectionName(model, p, t) }))) : [];
   const sortBy = (role: string, index: number, descending: boolean) =>
     useApp.getState().edit("Sort visual", editVisual(page.id, visual.id, (v) => ({ ...v, sort: { role, index, descending } })));
 
@@ -181,7 +212,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
       );
     if (visual.visualType === "slicer") return <Slicer visual={visual} page={page} model={model} data={data} />;
     if (!data) return null;
-    if (data.rows === 0 && visual.visualType !== "card") return <div className="visual-message">{t("No data")}</div>;
+    if (data.rows === 0 && !SINGLE.includes(visual.visualType)) return <div className="visual-message">{t("No data")}</div>;
     switch (visual.visualType) {
       case "card":
         return <Card visual={visual} model={model} data={data} />;
@@ -202,6 +233,18 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
         return <Scaled render={(k) => <Pie key={k} visual={visual} model={model} data={data} interact={interact} />} />;
       case "scatterChart":
         return <Scaled render={(k) => <Scatter key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+      case "multiRowCard":
+        return <MultiRowCard visual={visual} model={model} data={data} />;
+      case "waterfallChart":
+        return <Scaled render={(k) => <Waterfall key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+      case "funnel":
+        return <Scaled render={(k) => <Funnel key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+      case "treemap":
+        return <Scaled render={(k) => <Treemap key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+      case "gauge":
+        return <Scaled render={(k) => <Gauge key={k} visual={visual} model={model} data={data} />} />;
+      case "kpi":
+        return <Scaled render={(k) => <Kpi key={k} visual={visual} model={model} data={data} />} />;
       default:
         return CARTESIAN.includes(visual.visualType) ? <Scaled render={(k) => <Cartesian key={k} visual={visual} model={model} data={data} interact={interact} />} /> : null;
     }
@@ -238,6 +281,13 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
         </span>
       )}
       {source && isDataVisual(visual.visualType) && isDataVisual(source.visualType) && <InteractionPicker page={page} source={source} target={visual} />}
+      {interact.hover && (
+        <PageTooltip
+          model={model}
+          visual={visual.id}
+          render={(tp, v) => <VisualContainer visual={v} page={tp} model={model} signature={signature} selected={false} register={noRegister} onPointerDown={noPointer} standalone />}
+        />
+      )}
       {pointMenu && <PointMenuView menu={pointMenu} visual={visual} page={page} model={model} onClose={() => setPointMenu(null)} />}
       {!standalone && (
         <div className="visual-header" onPointerDown={(e) => e.stopPropagation()}>
@@ -347,6 +397,9 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
     </div>
   );
 }
+
+const noRegister = () => {};
+const noPointer = () => {};
 
 /** A data point's context menu: drill through to pages set up for its fields, drill
  * down into it, drill up. */

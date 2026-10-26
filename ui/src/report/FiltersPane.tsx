@@ -1,6 +1,6 @@
 // The Filters pane: filters on the selected visual, on this page and on all pages.
 // Each filter card offers Basic (a value checklist), Advanced (one or two conditions)
-// and, on visuals, Top N by a measure. Fields are dropped in from the Fields pane; a
+// and Top N by a measure or a summarised column. Fields are dropped in from the Fields pane; a
 // visual's own fields are listed so they can be filtered directly.
 import { ChevronDown, Eraser, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -21,9 +21,10 @@ import { Button } from "../kit/Button";
 import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
-import { columnOf, fieldKey, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
+import { columnOf, defaultAggregation, fieldKey, isGrouping, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
 import { relativeLabel } from "./relative";
 import { FIELD_MIME } from "./Canvas";
+import { TooltipFieldsSection } from "./tooltipPages";
 
 type Scope = "visual" | "page" | "report";
 
@@ -102,6 +103,7 @@ export function FiltersPane({ model, page }: { model: Model; page: Page }) {
               model={model}
               filter={f}
               scope={scope}
+              suggested={scope === "visual" ? visual?.roles.values?.[0] ?? Object.values(visual?.roles ?? {}).flat().find((p) => p && !isGrouping(p)) : undefined}
               onChange={replace}
               onRemove={explicit ? () => save(scope, "Remove filter", (fs) => fs.filter((x) => x.id !== f.id)) : undefined}
             />
@@ -120,6 +122,7 @@ export function FiltersPane({ model, page }: { model: Model; page: Page }) {
         {visual && section("visual", t("Filters on this visual"))}
         {section("page", t("Filters on this page"))}
         {section("report", t("Filters on all pages"))}
+        {!visual && <TooltipFieldsSection model={model} page={page} />}
         {!visual && (
           <Section
             title={t("Drill through")}
@@ -218,12 +221,14 @@ function summary(f: ReportFilter, t: (s: string, ...a: (string | number)[]) => s
   }
 }
 
-function FilterCard({ model, filter, scope, onChange, onRemove }: { model: Model; filter: ReportFilter; scope: Scope; onChange(k: FilterKind): void; onRemove?: () => void }) {
+function FilterCard({ model, filter, scope, suggested, onChange, onRemove }: { model: Model; filter: ReportFilter; scope: Scope; suggested?: Projection; onChange(k: FilterKind): void; onRemove?: () => void }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const col = columnOf(model, filter.field.field);
   const isMeasure = filter.field.field.kind === "measure" || !!filter.field.aggregation;
-  const kinds: FilterKind["kind"][] = isMeasure ? ["advanced"] : scope === "visual" ? ["basic", "advanced", "topN"] : ["basic", "advanced"];
+  // Top N works on any level: the compiler ranks the field's values by the measure.
+  const kinds: FilterKind["kind"][] = isMeasure ? ["advanced"] : ["basic", "advanced", "topN"];
+  void scope;
   const [kind, setKind] = useState<FilterKind["kind"]>(filter.filter.kind === "all" ? kinds[0]! : filter.filter.kind);
   const active = filter.filter.kind !== "all";
   const name = projectionName(model, filter.field, t);
@@ -262,7 +267,7 @@ function FilterCard({ model, filter, scope, onChange, onRemove }: { model: Model
           )}
           {kind === "basic" && <BasicFilter model={model} field={filter.field} current={filter.filter} onChange={onChange} />}
           {kind === "advanced" && <AdvancedFilter type={isMeasure ? "Double" : (col?.dataType ?? "String")} current={filter.filter} onChange={onChange} />}
-          {kind === "topN" && <TopNFilter model={model} current={filter.filter} onChange={onChange} />}
+          {kind === "topN" && <TopNFilter model={model} current={filter.filter} suggested={suggested} onChange={onChange} />}
         </div>
       )}
     </div>
@@ -371,14 +376,35 @@ function AdvancedFilter({ type, current, onChange }: { type: DataType; current: 
   );
 }
 
-function TopNFilter({ model, current, onChange }: { model: Model; current: FilterKind; onChange(k: FilterKind): void }) {
+/** What Top N can rank by: measures, then numeric columns summarised. */
+function rankFields(model: Model, t: (s: string, ...a: (string | number)[]) => string): { key: string; name: string; p: Projection }[] {
+  const out: { key: string; name: string; p: Projection }[] = [];
+  for (const tb of model.tables)
+    for (const m of tb.measures.filter((x) => !x.hidden)) {
+      const p: Projection = { field: { kind: "measure", table: tb.id, measure: m.id }, aggregation: null, displayName: null };
+      out.push({ key: rankKey(p), name: m.name, p });
+    }
+  for (const tb of model.tables)
+    for (const c of tb.columns.filter((x) => !x.hidden && !x.isKey && (x.dataType === "Int64" || x.dataType === "Double" || x.dataType === "Decimal"))) {
+      const p: Projection = { field: { kind: "column", table: tb.id, column: c.id }, aggregation: defaultAggregation(c), displayName: null };
+      out.push({ key: rankKey(p), name: projectionName(model, p, t), p });
+    }
+  return out;
+}
+
+const rankKey = (p: Projection) => `${fieldKey(p.field)}|${p.aggregation ?? ""}`;
+
+function TopNFilter({ model, current, suggested, onChange }: { model: Model; current: FilterKind; suggested?: Projection; onChange(k: FilterKind): void }) {
   const { t } = useT();
   const init = current.kind === "topN" ? current : null;
   const [bottom, setBottom] = useState(init?.bottom ?? false);
   const [count, setCount] = useState(init?.count ?? 5);
-  const measures = model.tables.flatMap((tb) => tb.measures.filter((m) => !m.hidden).map((m) => ({ table: tb.id, measure: m.id, name: m.name })));
-  const [by, setBy] = useState(init?.by.field.kind === "measure" ? init.by.field.measure : (measures[0]?.measure ?? ""));
-  const m = measures.find((x) => x.measure === by);
+  const options = rankFields(model, t);
+  // An existing ranking, else the visual's value, else the first measure.
+  const start = init?.by ?? (suggested && !isGrouping(suggested) ? suggested : undefined);
+  const [by, setBy] = useState(start ? rankKey(start) : (options[0]?.key ?? ""));
+  if (start && !options.some((o) => o.key === rankKey(start))) options.unshift({ key: rankKey(start), name: projectionName(model, start, t), p: start });
+  const m = options.find((x) => x.key === by);
   return (
     <div className="adv-filter">
       <span className="field-label">{t("Show items")}</span>
@@ -391,9 +417,9 @@ function TopNFilter({ model, current, onChange }: { model: Model; current: Filte
       </div>
       <label className="field">
         <span className="field-label">{t("By value")}</span>
-        <select className="select" value={by} onChange={(e) => setBy(e.target.value)}>
-          {measures.map((x) => (
-            <option key={x.measure} value={x.measure}>
+        <select className="select" aria-label={t("By value")} value={by} onChange={(e) => setBy(e.target.value)}>
+          {options.map((x) => (
+            <option key={x.key} value={x.key}>
               {x.name}
             </option>
           ))}
@@ -403,7 +429,7 @@ function TopNFilter({ model, current, onChange }: { model: Model; current: Filte
         size="sm"
         variant="primary"
         isDisabled={!m}
-        onPress={() => m && onChange({ kind: "topN", count, bottom, by: { field: { kind: "measure", table: m.table, measure: m.measure }, aggregation: null, displayName: null } })}
+        onPress={() => m && onChange({ kind: "topN", count, bottom, by: m.p })}
       >
         {t("Apply filter")}
       </Button>

@@ -60,6 +60,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
     return { out, highlighted: !!hv };
   }, [data, legFields, levels, model, locale, t]);
 
+  const pageTipsOn = !!interact.hover;
   const ref = useRef({ slices, interact, legFields });
   ref.current = { slices, interact, legFields };
 
@@ -94,6 +95,16 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
       if (!onItem) ref.current.interact.clear();
       onItem = false;
     });
+    // A report page as the tooltip: the slice under the pointer.
+    c.on("mousemove", (p) => {
+      const params = p as unknown as { data?: { slice?: number }; event?: { event?: MouseEvent } };
+      const { slices, interact, legFields } = ref.current;
+      const s = slices.out[params.data?.slice ?? -1];
+      const ev = params.event?.event;
+      if (interact.hover && s && ev && legFields.length) interact.hover(legFields, s.keys, { x: ev.clientX, y: ev.clientY });
+    });
+    c.on("mouseout", () => ref.current.interact.hover?.(null, [], { x: 0, y: 0 }));
+    c.getZr().on("globalout", () => ref.current.interact.hover?.(null, [], { x: 0, y: 0 }));
     return () => {
       ro.disconnect();
       c.dispose();
@@ -115,6 +126,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
     const legendPos = prop<string>(o, def, "legend", "position");
     const labels = prop<string>(o, def, "dataLabels", "content");
     const total = slices.out.reduce((s, x) => s + x.value, 0);
+    const pageTips = pageTipsOn;
     const color = (i: number) => colors[i % colors.length] ?? "#888";
     // Highlighted: each slice is its highlighted share, then the rest faded.
     const data = slices.out.flatMap((s, i) => {
@@ -144,6 +156,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
         },
         tooltip: {
           trigger: "item",
+          showContent: !pageTips,
           backgroundColor: token("--bg-overlay"),
           borderColor: token("--border"),
           textStyle: { color: token("--fg"), fontSize: 12, fontFamily: font },
@@ -182,7 +195,7 @@ export function Pie({ visual, model, data, interact }: { visual: Visual; model: 
       },
       { notMerge: true },
     );
-  }, [slices, visual.objects, def, val, model, locale, t, env, themeKey, donut, interact.chosen]);
+  }, [slices, visual.objects, def, val, model, locale, t, env, themeKey, donut, interact.chosen, pageTipsOn]);
 
   return <div ref={el} className="cartesian" />;
 }

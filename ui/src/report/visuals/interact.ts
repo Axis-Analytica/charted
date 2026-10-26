@@ -13,6 +13,9 @@ export interface Interact {
   drill?(keys: (string | null)[]): void;
   /** A point's context menu (drill through, drill down), at a pointer position. */
   menu?(fields: Projection[], tuple: (string | null)[], at: { x: number; y: number }): void;
+  /** Set when the visual shows a report page as its tooltip: the point under the
+   * pointer (null when it leaves), at a pointer position. */
+  hover?(fields: Projection[] | null, tuple: (string | null)[], at: { x: number; y: number }): void;
 }
 
 export const noInteract: Interact = { choose() {}, clear() {}, chosen: () => null };

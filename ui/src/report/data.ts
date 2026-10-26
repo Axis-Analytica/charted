@@ -3,7 +3,7 @@
 // visual), with a small cache so switching pages, undoing or clearing a selection is
 // instant. A newer request for the same visual cancels the one still running.
 import { tableFromIPC, type Vector } from "apache-arrow";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { errorMessage, isApiError, transport } from "../bridge";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
@@ -24,6 +24,9 @@ export interface VisualData {
   highlighted: boolean;
   ms: number;
 }
+
+/** Filters every visual under it adds to its query (a tooltip page's point). */
+export const ExtraFilters = createContext<QueryFilter[]>([]);
 
 const MAX_CACHED = 160;
 const cache = new Map<string, Promise<VisualData>>();
@@ -66,11 +69,12 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
   const hasFields = Object.values(visual.roles).some((r) => r && r.length > 0);
   const selection = useSelection((s) => s.selection);
   const drilled = useDrillThrough((s) => drillFilters(s.current, page.id));
+  const extra = useContext(ExtraFilters);
   const own = selectionEffect(selection, page, visual);
-  const effect = drilled.length ? { ...own, filters: [...drilled, ...own.filters] } : own;
+  const effect = drilled.length || extra.length ? { ...own, filters: [...drilled, ...extra, ...own.filters] } : own;
   const search = useSlicerSearch((s) => (visual.visualType === "slicer" ? (s.byVisual[visual.id] ?? "") : ""));
   const key = hasFields
-    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, pageSignature(page), model.report.filters, signature, withTotals, effect, search])
+    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, formattingFields(visual), pageSignature(page), model.report.filters, signature, withTotals, effect, search])
     : "";
   const [state, setState] = useState<{ key: string; data: VisualData | null; error: string | null; loading: boolean }>({ key: "", data: null, error: null, loading: false });
 
@@ -104,6 +108,14 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return state;
+}
+
+/** The fields conditional formatting reads (they are hidden values of the query). */
+function formattingFields(visual: Visual): unknown {
+  if (visual.visualType !== "table" && visual.visualType !== "matrix") return null;
+  const cf = visual.objects?.conditionalFormatting as Record<string, Record<string, { field?: unknown }>> | undefined;
+  if (!cf) return null;
+  return Object.entries(cf).flatMap(([col, kinds]) => Object.entries(kinds ?? {}).map(([k, r]) => [col, k, r?.field ?? null]));
 }
 
 /** Text keys and values of a column, as arrays (null for blank). */

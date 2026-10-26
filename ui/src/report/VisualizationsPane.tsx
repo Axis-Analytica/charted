@@ -13,6 +13,8 @@ import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { aggregationLabel, columnOf, editVisual, newVisual, pageSettings, projectionName, updateVisual, useReport, withField, withoutField } from "../state/report";
 import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
+import { FormatEditor } from "./formatEditors";
+import { TooltipPageSettings } from "./tooltipPages";
 import { type ObjectDef, type PropDef, type RoleDef, VISUAL_KEYWORDS, VISUALS, prop, visualDef } from "./registry";
 import { palette } from "./visuals/common";
 
@@ -22,7 +24,17 @@ const AGGREGATIONS: Aggregation[] = ["sum", "average", "min", "max", "count", "d
 /** The same fields in a visual of another type. */
 function convert(model: Model, v: Visual, type: string): Visual {
   let next: Visual = { ...v, visualType: type, roles: {}, sort: null };
-  for (const ps of Object.values(v.roles)) for (const p of ps ?? []) next = withField(model, next, p.field) ?? next;
+  // Fields keep a role the new type also has (a combo's line values, small multiples).
+  const def = visualDef(type);
+  const rest: Projection[] = [];
+  for (const [role, ps] of Object.entries(v.roles))
+    for (const p of ps ?? []) {
+      const r = def?.roles.find((x) => x.name === role);
+      const list = next.roles[role] ?? [];
+      if (r && (r.max === undefined || list.length < r.max) && !(p.field.kind === "measure" && r.kind === "grouping")) next = { ...next, roles: { ...next.roles, [role]: [...list, p] } };
+      else rest.push(p);
+    }
+  for (const p of rest) next = withField(model, next, p.field) ?? next;
   return next;
 }
 
@@ -370,7 +382,8 @@ function FormatPane({ page, visual }: { page: Page; visual: Visual }) {
             </label>
           )}
         </div>
-        {isOpen && (
+        {isOpen && o.editor && <FormatEditor editor={o.editor} page={page} visual={visual} />}
+        {isOpen && !o.editor && (
           <div className="format-body">
             {o.props
               .filter((p) => p.name !== o.toggle)
@@ -389,6 +402,7 @@ const PAGE_SIZES = [
   { label: "16:9", width: 1280, height: 720 },
   { label: "4:3", width: 960, height: 720 },
   { label: "Letter", width: 816, height: 1056 },
+  { label: "Tooltip", width: 320, height: 240 },
 ];
 
 function PageFormat({ page }: { page: Page }) {
@@ -430,6 +444,7 @@ function PageFormat({ page }: { page: Page }) {
           {!size && <option value="custom">{`${page.width} × ${page.height}`}</option>}
         </select>
       </label>
+      <TooltipPageSettings page={page} />
     </div>
   );
 }

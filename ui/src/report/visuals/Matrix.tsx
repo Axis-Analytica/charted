@@ -11,7 +11,9 @@ import { useLanguage, useT } from "../../i18n";
 import { projectionName } from "../../state/report";
 import type { VisualData } from "../data";
 import { prop, visualDef } from "../registry";
-import { fmt, projectionFormat } from "./common";
+import { CfContent, lookStyle } from "./CfCell";
+import { fmt, numberAt, projectionFormat } from "./common";
+import { CF_KINDS, type CfKind, type CellLook, cellLook, cfColumn, cfKey, columnFormatting, stats } from "./conditional";
 import { additive, type Interact } from "./interact";
 
 /** Expanded row paths per matrix visual (view state, not saved). `all` expands
@@ -53,7 +55,8 @@ interface Shaped {
   parents: string[];
 }
 
-export function shapeMatrix(visual: Visual, model: Model, data: VisualData, blank: string, locale: string): Shaped {
+/** `extra` names more columns to read into each cell after the values (conditional formatting's fields). */
+export function shapeMatrix(visual: Visual, model: Model, data: VisualData, blank: string, locale: string, extra: string[] = []): Shaped {
   const rows = visual.roles.rows ?? [];
   const cols = visual.roles.columns ?? [];
   const nValues = visual.roles.values?.length ?? 0;
@@ -108,6 +111,7 @@ export function shapeMatrix(visual: Visual, model: Model, data: VisualData, blan
     }
     const values: unknown[] = [];
     for (let v = 0; v < nValues; v++) values.push(get(`values:${v}`, r));
+    for (const name of extra) values.push(get(name, r));
     node.cells.set(cpath, values);
   }
   // Columns only seen below the grand total (no values there) still need a place.
@@ -135,7 +139,10 @@ export function Matrix({ visual, model, data, interact }: { visual: Visual; mode
   const cols = visual.roles.columns ?? [];
   const values = visual.roles.values ?? [];
   const vfmt = values.map((p) => projectionFormat(model, p));
-  const shaped = useMemo(() => shapeMatrix(visual, model, data, t("(Blank)"), locale), [visual, model, data, t, locale]);
+  // Conditional formatting's own fields come after the values in each cell.
+  const cfs = useMemo(() => values.map((p) => columnFormatting(visual, p)), [values, visual]);
+  const extra = useMemo(() => values.flatMap((p, v) => CF_KINDS.filter((k) => cfs[v]![k]?.field).map((k) => cfColumn(cfKey(p), k))), [values, cfs]);
+  const shaped = useMemo(() => shapeMatrix(visual, model, data, t("(Blank)"), locale, extra), [visual, model, data, t, locale, extra]);
   const fontSize = prop<number>(visual.objects, def, "grid", "fontSize");
   const banded = prop<boolean>(visual.objects, def, "grid", "banded");
   const rowTotals = prop<boolean>(visual.objects, def, "totals", "rows");
@@ -153,6 +160,25 @@ export function Matrix({ visual, model, data, interact }: { visual: Visual; mode
   walk(shaped.root);
   const colPaths = [...shaped.columns.map((c) => c.path), ...(colTotals ? [""] : [])];
   const valueHeads = values.map((p) => projectionName(model, p, t));
+  // The number a kind is based on in a cell, and the range over the cells shown (values
+  // only, not totals, as Power BI applies it by default).
+  const basedOn = (n: Node, cpath: string, v: number, k: CfKind): number | null => {
+    const cells = n.cells.get(cpath);
+    const cf = cfs[v]!;
+    if (cf[k]?.field) {
+      const name = cfColumn(cfKey(values[v]!), k);
+      return numberAt({ get: (i: number) => cells?.[i] }, values.length + extra.indexOf(name));
+    }
+    return numberAt({ get: (i: number) => cells?.[i] }, v);
+  };
+  const shownRows = visible.filter((n) => !open?.has(n.path) || !n.children.length);
+  const leafCols = shaped.columns.length ? shaped.columns.map((c) => c.path) : [""];
+  const ranges = values.map((_, v) => new Map(CF_KINDS.filter((k) => cfs[v]![k]).map((k) => [k, stats(shownRows.flatMap((n) => leafCols.map((cp) => basedOn(n, cp, v, k))))])));
+  const look = (n: Node, cpath: string, v: number): CellLook | null => {
+    const cf = cfs[v]!;
+    if (!CF_KINDS.some((k) => cf[k]) || n.depth === 0 || cpath === "" && cols.length > 0) return null;
+    return cellLook(cf, (k) => basedOn(n, cpath, v, k), (k) => ranges[v]?.get(k) ?? null);
+  };
   const cell = (n: Node, cpath: string, v: number) => {
     const raw = n.cells.get(cpath)?.[v];
     return raw === null || raw === undefined ? "" : fmt(raw, vfmt[v]!, locale);
@@ -229,11 +255,14 @@ export function Matrix({ visual, model, data, interact }: { visual: Visual; mode
                   {n.labels.at(-1)}
                 </th>
                 {colPaths.flatMap((cp) =>
-                  values.map((_, v) => (
-                    <td key={`${cp}${v}`} className="is-num tabular">
-                      {expanded && !showSub ? "" : cell(n, cp, v)}
-                    </td>
-                  )),
+                  values.map((_, v) => {
+                    const lk = expanded ? null : look(n, cp, v);
+                    return (
+                      <td key={`${cp}${v}`} className={`is-num tabular ${lk?.bar ? "has-bar" : ""}`} style={lookStyle(lk)}>
+                        <CfContent look={lk}>{expanded && !showSub ? "" : cell(n, cp, v)}</CfContent>
+                      </td>
+                    );
+                  }),
                 )}
               </tr>
             );

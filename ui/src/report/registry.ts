@@ -2,6 +2,7 @@
 // formatted (objects → generated format pane) and how big it starts. Every pane reads
 // this, so adding a visual type is one entry plus its renderer.
 import { msg } from "../i18n";
+import { extendRegistry } from "./moreVisuals";
 import {
   ChartBarBig,
   ChartBarStacked,
@@ -47,6 +48,8 @@ export interface ObjectDef {
   /** A boolean prop shown as the section's own switch. */
   toggle?: string;
   props: PropDef[];
+  /** A custom editor shown in the section instead of generated controls (formatEditors.tsx). */
+  editor?: string;
 }
 
 export interface VisualDef {
@@ -458,6 +461,8 @@ VISUALS.push(
     size: { width: 200, height: 120 },
   },
 );
+
+extendRegistry(VISUALS, VISUAL_KEYWORDS, { title, background, legend, axis, dataLabels, colors, cartesianRoles });
 
 export const visualDef = (type: string): VisualDef | undefined => VISUALS.find((v) => v.type === type);
 

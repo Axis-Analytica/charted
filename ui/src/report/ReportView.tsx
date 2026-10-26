@@ -16,6 +16,7 @@ import {
   BringToFront,
   Filter,
   ListTree,
+  MessageSquare,
   Plus,
   SendToBack,
   Shapes,
@@ -95,14 +96,15 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
     let n = model.report.pages.length + 1;
     while (names.has(t("Page %1", n).toLowerCase())) n++;
     const id = newId();
-    const p: Page = { id, name: t("Page %1", n), width: page.width, height: page.height, filters: [], interactions: [], visuals: [] };
+    // A new page takes the current page's size, unless that is a (small) tooltip page.
+    const p: Page = { id, name: t("Page %1", n), width: page.tooltip ? 1280 : page.width, height: page.tooltip ? 720 : page.height, filters: [], interactions: [], visuals: [] };
     if (await commit("Add page", [{ op: "addPage", page: p, index: null }])) set({ page: id, selected: [] });
   };
   return (
     <nav className="page-tabs" aria-label={t("Pages")}>
       <div role="tablist" className="page-tab-list">
         {model.report.pages.map((p, i) => (
-          <div key={p.id} className={`page-tab ${p.id === page.id ? "is-on" : ""}`}>
+          <div key={p.id} className={`page-tab ${p.id === page.id ? "is-on" : ""} ${p.tooltip ? "is-tooltip" : ""}`}>
             {renaming === p.id ? (
               <input
                 className="page-tab-input"
@@ -139,6 +141,7 @@ function PageTabs({ model, page }: { model: Model; page: Page }) {
                 }}
               >
                 {p.name}
+                {p.tooltip && <MessageSquare size={11} className="page-tab-tip" aria-hidden />}
               </button>
             )}
           </div>

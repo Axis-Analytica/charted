@@ -5,7 +5,9 @@ import { useLanguage, useT } from "../../i18n";
 import { isGrouping, projectionName } from "../../state/report";
 import { keysOf, type VisualData } from "../data";
 import { prop, visualDef } from "../registry";
-import { fmt, projectionFormat } from "./common";
+import { CfContent, lookStyle } from "./CfCell";
+import { fmt, numberAt, projectionFormat } from "./common";
+import { CF_KINDS, type CfKind, cellLook, cfColumn, cfKey, columnFormatting, stats } from "./conditional";
 import { additive, type Interact, noInteract } from "./interact";
 
 export function TableVisual({ visual, model, data, onSort, interact = noInteract }: { visual: Visual; model: Model; data: VisualData; onSort(index: number): void; interact?: Interact }) {
@@ -25,6 +27,15 @@ export function TableVisual({ visual, model, data, onSort, interact = noInteract
   const groups = cols.map((p, i) => ({ p, i })).filter((g) => isGrouping(g.p));
   const keys = groups.map((g) => keysOf(data, `columns:${g.i}`));
   const tupleAt = (r: number) => keys.map((k) => k[r] ?? null);
+  // Conditional formatting: per column, the numbers each kind is based on and their range.
+  const formatting = cols.map((p, i) => {
+    const cf = columnFormatting(visual, p);
+    const kinds = CF_KINDS.filter((k) => cf[k]);
+    if (!kinds.length) return null;
+    const vecs = new Map(kinds.map((k) => [k, cf[k]!.field ? data.columns.get(cfColumn(cfKey(p), k)) : vectors[i]]));
+    const ranges = new Map(kinds.map((k) => [k, stats(Array.from({ length: rows }, (_, r) => numberAt(vecs.get(k), r)))]));
+    return { cf, at: (r: number) => cellLook(cf, (k: CfKind) => numberAt(vecs.get(k), r), (k: CfKind) => ranges.get(k) ?? null) };
+  });
   return (
     <div className={`table-visual ${banded ? "is-banded" : ""} ${rowLines ? "has-lines" : ""}`} style={{ fontSize }}>
       <table>
@@ -68,11 +79,14 @@ export function TableVisual({ visual, model, data, onSort, interact = noInteract
                   );
                 }}
               >
-                {cols.map((_, i) => (
-                  <td key={i} className={numeric[i] ? "is-num tabular" : ""}>
-                    {fmt(vectors[i]?.get(r), formats[i]!, locale)}
-                  </td>
-                ))}
+                {cols.map((_, i) => {
+                  const look = formatting[i]?.at(r) ?? null;
+                  return (
+                    <td key={i} className={`${numeric[i] ? "is-num tabular" : ""} ${look?.bar ? "has-bar" : ""}`} style={lookStyle(look)}>
+                      <CfContent look={look}>{fmt(vectors[i]?.get(r), formats[i]!, locale)}</CfContent>
+                    </td>
+                  );
+                })}
               </tr>
             );
           })}

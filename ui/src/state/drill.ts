@@ -11,8 +11,10 @@ import { editVisual } from "./report";
 
 /** The role whose fields form a visual type's hierarchy (as `drill_role` in Rust). */
 export function drillRole(visualType: string): string | null {
-  if (["columnChart", "barChart", "stackedColumnChart", "stackedBarChart", "lineChart"].includes(visualType)) return "category";
+  const category = ["columnChart", "barChart", "stackedColumnChart", "stackedBarChart", "lineChart", "hundredPercentStackedColumnChart", "hundredPercentStackedBarChart"];
+  if ([...category, "lineClusteredColumnComboChart", "lineStackedColumnComboChart", "waterfallChart", "funnel"].includes(visualType)) return "category";
   if (visualType === "pieChart" || visualType === "donutChart") return "legend";
+  if (visualType === "treemap") return "group";
   return null;
 }
 
