@@ -861,6 +861,15 @@ expression: golden
 "Camping" | -124
 "Footwear" | -90
 
+## Int Flag — card
+1
+
+## Int Flag — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
 ## Pi Qty — card
 845.09
 

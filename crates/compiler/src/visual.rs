@@ -608,7 +608,8 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 num,
             )
         }
-        ScalarFunc::Int => (format!("floor({})", a[0].0), num),
+        // TRUE and FALSE are 1 and 0 (INT ( x > 0 ) is a common idiom).
+        ScalarFunc::Int => (format!("floor(CAST({} AS DOUBLE))", a[0].0), num),
         ScalarFunc::Min | ScalarFunc::Max => {
             let f = if matches!(func, ScalarFunc::Min) {
                 "least"

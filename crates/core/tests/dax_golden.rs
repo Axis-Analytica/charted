@@ -630,6 +630,7 @@ const MEASURES: &[(&str, &str)] = &[
     // Math, text and date functions
     ("Int Price", "INT ( [Avg Price] )"),
     ("Int Negative", "INT ( -[Price Per Unit] )"),
+    ("Int Flag", "INT ( [Avg Price] > 10 )"),
     ("Pi Qty", "ROUND ( PI () * [Quantity], 2 )"),
     ("Smaller", "MIN ( [Sales Amount], [Target] )"),
     ("At Least 10", "MAX ( [Quantity], 10 )"),
