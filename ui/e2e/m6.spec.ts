@@ -250,7 +250,7 @@ test("import a Power BI project, see what didn't come across, export and import 
   const report = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
   await expect(report).toBeVisible({ timeout: 30_000 });
   await expect(report).toContainText("4 tables (2 with data)");
-  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map", "RANKX"]) await expect(report).toContainText(s);
+  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map"]) await expect(report).toContainText(s);
   await shot(page, "m6-05-import-report");
   await report.getByRole("button", { name: "Done" }).click();
   await expect(report).toBeHidden();
@@ -259,7 +259,7 @@ test("import a Power BI project, see what didn't come across, export and import 
   await expect(visuals(page).filter({ has: page.locator(".card-value") }).locator(".card-value")).toHaveText(/\$/);
   await shot(page, "m6-06-imported");
 
-  // Export for Power BI, and import that: only the measure charted can't evaluate.
+  // Export for Power BI, and import that: everything comes back.
   await pick(page, `${tmp}/export`);
   await fileMenu(page, "Export Power BI project…");
   const exporting = page.getByRole("dialog", { name: "Export Power BI project" });
@@ -271,8 +271,8 @@ test("import a Power BI project, see what didn't come across, export and import 
   await pick(page, `${tmp}/export/Contoso.pbip`);
   await fileMenu(page, "Import Power BI project…");
   const again = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
-  await expect(again).toContainText("Not imported, or only partly (1)", { timeout: 30_000 });
-  await expect(again).toContainText("Sales Rank");
+  await expect(again).toBeVisible({ timeout: 30_000 });
+  await expect(again).not.toContainText("Not imported");
   await again.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("tab", { name: "Trend" })).toBeVisible();
 

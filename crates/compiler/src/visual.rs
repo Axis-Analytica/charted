@@ -329,6 +329,7 @@ fn row_pure(b: &Bound) -> bool {
             x,
             Bound::Measure { .. }
                 | Bound::Aggregate { .. }
+                | Bound::Rank { .. }
                 | Bound::Calculate { .. }
                 | Bound::Info { .. }
                 | Bound::Var(_)
@@ -1435,7 +1436,9 @@ impl<'a> Compiler<'a> {
                 sql
             }
         };
-        let exact = self.is_visual_ctx(ctx);
+        // Joins across a Both relationship from its one side give rows without a match
+        // blank keys, which the visual may not have: check those against the domains.
+        let exact = self.is_visual_ctx(ctx) && !expands;
         let i = self.add_cte(sql, key_names, exact);
         let ty = match (func, arg) {
             (AggFunc::Min | AggFunc::Max, Some(a)) => self.row(a, None)?.1,
@@ -2200,6 +2203,102 @@ impl<'a> Compiler<'a> {
         })
     }
 
+    /// RANKX: per outer frame row, 1 + the iterated rows whose value beats the outer
+    /// value (distinct values when dense). Blank compares as zero or empty text.
+    #[allow(clippy::too_many_arguments)]
+    fn rank(
+        &mut self,
+        source: &TableExpr,
+        expr: &Bound,
+        value: Option<&Bound>,
+        ascending: bool,
+        dense: bool,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<Scalar> {
+        let rf = self.row_frame(source, Some(expr), ctx, frame, rows)?;
+        let inner = self.scalar(expr, ctx, &rf.frame, &rf.rows)?;
+        let outer = self.scalar(value.unwrap_or(expr), ctx, frame, rows)?;
+        let rel = rf.frame.rel.clone();
+        let combined = Scalar {
+            sql: [inner.sql.clone(), outer.sql.clone()]
+                .into_iter()
+                .chain(rf.conds.iter().cloned())
+                .collect(),
+            ty: inner.ty,
+        };
+        let (_, from) = self.render(&combined, &rel);
+        let (iv, _) = self.render(&inner, &rel);
+        let (ov, _) = self.render(&outer, &rel);
+        let like = if inner.ty == ValueType::Text || outer.ty == ValueType::Text {
+            ValueType::Text
+        } else {
+            inner.ty
+        };
+        let norm = |x: String, ty: ValueType| {
+            let b = blank_as(&(x, ty), like);
+            if like == ValueType::Text {
+                format!("lower({b})")
+            } else {
+                b
+            }
+        };
+        // Rows exist where some value has data, as for the other aggregates (reading the
+        // iterated rows' own columns isn't data).
+        let having = if row_pure(expr) {
+            format!(" HAVING bool_or({ov} IS NOT NULL)")
+        } else {
+            format!(" HAVING count({iv}) > 0 OR bool_or({ov} IS NOT NULL)")
+        };
+        let (iv, ov) = (norm(iv, inner.ty), norm(ov, outer.ty));
+        let beats = format!("{iv} {} {ov}", if ascending { "<" } else { ">" });
+        let count = if dense {
+            format!("count(DISTINCT {iv}) FILTER (WHERE {beats})")
+        } else {
+            format!("count(*) FILTER (WHERE {beats})")
+        };
+        let conds: Vec<String> = rf
+            .conds
+            .iter()
+            .map(|c| {
+                self.render(
+                    &Scalar {
+                        sql: c.clone(),
+                        ty: ValueType::Bool,
+                    },
+                    &rel,
+                )
+                .0
+            })
+            .collect();
+        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+        let mut select: Vec<String> = keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
+        select.push(format!("{count} AS v"));
+        let mut sql = format!("SELECT {} FROM {from}", select.join(", "));
+        if !conds.is_empty() {
+            sql.push_str(&format!(" WHERE {}", conds.join(" AND ")));
+        }
+        if !keys.is_empty() {
+            sql.push_str(&format!(
+                " GROUP BY {}",
+                keys.iter()
+                    .map(|k| format!("f.{k}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        // A card always has its one row.
+        if !keys.is_empty() {
+            sql.push_str(&having);
+        }
+        let i = self.add_cte(sql, keys, true);
+        Ok(Scalar {
+            sql: format!("(1 + coalesce(\u{1}{i}\u{1}, 0))"),
+            ty: ValueType::Number,
+        })
+    }
+
     /// A FILTER whose condition needs the outer frame (its measures, or values such as
     /// `MAX ( 'Date'[Date] )` from the outer context), used as a CALCULATE filter: the
     /// rows that pass, per row of the frame, as a value set keyed by the frame's keys.
@@ -2574,6 +2673,22 @@ impl<'a> Compiler<'a> {
                 self.vars.pop();
                 out
             }
+            Bound::Rank {
+                source,
+                expr,
+                value,
+                ascending,
+                dense,
+            } => self.rank(
+                source,
+                expr,
+                value.as_deref(),
+                *ascending,
+                *dense,
+                ctx,
+                frame,
+                rows,
+            ),
             Bound::Aggregate { func, source, arg } => {
                 let base = source.table().cloned().unwrap_or_default();
                 let local = |b: &Bound| row_local(b, &base);

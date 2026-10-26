@@ -127,6 +127,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
         | Bound::Var(_)
         | Bound::Let { .. }
         | Bound::Aggregate { .. }
+        | Bound::Rank { .. }
         | Bound::Calculate { .. }
         | Bound::Info { .. }
         | Bound::Switch { .. }

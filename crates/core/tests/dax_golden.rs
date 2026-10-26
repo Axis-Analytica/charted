@@ -515,6 +515,32 @@ const MEASURES: &[(&str, &str)] = &[
         "Qty From Mid 2024",
         "VAR start = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( Store[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], start, MAX ( Date[Date] ) ) ) )",
     ),
+    // RANKX
+    ("Qty Rank", "RANKX ( ALL ( Product[Product] ), [Quantity] )"),
+    (
+        "Qty Rank Asc Dense",
+        "RANKX ( ALL ( Product[Product] ), [Quantity], , ASC, DENSE )",
+    ),
+    (
+        "Selected Qty Rank",
+        "RANKX ( ALLSELECTED ( Product[Product] ), [Quantity] )",
+    ),
+    (
+        "Tens Rank Skip",
+        "RANKX ( ALL ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ) )",
+    ),
+    (
+        "Tens Rank Dense",
+        "RANKX ( ALL ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ), , DESC, DENSE )",
+    ),
+    (
+        "List Price Rank",
+        "RANKX ( ALL ( Product ), Product[ListPrice], MAX ( Product[ListPrice] ) )",
+    ),
+    (
+        "Category Rank",
+        "RANKX ( ALL ( Product[Category] ), [Sales Amount] )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1102,6 +1128,8 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "YEAR ( EOMONTH ( MAX ( Date[Date] ), 2 ) )",
         "MONTH ( EDATE ( MIN ( Date[Date] ), 5 ) )",
         "LEN ( FORMAT ( [Sales Amount], \"#,0\" ) )",
+        "RANKX ( ALL ( Product[Category] ), [Quantity] )",
+        "RANKX ( ALLSELECTED ( Store[Region] ), [Orders], , ASC, DENSE )",
     ];
     const FILTERS: &[&str] = &[
         "Product[Category] = \"Camping\"",

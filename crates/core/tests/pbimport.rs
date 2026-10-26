@@ -48,7 +48,6 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         "hierarchy Product[Category Hierarchy]",
         "role Regional managers",
         "measure Orders[Avg Order]",
-        "measure Orders[Sales Rank]",
         "visual Overview: map",
     ] {
         assert!(
@@ -56,6 +55,8 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
             "{expected} not in {skipped:#?}"
         );
     }
+    // RANKX is evaluated now.
+    assert!(!skipped.iter().any(|s| s == "measure Orders[Sales Rank]"));
     // Time intelligence, DIVIDE and the calculated column are fine.
     assert!(
         !skipped
@@ -167,8 +168,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         Vec::<String>::new()
     );
     assert_eq!(back.model.report, m.report);
-    // Only the measures charted can't evaluate are reported this time.
-    let kinds: Vec<&str> = report2.skipped.iter().map(|s| s.kind.as_str()).collect();
-    assert_eq!(kinds, ["measure"], "{:#?}", report2.skipped);
+    // Nothing is reported this time: every measure that came across evaluates.
+    assert!(report2.skipped.is_empty(), "{:#?}", report2.skipped);
     assert_eq!(report2.loaded, 2);
 }

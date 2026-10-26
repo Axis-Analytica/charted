@@ -252,6 +252,15 @@ pub enum Bound {
         source: TableExpr,
         arg: Option<Box<Bound>>,
     },
+    /// RANKX: 1 + how many rows of `source` have an `expr` beating `value` (`expr` in
+    /// the current context when omitted); with `dense`, how many distinct values.
+    Rank {
+        source: TableExpr,
+        expr: Box<Bound>,
+        value: Option<Box<Bound>>,
+        ascending: bool,
+        dense: bool,
+    },
     Calculate {
         expr: Box<Bound>,
         filters: Vec<FilterArg>,
@@ -321,7 +330,6 @@ pub const KNOWN: &[&str] = &[
     "POWER",
     "PRODUCT",
     "PRODUCTX",
-    "RANKX",
     "RELATEDTABLE",
     "REPLACE",
     "ROUNDDOWN",
@@ -409,6 +417,7 @@ pub const SUPPORTED: &[&str] = &[
     "PREVIOUSQUARTER",
     "PREVIOUSYEAR",
     "QUARTER",
+    "RANKX",
     "RELATED",
     "REMOVEFILTERS",
     "RIGHT",
@@ -532,6 +541,7 @@ impl<'a> Binder<'a> {
             ExprKind::Text(s) => Some(Bound::Text(s.clone())),
             ExprKind::Bool(v) => Some(Bound::Bool(*v)),
             ExprKind::Error => None,
+            ExprKind::Omitted => self.err(e.span, "this argument is missing").and(None),
             ExprKind::Table(name) => {
                 if let Some(v) = self
                     .vars
@@ -1213,6 +1223,46 @@ impl<'a> Binder<'a> {
             });
         }
         match upper.as_str() {
+            "RANKX" => {
+                if !self.arity(&upper, args, span, 2, 5) {
+                    return None;
+                }
+                let source = self.table_expr(&args[0], rows)?;
+                let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
+                    return self.err(args[0].span, "RANKX over a list of values isn't supported yet");
+                };
+                let mut inner: Vec<&Table> = rows.to_vec();
+                inner.push(t);
+                let expr = self.nested(|b| b.expr(&args[1], &inner));
+                let value = match args.get(2) {
+                    Some(Expr { kind: ExprKind::Omitted, .. }) | None => None,
+                    Some(v) => Some(Box::new(self.expr(v, rows)?)),
+                };
+                let keyword = |e: Option<&Expr>| match e.map(|e| &e.kind) {
+                    Some(ExprKind::Table(n) | ExprKind::Ref { table: None, name: n }) => Some(n.to_ascii_uppercase()),
+                    Some(ExprKind::Number(n)) => Some(if *n == 0.0 { "DESC".into() } else { "ASC".into() }),
+                    Some(ExprKind::Bool(b)) => Some(if *b { "ASC".into() } else { "DESC".into() }),
+                    Some(ExprKind::Omitted) | None => Some(String::new()),
+                    _ => None,
+                };
+                let ascending = match keyword(args.get(3)).as_deref() {
+                    Some("ASC") => true,
+                    Some("DESC" | "") => false,
+                    _ => return self.err(args[3].span, "the order is ASC or DESC"),
+                };
+                let dense = match keyword(args.get(4)).as_deref() {
+                    Some("DENSE") => true,
+                    Some("SKIP" | "") => false,
+                    _ => return self.err(args[4].span, "ties are SKIP or DENSE"),
+                };
+                Some(Bound::Rank {
+                    source,
+                    expr: Box::new(expr?),
+                    value,
+                    ascending,
+                    dense,
+                })
+            }
             "COUNTROWS" => {
                 if !self.arity(&upper, args, span, 1, 1) {
                     return None;
@@ -1520,6 +1570,18 @@ pub fn walk(b: &Bound, f: &mut dyn FnMut(&Bound)) {
             walk_table(source, f);
             if let Some(a) = arg {
                 walk(a, f);
+            }
+        }
+        Bound::Rank {
+            source,
+            expr,
+            value,
+            ..
+        } => {
+            walk_table(source, f);
+            walk(expr, f);
+            if let Some(v) = value {
+                walk(v, f);
             }
         }
         Bound::Calculate { expr, filters } => {

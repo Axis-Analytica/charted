@@ -923,6 +923,35 @@ impl<'a> Interp<'a> {
             Bound::Aggregate { func, source, arg } => {
                 self.aggregate(*func, source, arg.as_deref(), ctx, rows)?
             }
+            Bound::Rank {
+                source,
+                expr,
+                value,
+                ascending,
+                dense,
+            } => {
+                let mut values = Vec::new();
+                for r in self.eval_table(source, ctx, rows)? {
+                    let mut stack = rows.to_vec();
+                    stack.push(r);
+                    values.push(self.eval(expr, ctx, &stack)?);
+                }
+                let v = self.eval(value.as_deref().unwrap_or(expr), ctx, rows)?;
+                // Blank ranks as zero (or empty text).
+                let like = values.iter().chain([&v]).find(|x| !x.is_blank()).cloned();
+                let like = like.unwrap_or(Value::Num(0.0));
+                let v = coerced(&v, &like);
+                let beats = |x: &Value| {
+                    let o = cmp(&coerced(x, &like), &v);
+                    if *ascending { o.is_lt() } else { o.is_gt() }
+                };
+                let mut beating: Vec<Value> = values.into_iter().filter(|x| beats(x)).collect();
+                if *dense {
+                    beating.sort_by(|a, b| cmp(&coerced(a, &like), &coerced(b, &like)));
+                    beating.dedup_by(|a, b| cmp(&coerced(a, &like), &coerced(b, &like)).is_eq());
+                }
+                Value::Num(1.0 + beating.len() as f64)
+            }
             Bound::Calculate { expr, filters } => self.calculate(expr, filters, ctx, rows)?,
             Bound::Call { func, args } => {
                 let a = args

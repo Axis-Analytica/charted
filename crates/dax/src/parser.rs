@@ -69,6 +69,8 @@ pub enum ExprKind {
     /// A table constructor `{ a, b, c }` (one column).
     List(Vec<Expr>),
     Error,
+    /// An argument left out (`f ( a, , c )`).
+    Omitted,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -387,13 +389,13 @@ impl Parser {
         if !matches!(self.peek(), Tok::RParen) {
             loop {
                 if matches!(self.peek(), Tok::Comma) {
-                    // An omitted optional argument, as in IF ( x, , y ).
+                    // An omitted optional argument, as in RANKX ( T, e, , ASC ): the
+                    // binder decides whether the function allows it.
                     let s = self.span();
                     args.push(Expr {
-                        kind: ExprKind::Error,
+                        kind: ExprKind::Omitted,
                         span: s,
                     });
-                    self.error(s, "this argument is missing");
                 } else {
                     args.push(self.expr(0));
                 }
@@ -456,6 +458,7 @@ mod tests {
                 items.iter().map(show).collect::<Vec<_>>().join(", ")
             ),
             ExprKind::Error => "!".into(),
+            ExprKind::Omitted => "_".into(),
         }
     }
 
@@ -514,8 +517,9 @@ mod tests {
         let p = parse("1 + * 2");
         assert!(p.diagnostics[0].message.contains("expected a value"));
 
+        // An omitted argument parses; the binder decides whether it's allowed.
         let p = parse("IF ( [x] > 1, , 2 )");
-        assert_eq!(p.diagnostics[0].message, "this argument is missing");
+        assert!(p.diagnostics.is_empty());
 
         let p = parse("1 2");
         assert!(p.diagnostics[0].message.contains("after the end"));

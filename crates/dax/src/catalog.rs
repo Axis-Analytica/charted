@@ -240,6 +240,9 @@ pub fn support_markdown() -> String {
            variable), evaluated in the outer filter context; a blank end of DATESBETWEEN is \
            open. Time-intelligence tables can be iterated \
            (`AVERAGEX ( DATESINPERIOD ( … ), [Sales] )`) as well as used as filters.\n\
+         - **RANKX** ranks with blank as zero (or empty text), descending by default; ties \
+           share a rank and skip the next ones unless DENSE. The value argument may be left \
+           out (`RANKX ( T, e, , ASC )`).\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

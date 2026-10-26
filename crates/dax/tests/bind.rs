@@ -301,10 +301,26 @@ fn explains_what_is_wrong() {
     assert!(err("SUM ( 'Sales Lines'[Channel] )").contains("isn't numeric"));
     assert!(err("SUMX ( 'Sales Lines', Product[Category] )").contains("RELATED"));
     assert!(err("RELATED ( Product[Category] )").contains("needs a row context"));
-    assert!(err("RANKX ( Product, [Total] )").contains("isn't supported by charted yet"));
+    assert!(err("MEDIAN ( Product[Price] )").contains("isn't supported by charted yet"));
     assert!(err("TOTALYTD ( [Total], Product[Category] )").contains("isn't a date column"));
     assert!(err("FOO ( 1 )").contains("isn't a DAX function"));
     assert!(err("DIVIDE ( 1 )").contains("takes 2 to 3 argument(s), not 1"));
     assert!(err("COUNTROWS ( [Total] )").contains("this needs a table"));
     assert!(err("SUM ( 'Sales Lines'[Amount] ").contains("expected \")\""));
+}
+
+#[test]
+fn omitted_arguments_only_where_allowed() {
+    assert_eq!(err("IF ( [Total] > 1, , 2 )"), "this argument is missing");
+    let Bound::Rank {
+        value,
+        ascending,
+        dense,
+        ..
+    } = ok("RANKX ( ALL ( Product[Category] ), [Total], , ASC, DENSE )")
+    else {
+        panic!("not a RANKX")
+    };
+    assert!(value.is_none() && ascending && dense);
+    assert!(err("RANKX ( ALL ( Product[Category] ), [Total], , UP )").contains("ASC or DESC"));
 }

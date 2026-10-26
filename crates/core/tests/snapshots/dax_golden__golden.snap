@@ -567,6 +567,68 @@ expression: golden
 "Camping" | 69
 "Footwear" | 62
 
+## Qty Rank — card
+1
+
+## Qty Rank — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Qty Rank Asc Dense — card
+9
+
+## Qty Rank Asc Dense — by category
+∅ | 2
+"Apparel" | 5
+"Camping" | 5
+"Footwear" | 4
+
+## Selected Qty Rank — card
+1
+
+## Selected Qty Rank — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Tens Rank Skip — card
+1
+
+## Tens Rank Skip — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Tens Rank Dense — card
+1
+
+## Tens Rank Dense — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## List Price Rank — card
+1
+
+## List Price Rank — by category
+"Apparel" | 2
+"Camping" | 1
+"Footwear" | 3
+
+## Category Rank — card
+1
+
+## Category Rank — by category
+∅ | 4
+"Apparel" | 2
+"Camping" | 1
+"Footwear" | 3
+
 ## Neither Apparel Nor Camping — card
 76
 
