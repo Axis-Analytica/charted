@@ -244,6 +244,86 @@ fn reported() -> Model {
             ],
         ),
         ("slicer", vec![("field", vec![c("c-cat")])]),
+        (
+            "hundredPercentStackedColumnChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("series", vec![c("c-cat")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        (
+            "hundredPercentStackedBarChart",
+            vec![
+                ("category", vec![c("c-cat")]),
+                ("values", vec![m.clone(), sum.clone()]),
+            ],
+        ),
+        (
+            "lineClusteredColumnComboChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("values", vec![sum.clone()]),
+                ("lineValues", vec![m.clone()]),
+            ],
+        ),
+        (
+            "lineStackedColumnComboChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("series", vec![c("c-cat")]),
+                ("values", vec![sum.clone()]),
+                ("lineValues", vec![m.clone()]),
+            ],
+        ),
+        (
+            "waterfallChart",
+            vec![
+                ("category", vec![c("c-year")]),
+                ("breakdown", vec![c("c-cat")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        (
+            "funnel",
+            vec![("category", vec![c("c-cat")]), ("values", vec![m.clone()])],
+        ),
+        (
+            "treemap",
+            vec![
+                ("group", vec![c("c-cat")]),
+                ("details", vec![c("c-year")]),
+                ("values", vec![m.clone()]),
+            ],
+        ),
+        (
+            "gauge",
+            vec![
+                ("values", vec![m.clone()]),
+                ("maxValue", vec![sum.clone()]),
+                ("targetValue", vec![sum.clone()]),
+            ],
+        ),
+        (
+            "kpi",
+            vec![
+                ("indicator", vec![m.clone()]),
+                ("trend", vec![c("c-year")]),
+                ("goal", vec![sum.clone()]),
+            ],
+        ),
+        (
+            "multiRowCard",
+            vec![("values", vec![m.clone(), sum.clone()])],
+        ),
+        (
+            "columnChart",
+            vec![
+                ("category", vec![c("c-cat")]),
+                ("values", vec![m.clone()]),
+                ("smallMultiples", vec![c("c-year")]),
+            ],
+        ),
         ("textbox", vec![]),
         ("image", vec![]),
         ("shape", vec![]),
@@ -318,6 +398,11 @@ fn reported() -> Model {
     let mut detail = PageSettings::named("Detail");
     detail.drillthrough = vec![c("c-cat")];
     detail.keep_all_filters = false;
+    let mut tip = PageSettings::named("Tip");
+    tip.tooltip = true;
+    tip.tooltip_fields = vec![c("c-cat")];
+    tip.width = 320;
+    tip.height = 240;
     model.report = Report {
         pages: vec![
             Page {
@@ -328,6 +413,11 @@ fn reported() -> Model {
             Page {
                 id: "p-detail".into(),
                 settings: detail,
+                visuals: vec![],
+            },
+            Page {
+                id: "p-tip".into(),
+                settings: tip,
                 visuals: vec![],
             },
         ],
@@ -447,4 +537,111 @@ fn the_project_comes_back_from_its_export() {
     );
     assert_eq!(back.model.report, model.report);
     assert_eq!(back.model.name, model.name);
+}
+
+/// Power BI's own files (no charted annotations): the v1.2 visual types map to
+/// charted's, with their roles.
+#[test]
+fn power_bi_visual_types_map_to_charted() {
+    use serde_json::{Value, json};
+    let model = reported();
+    let field = |prop: &str| json!({ "Column": { "Expression": { "SourceRef": { "Entity": "Sales" } }, "Property": prop } });
+    let measure = json!({ "Measure": { "Expression": { "SourceRef": { "Entity": "Sales" } }, "Property": "Total" } });
+    let visual = |name: &str, ty: &str, state: Value| {
+        (
+            format!("definition/pages/p1/visuals/{name}/visual.json"),
+            json!({ "name": name, "position": { "x": 0, "y": 0, "z": 0, "width": 300, "height": 200 }, "visual": { "visualType": ty, "query": { "queryState": state } } }).to_string(),
+        )
+    };
+    let proj = |f: &Value| json!({ "projections": [{ "field": f, "queryRef": "x" }] });
+    let mut files: std::collections::BTreeMap<String, String> = [
+        ("definition/report.json".to_string(), "{}".to_string()),
+        (
+            "definition/pages/pages.json".to_string(),
+            r#"{ "pageOrder": ["p1"] }"#.to_string(),
+        ),
+        (
+            "definition/pages/p1/page.json".to_string(),
+            r#"{ "name": "p1", "displayName": "One", "width": 1280, "height": 720 }"#.to_string(),
+        ),
+    ]
+    .into_iter()
+    .collect();
+    files.extend([
+        visual("a", "multiRowCard", json!({ "Values": proj(&measure) })),
+        visual("b", "cardVisual", json!({ "Data": proj(&measure) })),
+        visual(
+            "c",
+            "hundredPercentStackedColumnChart",
+            json!({ "Category": proj(&field("Category")), "Y": proj(&measure) }),
+        ),
+        visual(
+            "d",
+            "lineClusteredColumnComboChart",
+            json!({ "Category": proj(&field("Year")), "Y": proj(&measure), "Y2": proj(&measure) }),
+        ),
+        visual(
+            "e",
+            "gauge",
+            json!({ "Y": proj(&measure), "TargetValue": proj(&measure) }),
+        ),
+        visual(
+            "f",
+            "kpi",
+            json!({ "Indicator": proj(&measure), "TrendLine": proj(&field("Year")) }),
+        ),
+        visual(
+            "g",
+            "clusteredColumnChart",
+            json!({ "Category": proj(&field("Category")), "Y": proj(&measure), "Rows": proj(&field("Year")) }),
+        ),
+        visual(
+            "h",
+            "waterfallChart",
+            json!({ "Category": proj(&field("Year")), "Breakdown": proj(&field("Category")), "Y": proj(&measure) }),
+        ),
+        visual(
+            "i",
+            "treemap",
+            json!({ "Group": proj(&field("Category")), "Values": proj(&measure) }),
+        ),
+        visual(
+            "j",
+            "funnel",
+            json!({ "Category": proj(&field("Category")), "Y": proj(&measure) }),
+        ),
+    ]);
+    let mut skipped = Vec::new();
+    let report = charted_tmdl::pbir::read_pbir(&model, &files, &mut skipped).unwrap();
+    assert!(skipped.is_empty(), "{skipped:?}");
+    let mut got: Vec<(String, Vec<String>)> = report.pages[0]
+        .visuals
+        .iter()
+        .map(|v| (v.visual_type.clone(), v.roles.keys().cloned().collect()))
+        .collect();
+    got.sort();
+    let s = |t: &str, v: &[&str]| {
+        (
+            t.to_string(),
+            v.iter().map(|x| x.to_string()).collect::<Vec<_>>(),
+        )
+    };
+    assert_eq!(
+        got,
+        vec![
+            s("columnChart", &["category", "smallMultiples", "values"]),
+            s("funnel", &["category", "values"]),
+            s("gauge", &["targetValue", "values"]),
+            s("hundredPercentStackedColumnChart", &["category", "values"]),
+            s("kpi", &["indicator", "trend"]),
+            s(
+                "lineClusteredColumnComboChart",
+                &["category", "lineValues", "values"]
+            ),
+            s("multiRowCard", &["values"]),
+            s("multiRowCard", &["values"]),
+            s("treemap", &["group", "values"]),
+            s("waterfallChart", &["breakdown", "category", "values"]),
+        ]
+    );
 }

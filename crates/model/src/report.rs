@@ -117,10 +117,22 @@ pub struct PageSettings {
     /// filters and slicers, and the point's other fields).
     #[serde(default = "yes", skip_serializing_if = "is_true")]
     pub keep_all_filters: bool,
+    /// The page is a report-page tooltip: charts show it, filtered to the point under
+    /// the pointer, instead of their usual tooltip.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub tooltip: bool,
+    /// A tooltip page's fields: charts set to automatic tooltips use the page for
+    /// points that have all of them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tooltip_fields: Vec<Projection>,
 }
 
 fn yes() -> bool {
     true
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }
 
 fn is_true(b: &bool) -> bool {
@@ -164,6 +176,8 @@ impl PageSettings {
             interactions: Vec::new(),
             drillthrough: Vec::new(),
             keep_all_filters: true,
+            tooltip: false,
+            tooltip_fields: Vec::new(),
         }
     }
 }
@@ -229,10 +243,19 @@ pub enum DrillStep {
 /// The role whose fields form a visual type's drillable hierarchy.
 pub fn drill_role(visual_type: &str) -> Option<&'static str> {
     match visual_type {
-        "columnChart" | "barChart" | "stackedColumnChart" | "stackedBarChart" | "lineChart" => {
-            Some("category")
-        }
+        "columnChart"
+        | "barChart"
+        | "stackedColumnChart"
+        | "stackedBarChart"
+        | "lineChart"
+        | "hundredPercentStackedColumnChart"
+        | "hundredPercentStackedBarChart"
+        | "lineClusteredColumnComboChart"
+        | "lineStackedColumnComboChart"
+        | "waterfallChart"
+        | "funnel" => Some("category"),
         "pieChart" | "donutChart" => Some("legend"),
+        "treemap" => Some("group"),
         _ => None,
     }
 }
@@ -467,6 +490,10 @@ impl Visual {
                 | "barChart"
                 | "stackedColumnChart"
                 | "stackedBarChart"
+                | "hundredPercentStackedColumnChart"
+                | "hundredPercentStackedBarChart"
+                | "lineClusteredColumnComboChart"
+                | "lineStackedColumnComboChart"
                 | "pieChart"
                 | "donutChart"
                 | "scatterChart"

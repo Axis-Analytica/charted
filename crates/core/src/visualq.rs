@@ -307,6 +307,12 @@ pub fn report_visual_query(
                 | "barChart"
                 | "stackedColumnChart"
                 | "stackedBarChart"
+                | "hundredPercentStackedColumnChart"
+                | "hundredPercentStackedBarChart"
+                | "lineClusteredColumnComboChart"
+                | "lineStackedColumnComboChart"
+                | "funnel"
+                | "treemap"
                 | "pieChart"
                 | "donutChart"
         );
@@ -320,15 +326,25 @@ pub fn report_visual_query(
             _ => true,
         };
         if ranked && !natural {
+            // By the first of the values role (a combo chart's columns, not its line).
+            let target = slot
+                .get(&("values".to_string(), 0))
+                .copied()
+                .unwrap_or(OrderTarget::Value(0));
             q.order.push(OrderBy {
-                target: OrderTarget::Value(0),
+                target,
                 descending: true,
             });
         }
     }
+    let multiples = v
+        .roles
+        .get("smallMultiples")
+        .is_some_and(|ps| !ps.is_empty());
     q.limit = Some(match v.visual_type.as_str() {
-        "card" => 1,
-        "lineChart" | "scatterChart" => 10_000,
+        "card" | "multiRowCard" | "gauge" => 1,
+        _ if multiples => 10_000,
+        "lineChart" | "scatterChart" | "kpi" => 10_000,
         "table" | "matrix" | "slicer" => 5_000,
         _ => 1_000,
     });
@@ -392,7 +408,7 @@ pub fn report_visual_sql(
         .report
         .visual(visual)
         .ok_or_else(|| CoreError::Invalid(format!("there is no visual with id {visual}")))?;
-    let (mut q, names) = report_visual_query(model, visual, o.totals, o.filters)?;
+    let (mut q, mut names) = report_visual_query(model, visual, o.totals, o.filters)?;
     if v.is_slicer() {
         return slicer_sql(model, schema, v, q, o.search);
     }
@@ -409,20 +425,127 @@ pub fn report_visual_sql(
             &columns(q.groups.len(), names.len(), &names, false),
         ));
     }
+    // Fields that only drive conditional formatting are hidden values.
+    for (name, p) in formatting_values(v) {
+        q.values.push(p);
+        names.push(name);
+    }
     if v.visual_type == "matrix" && !o.totals {
-        return matrix_sql(model, schema, v, q);
+        let value_names = names[q.groups.len()..].to_vec();
+        return matrix_sql(model, schema, v, q, &value_names);
     }
     q.keys = true;
+    let out = visual_rows_sql(model, schema, &q, &names, o.highlight)?;
+    combo_lines(model, schema, v, &q, &names, out)
+}
+
+/// The values that conditional formatting on a table or matrix reads from fields of
+/// their own (`objects.conditionalFormatting[column][kind].field`), named
+/// `cf:{column}:{kind}`.
+pub fn formatting_values(v: &charted_model::Visual) -> Vec<(String, Projection)> {
+    if !matches!(v.visual_type.as_str(), "table" | "matrix") {
+        return Vec::new();
+    }
+    let Some(Value::Object(columns)) = v.objects.get("conditionalFormatting") else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    for (column, kinds) in columns {
+        let Some(kinds) = kinds.as_object() else {
+            continue;
+        };
+        for (kind, rule) in kinds {
+            if let Some(p) = rule
+                .get("field")
+                .filter(|f| !f.is_null())
+                .and_then(|f| serde_json::from_value::<Projection>(f.clone()).ok())
+            {
+                out.push((format!("cf:{column}:{kind}"), p));
+            }
+        }
+    }
+    out
+}
+
+/// A combo chart with a legend: its line values belong to the category, not to each
+/// legend value, so they come from a query without the legend, joined on the rest.
+fn combo_lines(
+    model: &Model,
+    schema: &Schema,
+    v: &charted_model::Visual,
+    q: &VisualQuery,
+    names: &[String],
+    out: String,
+) -> Result<String, CoreError> {
     let groups = q.groups.len();
-    let cols = columns(groups, names.len(), &names, true);
-    let full = compile(model, schema, &q)?;
-    if o.highlight.is_empty() || q.values.is_empty() {
+    let combo = v.visual_type.starts_with("line") && v.visual_type.ends_with("ComboChart");
+    let Some(series) = names[..groups].iter().position(|n| n == "series:0") else {
+        return Ok(out);
+    };
+    let lines: Vec<(usize, &String)> = names[groups..]
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| n.starts_with("lineValues:"))
+        .collect();
+    if !combo || lines.is_empty() {
+        return Ok(out);
+    }
+    let mut lq = q.clone();
+    lq.groups.remove(series);
+    lq.values = lines.iter().map(|(i, _)| q.values[*i].clone()).collect();
+    lq.order.clear();
+    lq.limit = None;
+    lq.keys = false;
+    let l = compile(model, schema, &lq)?;
+    let others: Vec<&String> = names[..groups]
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i != series)
+        .map(|(_, n)| n)
+        .collect();
+    let on = if others.is_empty() {
+        "TRUE".to_string()
+    } else {
+        others
+            .iter()
+            .enumerate()
+            .map(|(j, n)| format!("a.{} IS NOT DISTINCT FROM l.g{j}", sql::ident(n)))
+            .collect::<Vec<_>>()
+            .join(" AND ")
+    };
+    let exclude: Vec<String> = lines.iter().map(|(_, n)| sql::ident(n)).collect();
+    let picks: Vec<String> = lines
+        .iter()
+        .enumerate()
+        .map(|(j, (_, n))| format!("l.v{j} AS {}", sql::ident(n)))
+        .collect();
+    Ok(format!(
+        "SELECT a.* EXCLUDE (combo_rn, {}), {} FROM (SELECT *, row_number() OVER () AS combo_rn FROM ({out}) AS o) AS a LEFT JOIN ({}) AS l ON {on} ORDER BY a.combo_rn",
+        exclude.join(", "),
+        picks.join(", "),
+        l.sql
+    ))
+}
+
+/// A visual's rows (`role:index` columns with keys), with each value's highlighted
+/// part (`hl:role:index`) when a selection elsewhere highlights it.
+fn visual_rows_sql(
+    model: &Model,
+    schema: &Schema,
+    q: &VisualQuery,
+    names: &[String],
+    highlight: &[QueryFilter],
+) -> Result<String, CoreError> {
+    let groups = q.groups.len();
+    let cols = columns(groups, names.len(), names, true);
+    let full = compile(model, schema, q)?;
+    if highlight.is_empty() || q.values.is_empty() {
         return Ok(select_as(&full.sql, &cols));
     }
     // The highlight: the same values with the selection's filters added, joined to the
     // full result on the groups.
     let mut hq = q.clone();
-    hq.filters.extend(o.highlight.iter().cloned());
+    hq.filters.extend(highlight.iter().cloned());
     hq.order.clear();
     hq.limit = None;
     hq.keys = false;
@@ -495,13 +618,13 @@ fn matrix_sql(
     schema: &Schema,
     v: &charted_model::Visual,
     q: VisualQuery,
+    value_names: &[String],
 ) -> Result<String, CoreError> {
     let rows = v.roles.get("rows").map(Vec::len).unwrap_or(0);
     let cols = v.roles.get("columns").map(Vec::len).unwrap_or(0);
     // `q.groups` holds the column hierarchy before the rows (roles are ordered by name).
     let col_groups: Vec<Projection> = q.groups[..cols].to_vec();
     let row_groups: Vec<Projection> = q.groups[cols..cols + rows].to_vec();
-    let value_names: Vec<String> = (0..q.values.len()).map(|i| format!("values:{i}")).collect();
     let mut parts = Vec::new();
     for r in 0..=rows {
         for c in 0..=cols {

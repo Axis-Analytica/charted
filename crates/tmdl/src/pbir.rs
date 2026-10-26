@@ -29,51 +29,11 @@ type Roles = &'static [(&'static str, &'static str)];
 /// charted visual types, their Power BI names and roles.
 const TYPES: &[(&str, &str, Roles)] = &[
     ("card", "card", &[("values", "Values")]),
-    (
-        "columnChart",
-        "clusteredColumnChart",
-        &[
-            ("category", "Category"),
-            ("series", "Series"),
-            ("values", "Y"),
-        ],
-    ),
-    (
-        "barChart",
-        "clusteredBarChart",
-        &[
-            ("category", "Category"),
-            ("series", "Series"),
-            ("values", "Y"),
-        ],
-    ),
-    (
-        "stackedColumnChart",
-        "columnChart",
-        &[
-            ("category", "Category"),
-            ("series", "Series"),
-            ("values", "Y"),
-        ],
-    ),
-    (
-        "stackedBarChart",
-        "barChart",
-        &[
-            ("category", "Category"),
-            ("series", "Series"),
-            ("values", "Y"),
-        ],
-    ),
-    (
-        "lineChart",
-        "lineChart",
-        &[
-            ("category", "Category"),
-            ("series", "Series"),
-            ("values", "Y"),
-        ],
-    ),
+    ("columnChart", "clusteredColumnChart", CARTESIAN),
+    ("barChart", "clusteredBarChart", CARTESIAN),
+    ("stackedColumnChart", "columnChart", CARTESIAN),
+    ("stackedBarChart", "barChart", CARTESIAN),
+    ("lineChart", "lineChart", CARTESIAN),
     (
         "pieChart",
         "pieChart",
@@ -109,20 +69,94 @@ const TYPES: &[(&str, &str, Roles)] = &[
     ("textbox", "textbox", &[]),
     ("image", "image", &[]),
     ("shape", "shape", &[]),
+    (
+        "hundredPercentStackedColumnChart",
+        "hundredPercentStackedColumnChart",
+        CARTESIAN,
+    ),
+    (
+        "hundredPercentStackedBarChart",
+        "hundredPercentStackedBarChart",
+        CARTESIAN,
+    ),
+    (
+        "lineClusteredColumnComboChart",
+        "lineClusteredColumnComboChart",
+        COMBO,
+    ),
+    (
+        "lineStackedColumnComboChart",
+        "lineStackedColumnComboChart",
+        COMBO,
+    ),
+    (
+        "waterfallChart",
+        "waterfallChart",
+        &[
+            ("category", "Category"),
+            ("breakdown", "Breakdown"),
+            ("values", "Y"),
+        ],
+    ),
+    (
+        "funnel",
+        "funnel",
+        &[("category", "Category"), ("values", "Y")],
+    ),
+    (
+        "treemap",
+        "treemap",
+        &[
+            ("group", "Group"),
+            ("details", "Details"),
+            ("values", "Values"),
+        ],
+    ),
+    (
+        "gauge",
+        "gauge",
+        &[
+            ("values", "Y"),
+            ("minValue", "MinValue"),
+            ("maxValue", "MaxValue"),
+            ("targetValue", "TargetValue"),
+        ],
+    ),
+    (
+        "kpi",
+        "kpi",
+        &[
+            ("indicator", "Indicator"),
+            ("trend", "TrendLine"),
+            ("goal", "Goal"),
+        ],
+    ),
+    ("multiRowCard", "multiRowCard", &[("values", "Values")]),
+];
+
+/// The roles of 100% stacked charts (and, with `Rows`, small multiples).
+const CARTESIAN: Roles = &[
+    ("category", "Category"),
+    ("series", "Series"),
+    ("values", "Y"),
+    ("smallMultiples", "Rows"),
+];
+
+/// Combo charts: column values (`Y`) and line values (`Y2`).
+const COMBO: Roles = &[
+    ("category", "Category"),
+    ("series", "Series"),
+    ("values", "Y"),
+    ("lineValues", "Y2"),
 ];
 
 /// Older or alternative Power BI names that map to the same charted visual.
 const ALIASES: &[(&str, &str)] = &[
-    ("multiRowCard", "card"),
-    ("cardVisual", "card"),
+    ("cardVisual", "multiRowCard"),
     ("table", "table"),
     ("matrix", "matrix"),
-    ("hundredPercentStackedColumnChart", "stackedColumnChart"),
-    ("hundredPercentStackedBarChart", "stackedBarChart"),
     ("areaChart", "lineChart"),
     ("stackedAreaChart", "lineChart"),
-    ("lineClusteredColumnComboChart", "columnChart"),
-    ("lineStackedColumnComboChart", "stackedColumnChart"),
     ("basicShape", "shape"),
     ("advancedSlicerVisual", "slicer"),
     ("listSlicer", "slicer"),
@@ -438,6 +472,27 @@ pub fn report_files(model: &Model) -> Vec<(String, String)> {
                 "type": "Drillthrough",
                 "parameters": params,
                 "acceptsFilterContext": if s.keep_all_filters { "Default" } else { "None" },
+            });
+        } else if s.tooltip {
+            // A report-page tooltip, hidden in view mode as Power BI hides them.
+            let mut params = Vec::new();
+            for (i, d) in s.tooltip_fields.iter().enumerate() {
+                let f = ReportFilter {
+                    id: format!("{}-tip{i}", short(&p.id)),
+                    field: d.clone(),
+                    filter: FilterKind::All,
+                };
+                if let Some(c) = filter_container(model, &f, Some("Drillthrough")) {
+                    params.push(json!({ "name": format!("{}-param{i}", short(&p.id)), "boundFilter": f.id, "fieldExpr": c["field"].clone() }));
+                    filters.push(c);
+                }
+            }
+            page["type"] = json!("Tooltip");
+            page["visibility"] = json!("HiddenInViewMode");
+            page["pageBinding"] = json!({
+                "name": format!("{}-binding", short(&p.id)),
+                "type": "Tooltip",
+                "parameters": params,
             });
         }
         if !filters.is_empty() {
@@ -855,6 +910,9 @@ pub fn read_pbir(
                 );
                 s.width = p.get("width").and_then(Value::as_u64).unwrap_or(1280) as u32;
                 s.height = p.get("height").and_then(Value::as_u64).unwrap_or(720) as u32;
+                let tooltip = p.get("type").and_then(Value::as_str) == Some("Tooltip")
+                    || p.pointer("/pageBinding/type").and_then(Value::as_str) == Some("Tooltip");
+                s.tooltip = tooltip;
                 for f in p
                     .pointer("/filterConfig/filters")
                     .and_then(Value::as_array)
@@ -863,7 +921,9 @@ pub fn read_pbir(
                 {
                     let drill = f.get("howCreated").and_then(Value::as_str) == Some("Drillthrough");
                     if let Some(rf) = report_filter(model, f) {
-                        if drill {
+                        if drill && tooltip {
+                            s.tooltip_fields.push(rf.field);
+                        } else if drill {
                             s.drillthrough.push(rf.field);
                         } else {
                             s.filters.push(rf);

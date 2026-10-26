@@ -22,4 +22,14 @@ drillthrough?: Array<Projection>,
  * Drilling through also brings the source visual's other filters (its page's
  * filters and slicers, and the point's other fields).
  */
-keepAllFilters?: boolean, };
+keepAllFilters?: boolean, 
+/**
+ * The page is a report-page tooltip: charts show it, filtered to the point under
+ * the pointer, instead of their usual tooltip.
+ */
+tooltip?: boolean, 
+/**
+ * A tooltip page's fields: charts set to automatic tooltips use the page for
+ * points that have all of them.
+ */
+tooltipFields?: Array<Projection>, };

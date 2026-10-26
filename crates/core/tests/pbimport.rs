@@ -50,7 +50,6 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         "measure Orders[Avg Order]",
         "measure Orders[Sales Rank]",
         "visual Overview: map",
-        "visual Trend: kpi",
     ] {
         assert!(
             skipped.iter().any(|s| s == expected),
@@ -68,7 +67,9 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         (report.tables, report.loaded, report.relationships),
         (4, 2, 2)
     );
-    assert_eq!((report.pages, report.visuals), (2, 6));
+    // The KPI (v1.2) comes across; the map doesn't.
+    assert!(!skipped.iter().any(|s| s.contains("kpi")), "{skipped:#?}");
+    assert_eq!((report.pages, report.visuals), (2, 7));
     assert!(
         report.notes.iter().any(|n| n.contains("orders.csv")),
         "{:?}",
