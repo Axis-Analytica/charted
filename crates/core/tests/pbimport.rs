@@ -154,6 +154,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     let out = tmp.path().join("export");
     app.handle(Request::ExportPbip {
         dir: out.display().to_string(),
+        options: None,
     })
     .unwrap();
     let (again, report2) =

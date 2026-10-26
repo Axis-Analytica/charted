@@ -235,6 +235,9 @@ pub fn import(input: &Path, parent: &Path) -> Result<(PathBuf, ImportReport), Co
         let Some(path) = source_path(&mut q.source) else {
             continue;
         };
+        if charted_compiler::steps::is_url(path) {
+            continue;
+        }
         let absolute = path.starts_with('/') || path.chars().nth(1) == Some(':');
         if !absolute && let Some(f) = &folder {
             *path = format!("{}/{}", f.trim_end_matches(['/', '\\']), path);
@@ -282,6 +285,19 @@ pub fn import(input: &Path, parent: &Path) -> Result<(PathBuf, ImportReport), Co
     let mut loaded = 0;
     let mut have: Vec<String> = Vec::new();
     for q in project.queries.iter().filter(|q| !q.no_load) {
+        // Nothing is downloaded without asking: files on the web load on the first
+        // Refresh, which asks before getting DuckDB's web reader.
+        if q.source.is_web() {
+            skipped.push(Skipped {
+                kind: "data".into(),
+                name: q.name.clone(),
+                reason: format!(
+                    "it reads {} from the web; Refresh to load it (charted asks before downloading)",
+                    q.source.path()
+                ),
+            });
+            continue;
+        }
         let result = crate::sources::query_sql(&dir_str, &project.queries, &sheets, q, None)
             .and_then(|s| {
                 db.materialise(&q.table, &s)

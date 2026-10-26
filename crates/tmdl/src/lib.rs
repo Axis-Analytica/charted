@@ -288,6 +288,25 @@ fn relationships_tmdl(m: &Model) -> String {
     out
 }
 
+/// A stable UUID-shaped id for `key` (the same project exports the same ids).
+fn logical_id(key: &str) -> String {
+    let mut h: [u64; 2] = [0xcbf29ce484222325, 0x84222325cbf29ce4];
+    for (i, b) in key.bytes().enumerate() {
+        let x = &mut h[i % 2];
+        *x ^= u64::from(b);
+        *x = x.wrapping_mul(0x100000001b3);
+    }
+    let hex = format!("{:016x}{:016x}", h[0], h[1]);
+    format!(
+        "{}-{}-4{}-a{}-{}",
+        &hex[0..8],
+        &hex[8..12],
+        &hex[13..16],
+        &hex[17..20],
+        &hex[20..32]
+    )
+}
+
 /// The files of a PBIP project for `model`, named `project`. `source_folder` is the
 /// default for the `SourceFolder` parameter that M queries read files from.
 pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str) -> Vec<File> {
@@ -321,6 +340,8 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     let mut model_tmdl = String::from(
         "model Model\n\tculture: en-US\n\tdefaultPowerBIDataSourceVersion: powerBI_V3\n\tsourceQueryCulture: en-US\n\tdataAccessOptions\n\t\tlegacyRedirects\n\t\treturnErrorValuesAsNull\n\n",
     );
+    // charted has no automatic date tables; Desktop shouldn't add them on opening.
+    model_tmdl.push_str("annotation __PBI_TimeIntelligenceEnabled = 0\n\n");
     let order: Vec<String> = model.tables.iter().map(|t| t.name.clone()).collect();
     let _ = writeln!(
         model_tmdl,
@@ -330,7 +351,24 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     for t in &model.tables {
         let _ = writeln!(model_tmdl, "ref table {}", name(&t.name));
     }
+    model_tmdl.push_str("\nref cultureInfo en-US\n");
     files.push((format!("{def}/model.tmdl"), model_tmdl));
+    // The culture Desktop writes into every project (Q&A's linguistic schema).
+    files.push((
+        format!("{def}/cultures/en-US.tmdl"),
+        "cultureInfo en-US\n\n\tlinguisticMetadata =\n\t\t\t{\n\t\t\t  \"Version\": \"1.0.0\",\n\t\t\t  \"Language\": \"en-US\"\n\t\t\t}\n\t\tcontentType: json\n\n".into(),
+    ));
+    // Fabric's Git integration names each item in a .platform file; Desktop ignores it.
+    for (dir, kind) in [(&sm, "SemanticModel"), (&rp, "Report")] {
+        files.push((
+            format!("{dir}/.platform"),
+            pretty(&json!({
+                "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+                "metadata": { "type": kind, "displayName": project },
+                "config": { "version": "2.0", "logicalId": logical_id(&format!("{project}\u{1}{kind}")) }
+            })),
+        ));
+    }
 
     let folder = if source_folder.ends_with('/') || source_folder.ends_with('\\') {
         source_folder.to_string()

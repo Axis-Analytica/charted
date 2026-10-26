@@ -480,6 +480,13 @@ fn read_tmdl(files: &BTreeMap<String, String>) -> Sm {
                         annotations: annotations(&n),
                     });
                 }
+                // A culture is only lost when it translates names; Desktop writes one
+                // with just its linguistic schema into every project.
+                "cultureInfo" | "culture"
+                    if !n
+                        .children
+                        .iter()
+                        .any(|c| c.text.trim_start().starts_with("translations")) => {}
                 "role" | "perspective" | "cultureInfo" | "culture" => {
                     sm.other.push((kw.replace("cultureInfo", "culture"), name))
                 }
@@ -625,6 +632,9 @@ fn read_bim(text: &str) -> Result<Sm, String> {
         ("cultures", "culture"),
     ] {
         for x in arr(m, k) {
+            if kind == "culture" && x.get("translations").is_none() {
+                continue;
+            }
             sm.other
                 .push((kind.into(), s(&x, "name").unwrap_or_default()));
         }

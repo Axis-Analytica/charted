@@ -307,6 +307,36 @@ fn file(m: &M, params: &BTreeMap<String, String>) -> Result<String, String> {
             // Windows paths: forward slashes, so they read on Linux once the folder is right.
             Ok(p.replace('\\', "/"))
         }
+        // A file on the web: its address, with a relative path when one is given.
+        M::Call(f, args) if matches!(&**f, M::Ident(n) if n == "Web.Contents") => {
+            let mut url = args
+                .first()
+                .and_then(|a| text(a, params))
+                .ok_or("the web address isn't plain text")?;
+            if let Some(M::Record(fs)) = args.get(1) {
+                for (k, v) in fs {
+                    match (k.as_str(), text(v, params)) {
+                        ("RelativePath", Some(rel)) if !rel.is_empty() => {
+                            url = format!(
+                                "{}/{}",
+                                url.trim_end_matches('/'),
+                                rel.trim_start_matches('/')
+                            );
+                        }
+                        ("RelativePath", _) => {}
+                        _ => {
+                            return Err(format!(
+                                "reads the web with {k}, which charted doesn't send"
+                            ));
+                        }
+                    }
+                }
+            }
+            if !charted_compiler::steps::is_url(&url) {
+                return Err("the web address isn't http or https".into());
+            }
+            Ok(url)
+        }
         M::Call(f, _) => Err(format!("reads data with {}", name_of(f))),
         _ => Err("the source isn't a file".into()),
     }
@@ -411,10 +441,11 @@ pub fn to_query(
                 });
             }
             (None, Some((f, args)), _) if f == "Excel.Workbook" => {
-                workbook = Some(file(
-                    args.first().ok_or("Excel.Workbook needs a file")?,
-                    params,
-                )?);
+                let path = file(args.first().ok_or("Excel.Workbook needs a file")?, params)?;
+                if charted_compiler::steps::is_url(&path) {
+                    return Err("reads an Excel workbook from the web".into());
+                }
+                workbook = Some(path);
             }
             (None, Some((f, args)), _) if f == "Parquet.Document" => {
                 source = Some(Source::Parquet {

@@ -411,7 +411,15 @@ impl Source {
 
     /// Whether the source is a local file or folder (watched for changes).
     pub fn is_file(&self) -> bool {
-        !matches!(self, Source::Postgres { .. } | Source::Calendar { .. })
+        !matches!(self, Source::Postgres { .. } | Source::Calendar { .. }) && !self.is_web()
+    }
+
+    /// A file read from the web (an https:// path).
+    pub fn is_web(&self) -> bool {
+        matches!(
+            self,
+            Source::Csv { .. } | Source::Parquet { .. } | Source::Json { .. }
+        ) && is_url(&self.path())
     }
 
     /// The DuckDB extension the source needs, if any.
@@ -419,6 +427,7 @@ impl Source {
         match self {
             Source::Sqlite { .. } => Some("sqlite"),
             Source::Postgres { .. } => Some("postgres"),
+            _ if self.is_web() => Some("httpfs"),
             _ => None,
         }
     }
@@ -567,9 +576,15 @@ pub fn postgres_alias(host: &str, port: u16, database: &str, user: &str) -> Stri
     format!("pg_{:012x}", h & 0xffff_ffff_ffff)
 }
 
+/// An http:// or https:// address (a file read from the web).
+pub fn is_url(path: &str) -> bool {
+    let p = path.to_ascii_lowercase();
+    p.starts_with("https://") || p.starts_with("http://")
+}
+
 /// Resolves a source path against the project folder (both as plain strings).
 pub fn resolve_path(project_dir: &str, path: &str) -> String {
-    if path.starts_with('/') {
+    if path.starts_with('/') || is_url(path) {
         path.to_string()
     } else {
         format!("{}/{}", project_dir.trim_end_matches('/'), path)
@@ -1399,7 +1414,9 @@ fn m_agg(a: &Aggregate) -> String {
 pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
     let mut steps: Vec<(String, String)> = Vec::new();
     let file = |p: &str| {
-        if p.starts_with('/') {
+        if is_url(p) {
+            format!("Web.Contents({})", m_string(p))
+        } else if p.starts_with('/') {
             format!("File.Contents({})", m_string(p))
         } else {
             format!("File.Contents(SourceFolder & {})", m_string(p))

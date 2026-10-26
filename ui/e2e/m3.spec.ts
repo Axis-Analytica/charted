@@ -189,6 +189,7 @@ test("a RELATED calculated column, PBIP export and an Ossie round trip", async (
   }, out);
   await page.getByRole("button", { name: "File" }).click();
   await page.getByRole("menuitem", { name: "Export Power BI project…" }).click();
+  await page.getByRole("dialog", { name: "Export Power BI project" }).getByRole("button", { name: "Export" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Exported a Power BI project" })).toBeVisible();
   const tmdl = readFileSync(`${out}/Harbor & Pine.SemanticModel/definition/tables/Sales.tmdl`, "utf8");
   expect(tmdl).toContain("column 'List Value' = Sales[Quantity] * RELATED ( Product[ListPrice] )");

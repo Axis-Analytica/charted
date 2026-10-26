@@ -56,6 +56,9 @@ pub enum Request {
     /// Writes a Power BI project (PBIP with TMDL) into a folder.
     ExportPbip {
         dir: String,
+        #[serde(default)]
+        #[ts(optional)]
+        options: Option<crate::interop::PbipOptions>,
     },
     /// Writes the model as an Apache Ossie document.
     ExportOssie {
@@ -578,9 +581,13 @@ impl App {
             Request::RestoreRecovery => self.session_mut()?.restore_recovery()?,
             Request::DiscardRecovery => self.session_mut()?.discard_recovery(),
             Request::ForgetRecent { path } => recent::forget(&self.state_dir, Path::new(&path)),
-            Request::ExportPbip { dir } => {
+            Request::ExportPbip { dir, options } => {
                 let s = self.session_mut()?;
-                crate::interop::export_pbip(&s.project, Path::new(&dir))?;
+                crate::interop::export_pbip(
+                    &s.project,
+                    Path::new(&dir),
+                    &options.unwrap_or_default(),
+                )?;
             }
             Request::ExportOssie { path } => {
                 let s = self.session_mut()?;

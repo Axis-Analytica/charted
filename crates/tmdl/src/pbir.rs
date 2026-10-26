@@ -664,7 +664,16 @@ fn import_visual(
         .and_then(Value::as_object)
     {
         for (theirs, st) in state {
-            let ours_role = roles_map.iter().find(|(_, t)| t == theirs).map(|(o, _)| *o);
+            // The new card ("cardVisual") calls its values "Data".
+            let theirs = if theirs == "Data" {
+                "Values"
+            } else {
+                theirs.as_str()
+            };
+            let ours_role = roles_map
+                .iter()
+                .find(|(_, t)| *t == theirs)
+                .map(|(o, _)| *o);
             for p in st
                 .get("projections")
                 .and_then(Value::as_array)

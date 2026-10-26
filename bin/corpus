@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# bin/corpus — fetches public Power BI projects (PBIP) at pinned commits into
+# ~/Work/charted-corpus (or $CHARTED_CORPUS), for crates/core/tests/corpus.rs:
+#   bin/corpus && cargo test -p charted-core --test corpus -- --ignored --nocapture
+# They aren't vendored: each keeps its own licence (see each repository).
+set -euo pipefail
+dir="${CHARTED_CORPUS:-$HOME/Work/charted-corpus}"
+mkdir -p "$dir"
+while read -r repo commit; do
+  name="${repo##*/}"
+  if [ ! -d "$dir/$name/.git" ]; then
+    git clone -q --filter=blob:none "https://github.com/$repo.git" "$dir/$name"
+  fi
+  git -C "$dir/$name" fetch -q origin "$commit" 2>/dev/null || true
+  git -C "$dir/$name" -c advice.detachedHead=false checkout -q "$commit"
+  echo "$name $(git -C "$dir/$name" rev-parse --short HEAD)"
+done <<'LIST'
+vlpatkosdani/powerbi-git-practice eda79ab72f1973264a673afafa408e6ff04dfe01
+pbi-tools/sales-sample d9d976f21f1c9c00444c57a0ddfdfd96f7d617ce
+RuiRomano/pbip-demo 84351709a1d238ff0e1c4e961d584e8e5781c8fa
+omarrim/aurum-jet 7d02c6b129ad84ca58f4acb1a3333b6f4aa61c0f
+RuiRomano/pbip-demo-agentic 2c573dfeb90a4d9983ebcbc340642a8126597605
+LIST

@@ -1,6 +1,6 @@
 ---
 source: crates/tmdl/tests/pbip.rs
-assertion_line: 121
+assertion_line: 122
 expression: all
 ---
 === Shop.pbip
@@ -39,10 +39,51 @@ model Model
 		legacyRedirects
 		returnErrorValuesAsNull
 
+annotation __PBI_TimeIntelligenceEnabled = 0
+
 annotation PBI_QueryOrder = ["Sales","Date"]
 
 ref table Sales
 ref table Date
+
+ref cultureInfo en-US
+
+=== Shop.SemanticModel/definition/cultures/en-US.tmdl
+cultureInfo en-US
+
+	linguisticMetadata =
+			{
+			  "Version": "1.0.0",
+			  "Language": "en-US"
+			}
+		contentType: json
+
+
+=== Shop.SemanticModel/.platform
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "config": {
+    "logicalId": "aa1fd5aa-e0c8-4b0d-a368-8add0541f45c",
+    "version": "2.0"
+  },
+  "metadata": {
+    "displayName": "Shop",
+    "type": "SemanticModel"
+  }
+}
+
+=== Shop.Report/.platform
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "config": {
+    "logicalId": "665d08d0-f852-4a5e-a570-08ba8fe80914",
+    "version": "2.0"
+  },
+  "metadata": {
+    "displayName": "Shop",
+    "type": "Report"
+  }
+}
 
 === Shop.SemanticModel/definition/expressions.tmdl
 /// The folder the data files are read from. Change it where the files live.

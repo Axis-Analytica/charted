@@ -28,11 +28,17 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
   const { t } = useT();
   const rpc = useApp((s) => s.rpc);
   const [pending, setPending] = useState<{ path: string; diff: ModelDiff } | null>(null);
+  const [exporting, setExporting] = useState<{ dir: string; withData: boolean; folder: string } | null>(null);
 
   const exportPbip = async () => {
     const dir = await transport.pick({ title: t("Export to a folder for Power BI"), directory: true, create: true });
-    if (!dir) return;
-    if (await rpc({ type: "exportPbip", dir }, t("Exporting…"))) {
+    if (dir) setExporting({ dir, withData: true, folder: "" });
+  };
+  const runExport = async () => {
+    if (!exporting) return;
+    const { dir, withData, folder } = exporting;
+    setExporting(null);
+    if (await rpc({ type: "exportPbip", dir, options: { withData, sourceFolder: folder.trim() || null } }, t("Exporting…"))) {
       toast({ kind: "success", title: t("Exported a Power BI project"), detail: `${dir}/${project.name}.pbip` });
     }
   };
@@ -89,6 +95,43 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
           { id: "close", label: t("Close project"), icon: <X size={14} />, shortcut: "Ctrl+W", run: onClose },
         ]}
       />
+      <Dialog
+        open={!!exporting}
+        onOpenChange={(o) => !o && setExporting(null)}
+        title={t("Export Power BI project")}
+        width={520}
+        footer={
+          <>
+            <Button variant="ghost" onPress={() => setExporting(null)}>
+              {t("Cancel")}
+            </Button>
+            <Button variant="primary" onPress={runExport}>
+              {t("Export")}
+            </Button>
+          </>
+        }
+      >
+        {exporting && (
+          <div className="export-pbip">
+            <p className="dialog-message mono">{exporting.dir}</p>
+            <label className="check-row">
+              <input type="checkbox" checked={exporting.withData} onChange={(e) => setExporting({ ...exporting, withData: e.target.checked })} />
+              <span>{t("Copy the data files into the export")}</span>
+            </label>
+            <label className="field">
+              <span className="field-label">{t("Folder Power BI reads the data from")}</span>
+              <input
+                className="input"
+                value={exporting.folder}
+                placeholder={exporting.withData ? exporting.dir : project.path.slice(0, project.path.lastIndexOf("/"))}
+                aria-label={t("Folder Power BI reads the data from")}
+                onChange={(e) => setExporting({ ...exporting, folder: e.target.value })}
+              />
+              <span className="field-hint">{t("Opening it on Windows? Type where the folder will be there, such as C:\\Users\\you\\Documents\\Sales\\. Power BI calls it the SourceFolder parameter, and you can change it later in Transform data.")}</span>
+            </label>
+          </div>
+        )}
+      </Dialog>
       <Dialog
         open={!!pending}
         onOpenChange={(o) => !o && setPending(null)}

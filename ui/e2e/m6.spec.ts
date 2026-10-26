@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
@@ -251,7 +252,12 @@ test("import a Power BI project, see what didn't come across, export and import 
   // Export for Power BI, and import that: only the measure charted can't evaluate.
   await pick(page, `${tmp}/export`);
   await fileMenu(page, "Export Power BI project…");
+  const exporting = page.getByRole("dialog", { name: "Export Power BI project" });
+  await expect(exporting.getByRole("checkbox", { name: "Copy the data files into the export" })).toBeChecked();
+  await exporting.getByRole("textbox", { name: "Folder Power BI reads the data from" }).fill("C:\\Users\\analyst\\Contoso\\");
+  await exporting.getByRole("button", { name: "Export" }).click();
   await expect(page.locator(".toast", { hasText: "Exported a Power BI project" })).toBeVisible();
+  expect(readFileSync(`${tmp}/export/Contoso.SemanticModel/definition/expressions.tmdl`, "utf8")).toContain('expression SourceFolder = "C:\\Users\\analyst\\Contoso\\"');
   await pick(page, `${tmp}/export/Contoso.pbip`);
   await fileMenu(page, "Import Power BI project…");
   const again = page.getByRole("dialog", { name: "Imported Contoso.pbip" });

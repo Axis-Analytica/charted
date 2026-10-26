@@ -31,9 +31,21 @@ pub fn generated_dialects(model: &Model) -> charted_ossie::GeneratedDialects {
 }
 
 /// Writes a Power BI project (PBIP with TMDL) into `dir`; returns the .pbip path.
-pub fn export_pbip(project: &Project, dir: &Path) -> Result<std::path::PathBuf, ProjectError> {
+pub fn export_pbip(
+    project: &Project,
+    dir: &Path,
+    options: &PbipOptions,
+) -> Result<std::path::PathBuf, ProjectError> {
     let name = &project.manifest.name;
-    let files = charted_tmdl::pbip(name, &project.model, &project.queries, &project.dir_str());
+    if options.with_data {
+        copy_data(project, dir)?;
+    }
+    let folder = match (&options.source_folder, options.with_data) {
+        (Some(f), _) if !f.trim().is_empty() => f.trim().to_string(),
+        (_, true) => dir.display().to_string(),
+        _ => project.dir_str(),
+    };
+    let files = charted_tmdl::pbip(name, &project.model, &project.queries, &folder);
     for (rel, text) in &files {
         let path = dir.join(rel);
         if let Some(parent) = path.parent() {
@@ -42,6 +54,50 @@ pub fn export_pbip(project: &Project, dir: &Path) -> Result<std::path::PathBuf, 
         atomic::write(&path, text.as_bytes()).map_err(io(&path))?;
     }
     Ok(dir.join(format!("{name}.pbip")))
+}
+
+/// How a Power BI project is exported.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct PbipOptions {
+    /// The folder Power BI reads the data files from (its `SourceFolder` parameter),
+    /// such as where they'll be on a Windows computer. By default the export's folder
+    /// when the data is copied, else the project's.
+    #[serde(default)]
+    pub source_folder: Option<String>,
+    /// Copies the data files the queries read from the project folder into the
+    /// export, so the export is complete on its own.
+    #[serde(default)]
+    pub with_data: bool,
+}
+
+/// Copies the files and folders the queries read from inside the project folder to
+/// the same places under `dir`.
+fn copy_data(project: &Project, dir: &Path) -> Result<(), ProjectError> {
+    for q in &project.queries {
+        let path = q.source.path();
+        if !q.source.is_file() || path.is_empty() || path.starts_with('/') {
+            continue;
+        }
+        let from = project.dir.join(&path);
+        let to = dir.join(&path);
+        if from.is_dir() {
+            for e in std::fs::read_dir(&from).map_err(io(&from))?.flatten() {
+                if e.path().is_file() {
+                    let target = to.join(e.file_name());
+                    std::fs::create_dir_all(&to).map_err(io(&to))?;
+                    std::fs::copy(e.path(), &target).map_err(io(&target))?;
+                }
+            }
+        } else if from.is_file() {
+            if let Some(parent) = to.parent() {
+                std::fs::create_dir_all(parent).map_err(io(parent))?;
+            }
+            std::fs::copy(&from, &to).map_err(io(&to))?;
+        }
+    }
+    Ok(())
 }
 
 /// Writes the model as a standalone Apache Ossie document.

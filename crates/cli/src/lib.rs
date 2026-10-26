@@ -115,7 +115,16 @@ pub enum SampleAction {
 #[derive(Debug, Subcommand)]
 pub enum ExportFormat {
     /// A folder Power BI Desktop opens: <dir>/<Name>.pbip and its TMDL model.
-    Pbip { project: PathBuf, dir: PathBuf },
+    Pbip {
+        project: PathBuf,
+        dir: PathBuf,
+        /// The folder Power BI reads the data files from (e.g. C:\\Users\\me\\Sales\\).
+        #[arg(long)]
+        source_folder: Option<String>,
+        /// Copy the data files into the export.
+        #[arg(long)]
+        with_data: bool,
+    },
     /// One Apache Ossie YAML document.
     Ossie { project: PathBuf, file: PathBuf },
 }
@@ -416,7 +425,7 @@ fn install_skill() -> std::io::Result<PathBuf> {
 
 fn export(format: ExportFormat) -> i32 {
     let (project, out) = match &format {
-        ExportFormat::Pbip { project, dir } => (project, dir),
+        ExportFormat::Pbip { project, dir, .. } => (project, dir),
         ExportFormat::Ossie { project, file } => (project, file),
     };
     let p = match charted_core::project::Project::open(project) {
@@ -424,7 +433,18 @@ fn export(format: ExportFormat) -> i32 {
         Err(e) => return fail(e),
     };
     let done = match format {
-        ExportFormat::Pbip { .. } => charted_core::interop::export_pbip(&p, out),
+        ExportFormat::Pbip {
+            ref source_folder,
+            with_data,
+            ..
+        } => charted_core::interop::export_pbip(
+            &p,
+            out,
+            &charted_core::interop::PbipOptions {
+                source_folder: source_folder.clone(),
+                with_data,
+            },
+        ),
         ExportFormat::Ossie { .. } => {
             charted_core::interop::export_ossie(&p.model, out).map(|()| out.clone())
         }
