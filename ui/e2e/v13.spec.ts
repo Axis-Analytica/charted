@@ -272,7 +272,7 @@ test("sync slicers: one choice filters every synced page, hidden or visible", as
   const total = await cardMillions(cardA);
   const slicer = await addVisual(page, "Slicer", { x: 140, y: 200 });
   await tick(page, "Store", "Region");
-  await expect(slicer.locator(".slicer-item", { hasText: "North America" })).toBeVisible();
+  await expect(slicer.locator(".slicer-item", { hasText: "Europe" })).toBeVisible();
   await newPage(page, "Sync B");
   const cardB = await addVisual(page, "Card", { x: 500, y: 100 });
   await tick(page, "Sales", "Total Sales");
@@ -293,7 +293,7 @@ test("sync slicers: one choice filters every synced page, hidden or visible", as
   await shot(page, "v13-04-sync-slicers");
 
   // A choice on page A filters page B too.
-  await slicer.locator(".slicer-item", { hasText: "North America" }).click();
+  await slicer.locator(".slicer-item", { hasText: "Europe" }).click();
   await expect.poll(() => cardMillions(cardA)).toBeLessThan(total * 0.9);
   const sliced = await cardMillions(cardA);
   await page.getByRole("tab", { name: "Sync B" }).click();
@@ -307,7 +307,7 @@ test("sync slicers: one choice filters every synced page, hidden or visible", as
   await page.getByRole("tab", { name: "Sync B" }).click();
   await expect(visuals(page)).toHaveCount(2);
   const copy = page.locator('[data-type="slicer"]');
-  await expect(copy.locator(".slicer-item.is-on", { hasText: "North America" })).toHaveCount(1);
+  await expect(copy.locator(".slicer-item.is-on", { hasText: "Europe" })).toHaveCount(1);
   await copy.getByRole("button", { name: "Clear selections" }).click();
   await expect.poll(() => cardMillions(cardB)).toBeCloseTo(total, 1);
   await page.getByRole("tab", { name: "Sync A" }).click();
