@@ -86,6 +86,26 @@ at what to build next:
 - **Round trips:** Excel and Folder queries verified in Power BI Desktop, and CSV
   culture (`"de-DE"`) read on import.
 
+## v1.5: aggregations in calculated columns
+
+Calculated columns today are row expressions: arithmetic, scalar functions and
+`RELATED`. v1.5 lets them aggregate, as in Power BI:
+
+- **Aggregates over related rows:**
+  - `CALCULATE ( SUM ( Sales[Amount] ) )` in a Customer column: context transition
+    turns the row into a filter, so the column holds each customer's total sales.
+  - `SUMX`, `COUNTROWS` and `RELATEDTABLE` over the rows related to this one.
+- **Aggregates over the whole table:**
+  - `SUM ( Sales[Amount] )` gives the grand total on every row.
+  - `ALL`/`ALLEXCEPT` patterns, such as each row's share of its category.
+- **Earlier-row patterns:** `EARLIER` and variables, for row ranks and running values
+  within a table.
+- **Measures in columns:** they evaluate per row with context transition.
+- **How it's built:**
+  - Computed once on load and refresh, as set-based DuckDB SQL (window functions and
+    grouped joins), not row by row.
+  - Checked against the reference interpreter like measures are.
+
 ## Better than Power BI
 
 These are the things people complain about most in Power BI Desktop, and where charted
