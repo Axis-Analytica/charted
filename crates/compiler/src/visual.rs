@@ -331,6 +331,29 @@ fn row_pure(b: &Bound) -> bool {
     ok
 }
 
+/// ALLSELECTED as a table reads VALUES (or the table) under the context without its
+/// grouping keys; other sources are read as they are.
+fn unselect(source: &TableExpr, ctx: &Ctx) -> Option<(TableExpr, Ctx)> {
+    let TableExpr::AllSelected { table, columns } = source else {
+        return None;
+    };
+    let t = if columns.is_empty() {
+        TableExpr::Table(table.clone())
+    } else {
+        TableExpr::Values {
+            table: table.clone(),
+            columns: columns.clone(),
+        }
+    };
+    Some((
+        t,
+        Ctx {
+            keys: Vec::new(),
+            ..ctx.clone()
+        },
+    ))
+}
+
 /// A row expression over the rows of `table` alone: columns of other tables are an
 /// outer row's values, which only a frame has.
 fn row_local(b: &Bound, table: &str) -> bool {
@@ -1260,6 +1283,11 @@ impl<'a> Compiler<'a> {
             conds.push(condition);
             cur = source;
         }
+        let selected = unselect(cur, ctx);
+        let (cur, ctx) = match &selected {
+            Some((t, c)) => (t, c),
+            None => (cur, ctx),
+        };
         let (base, distinct, apply_ctx) = match cur {
             TableExpr::Table(t) => (t.clone(), None, true),
             TableExpr::Values { table, columns } => (table.clone(), Some(columns.clone()), true),
@@ -1282,7 +1310,9 @@ impl<'a> Compiler<'a> {
                     "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
-            TableExpr::Filter { .. } => unreachable!("filters were unwrapped"),
+            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } => {
+                unreachable!("filters and ALLSELECTED were unwrapped")
+            }
         };
         let mut related: Vec<(Id, Id)> = Vec::new();
         if let Some(a) = arg {
@@ -1892,6 +1922,10 @@ impl<'a> Compiler<'a> {
             TableExpr::Values { table, columns } => {
                 added.push((self.value_set(table, columns, outer)?, keep))
             }
+            TableExpr::AllSelected { .. } => {
+                let (t, c) = unselect(t, outer).expect("ALLSELECTED");
+                self.table_filter(&t, keep, &c, added)?
+            }
             TableExpr::Table(table) => {
                 // VALUES ( Table ): its rows, by the key column when it has one.
                 let tab = self
@@ -2014,6 +2048,13 @@ impl<'a> Compiler<'a> {
             conds.push(condition);
             cur = source;
         }
+        // The rows are read in their own context (ALLSELECTED drops the keys); the
+        // expression is evaluated in the outer one.
+        let selected = unselect(cur, ctx);
+        let (cur, rows_ctx) = match &selected {
+            Some((t, c)) => (t, c),
+            None => (cur, ctx),
+        };
         let (t, cols, apply_ctx) = match cur {
             TableExpr::Table(t) => (t.clone(), None, true),
             TableExpr::Values { table, columns } => (table.clone(), Some(columns.clone()), true),
@@ -2036,7 +2077,9 @@ impl<'a> Compiler<'a> {
                     "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
-            TableExpr::Filter { .. } => unreachable!("filters were unwrapped"),
+            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } => {
+                unreachable!("filters and ALLSELECTED were unwrapped")
+            }
         };
         let tab = table(self.model, &t)?;
         // A whole row has every column, identified by the table's key column when it
@@ -2057,7 +2100,7 @@ impl<'a> Compiler<'a> {
             related_refs(c, &mut related);
         }
         let extra: Vec<Id> = related.iter().map(|(tb, _)| tb.clone()).collect();
-        let (keys, mut preds, from, _) = self.scope(&t, ctx, &extra, apply_ctx)?;
+        let (keys, mut preds, from, _) = self.scope(&t, rows_ctx, &extra, apply_ctx)?;
         // Keys of the outer frame this table reaches join the rows to the frame.
         let reach_keys: Vec<(Key, String)> = keys
             .iter()

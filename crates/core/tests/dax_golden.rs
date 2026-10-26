@@ -447,6 +447,20 @@ const MEASURES: &[(&str, &str)] = &[
         "Lines Per Product",
         "SUMX ( Product, COUNTROWS ( FILTER ( Sales, Sales[ProductKey] = Product[ProductKey] ) ) )",
     ),
+    // ALLSELECTED as a table
+    (
+        "Selected Months",
+        "COUNTROWS ( ALLSELECTED ( Date[MonthNumber] ) )",
+    ),
+    (
+        "Selected Color Qty",
+        "SUMX ( ALLSELECTED ( Product[Color] ), [Quantity] )",
+    ),
+    ("Selected Products", "COUNTROWS ( ALLSELECTED ( Product ) )"),
+    (
+        "Share Of Selected",
+        "DIVIDE ( [Quantity], SUMX ( ALLSELECTED ( Product[Product] ), [Quantity] ) )",
+    ),
     // CALCULATE
     (
         "Camping Sales",
@@ -748,6 +762,13 @@ fn shapes(m: &Model) -> Vec<(&'static str, VisualQuery)> {
             exclude: false,
         },
     };
+    let camping = QueryFilter {
+        field: c("Product", "Category"),
+        filter: FilterKind::Basic {
+            values: vec![Some("Camping".into())],
+            exclude: false,
+        },
+    };
     vec![
         ("card", VisualQuery::default()),
         (
@@ -804,6 +825,23 @@ fn shapes(m: &Model) -> Vec<(&'static str, VisualQuery)> {
                         exclude: false,
                     },
                 }],
+                ..Default::default()
+            },
+        ),
+        // Slicers: filters from outside the visual, which ALLSELECTED keeps.
+        (
+            "by month in 2025, camping",
+            VisualQuery {
+                groups: vec![c("Date", "MonthNumber")],
+                filters: vec![year_2025.clone(), camping.clone()],
+                ..Default::default()
+            },
+        ),
+        (
+            "by product, camping",
+            VisualQuery {
+                groups: vec![c("Product", "Product")],
+                filters: vec![camping],
                 ..Default::default()
             },
         ),
@@ -1029,6 +1067,8 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MAXX ( VALUES ( Store[Region] ), {} )",
         "SUMX ( FILTER ( VALUES ( Product[Color] ), [Quantity] > 5 ), {} )",
         "MINX ( VALUES ( Date[Quarter] ), {} )",
+        "SUMX ( ALLSELECTED ( Product[Color] ), {} )",
+        "MAXX ( ALLSELECTED ( Date[MonthNumber] ), {} )",
     ];
     if depth == 0 {
         return r.pick(AGGS).to_string();

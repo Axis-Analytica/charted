@@ -144,6 +144,9 @@ pub enum TableExpr {
     Values { table: Id, columns: Vec<Id> },
     /// All rows (or all values of some columns) of a table, ignoring filters.
     All { table: Id, columns: Vec<Id> },
+    /// ALLSELECTED as a table: the visible rows (or values of some columns) without the
+    /// visual's grouping and iterators' rows, keeping slicer, page and report filters.
+    AllSelected { table: Id, columns: Vec<Id> },
     Filter {
         source: Box<TableExpr>,
         condition: Box<Bound>,
@@ -161,6 +164,7 @@ impl TableExpr {
             TableExpr::Table(t)
             | TableExpr::Values { table: t, .. }
             | TableExpr::All { table: t, .. }
+            | TableExpr::AllSelected { table: t, .. }
             | TableExpr::Dates { table: t, .. } => Some(t),
             TableExpr::Filter { source, .. } => source.table(),
             TableExpr::List(_) => None,
@@ -171,12 +175,16 @@ impl TableExpr {
     pub fn columns(&self) -> Option<&[Id]> {
         match self {
             TableExpr::Table(_) => None,
-            TableExpr::Values { columns, .. } | TableExpr::All { columns, .. }
+            TableExpr::Values { columns, .. }
+            | TableExpr::All { columns, .. }
+            | TableExpr::AllSelected { columns, .. }
                 if !columns.is_empty() =>
             {
                 Some(columns)
             }
-            TableExpr::Values { .. } | TableExpr::All { .. } => None,
+            TableExpr::Values { .. } | TableExpr::All { .. } | TableExpr::AllSelected { .. } => {
+                None
+            }
             TableExpr::Dates { column, .. } => Some(std::slice::from_ref(column)),
             TableExpr::Filter { source, .. } => source.columns(),
             TableExpr::List(_) => Some(&[]),
@@ -931,9 +939,13 @@ impl<'a> Binder<'a> {
                             columns: vec![c.id.clone()],
                         })
                     }
-                    "ALL" | "REMOVEFILTERS" | "ALLSELECTED" => {
+                    "ALL" | "REMOVEFILTERS" => {
                         let (table, columns) = self.all_args(&upper, args, e.span)?;
                         Some(TableExpr::All { table, columns })
+                    }
+                    "ALLSELECTED" => {
+                        let (table, columns) = self.all_args(&upper, args, e.span)?;
+                        Some(TableExpr::AllSelected { table, columns })
                     }
                     "FILTER" => {
                         if !self.arity(&upper, args, e.span, 2, 2) {

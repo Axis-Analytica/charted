@@ -519,6 +519,19 @@ impl<'a> Interp<'a> {
                     self.distinct(rs)
                 })
             }
+            TableExpr::AllSelected { table, columns } => {
+                let mut c = ctx.clone();
+                c.filters.retain(|f| !f.grouping);
+                let t = if columns.is_empty() {
+                    TableExpr::Table(table.clone())
+                } else {
+                    TableExpr::Values {
+                        table: table.clone(),
+                        columns: columns.clone(),
+                    }
+                };
+                self.eval_table(&t, &c, rows)
+            }
             TableExpr::Filter { source, condition } => {
                 let src = self.eval_table(source, ctx, rows)?;
                 let mut out = Vec::new();
