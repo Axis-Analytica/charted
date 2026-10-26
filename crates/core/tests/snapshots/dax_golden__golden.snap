@@ -83,13 +83,13 @@ expression: golden
 "Footwear" | 2
 
 ## Target — card
-68400
+69610
 
 ## Target — by category
-∅ | 68400
-"Apparel" | 68400
-"Camping" | 68400
-"Footwear" | 68400
+∅ | 69610
+"Apparel" | 69610
+"Camping" | 69610
+"Footwear" | 69610
 
 ## Product Count — card
 8
@@ -116,13 +116,13 @@ expression: golden
 "Footwear" | 150
 
 ## Gap — card
--44987
+-46197
 
 ## Gap — by category
-∅ | -68319
-"Apparel" | -61725
-"Camping" | -58262
-"Footwear" | -61881
+∅ | -69529
+"Apparel" | -62935
+"Camping" | -59472
+"Footwear" | -63091
 
 ## Price Per Unit — card
 87.0372
@@ -134,13 +134,13 @@ expression: golden
 "Footwear" | 89.3014
 
 ## Vs Target — card
-0.3423
+0.3363
 
 ## Vs Target — by category
 ∅ | 0.0012
-"Apparel" | 0.0976
-"Camping" | 0.1482
-"Footwear" | 0.0953
+"Apparel" | 0.0959
+"Camping" | 0.1456
+"Footwear" | 0.0937
 
 ## Double Qty — card
 538
@@ -179,13 +179,13 @@ expression: golden
 "Footwear" | 89.3
 
 ## Abs Gap — card
-44987
+46197
 
 ## Abs Gap — by category
-∅ | 68319
-"Apparel" | 61725
-"Camping" | 58262
-"Footwear" | 61881
+∅ | 69529
+"Apparel" | 62935
+"Camping" | 59472
+"Footwear" | 63091
 
 ## Sales Or Target — card
 23413
@@ -378,6 +378,49 @@ expression: golden
 "Camping" | 82
 "Footwear" | 73
 
+## Listed Qty Value — card
+28205
+
+## Listed Qty Value — by category
+"Apparel" | 8225
+"Camping" | 12180
+"Footwear" | 7800
+
+## Per Target Row — card
+4950
+
+## Per Target Row — by category
+∅ | 55
+"Apparel" | 2090
+"Camping" | 1595
+"Footwear" | 1210
+
+## Target Rows — card
+55
+
+## Target Rows — by category
+∅ | 55
+"Apparel" | 55
+"Camping" | 55
+"Footwear" | 55
+
+## All Products Qty — card
+269
+
+## All Products Qty — by category
+∅ | 269
+"Apparel" | 269
+"Camping" | 269
+"Footwear" | 269
+
+## Lines Per Product — card
+89
+
+## Lines Per Product — by category
+"Apparel" | 38
+"Camping" | 29
+"Footwear" | 22
+
 ## Camping Sales — card
 10138
 
@@ -544,13 +587,13 @@ expression: golden
 "Footwear" | 269
 
 ## Target All Stores — card
-68400
+69610
 
 ## Target All Stores — by category
-∅ | 68400
-"Apparel" | 68400
-"Camping" | 68400
-"Footwear" | 68400
+∅ | 69610
+"Apparel" | 69610
+"Camping" | 69610
+"Footwear" | 69610
 
 ## Calc Var — card
 1
@@ -1024,13 +1067,13 @@ expression: golden
 "Footwear" | "$92.18"
 
 ## Gap Text — card
-"-44,987"
+"-46,197"
 
 ## Gap Text — by category
-∅ | "-68,319"
-"Apparel" | "-61,725"
-"Camping" | "-58,262"
-"Footwear" | "-61,881"
+∅ | "-69,529"
+"Apparel" | "-62,935"
+"Camping" | "-59,472"
+"Footwear" | "-63,091"
 
 ## General Text — card
 "87.03717472118959"

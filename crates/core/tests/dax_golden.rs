@@ -215,6 +215,10 @@ fn fixture() -> Fixture {
                         n((1000 + 100 * s + 10 * m) as f64),
                     ]);
                 }
+                // A duplicate row (Targets has no key): iterators must keep both.
+                if y == 2025 && m == 2 && s == 1 {
+                    targets.push(vec![n(202502.0), n(1.0), n(1210.0)]);
+                }
             }
         }
     }
@@ -430,6 +434,19 @@ const MEASURES: &[(&str, &str)] = &[
         "SUMX ( VALUES ( Store[Region] ), [Max Price] )",
     ),
     ("Per Product", "SUMX ( Product, [Quantity] )"),
+    // Iterated rows: every column readable, duplicate rows kept, the whole row
+    // transitioned, outer rows referenced from inner iterators.
+    (
+        "Listed Qty Value",
+        "SUMX ( Product, Product[ListPrice] * [Quantity] )",
+    ),
+    ("Per Target Row", "SUMX ( Targets, [Orders] )"),
+    ("Target Rows", "SUMX ( Targets, [Orders] * 0 + 1 )"),
+    ("All Products Qty", "SUMX ( ALL ( Product ), [Quantity] )"),
+    (
+        "Lines Per Product",
+        "SUMX ( Product, COUNTROWS ( FILTER ( Sales, Sales[ProductKey] = Product[ProductKey] ) ) )",
+    ),
     // CALCULATE
     (
         "Camping Sales",

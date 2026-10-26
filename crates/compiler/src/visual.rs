@@ -239,7 +239,13 @@ impl Ctx {
 #[derive(Debug, Clone)]
 struct RowBinding {
     table: Id,
+    /// The row's columns that can be read: model column → frame column.
     columns: Vec<(Id, String)>,
+    /// The columns that identify the row (its key, or all of them): context transition
+    /// filters on these.
+    identity: Vec<Id>,
+    /// Every column the row has: context transition replaces the filters on them.
+    covers: Vec<Id>,
     /// RELATED lookups: (table, column) → frame column.
     related: Vec<((Id, Id), String)>,
 }
@@ -319,6 +325,20 @@ fn row_pure(b: &Bound) -> bool {
                 | Bound::Var(_)
                 | Bound::Let { .. }
         ) {
+            ok = false;
+        }
+    });
+    ok
+}
+
+/// A row expression over the rows of `table` alone: columns of other tables are an
+/// outer row's values, which only a frame has.
+fn row_local(b: &Bound, table: &str) -> bool {
+    let mut ok = row_pure(b);
+    charted_dax::bind::walk(b, &mut |x| {
+        if let Bound::Column { table: t, .. } = x
+            && t != table
+        {
             ok = false;
         }
     });
@@ -1911,18 +1931,32 @@ impl<'a> Compiler<'a> {
         Ok(())
     }
 
-    /// Context transition: the current rows become keys.
+    /// Context transition: the current rows become keys, replacing the keys and filters
+    /// on every column they have.
     fn transition(&self, ctx: &Ctx, rows: &[RowBinding]) -> Ctx {
         let mut c = ctx.clone();
         for r in rows {
-            for (col, name) in &r.columns {
-                c.keys.retain(|k| &k.column != col);
-                c.filters.retain(|f| !f.columns.contains(col));
-                c.keys.push(Key {
-                    name: name.clone(),
-                    table: r.table.clone(),
-                    column: col.clone(),
-                });
+            let all = self
+                .model
+                .table(&r.table)
+                .is_some_and(|t| t.columns.iter().all(|col| r.covers.contains(&col.id)));
+            c.keys.retain(|k| !r.covers.contains(&k.column));
+            c.filters.retain(|f| {
+                if f.columns.is_empty() {
+                    // A condition on the whole table (FILTER ( Table, … )).
+                    !(all && f.table == r.table)
+                } else {
+                    !f.columns.iter().any(|col| r.covers.contains(col))
+                }
+            });
+            for col in &r.identity {
+                if let Some((_, name)) = r.columns.iter().find(|(c, _)| c == col) {
+                    c.keys.push(Key {
+                        name: name.clone(),
+                        table: r.table.clone(),
+                        column: col.clone(),
+                    });
+                }
             }
         }
         c
@@ -2005,13 +2039,17 @@ impl<'a> Compiler<'a> {
             TableExpr::Filter { .. } => unreachable!("filters were unwrapped"),
         };
         let tab = table(self.model, &t)?;
-        // A row is identified by the table's key column when it has one.
-        let cols: Vec<Id> = match cols {
-            Some(c) => c,
-            None => match tab.columns.iter().find(|c| c.is_key) {
-                Some(k) => vec![k.id.clone()],
-                None => tab.columns.iter().map(|c| c.id.clone()).collect(),
-            },
+        // A whole row has every column, identified by the table's key column when it
+        // has one; VALUES and ALL of columns have just those.
+        let (cols, identity): (Vec<Id>, Vec<Id>) = match cols {
+            Some(c) => (c.clone(), c),
+            None => {
+                let all: Vec<Id> = tab.columns.iter().map(|c| c.id.clone()).collect();
+                match tab.columns.iter().find(|c| c.is_key) {
+                    Some(k) => (all, vec![k.id.clone()]),
+                    None => (all.clone(), all),
+                }
+            }
         };
         let mut related = Vec::new();
         related_refs(arg, &mut related);
@@ -2029,6 +2067,8 @@ impl<'a> Compiler<'a> {
         let mut binding = RowBinding {
             table: t.clone(),
             columns: Vec::new(),
+            identity,
+            covers: cols.clone(),
             related: Vec::new(),
         };
         let mut select: Vec<String> = Vec::new();
@@ -2048,7 +2088,7 @@ impl<'a> Compiler<'a> {
         // Row-level FILTER conditions apply here; others after the frame is built.
         let mut later: Vec<&Bound> = Vec::new();
         for c in conds {
-            if row_pure(c) {
+            if row_local(c, &t) {
                 preds.push(bool_of(&self.row(c, None)?));
             } else {
                 later.push(c);
@@ -2061,6 +2101,12 @@ impl<'a> Compiler<'a> {
             } else {
                 format!(" WHERE {}", preds.join(" AND "))
             };
+            // The rowid keeps duplicate rows apart; DISTINCT undoes repeats from joins.
+            select.push(format!(
+                "{}.rowid AS {}",
+                alias(self.model, &t),
+                self.fresh("rid")
+            ));
             format!("SELECT DISTINCT {} FROM {from}{wh}", select.join(", "))
         } else {
             // VALUES and ALL include the blank member.
@@ -2098,14 +2144,10 @@ impl<'a> Compiler<'a> {
             frame.rel.clone()
         };
         let frame_name = self.fresh("frame");
-        let outer_cols: Vec<String> = frame.keys.iter().map(|k| format!("o.{}", k.name)).collect();
-        let mut fsel = outer_cols.clone();
+        // The outer frame's columns (keys and outer rows' values) carry over.
+        let mut fsel = vec!["o.*".to_string()];
         fsel.extend(row_cols.iter().map(|c| format!("r.{c}")));
-        let fsel = if fsel.is_empty() {
-            "1 AS one".to_string()
-        } else {
-            fsel.join(", ")
-        };
+        let fsel = fsel.join(", ");
         self.ctes.push(CteDef {
             name: frame_name.clone(),
             sql: format!("SELECT {fsel} FROM {outer_rel} AS o {join}"),
@@ -2113,7 +2155,11 @@ impl<'a> Compiler<'a> {
             exact: true,
         });
         let mut inner_keys = frame.keys.clone();
-        for (c, n) in &binding.columns {
+        for (c, n) in binding
+            .columns
+            .iter()
+            .filter(|(c, _)| binding.identity.contains(c))
+        {
             inner_keys.push(Key {
                 name: n.clone(),
                 table: t.clone(),
@@ -2254,11 +2300,13 @@ impl<'a> Compiler<'a> {
                 out
             }
             Bound::Aggregate { func, source, arg } => {
-                let pure = arg.as_deref().is_none_or(row_pure) && {
+                let base = source.table().cloned().unwrap_or_default();
+                let local = |b: &Bound| row_local(b, &base);
+                let pure = arg.as_deref().is_none_or(local) && {
                     let mut ok = true;
                     let mut t = source;
                     while let TableExpr::Filter { source, condition } = t {
-                        ok &= row_pure(condition);
+                        ok &= local(condition);
                         t = source;
                     }
                     ok
