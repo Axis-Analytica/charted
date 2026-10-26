@@ -1,4 +1,4 @@
-import { FileArchive, FileDown, FileInput, FileUp, FolderOutput, Save, X } from "lucide-react";
+import { FilePlus2, FileArchive, FileDown, FileInput, FileUp, FolderOutput, Save, X } from "lucide-react";
 import { useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { ModelDiff } from "../bridge/generated/ModelDiff";
@@ -10,6 +10,7 @@ import { Menu } from "../kit/Menu";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { toast } from "../state/toasts";
+import { useNewProject } from "./NewProject";
 import { useShortcut } from "./shortcuts";
 
 const OSSIE = [{ name: "Apache Ossie", extensions: ["yaml", "yml"] }];
@@ -76,6 +77,7 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
         label={t("File")}
         trigger={t("File")}
         items={[
+          { id: "new", label: t("New project…"), icon: <FilePlus2 size={14} />, shortcut: "Ctrl+N", run: () => useNewProject.getState().set(true) },
           { id: "save", label: t("Save"), icon: <Save size={14} />, shortcut: "Ctrl+S", disabled: !project.dirty, run: onSave },
           { id: "save-bundle", label: t("Save as bundle…"), icon: <FileArchive size={14} />, run: saveBundle },
           null,

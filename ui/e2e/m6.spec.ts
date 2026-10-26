@@ -270,3 +270,29 @@ test("import a Power BI project, see what didn't come across, export and import 
   await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({ timeout: 30_000 });
   await expect(visuals(page)).toHaveCount(4);
 });
+
+test("a new project from scratch: name it, get data, build a visual", async ({ page }) => {
+  await openSample(page);
+  await fileMenu(page, "Close project");
+  await page.getByRole("button", { name: "New project…" }).click();
+  const dialog = page.getByRole("dialog", { name: "New project" });
+  await dialog.getByRole("textbox", { name: "Project name" }).fill("Budget 2026");
+  await expect(dialog).toContainText("charted/Budget 2026");
+  await dialog.getByRole("button", { name: "Create" }).click();
+  await expect(page.locator(".topbar")).toContainText("Budget 2026");
+  await expect(page.locator(".page-empty")).toContainText("This project has no data yet");
+  await shot(page, "m6-07-new-project");
+  await page.getByTestId("report-page").getByRole("button", { name: "Get data" }).click();
+  await expect(page.locator(".qe")).toBeVisible();
+  await pick(page, new URL("../../crates/core/tests/fixtures/Contoso/data/orders.csv", import.meta.url).pathname);
+  await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();
+  await page.getByRole("menuitem", { name: "Text/CSV" }).click();
+  await expect(page.locator(".qe-query.is-on")).toContainText("orders");
+  await page.getByRole("button", { name: "Close & Apply" }).click();
+  await expect(page.locator(".report-view")).toBeVisible({ timeout: 30_000 });
+  const card = await addVisual(page, "Card", { x: 200, y: 120 });
+  await tick(page, "orders", "Amount");
+  await expect(card.locator(".card-value")).toHaveText(/\d/);
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+});

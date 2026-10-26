@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CrashNotice } from "./CrashNotice";
+import { NewProjectDialog, useNewProject } from "./NewProject";
 import { transport } from "../bridge";
 import { applyTokens, deriveTokens } from "../design/theme";
 import { useLanguage, useT } from "../i18n";
@@ -73,6 +74,7 @@ export function App() {
     { id: "help", keys: "?", label: "Show keyboard shortcuts", group: "General", run: () => setHelp(true) },
     { id: "palette", keys: "Ctrl+K", label: "Command palette", group: "General", run: () => setPalette(true), global: true },
     { id: "quit", keys: "Q", label: "Quit", group: "General", run: quit },
+    { id: "new-project", keys: "Ctrl+N", label: "New project…", group: "File", run: () => useNewProject.getState().set(true), global: true },
     { id: "hud", keys: "Ctrl+Alt+P", label: "Frame-time readout", group: "View", run: () => setHud((h) => !h), global: true },
     { id: "kit", keys: "Ctrl+Alt+K", label: "Component kit", group: "View", run: () => setKit((k) => !k), global: true },
     { id: "kit-close", keys: "Escape", label: "", group: "View", run: () => setKit(false), enabled: () => kitOpen.current },
@@ -90,6 +92,7 @@ export function App() {
         <Welcome state={state} />
       )}
       {state?.crash && <CrashNotice crash={state.crash} />}
+      <NewProjectDialog />
       {busy && (
         <div className="busy" role="status">
           <Spinner size={18} />

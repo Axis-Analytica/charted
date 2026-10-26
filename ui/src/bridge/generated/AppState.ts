@@ -5,6 +5,10 @@ import type { RecentProject } from "./RecentProject";
 
 export type AppState = { project: ProjectSnapshot | null, recent: Array<RecentProject>, version: string, 
 /**
+ * Where new projects go by default (Documents/charted).
+ */
+projectsDir: string, 
+/**
  * charted crashed last time (until dismissed).
  */
 crash?: CrashInfo | null, };

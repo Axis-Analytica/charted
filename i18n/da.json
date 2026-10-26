@@ -823,5 +823,16 @@
   "Turn on drill down mode": "Slå detaljetilstand til",
   "Update": "Opdatér",
   "visual": "visualisering",
-  "Your work was saved for recovery. The report opens as a GitHub issue you can read and edit before sending; charted never sends anything by itself.": "Dit arbejde blev gemt til gendannelse. Rapporten åbnes som et GitHub-issue, du kan læse og redigere, før du sender den; charted sender aldrig noget af sig selv."
+  "Your work was saved for recovery. The report opens as a GitHub issue you can read and edit before sending; charted never sends anything by itself.": "Dit arbejde blev gemt til gendannelse. Rapporten åbnes som et GitHub-issue, du kan læse og redigere, før du sender den; charted sender aldrig noget af sig selv.",
+  "Change…": "Skift…",
+  "Choose where to create the project": "Vælg, hvor projektet skal oprettes",
+  "Get data from a CSV, Excel, Parquet or JSON file, a folder of files, or a database.": "Hent data fra en CSV-, Excel-, Parquet- eller JSON-fil, en mappe med filer eller en database.",
+  "Name the project.": "Giv projektet et navn.",
+  "New project": "Nyt projekt",
+  "New project…": "Nyt projekt…",
+  "Project name": "Projektnavn",
+  "The project is a folder you can keep in git. Next, get data: a CSV, Excel or Parquet file, a folder of files, or a database.": "Projektet er en mappe, du kan have i git. Hent derefter data: en CSV-, Excel- eller Parquet-fil, en mappe med filer eller en database.",
+  "This project has no data yet": "Projektet har endnu ingen data",
+  "e.g. Sales 2026": "f.eks. Salg 2026",
+  "No tables yet. Get data to see its fields here.": "Ingen tabeller endnu. Hent data for at se felterne her."
 }

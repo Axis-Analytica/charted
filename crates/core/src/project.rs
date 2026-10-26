@@ -228,6 +228,45 @@ fn read_queries(dir: &Path) -> Result<Vec<Query>, ProjectError> {
     Ok(out)
 }
 
+/// Creates an empty project called `name` in a new folder `<parent>/<name>`, with one
+/// blank page, and returns the folder.
+pub fn create_empty(parent: &Path, name: &str) -> Result<PathBuf, crate::session::CoreError> {
+    use crate::session::CoreError;
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(CoreError::Invalid("the project needs a name".into()));
+    }
+    if name.contains(['/', '\\']) || name.starts_with('.') || name.chars().any(char::is_control) {
+        return Err(CoreError::Invalid(format!(
+            "\"{name}\" can't be a folder name; leave out / and \\, and don't start with a dot"
+        )));
+    }
+    let dir = parent.join(name);
+    if dir.exists() {
+        return Err(CoreError::Invalid(format!(
+            "there's already a folder called \"{name}\" in {}; choose another name",
+            parent.display()
+        )));
+    }
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| CoreError::Invalid(format!("couldn't create {}: {e}", dir.display())))?;
+    let model = Model {
+        name: name.to_string(),
+        report: charted_model::Report {
+            pages: vec![charted_model::Page {
+                id: uuid::Uuid::new_v4().to_string(),
+                settings: charted_model::PageSettings::named("Page 1"),
+                visuals: vec![],
+            }],
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let mut project = new_project(&dir, name, model, Vec::new());
+    project.save()?;
+    Ok(dir)
+}
+
 /// A new, empty project in `dir`.
 pub fn new_project(dir: &Path, name: &str, model: Model, queries: Vec<Query>) -> Project {
     let file = format!("{}.{MANIFEST_EXT}", sanitize_file_name(name));

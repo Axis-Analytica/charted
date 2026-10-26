@@ -20,6 +20,8 @@
 .page-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--fg-faint); pointer-events: none; }
 .page-empty p { margin: 4px 0; font-size: 20px; color: var(--fg-muted); }
 .page-empty .page-empty-hint { font-size: 13px; color: var(--fg-faint); }
+.page-empty.has-action { pointer-events: auto; justify-items: center; gap: 4px; }
+.page-empty.has-action .btn { margin-top: 12px; }
 
 .visual { position: absolute; display: flex; flex-direction: column; border-radius: var(--radius-sm); outline: none; touch-action: none; user-select: none; }
 .visual.has-bg { background: var(--bg-raised); }
@@ -301,3 +303,5 @@
 .bookmark .menu-trigger { height: 24px; padding-inline: 4px; opacity: 0; }
 .bookmark:hover .menu-trigger, .bookmark.is-on .menu-trigger, .bookmark:focus-within .menu-trigger { opacity: 1; }
 .bookmark-input { flex: 1; height: 28px; }
+.fields-empty { display: grid; justify-items: start; gap: 8px; padding-inline: 12px; }
+.fields-empty p { margin: 0; }

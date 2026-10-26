@@ -1,13 +1,13 @@
 // The Fields pane: tables with their measures and columns. Fields can be dragged to the
 // canvas, a visual, a field well or the filters pane; ticking one adds it to the
 // selected visual (or creates one), and Enter does the same from the keyboard.
-import { ChevronRight, Plus, Search, Table2 } from "lucide-react";
+import { ChevronRight, Database, Plus, Search, Table2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FieldRef } from "../bridge/generated/FieldRef";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import { useT } from "../i18n";
-import { IconButton } from "../kit/Button";
+import { Button, IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
 import type { Visual } from "../bridge/generated/Visual";
 import { editVisual, fieldKey, newVisual, sameField, useReport, withField, withoutField } from "../state/report";
@@ -114,6 +114,14 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
         <Search size={13} />
         <input value={search} placeholder={t("Search")} aria-label={t("Search fields")} onChange={(e) => setSearch(e.target.value)} />
       </label>
+      {model.tables.length === 0 && (
+        <div className="pane-hint fields-empty">
+          <p>{t("No tables yet. Get data to see its fields here.")}</p>
+          <Button size="sm" icon={<Database size={14} />} onPress={() => useReport.getState().set({ view: "query" })}>
+            {t("Get data")}
+          </Button>
+        </div>
+      )}
       <ul className="fields-tree" role="tree" aria-label={t("Fields")}>
         {tables.map(({ table: tb, measures, columns }) => {
           const isOpen = !!q || open.has(tb.id);

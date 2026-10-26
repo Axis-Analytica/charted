@@ -859,5 +859,16 @@
   "Turn on drill down mode": "تفعيل وضع التنقل لأسفل",
   "Update": "تحديث",
   "visual": "مرئي",
-  "Your work was saved for recovery. The report opens as a GitHub issue you can read and edit before sending; charted never sends anything by itself.": "حُفظ عملك للاستعادة. يُفتح التقرير كمشكلة على GitHub يمكنك قراءتها وتحريرها قبل إرسالها؛ لا يرسل charted أي شيء من تلقاء نفسه."
+  "Your work was saved for recovery. The report opens as a GitHub issue you can read and edit before sending; charted never sends anything by itself.": "حُفظ عملك للاستعادة. يُفتح التقرير كمشكلة على GitHub يمكنك قراءتها وتحريرها قبل إرسالها؛ لا يرسل charted أي شيء من تلقاء نفسه.",
+  "Change…": "تغيير…",
+  "Choose where to create the project": "اختر مكان إنشاء المشروع",
+  "Get data from a CSV, Excel, Parquet or JSON file, a folder of files, or a database.": "احصل على البيانات من ملف CSV أو Excel أو Parquet أو JSON، أو من مجلد ملفات، أو من قاعدة بيانات.",
+  "Name the project.": "سمِّ المشروع.",
+  "New project": "مشروع جديد",
+  "New project…": "مشروع جديد…",
+  "Project name": "اسم المشروع",
+  "The project is a folder you can keep in git. Next, get data: a CSV, Excel or Parquet file, a folder of files, or a database.": "المشروع مجلد يمكنك حفظه في git. بعد ذلك، احصل على البيانات: ملف CSV أو Excel أو Parquet، أو مجلد ملفات، أو قاعدة بيانات.",
+  "This project has no data yet": "لا توجد بيانات في هذا المشروع بعد",
+  "e.g. Sales 2026": "مثل: المبيعات 2026",
+  "No tables yet. Get data to see its fields here.": "لا توجد جداول بعد. احصل على البيانات لترى حقولها هنا."
 }

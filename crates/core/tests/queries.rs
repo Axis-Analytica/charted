@@ -811,3 +811,45 @@ fn the_date_table_wizard_makes_a_related_calendar() {
     assert!(err("Calendar", vec![]).contains("already a table"));
     assert!(err("Dates", vec![(store.id.clone(), key.id.clone())]).contains("isn't a date column"));
 }
+
+#[test]
+fn a_new_project_starts_empty_and_takes_data() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut app = App::new(dir.path().join("state"));
+    let parent = dir.path().join("docs");
+    app.handle(Request::NewProject {
+        name: "Budget 2026".into(),
+        dir: Some(parent.display().to_string()),
+    })
+    .unwrap();
+    let p = &app.session().unwrap().project;
+    assert_eq!(p.dir, parent.join("Budget 2026"));
+    assert!(p.manifest_path.exists());
+    assert!(p.model.tables.is_empty());
+    assert_eq!(p.model.report.pages.len(), 1);
+    // The same name again, and a bad one, are refused.
+    let err = |app: &mut App, name: &str| {
+        app.handle(Request::NewProject {
+            name: name.into(),
+            dir: Some(parent.display().to_string()),
+        })
+        .unwrap_err()
+        .message
+    };
+    assert!(err(&mut app, "Budget 2026").contains("already a folder"));
+    assert!(err(&mut app, "a/b").contains("can't be a folder name"));
+    assert!(err(&mut app, "  ").contains("needs a name"));
+    // Get data: a CSV through the query editor's Apply.
+    let file = dir.path().join("sales.csv");
+    std::fs::write(&file, "Region,Amount\nNorth,10\nSouth,32\n").unwrap();
+    app.handle(Request::OpenProject {
+        path: parent.join("Budget 2026").display().to_string(),
+    })
+    .unwrap();
+    let q = query("q1", "Sales", csv(file.to_str().unwrap(), true), vec![]);
+    app.handle(Request::ApplyQueries { queries: vec![q] })
+        .unwrap();
+    let m = &app.session().unwrap().project.model;
+    assert_eq!(m.tables.len(), 1);
+    assert_eq!(m.tables[0].columns.len(), 2);
+}

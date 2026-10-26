@@ -29,6 +29,12 @@ pub enum Request {
     OpenProject {
         path: String,
     },
+    /// Creates an empty project called `name` (one blank page, no data yet) in a new
+    /// folder under `dir` (Documents/charted by default), and opens it.
+    NewProject {
+        name: String,
+        dir: Option<String>,
+    },
     /// Opens the sample project, generating it first if needed. Without `dir` it lives
     /// in the user's documents folder under charted/.
     OpenSample {
@@ -125,6 +131,8 @@ pub struct AppState {
     pub project: Option<ProjectSnapshot>,
     pub recent: Vec<RecentProject>,
     pub version: String,
+    /// Where new projects go by default (Documents/charted).
+    pub projects_dir: String,
     /// charted crashed last time (until dismissed).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub crash: Option<crate::crash::CrashInfo>,
@@ -512,6 +520,7 @@ impl App {
             recent: recent::list(&self.state_dir),
             version: env!("CARGO_PKG_VERSION").into(),
             crash: crate::crash::pending(&self.state_dir),
+            projects_dir: projects_dir().display().to_string(),
         })
     }
 
@@ -545,6 +554,11 @@ impl App {
                 if crate::project::locate(&dir).is_err() {
                     crate::sample::create(&dir, charted_samplegen::Scale::Demo)?;
                 }
+                self.open(&dir)?;
+            }
+            Request::NewProject { name, dir } => {
+                let parent = dir.map(PathBuf::from).unwrap_or_else(projects_dir);
+                let dir = crate::project::create_empty(&parent, &name)?;
                 self.open(&dir)?;
             }
             Request::CloseProject => self.session = None,

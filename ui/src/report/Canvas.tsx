@@ -10,6 +10,8 @@ import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Position } from "../bridge/generated/Position";
 import type { Visual } from "../bridge/generated/Visual";
+import { Database } from "lucide-react";
+import { Button } from "../kit/Button";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { newVisual, updateVisual, useReport, withField } from "../state/report";
@@ -195,12 +197,22 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
                 }}
               />
             ))}
-            {page.visuals.length === 0 && (
-              <div className="page-empty">
-                <p>{t("Build visuals with your data")}</p>
-                <p className="page-empty-hint">{t("Select or drag fields from the Fields pane onto the report canvas.")}</p>
-              </div>
-            )}
+            {page.visuals.length === 0 &&
+              (model.tables.length === 0 ? (
+                // A new project: data comes first.
+                <div className="page-empty has-action">
+                  <p>{t("This project has no data yet")}</p>
+                  <p className="page-empty-hint">{t("Get data from a CSV, Excel, Parquet or JSON file, a folder of files, or a database.")}</p>
+                  <Button variant="primary" icon={<Database size={15} />} onPress={() => useReport.getState().set({ view: "query" })}>
+                    {t("Get data")}
+                  </Button>
+                </div>
+              ) : (
+                <div className="page-empty">
+                  <p>{t("Build visuals with your data")}</p>
+                  <p className="page-empty-hint">{t("Select or drag fields from the Fields pane onto the report canvas.")}</p>
+                </div>
+              ))}
             <Moveable
               ref={moveable}
               target={targets}

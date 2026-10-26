@@ -1,4 +1,5 @@
-import { ChartColumnBig, Clock, FileInput, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
+import { ChartColumnBig, Clock, FileInput, FilePlus2, FolderOpen, Sparkles, TriangleAlert } from "lucide-react";
+import { useNewProject } from "../app/NewProject";
 import { transport } from "../bridge";
 import type { AppState } from "../bridge/generated/AppState";
 import { useT } from "../i18n";
@@ -46,7 +47,10 @@ export function Welcome({ state }: { state: AppState }) {
           </div>
         </div>
         <div className="welcome-actions">
-          <Button variant="primary" size="lg" icon={<FolderOpen size={17} />} onPress={openDialog}>
+          <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />} onPress={() => useNewProject.getState().set(true)}>
+            {t("New project…")}
+          </Button>
+          <Button size="lg" icon={<FolderOpen size={17} />} onPress={openDialog}>
             {t("Open project…")}
           </Button>
           <Button size="lg" icon={<FileInput size={17} />} onPress={openFile}>

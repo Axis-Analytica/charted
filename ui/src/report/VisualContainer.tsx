@@ -366,6 +366,7 @@ function PointMenuView({ menu, visual, page, model, onClose }: { menu: PointMenu
   const levelKeys = h ? h.shown.map((i) => menu.tuple[menu.fields.findIndex((f) => f === h.fields[i])] ?? null) : [];
   const item = (label: string, run: () => void, icon?: React.ReactNode) => (
     <button
+      key={label}
       type="button"
       role="menuitem"
       onClick={() => {

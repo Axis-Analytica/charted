@@ -145,3 +145,9 @@
 .import-report-name { color: var(--fg) !important; font-weight: 550; overflow-wrap: anywhere; min-width: 140px; }
 .dialog-body:has(.import-report) { max-height: 60vh; overflow: auto; }
 .crash-path { margin: 8px 0 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-faint); overflow-wrap: anywhere; }
+.new-project { display: grid; gap: 12px; }
+.new-project .input { width: 100%; }
+.new-project-folder { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.new-project-path { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-muted); }
+.new-project-hint { margin: 0; color: var(--fg-faint); font-size: var(--text-xs); line-height: 1.5; }
+.new-project-error { margin: 0; color: var(--danger); font-size: var(--text-sm); }

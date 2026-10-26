@@ -38,6 +38,7 @@ follow the 1.0 release.
 - No telemetry and no network access, except opt-in downloads of database connectors.
 
 **Getting and shaping data**
+- Start a new project (Ctrl+N) and get data into it, or open an existing one.
 - A query editor in the spirit of Power Query: applied steps you can select, rename,
   reorder, edit and delete, with each step's SQL and its Power Query M side by side.
 - About 25 transforms: remove or keep rows, promote headers, change types, filter,
