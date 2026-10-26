@@ -62,6 +62,18 @@ pub fn check(model: &charted_model::Model, src: &str) -> (Option<Bound>, Vec<Dia
     check_in(model, src, None)
 }
 
+/// Parses and binds a table expression (a calculated table).
+pub fn check_table(
+    model: &charted_model::Model,
+    src: &str,
+) -> (Option<TableExpr>, Vec<Diagnostic>) {
+    let parsed = parse(src);
+    if !parsed.diagnostics.is_empty() {
+        return (None, parsed.diagnostics);
+    }
+    bind::bind_table(model, &parsed.expr)
+}
+
 /// Parses and binds a formula evaluated per row of `row_table` (a calculated column).
 pub fn check_in(
     model: &charted_model::Model,

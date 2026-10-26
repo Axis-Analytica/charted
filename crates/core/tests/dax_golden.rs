@@ -1882,3 +1882,72 @@ fn random_calculated_columns_agree_with_the_reference_interpreter() {
         failures.join("\n\n")
     );
 }
+
+/// Calculated tables: the rows of table expressions evaluated with no filters.
+const TABLES: &[&str] = &[
+    "Product",
+    "VALUES ( Product[Category] )",
+    "ALL ( Date[Year], Date[Quarter] )",
+    "FILTER ( Product, Product[ListPrice] > 100 )",
+    "FILTER ( VALUES ( Product[Product] ), [Quantity] > 10 )",
+    "TOPN ( 3, VALUES ( Product[Product] ), [Sales Amount] )",
+    "CALCULATETABLE ( VALUES ( Store[Region] ), Product[Category] = \"Camping\" )",
+    "CALCULATETABLE ( Targets, Store[Region] = \"North\" )",
+];
+
+#[test]
+fn calculated_tables_agree_with_the_reference_interpreter() {
+    let f = fixture();
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let mut failures = Vec::new();
+    for expr in TABLES {
+        let expected = match interp::calculated_table(&f.model, &f.data, expr) {
+            Ok(t) => t,
+            Err(e) => {
+                failures.push(format!("{expr}: the interpreter failed: {e}"));
+                continue;
+            }
+        };
+        let got = visual::calculated_table(&f.model, &schema, expr)
+            .map_err(|e| e.to_string())
+            .and_then(|(sql, shape)| {
+                f.db.arrow(&sql)
+                    .map(|b| (shape, arrow_values(b)))
+                    .map_err(|e| format!("{e}\n{sql}"))
+            });
+        match got {
+            Ok((shape, rows)) => {
+                let names: Vec<String> = shape.iter().map(|(n, _)| n.clone()).collect();
+                if names != expected.columns {
+                    failures.push(format!(
+                        "{expr}: columns {names:?} vs {:?}",
+                        expected.columns
+                    ));
+                }
+                let (g, e) = (canonical(rows), canonical(expected.rows.clone()));
+                let ok = g.len() == e.len()
+                    && g.iter().zip(&e).all(|(a, b)| {
+                        a.len() == b.len() && a.iter().zip(b).all(|(x, y)| same(x, y))
+                    });
+                if !ok {
+                    failures.push(format!(
+                        "{expr}:\n  expected:\n    {}\n  got:\n    {}",
+                        show(&e).replace('\n', "\n    "),
+                        show(&g).replace('\n', "\n    ")
+                    ));
+                }
+            }
+            Err(e) => failures.push(format!("{expr}: {e}")),
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} tables differ:\n\n{}",
+        failures.len(),
+        TABLES.len(),
+        failures.join("\n\n")
+    );
+}

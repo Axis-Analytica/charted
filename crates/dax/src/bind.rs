@@ -480,6 +480,19 @@ pub fn bind(model: &Model, expr: &Expr) -> (Option<Bound>, Vec<Diagnostic>) {
     bind_in(model, expr, None)
 }
 
+/// Binds a table expression (a calculated table).
+pub fn bind_table(model: &Model, expr: &Expr) -> (Option<TableExpr>, Vec<Diagnostic>) {
+    let mut b = Binder {
+        model,
+        diags: Vec::new(),
+        vars: Vec::new(),
+        depth: 0,
+    };
+    let bound = b.table_expr(expr, &[]);
+    let ok = b.diags.is_empty();
+    (bound.filter(|_| ok), b.diags)
+}
+
 /// Binds an expression evaluated per row of `row_table` (a calculated column).
 pub fn bind_in(
     model: &Model,

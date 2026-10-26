@@ -3763,6 +3763,96 @@ pub fn calculated_column(
     ))
 }
 
+/// A calculated table's columns: name and model type, in order.
+pub type TableShape = Vec<(String, DataType)>;
+
+/// The SQL that computes a calculated table (one row per row of the table expression,
+/// evaluated with no filters) and its columns.
+pub fn calculated_table(
+    model: &Model,
+    catalog: &dyn Catalog,
+    expression: &str,
+) -> Result<(String, TableShape)> {
+    let (bound, diags) = charted_dax::check_table(model, expression);
+    let bound = bound.ok_or_else(|| {
+        CompileError::Field(
+            diags
+                .first()
+                .map(|d| d.message.clone())
+                .unwrap_or_else(|| "the expression has an error".into()),
+        )
+    })?;
+    let mut c = Compiler {
+        model,
+        catalog,
+        ctes: Vec::new(),
+        vars: Vec::new(),
+        stack: Vec::new(),
+        top_keys: Vec::new(),
+        top_filters: Vec::new(),
+        dom: None,
+        dks: Vec::new(),
+        counter: 0,
+        extra_top: BTreeSet::new(),
+        dom_rows: false,
+        security: Vec::new(),
+    };
+    // The rows are iterated from a frame of one row.
+    c.ctes.push(CteDef {
+        name: "one".into(),
+        sql: "SELECT 1 AS one".into(),
+        keys: Vec::new(),
+        exact: true,
+    });
+    let frame = Frame {
+        rel: "one".into(),
+        keys: Vec::new(),
+    };
+    let rf = c.row_frame(&bound, &[], &Ctx::default(), &frame, &[])?;
+    let row = rf.rows.last().cloned().expect("the iterated row");
+    let cond = Scalar {
+        sql: if rf.conds.is_empty() {
+            "TRUE".into()
+        } else {
+            rf.conds
+                .iter()
+                .map(|x| format!("({x})"))
+                .collect::<Vec<_>>()
+                .join(" AND ")
+        },
+        ty: ValueType::Bool,
+    };
+    let (cond_sql, from) = c.render(&cond, &rf.frame.rel);
+    let tab = table(model, &row.table)?;
+    let mut shape: TableShape = Vec::new();
+    let mut select = Vec::new();
+    for (col, n) in &row.columns {
+        let Some(mc) = tab.column(col) else { continue };
+        // Power BI names repeated columns "Name", "Name2"…
+        let mut name = mc.name.clone();
+        let mut i = 1;
+        while shape.iter().any(|(x, _)| x.eq_ignore_ascii_case(&name)) {
+            i += 1;
+            name = format!("{}{i}", mc.name);
+        }
+        select.push(format!("f.{n} AS {}", ident(&name)));
+        shape.push((name, mc.data_type));
+    }
+    let with: Vec<String> = c
+        .ctes
+        .iter()
+        .map(|x| format!("{} AS ({})", x.name, x.sql))
+        .collect();
+    Ok((
+        format!(
+            "WITH {} SELECT {} FROM {from} WHERE {cond_sql}",
+            with.join(", "),
+            select.join(", ")
+        ),
+        shape,
+    ))
+}
+
 /// The model type a calculated column's values get.
 pub fn value_type_to_data_type(t: ValueType) -> DataType {
     match t {

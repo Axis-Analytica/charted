@@ -1809,6 +1809,48 @@ pub fn calculated_column(
     Ok(out)
 }
 
+/// A calculated table's rows: the table expression evaluated with no filters, its
+/// columns named as their model columns (repeats get 2, 3…).
+pub fn calculated_table(model: &Model, data: &Data, expression: &str) -> Result<TableData> {
+    let (t, d) = charted_dax::check_table(model, expression);
+    let t = t.ok_or_else(|| d.first().map(|d| d.message.clone()).unwrap_or_default())?;
+    let mut it = Interp {
+        model,
+        data,
+        vars: Vec::new(),
+        touched: false,
+    };
+    let rows = it.eval_table(&t, &Ctx::default(), &[])?;
+    let table = t.table().ok_or("a calculated table needs a table")?;
+    let mt = model.table(table).ok_or("missing table")?;
+    let ids: Vec<Id> = match t.columns() {
+        Some(cs) => cs.to_vec(),
+        None => mt.columns.iter().map(|c| c.id.clone()).collect(),
+    };
+    let mut names: Vec<String> = Vec::new();
+    for id in &ids {
+        let base = mt.column(id).map(|c| c.name.clone()).unwrap_or_default();
+        let mut name = base.clone();
+        let mut i = 1;
+        while names.iter().any(|x| x.eq_ignore_ascii_case(&name)) {
+            i += 1;
+            name = format!("{base}{i}");
+        }
+        names.push(name);
+    }
+    Ok(TableData {
+        columns: names,
+        rows: rows
+            .iter()
+            .map(|r| {
+                ids.iter()
+                    .map(|c| r.values.get(c).cloned().unwrap_or(Value::Blank))
+                    .collect()
+            })
+            .collect(),
+    })
+}
+
 /// The rows a role sees: each table's rows whose own row, and the rows they reach
 /// through many-to-one relationships, pass the role's filters (a missing related row
 /// doesn't).
