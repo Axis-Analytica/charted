@@ -3,6 +3,7 @@ import {
   Bookmark as BookmarkIcon,
   Check,
   MousePointerClick,
+  Paintbrush,
   Palette,
   Sheet,
   AlignCenterHorizontal,
@@ -36,6 +37,7 @@ import { Canvas, usePageTheme } from "./Canvas";
 import { modelSignature, useVisualData } from "./data";
 import { CanvasScale, ThemeKey } from "./scale";
 import { BUILT_IN } from "./themes";
+import { paint, usePainter } from "./painter";
 import { DataTable, VisualContainer } from "./VisualContainer";
 import { Menu } from "../kit/Menu";
 import { Button } from "../kit/Button";
@@ -273,8 +275,37 @@ export function ReportView({ model }: { model: Model }) {
     apply(front ? "Bring to front" : "Send to back", chosen.map((v, i) => ({ ...v, position: { ...v.position, z: edge + (front ? i : -i) } })));
   };
 
+  const painter = usePainter();
+  const lastPaintPress = useRef(0);
+  /** The toolbar's format painter: copies the one selected visual's look for the next
+   * visual clicked; a second press within 400ms (a double-click) keeps it on. */
+  const pressPainter = () => {
+    const now = Date.now();
+    const double = now - lastPaintPress.current < 400;
+    lastPaintPress.current = now;
+    if (painter.armed && double && !painter.sticky) return painter.set({ sticky: true });
+    if (painter.armed) return painter.set({ armed: false, sticky: false });
+    const source = chosen.length === 1 ? chosen[0]! : null;
+    if (source) painter.set({ source: { visualType: source.visualType, objects: source.objects ?? {} }, armed: true, sticky: false });
+  };
+  const copyFormat = () => {
+    const p = pageRef.current;
+    const v = p?.visuals.find((x) => x.id === useReport.getState().selected[0]);
+    if (v) usePainter.getState().set({ source: { visualType: v.visualType, objects: v.objects ?? {} } });
+  };
+
   useBookmarkShortcuts(model);
   useShortcut(
+    { id: "painter-off", keys: "Escape", label: "Turn off the format painter", group: "Edit", run: () => usePainter.getState().set({ armed: false, sticky: false }), enabled: () => usePainter.getState().armed },
+    { id: "format-copy", keys: "Ctrl+Alt+C", label: "Copy formatting", group: "Edit", run: copyFormat, enabled: () => useReport.getState().selected.length === 1 && hasSelection() },
+    {
+      id: "format-paste",
+      keys: "Ctrl+Alt+V",
+      label: "Paste formatting",
+      group: "Edit",
+      run: () => pageRef.current && void paint(pageRef.current.id, useReport.getState().selected),
+      enabled: () => !!usePainter.getState().source && hasSelection(),
+    },
     { id: "visual-delete", keys: "Delete", label: "Delete selected visuals", group: "Edit", run: () => page && commit("Remove visuals", useReport.getState().selected.map((id): Change => ({ op: "removeVisual", page: page.id, visual: id }))), enabled: hasSelection },
     { id: "visual-left", keys: "ArrowLeft", label: "Nudge left", group: "Edit", run: () => nudge(-1, 0), enabled: hasSelection },
     { id: "visual-right", keys: "ArrowRight", label: "Nudge right", group: "Edit", run: () => nudge(1, 0), enabled: hasSelection },
@@ -349,6 +380,14 @@ export function ReportView({ model }: { model: Model }) {
         <span className="topbar-sep" />
         <IconButton label={t("Bring to front")} icon={<BringToFront size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(true)} />
         <IconButton label={t("Send to back")} icon={<SendToBack size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(false)} />
+        <IconButton
+          label={painter.sticky ? t("Format painter (stays on; Esc turns it off)") : t("Format painter")}
+          shortcut="Ctrl+Alt+C"
+          icon={<Paintbrush size={15} />}
+          pressed={painter.armed}
+          isDisabled={!painter.armed && chosen.length !== 1}
+          onPress={pressPainter}
+        />
         <span className="topbar-sep" />
         <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
         <ThemeMenu model={model} />

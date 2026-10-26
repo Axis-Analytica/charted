@@ -15,7 +15,8 @@ import { aggregationLabel, columnOf, editVisual, newVisual, pageSettings, projec
 import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
 import { FormatEditor } from "./formatEditors";
 import { TooltipPageSettings } from "./tooltipPages";
-import { type ObjectDef, type PropDef, type RoleDef, VISUAL_KEYWORDS, VISUALS, prop, visualDef } from "./registry";
+import { commonObjects, MIXED, shownValue, withProp } from "./formatting";
+import { type ObjectDef, type PropDef, type RoleDef, VISUAL_KEYWORDS, VISUALS, visualDef } from "./registry";
 import { palette } from "./visuals/common";
 
 const CHIP_MIME = "application/x-charted-chip";
@@ -43,6 +44,8 @@ export function VisualizationsPane({ model, page }: { model: Model; page: Page }
   const commit = useApp((s) => s.commit);
   const { selected, select, vizTab, set } = useReport();
   const visual = selected.length === 1 ? page.visuals.find((v) => v.id === selected[0]) : undefined;
+  // Format edits every selected visual together.
+  const formatted = page.visuals.filter((v) => selected.includes(v.id));
   const [search, setSearch] = useState("");
   const gallery = useRef<HTMLDivElement>(null);
   const q = search.trim().toLowerCase();
@@ -126,8 +129,8 @@ export function VisualizationsPane({ model, page }: { model: Model; page: Page }
           ) : (
             <p className="pane-hint">{selected.length > 1 ? t("Select a single visual to edit its fields.") : t("Select a visual, or pick a type above to add one.")}</p>
           )
-        ) : visual ? (
-          <FormatPane page={page} visual={visual} />
+        ) : formatted.length ? (
+          <FormatPane page={page} visuals={formatted} />
         ) : (
           <PageFormat page={page} />
         )}
@@ -255,13 +258,16 @@ function Well({ model, page, visual, role }: { model: Model; page: Page; visual:
   );
 }
 
-function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(v: unknown): void }) {
+function Control({ p, value: shown, onChange }: { p: PropDef; value: unknown; onChange(v: unknown): void }) {
   const { t } = useT();
+  // Several visuals with different values show as mixed until one is chosen for all.
+  const mixed = shown === MIXED;
+  const value = mixed ? undefined : shown;
   switch (p.type) {
     case "bool":
       return (
         <label className="check">
-          <input type="checkbox" checked={!!value} onChange={(e) => onChange(e.target.checked)} />
+          <input type="checkbox" checked={!!value} ref={(el) => void (el && (el.indeterminate = mixed))} onChange={(e) => onChange(e.target.checked)} />
           {t(p.label)}
         </label>
       );
@@ -271,10 +277,10 @@ function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(
           <span className="field-label">{t(p.label)}</span>
           <input
             className="input"
-            key={String(value)}
+            key={mixed ? "mixed" : String(value)}
             defaultValue={String(value ?? "")}
-            placeholder={p.placeholder ? t(p.placeholder) : undefined}
-            onBlur={(e) => e.target.value !== (value ?? "") && onChange(e.target.value)}
+            placeholder={mixed ? t("Mixed") : p.placeholder ? t(p.placeholder) : undefined}
+            onBlur={(e) => (mixed ? e.target.value !== "" : e.target.value !== (value ?? "")) && onChange(e.target.value)}
             onKeyDown={(e) => {
               e.stopPropagation();
               if (e.key === "Enter") (e.target as HTMLInputElement).blur();
@@ -289,12 +295,14 @@ function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(
           <input
             className="input"
             type="number"
-            key={String(value)}
+            key={mixed ? "mixed" : String(value)}
             min={p.min}
             max={p.max}
             step={p.step ?? 1}
-            defaultValue={Number(value)}
+            defaultValue={mixed ? "" : Number(value)}
+            placeholder={mixed ? t("Mixed") : undefined}
             onBlur={(e) => {
+              if (e.target.value === "") return;
               const n = Number(e.target.value);
               if (Number.isFinite(n) && n !== value) onChange(Math.min(p.max ?? n, Math.max(p.min ?? n, n)));
             }}
@@ -309,7 +317,12 @@ function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(
       return (
         <label className="field">
           <span className="field-label">{t(p.label)}</span>
-          <select className="select" value={String(value)} onChange={(e) => onChange(e.target.value)}>
+          <select className="select" value={mixed ? "" : String(value)} onChange={(e) => onChange(e.target.value)}>
+            {mixed && (
+              <option value="" disabled>
+                {t("Mixed")}
+              </option>
+            )}
             {p.options.map((o) => (
               <option key={o.value} value={o.value}>
                 {t(o.label)}
@@ -323,7 +336,7 @@ function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(
         <div className="field">
           <span className="field-label">{t(p.label)}</span>
           <div className="swatch-row" role="radiogroup" aria-label={t(p.label)}>
-            <button type="button" role="radio" aria-checked={!value} className={`swatch-btn is-auto ${!value ? "is-on" : ""}`} title={t("Theme")} onClick={() => onChange("")}>
+            <button type="button" role="radio" aria-checked={!mixed && !value} className={`swatch-btn is-auto ${!mixed && !value ? "is-on" : ""}`} title={t("Theme")} onClick={() => onChange("")}>
               A
             </button>
             {palette().map((c) => (
@@ -335,27 +348,23 @@ function Control({ p, value, onChange }: { p: PropDef; value: unknown; onChange(
   }
 }
 
-function FormatPane({ page, visual }: { page: Page; visual: Visual }) {
+function FormatPane({ page, visuals }: { page: Page; visuals: Visual[] }) {
   const { t } = useT();
   const edit = useApp((s) => s.edit);
-  const def = visualDef(visual.visualType);
+  const objects = commonObjects(visuals.map((v) => v.visualType));
   // The first section starts open (a visual's title, a slicer's settings).
-  const [open, setOpen] = useState<Set<string>>(new Set([def?.objects[0]?.name ?? "title"]));
-  if (!def) return null;
+  const [open, setOpen] = useState<Set<string>>(new Set([objects[0]?.name ?? "title"]));
+  const ids = visuals.map((v) => v.id);
+  // One undo step for every selected visual.
   const setProp = (object: string, name: string, value: unknown) =>
-    edit(
-      "Format visual",
-      editVisual(page.id, visual.id, (v) => {
-        const objects = { ...(v.objects ?? {}) };
-        objects[object] = { ...(objects[object] ?? {}), [name]: value };
-        // A slicer's choice is made in its style (a list's values, a range, a period).
-        const restyled = object === "slicer" && name === "style";
-        return { ...v, objects, selection: restyled ? null : v.selection };
-      }),
-    );
+    edit(ids.length > 1 ? "Format visuals" : "Format visual", (m) => {
+      const p = m.report.pages.find((x) => x.id === page.id);
+      return p?.visuals.filter((v) => ids.includes(v.id)).map((v) => updateVisual(p.id, withProp(v, object, name, value)));
+    });
+  if (!objects.length) return <p className="pane-hint">{t("These visuals have no formatting options in common.")}</p>;
   const section = (o: ObjectDef) => {
     const isOpen = open.has(o.name);
-    const toggle = o.toggle ? prop<boolean>(visual.objects, def, o.name, o.toggle) : undefined;
+    const toggle = o.toggle ? shownValue(visuals, o.name, o.toggle) : undefined;
     return (
       <div key={o.name} className="format-section">
         <div className="format-head">
@@ -376,26 +385,31 @@ function FormatPane({ page, visual }: { page: Page; visual: Visual }) {
             {t(o.label)}
           </button>
           {o.toggle && (
-            <label className="switch" title={toggle ? t("On") : t("Off")}>
-              <input type="checkbox" checked={!!toggle} aria-label={t("Show %1", t(o.label))} onChange={(e) => setProp(o.name, o.toggle!, e.target.checked)} />
+            <label className="switch" title={toggle === MIXED ? t("Mixed") : toggle ? t("On") : t("Off")}>
+              <input type="checkbox" checked={toggle === true} ref={(el) => void (el && (el.indeterminate = toggle === MIXED))} aria-label={t("Show %1", t(o.label))} onChange={(e) => setProp(o.name, o.toggle!, e.target.checked)} />
               <span />
             </label>
           )}
         </div>
-        {isOpen && o.editor && <FormatEditor editor={o.editor} page={page} visual={visual} />}
+        {isOpen && o.editor && (visuals.length === 1 ? <FormatEditor editor={o.editor} page={page} visual={visuals[0]!} /> : <p className="pane-hint">{t("Select a single visual to edit these.")}</p>)}
         {isOpen && !o.editor && (
           <div className="format-body">
             {o.props
               .filter((p) => p.name !== o.toggle)
               .map((p) => (
-                <Control key={p.name} p={p} value={prop(visual.objects, def, o.name, p.name)} onChange={(v) => setProp(o.name, p.name, v)} />
+                <Control key={p.name} p={p} value={shownValue(visuals, o.name, p.name)} onChange={(v) => setProp(o.name, p.name, v)} />
               ))}
           </div>
         )}
       </div>
     );
   };
-  return <div className="format-pane">{def.objects.map(section)}</div>;
+  return (
+    <div className="format-pane">
+      {visuals.length > 1 && <p className="pane-hint">{t("Formatting %1 visuals: the options they share. Changes apply to all of them.", visuals.length)}</p>}
+      {objects.map(section)}
+    </div>
+  );
 }
 
 const PAGE_SIZES = [

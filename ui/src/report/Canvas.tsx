@@ -16,6 +16,7 @@ import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { newVisual, updateVisual, useReport, withField } from "../state/report";
 import { useSelection } from "../state/selection";
+import { paint, usePainter } from "./painter";
 import { CanvasScale, ThemeKey } from "./scale";
 import { themeStyle, themeTokens } from "./themes";
 import { VisualContainer } from "./VisualContainer";
@@ -44,6 +45,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
   const scroller = useRef<HTMLDivElement>(null);
   const pageEl = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  const painting = usePainter((s) => s.armed);
   const [els, setEls] = useState<Map<string, HTMLElement>>(new Map());
   const moveable = useRef<Moveable>(null);
   // Live offsets while dragging/resizing, by visual id.
@@ -135,7 +137,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
       <ThemeKey.Provider value={themeKey}>
       <div
         ref={scroller}
-        className="canvas-scroller"
+        className={`canvas-scroller ${painting ? "is-painting" : ""}`}
         tabIndex={-1}
         onPointerDown={(e) => {
           if (e.target === e.currentTarget) {
@@ -191,6 +193,14 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
                 selected={selected.includes(v.id)}
                 register={register}
                 onPointerDown={(e) => {
+                  // Canvas shortcuts (Delete, copy, paste) follow a click from a pane.
+                  if (!document.activeElement?.closest(".report-center")) (e.currentTarget as HTMLElement).focus({ preventScroll: true });
+                  // The format painter gives the clicked visual the copied look.
+                  if (usePainter.getState().armed) {
+                    void paint(page.id, [v.id]);
+                    select([v.id]);
+                    return;
+                  }
                   if (e.shiftKey || e.ctrlKey || e.metaKey) {
                     select(selected.includes(v.id) ? selected.filter((x) => x !== v.id) : [...selected, v.id]);
                   } else if (!selected.includes(v.id)) select([v.id]);

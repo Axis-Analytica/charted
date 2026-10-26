@@ -123,3 +123,72 @@ test("selection pane: layers, hide and show, select hidden visuals, reorder", as
   const zText = await visuals(page).nth(1).evaluate((el) => Number((el as HTMLElement).style.zIndex));
   expect(z).toBeGreaterThan(zText);
 });
+
+test("format several visuals at once, and the format painter", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Painter");
+  const fmt = page.locator(".viz-pane .format-pane");
+  const a = await addVisual(page, "Text box", { x: 200, y: 80 });
+  await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
+  const setText = async (text: string) => {
+    await fmt.getByRole("textbox", { name: "Text", exact: true }).fill(text);
+    await fmt.getByRole("textbox", { name: "Text", exact: true }).press("Enter");
+  };
+  await setText("Alpha");
+  await fmt.getByRole("spinbutton", { name: "Text size" }).fill("30");
+  await fmt.getByRole("spinbutton", { name: "Text size" }).press("Enter");
+  await expect(a.locator(".textbox")).toHaveCSS("font-size", "30px");
+  const b = await addVisual(page, "Text box", { x: 200, y: 260 });
+  await setText("Beta");
+  await expect(b.locator(".textbox")).toHaveText("Beta");
+
+  // Both selected: the shared options, with differing values shown as mixed.
+  await a.click({ position: { x: 30, y: 20 } });
+  await b.click({ position: { x: 30, y: 20 }, modifiers: ["Control"] });
+  await expect(page.locator(".viz-pane").getByText("Formatting 2 visuals")).toBeVisible();
+  await expect(fmt.getByRole("spinbutton", { name: "Text size" })).toHaveAttribute("placeholder", "Mixed");
+  // One change formats both, in one undo step.
+  await fmt.getByRole("checkbox", { name: "Bold" }).click();
+  await expect(a.locator(".textbox")).toHaveCSS("font-weight", "700");
+  await expect(b.locator(".textbox")).toHaveCSS("font-weight", "700");
+  await shot(page, "v13-02-multi-format");
+  await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Control+z");
+  await expect(a.locator(".textbox")).toHaveCSS("font-weight", "400");
+  await expect(b.locator(".textbox")).toHaveCSS("font-weight", "400");
+
+  // The format painter: Alpha's look onto Beta, which keeps its words.
+  await a.click({ position: { x: 30, y: 20 } });
+  const painter = page.getByRole("button", { name: /^Format painter/ });
+  await painter.click();
+  await expect(painter).toHaveAttribute("aria-pressed", "true");
+  await b.click({ position: { x: 30, y: 20 } });
+  await expect(b.locator(".textbox")).toHaveCSS("font-size", "30px");
+  await expect(b.locator(".textbox")).toHaveText("Beta");
+  await expect(painter).toHaveAttribute("aria-pressed", "false");
+
+  // Double-clicked, it stays on for several visuals until Escape.
+  const s1 = await addVisual(page, "Shape", { x: 700, y: 120 });
+  await fmt.getByRole("combobox", { name: "Shape" }).selectOption("ellipse");
+  await expect(s1.locator("ellipse")).toHaveCount(1);
+  const s2 = await addVisual(page, "Shape", { x: 700, y: 330 });
+  const s3 = await addVisual(page, "Shape", { x: 1000, y: 330 });
+  await s1.click({ position: { x: 100, y: 60 } });
+  await painter.dblclick();
+  await expect(painter).toHaveAttribute("aria-pressed", "true");
+  await s2.click({ position: { x: 100, y: 60 } });
+  await s3.click({ position: { x: 100, y: 60 } });
+  await expect(s2.locator("ellipse")).toHaveCount(1);
+  await expect(s3.locator("ellipse")).toHaveCount(1);
+  await expect(painter).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+  await expect(painter).toHaveAttribute("aria-pressed", "false");
+
+  // Ctrl+Alt+C copies a look, Ctrl+Alt+V pastes it onto everything selected.
+  const c = await addVisual(page, "Text box", { x: 200, y: 440 });
+  await a.click({ position: { x: 30, y: 20 } });
+  await page.keyboard.press("Control+Alt+c");
+  await c.click({ position: { x: 30, y: 20 } });
+  await page.keyboard.press("Control+Alt+v");
+  await expect(c.locator(".textbox")).toHaveCSS("font-size", "30px");
+});

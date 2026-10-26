@@ -18,3 +18,4 @@
 .layer-eye { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); }
 .layer-eye:hover { background: var(--bg-hover); color: var(--fg); }
 .layer.is-hidden .layer-eye { color: var(--fg-faint); }
+.canvas-scroller.is-painting, .canvas-scroller.is-painting .visual { cursor: copy; }
