@@ -255,6 +255,13 @@ pub enum Bound {
         table: Id,
         column: Id,
     },
+    /// EARLIER ( column, n ): the column's value in the row context `n` levels out from
+    /// the innermost row of its table.
+    Earlier {
+        table: Id,
+        column: Id,
+        n: usize,
+    },
     Measure {
         table: Id,
         measure: Id,
@@ -332,7 +339,6 @@ pub const KNOWN: &[&str] = &[
     "COUNTAX",
     "CROSSFILTER",
     "DATEVALUE",
-    "EARLIER",
     "EXP",
     "FIND",
     "FIRSTNONBLANK",
@@ -406,6 +412,7 @@ pub const SUPPORTED: &[&str] = &[
     "DISTINCT",
     "DISTINCTCOUNT",
     "DIVIDE",
+    "EARLIER",
     "EDATE",
     "EOMONTH",
     "FALSE",
@@ -1409,6 +1416,28 @@ impl<'a> Binder<'a> {
                 Some(Bound::Related {
                     table: t.id.clone(),
                     column: c.id.clone(),
+                })
+            }
+            "EARLIER" => {
+                if !self.arity(&upper, args, span, 1, 2) {
+                    return None;
+                }
+                let (t, c) = self.column_arg(&args[0])?;
+                let n = match args.get(1) {
+                    Some(a) => self.whole(a)?,
+                    None => 1,
+                };
+                let levels = rows.iter().filter(|r| r.id == t.id).count();
+                if n < 1 || levels <= n as usize {
+                    return self.err(
+                        span,
+                        format!("EARLIER needs {} row contexts on '{}' (an iterator such as FILTER inside a calculated column)", n + 1, t.name),
+                    );
+                }
+                Some(Bound::Earlier {
+                    table: t.id.clone(),
+                    column: c.id.clone(),
+                    n: n as usize,
                 })
             }
             "LOOKUPVALUE" => {

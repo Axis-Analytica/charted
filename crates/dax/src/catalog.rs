@@ -226,9 +226,12 @@ pub fn support_markdown() -> String {
            inactive relationship on inside CALCULATE. Changes that would give filters two active \
            paths between tables are refused, as in Power BI. Many-to-many relationships are \
            stored and exported but do not filter yet.\n\
-         - **Calculated columns** are evaluated per row with the table's columns, RELATED and \
-           scalar functions, and stored with the data; aggregates, measures and CALCULATE in \
-           calculated columns are not supported yet.\n\
+         - **Calculated columns** are evaluated per row of their table with no filters, and \
+           stored with the data. They may aggregate: `CALCULATE ( SUM ( Sales[Amount] ) )` and \
+           measures transition the row into a filter (on every column the row has), \
+           `SUM ( Sales[Amount] )` alone is the grand total, RELATEDTABLE, ALLEXCEPT shares, \
+           RANKX, EARLIER and variables work as in Power BI. They are recomputed on load, \
+           refresh and edits, as set-based SQL (a 20,000-row EARLIER rank takes about 0.3 s).\n\
          - **FILTER as a CALCULATE filter** may test measures and values from the outer \
            context, as running totals do: \
            `FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) )`. \

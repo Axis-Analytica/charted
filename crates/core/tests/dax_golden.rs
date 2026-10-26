@@ -1684,3 +1684,201 @@ fn security_filters_agree_with_the_reference_interpreter() {
         vec![vec![n(5.0)]]
     );
 }
+
+/// Calculated columns that aggregate (v1.5): fixed cases on every kind of table.
+const COLUMNS: &[(&str, &str)] = &[
+    // Context transition: the row becomes a filter.
+    ("Product", "CALCULATE ( SUM ( Sales[Amount] ) )"),
+    ("Product", "COUNTROWS ( RELATEDTABLE ( Sales ) )"),
+    (
+        "Product",
+        "SUMX ( RELATEDTABLE ( Sales ), Sales[Qty] * Sales[Price] )",
+    ),
+    ("Product", "[Quantity]"),
+    ("Product", "[Avg Per Category]"),
+    // No transition: the whole table.
+    ("Product", "SUM ( Sales[Amount] )"),
+    ("Product", "COUNTROWS ( Product )"),
+    (
+        "Product",
+        "DIVIDE ( CALCULATE ( SUM ( Sales[Amount] ) ), CALCULATE ( SUM ( Sales[Amount] ), ALLEXCEPT ( Product, Product[Category] ) ) )",
+    ),
+    // Earlier rows.
+    (
+        "Product",
+        "COUNTROWS ( FILTER ( Product, Product[ListPrice] > EARLIER ( Product[ListPrice] ) ) ) + 1",
+    ),
+    ("Product", "RANKX ( ALL ( Product ), Product[ListPrice] )"),
+    (
+        "Product",
+        "VAR p = Product[ListPrice] RETURN COUNTROWS ( FILTER ( ALL ( Product ), Product[ListPrice] <= p ) )",
+    ),
+    (
+        "Product",
+        "SUMX ( FILTER ( Product, Product[Category] = EARLIER ( Product[Category] ) && Product[ListPrice] <= EARLIER ( Product[ListPrice] ) ), Product[ListPrice] )",
+    ),
+    (
+        "Product",
+        "LOOKUPVALUE ( Product[Product], Product[ListPrice], Product[ListPrice] + 0 )",
+    ),
+    // A fact table without a key: the row's columns are the filter.
+    ("Sales", "[Quantity]"),
+    (
+        "Sales",
+        "DIVIDE ( Sales[Amount], CALCULATE ( SUM ( Sales[Amount] ), ALLEXCEPT ( Sales, Sales[ProductKey] ) ) )",
+    ),
+    (
+        "Sales",
+        "CALCULATE ( COUNTROWS ( Sales ), ALLEXCEPT ( Sales, Sales[ProductKey] ) )",
+    ),
+    (
+        "Sales",
+        "Sales[Qty] * RELATED ( Product[ListPrice] ) - SUM ( Sales[Qty] )",
+    ),
+    (
+        "Sales",
+        "COUNTROWS ( FILTER ( Sales, Sales[ProductKey] = EARLIER ( Sales[ProductKey] ) && Sales[OrderId] <= EARLIER ( Sales[OrderId] ) ) )",
+    ),
+    ("Targets", "CALCULATE ( COUNTROWS ( Targets ) )"),
+    ("Store", "CALCULATE ( [Sales Amount] )"),
+    ("Store", "RANKX ( ALL ( Store ), CALCULATE ( [Quantity] ) )"),
+    ("Date", "CALCULATE ( [Quantity] )"),
+    (
+        "Date",
+        "CALCULATE ( [Quantity], FILTER ( ALL ( Date ), Date[Date] <= EARLIER ( Date[Date] ) ) )",
+    ),
+    ("Date", "CALCULATE ( [Quantity], DATESYTD ( Date[Date] ) )"),
+];
+
+#[test]
+fn calculated_columns_agree_with_the_reference_interpreter() {
+    let f = fixture();
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let mut failures = Vec::new();
+    for (table, expr) in COLUMNS {
+        let expected = match interp::calculated_column(&f.model, &f.data, table, expr) {
+            Ok(v) => v,
+            Err(e) => {
+                failures.push(format!("{table}: {expr}: the interpreter failed: {e}"));
+                continue;
+            }
+        };
+        let got = visual::calculated_column(&f.model, &schema, table, expr)
+            .map_err(|e| e.to_string())
+            .and_then(|(sql, _)| {
+                f.db.arrow(&format!("SELECT v FROM ({sql}) ORDER BY rid"))
+                    .map_err(|e| format!("{e}\n{sql}"))
+            })
+            .map(|b| {
+                arrow_values(b)
+                    .into_iter()
+                    .map(|mut r| r.remove(0))
+                    .collect::<Vec<_>>()
+            });
+        match got {
+            Ok(g)
+                if g.len() == expected.len()
+                    && g.iter().zip(&expected).all(|(a, b)| same(a, b)) => {}
+            Ok(g) => failures.push(format!(
+                "{table}: {expr}:\n  expected: {expected:?}\n  got:      {g:?}"
+            )),
+            Err(e) => failures.push(format!("{table}: {expr}: {e}")),
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {} columns differ:\n\n{}",
+        failures.len(),
+        COLUMNS.len(),
+        failures.join("\n\n")
+    );
+}
+
+/// Random calculated columns: the random measures evaluated per row, with context
+/// transition (CALCULATE) and without, plus row and earlier-row pieces.
+#[test]
+fn random_calculated_columns_agree_with_the_reference_interpreter() {
+    let cases: usize = std::env::var("CHARTED_DAX_CASES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .map(|n: usize| n / 4)
+        .unwrap_or(64);
+    let f = fixture();
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let tables: &[(&str, &[&str])] = &[
+        (
+            "Product",
+            &[
+                "Product[ListPrice]",
+                "COUNTROWS ( FILTER ( Product, Product[ListPrice] < EARLIER ( Product[ListPrice] ) ) )",
+                "CALCULATE ( SUM ( Sales[Qty] ), ALLEXCEPT ( Product, Product[Category] ) )",
+                "MAXX ( RELATEDTABLE ( Sales ), Sales[Price] )",
+            ],
+        ),
+        (
+            "Store",
+            &[
+                "LEN ( Store[Region] )",
+                "COUNTROWS ( RELATEDTABLE ( Targets ) )",
+            ],
+        ),
+        (
+            "Date",
+            &[
+                "Date[MonthNumber]",
+                "CALCULATE ( [Orders], FILTER ( ALL ( Date ), Date[Date] <= EARLIER ( Date[Date] ) ) )",
+            ],
+        ),
+    ];
+    let mut r = Rng(0x05EE_DC01);
+    let mut failures = Vec::new();
+    for i in 0..cases {
+        let (table, pieces) = tables[r.below(tables.len())];
+        let measure = random_expr(&mut r, 2);
+        let expr = match r.below(4) {
+            0 => format!("CALCULATE ( {measure} )"),
+            1 => measure,
+            2 => format!("{} + CALCULATE ( {measure} )", r.pick(pieces)),
+            _ => format!(
+                "IF ( {} > 2, {}, CALCULATE ( {measure} ) )",
+                r.pick(pieces),
+                r.pick(pieces)
+            ),
+        };
+        let expected = interp::calculated_column(&f.model, &f.data, table, &expr);
+        let got = visual::calculated_column(&f.model, &schema, table, &expr)
+            .map_err(|e| e.to_string())
+            .and_then(|(sql, _)| {
+                f.db.arrow(&format!("SELECT v FROM ({sql}) ORDER BY rid"))
+                    .map_err(|e| e.to_string())
+            })
+            .map(|b| {
+                arrow_values(b)
+                    .into_iter()
+                    .map(|mut x| x.remove(0))
+                    .collect::<Vec<_>>()
+            });
+        match (expected, got) {
+            (Ok(e), Ok(g)) if g.len() == e.len() && g.iter().zip(&e).all(|(a, b)| same(a, b)) => {}
+            (Ok(e), Ok(g)) => failures.push(format!(
+                "#{i} {table}: {expr}\n  expected: {e:?}\n  got:      {g:?}"
+            )),
+            (Err(e), _) => {
+                failures.push(format!("#{i} {table}: {expr}: the interpreter failed: {e}"))
+            }
+            (_, Err(e)) => failures.push(format!("#{i} {table}: {expr}: {e}")),
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} of {cases} random columns differ:\n\n{}",
+        failures.len(),
+        failures.join("\n\n")
+    );
+}

@@ -936,6 +936,13 @@ impl<'a> Interp<'a> {
                 .find(|r| &r.table == table && r.values.contains_key(column))
                 .map(|r| r.values[column].clone())
                 .unwrap_or(Value::Blank),
+            Bound::Earlier { table, column, n } => rows
+                .iter()
+                .rev()
+                .filter(|r| &r.table == table && r.values.contains_key(column))
+                .nth(*n)
+                .map(|r| r.values[column].clone())
+                .unwrap_or(Value::Blank),
             Bound::Related { table, column } => {
                 let Some(r) = rows.last() else {
                     return Ok(Value::Blank);
@@ -1777,6 +1784,31 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
 }
 
 /// Whether evaluating an expression reads table rows (aggregates, VALUES…).
+/// A calculated column's values, in the table's row order: the expression per row,
+/// with the row as the row context and no filters.
+pub fn calculated_column(
+    model: &Model,
+    data: &Data,
+    table: &str,
+    expression: &str,
+) -> Result<Vec<Value>> {
+    let (b, d) = charted_dax::check_in(model, expression, Some(table));
+    let b = b.ok_or_else(|| d.first().map(|d| d.message.clone()).unwrap_or_default())?;
+    let mut it = Interp {
+        model,
+        data,
+        vars: Vec::new(),
+        touched: false,
+    };
+    let td = it.table(table)?;
+    let mut out = Vec::new();
+    for r in &td.rows {
+        let row = it.to_row(table, r, None)?;
+        out.push(it.eval(&b, &Ctx::default(), &[row])?);
+    }
+    Ok(out)
+}
+
 /// The rows a role sees: each table's rows whose own row, and the rows they reach
 /// through many-to-one relationships, pass the role's filters (a missing related row
 /// doesn't).

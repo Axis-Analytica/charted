@@ -353,6 +353,7 @@ fn row_pure(b: &Bound) -> bool {
                 | Bound::Aggregate { .. }
                 | Bound::Rank { .. }
                 | Bound::ConcatX { .. }
+                | Bound::Earlier { .. }
                 | Bound::Calculate { .. }
                 | Bound::Info { .. }
                 | Bound::Var(_)
@@ -2172,14 +2173,13 @@ impl<'a> Compiler<'a> {
                     !f.columns.iter().any(|col| r.covers.contains(col))
                 }
             });
-            for col in &r.identity {
-                if let Some((_, name)) = r.columns.iter().find(|(c, _)| c == col) {
-                    c.keys.push(Key {
-                        name: name.clone(),
-                        table: r.table.clone(),
-                        column: col.clone(),
-                    });
-                }
+            // Every column the row has becomes a filter (ALLEXCEPT may keep some of them).
+            for (col, name) in &r.columns {
+                c.keys.push(Key {
+                    name: name.clone(),
+                    table: r.table.clone(),
+                    column: col.clone(),
+                });
             }
         }
         c
@@ -2778,8 +2778,20 @@ impl<'a> Compiler<'a> {
             select.push(format!("{e} AS {}", k.name));
         }
         for c in &cols {
+            // A calculated column not computed yet (the one being added) can't be read.
+            let sql = match self.column_sql(&t, c) {
+                Ok((sql, _)) => sql,
+                Err(_)
+                    if tab
+                        .column(c)
+                        .is_some_and(|x| matches!(x.kind, ColumnKind::Calculated { .. })) =>
+                {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
             let n = self.fresh("r");
-            select.push(format!("{} AS {n}", self.column_sql(&t, c)?.0));
+            select.push(format!("{sql} AS {n}"));
             binding.columns.push((c.clone(), n));
         }
         for (rt, rc) in &related {
@@ -2930,6 +2942,22 @@ impl<'a> Compiler<'a> {
                         CompileError::Unsupported(
                             "this column reference outside the iterated columns".into(),
                         )
+                    })?;
+                lit(
+                    format!("f.{name}"),
+                    ValueType::of(self.column_type(table, column)),
+                )
+            }
+            Bound::Earlier { table, column, n } => {
+                let name = rows
+                    .iter()
+                    .rev()
+                    .filter(|r| &r.table == table)
+                    .nth(*n)
+                    .and_then(|r| r.columns.iter().find(|(c, _)| c == column))
+                    .map(|(_, n)| n.clone())
+                    .ok_or_else(|| {
+                        CompileError::Unsupported("this EARLIER outside its row contexts".into())
                     })?;
                 lit(
                     format!("f.{name}"),
@@ -3617,8 +3645,9 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
 }
 
 /// The SQL that computes a calculated column: one row per row of its table, with the
-/// table's `rowid` as `rid` and the value as `v`, and the value's type. Calculated
-/// columns may use the row's columns, RELATED lookups and scalar functions.
+/// table's `rowid` as `rid` and the value as `v`, and the value's type. Row expressions
+/// (the row's columns, RELATED, scalar functions) are computed directly; aggregates,
+/// measures, CALCULATE and EARLIER over a frame of the table's rows.
 pub fn calculated_column(
     model: &Model,
     catalog: &dyn Catalog,
@@ -3634,11 +3663,6 @@ pub fn calculated_column(
                 .unwrap_or_else(|| "the expression has an error".into()),
         )
     })?;
-    if !row_pure(&bound) {
-        return Err(CompileError::Unsupported(
-            "measures, aggregates and CALCULATE in calculated columns".into(),
-        ));
-    }
     let mut c = Compiler {
         model,
         catalog,
@@ -3656,15 +3680,86 @@ pub fn calculated_column(
     };
     let mut related = Vec::new();
     related_refs(&bound, &mut related);
-    let extra: Vec<Id> = related.into_iter().map(|(t, _)| t).collect();
+    let extra: Vec<Id> = related.iter().map(|(t, _)| t.clone()).collect();
     let (_, _, from, _) = c.scope(table_id, &Ctx::default(), &extra, false)?;
-    let (v, ty) = c.row(&bound, None)?;
+    if row_pure(&bound) {
+        let (v, ty) = c.row(&bound, None)?;
+        return Ok((
+            format!(
+                "SELECT {}.rowid AS rid, {v} AS v FROM {from}",
+                alias(model, table_id)
+            ),
+            ty,
+        ));
+    }
+    // Aggregates, measures and CALCULATE: the table's rows are a frame (every column
+    // readable), evaluated with no filters; context transition filters on the key
+    // column, or else on the loaded columns (two rows alike get the same value).
+    let tab = table(model, table_id)?;
+    let mut binding = RowBinding {
+        table: table_id.to_string(),
+        columns: Vec::new(),
+        identity: Vec::new(),
+        covers: tab.columns.iter().map(|x| x.id.clone()).collect(),
+        related: Vec::new(),
+    };
+    let mut select = vec![format!("{}.rowid AS rid", alias(model, table_id))];
+    for col in &tab.columns {
+        // Calculated columns not computed yet can't be read (nor are they needed).
+        let Ok((sql, _)) = c.column_sql(table_id, &col.id) else {
+            continue;
+        };
+        let n = c.fresh("r");
+        select.push(format!("{sql} AS {n}"));
+        binding.columns.push((col.id.clone(), n));
+    }
+    for (rt, rc) in &related {
+        let n = c.fresh("r");
+        select.push(format!("{} AS {n}", c.column_sql(rt, rc)?.0));
+        binding.related.push(((rt.clone(), rc.clone()), n));
+    }
+    binding.identity = match tab.columns.iter().find(|x| x.is_key) {
+        Some(k) => vec![k.id.clone()],
+        None => tab
+            .columns
+            .iter()
+            .filter(|x| matches!(x.kind, ColumnKind::Data { .. }))
+            .map(|x| x.id.clone())
+            .collect(),
+    };
+    let keys: Vec<Key> = binding
+        .columns
+        .iter()
+        .filter(|(col, _)| binding.identity.contains(col))
+        .map(|(col, n)| Key {
+            name: n.clone(),
+            table: table_id.to_string(),
+            column: col.clone(),
+        })
+        .collect();
+    c.ctes.push(CteDef {
+        name: "crow".into(),
+        sql: format!("SELECT {} FROM {from}", select.join(", ")),
+        keys: Vec::new(),
+        exact: true,
+    });
+    let frame = Frame {
+        rel: "crow".into(),
+        keys,
+    };
+    let v = c.scalar(&bound, &Ctx::default(), &frame, &[binding])?;
+    let (sql, from) = c.render(&v, "crow");
+    let with: Vec<String> = c
+        .ctes
+        .iter()
+        .map(|x| format!("{} AS ({})", x.name, x.sql))
+        .collect();
     Ok((
         format!(
-            "SELECT {}.rowid AS rid, {v} AS v FROM {from}",
-            alias(model, table_id)
+            "WITH {} SELECT f.rid AS rid, {sql} AS v FROM {from}",
+            with.join(", ")
         ),
-        ty,
+        v.ty,
     ))
 }
 

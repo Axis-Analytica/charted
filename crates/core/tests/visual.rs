@@ -625,7 +625,7 @@ fn calculated_columns_and_ambiguous_relationships() {
             changes: vec![Change::SetColumn {
                 table: sales.clone(),
                 column: "c-list-value".into(),
-                property: ColumnProperty::Expression("[Total Sales]".into()),
+                property: ColumnProperty::Expression("[No Such Measure] * 2".into()),
             }],
         })
         .unwrap_err();
