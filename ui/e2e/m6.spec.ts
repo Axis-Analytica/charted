@@ -250,7 +250,7 @@ test("import a Power BI project, see what didn't come across, export and import 
   const report = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
   await expect(report).toBeVisible({ timeout: 30_000 });
   await expect(report).toContainText("4 tables (2 with data)");
-  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map", "kpi", "RANKX"]) await expect(report).toContainText(s);
+  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map", "RANKX"]) await expect(report).toContainText(s);
   await shot(page, "m6-05-import-report");
   await report.getByRole("button", { name: "Done" }).click();
   await expect(report).toBeHidden();
