@@ -20,6 +20,7 @@ import {
   ListTree,
   MessageSquare,
   Plus,
+  RefreshCw,
   SendToBack,
   Shapes,
 } from "lucide-react";
@@ -53,6 +54,7 @@ import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
 import { QuickMeasureDialog } from "./QuickMeasure";
 import { SelectionPane } from "./SelectionPane";
+import { SyncSlicersPane } from "./SyncSlicersPane";
 import { VISUALS } from "./registry";
 import { VisualizationsPane } from "./VisualizationsPane";
 import "./report.css";
@@ -421,6 +423,7 @@ export function ReportView({ model }: { model: Model }) {
         <span className="status-fill" />
         <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
         <IconButton label={t("Selection pane")} icon={<Layers size={15} />} pressed={panes.selection} onPress={() => togglePane("selection")} />
+        <IconButton label={t("Sync slicers pane")} icon={<RefreshCw size={15} />} pressed={panes.sync} onPress={() => togglePane("sync")} />
         <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
@@ -438,7 +441,7 @@ export function ReportView({ model }: { model: Model }) {
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
                 {PANES.filter((k) => panes[k]).map((k) => (
                   <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === PANES.find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
-                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
+                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "sync" ? t("Sync slicers") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
                   </button>
                 ))}
               </div>
@@ -446,6 +449,7 @@ export function ReportView({ model }: { model: Model }) {
                 const shown = panes[paneTab] ? paneTab : PANES.find((x) => panes[x]);
                 if (shown === "bookmarks") return <BookmarksPane model={model} page={page} />;
                 if (shown === "selection") return <SelectionPane model={model} page={page} />;
+                if (shown === "sync") return <SyncSlicersPane model={model} page={page} />;
                 if (shown === "filters") return <FiltersPane model={model} page={page} />;
                 if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
                 return <FieldsPane model={model} page={page} />;
@@ -456,6 +460,7 @@ export function ReportView({ model }: { model: Model }) {
           <>
             {panes.bookmarks && <BookmarksPane model={model} page={page} />}
             {panes.selection && <SelectionPane model={model} page={page} />}
+            {panes.sync && <SyncSlicersPane model={model} page={page} />}
             {panes.filters && <FiltersPane model={model} page={page} />}
             {panes.visualizations && <VisualizationsPane model={model} page={page} />}
             {panes.fields && <FieldsPane model={model} page={page} />}
@@ -466,7 +471,7 @@ export function ReportView({ model }: { model: Model }) {
   );
 }
 
-const PANES = ["bookmarks", "selection", "filters", "visualizations", "fields"] as const;
+const PANES = ["bookmarks", "selection", "sync", "filters", "visualizations", "fields"] as const;
 
 /** On a page drilled through to: what it shows, and the way back. Leaving the page
  * ends the drill through. */

@@ -16,6 +16,7 @@ import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
 import { FormatEditor } from "./formatEditors";
 import { TooltipPageSettings } from "./tooltipPages";
 import { commonObjects, MIXED, shownValue, withProp } from "./formatting";
+import { withSync } from "./sync";
 import { type ObjectDef, type PropDef, type RoleDef, VISUAL_KEYWORDS, VISUALS, visualDef } from "./registry";
 import { palette } from "./visuals/common";
 
@@ -359,7 +360,7 @@ function FormatPane({ page, visuals }: { page: Page; visuals: Visual[] }) {
   const setProp = (object: string, name: string, value: unknown) =>
     edit(ids.length > 1 ? "Format visuals" : "Format visual", (m) => {
       const p = m.report.pages.find((x) => x.id === page.id);
-      return p?.visuals.filter((v) => ids.includes(v.id)).map((v) => updateVisual(p.id, withProp(v, object, name, value)));
+      return p && withSync(m, p.visuals.filter((v) => ids.includes(v.id)).map((v) => updateVisual(p.id, withProp(v, object, name, value))));
     });
   if (!objects.length) return <p className="pane-hint">{t("These visuals have no formatting options in common.")}</p>;
   const section = (o: ObjectDef) => {

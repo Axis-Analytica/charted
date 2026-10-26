@@ -287,6 +287,15 @@ fn annotation(name: &str, value: &impl serde::Serialize) -> Value {
     json!({ "name": name, "value": serde_json::to_string(value).unwrap_or_default() })
 }
 
+/// A slicer's sync group (`objects.syncGroup.groupName`).
+fn sync_group(v: &Visual) -> Option<&str> {
+    v.objects
+        .get("syncGroup")?
+        .get("groupName")?
+        .as_str()
+        .filter(|g| v.is_slicer() && !g.is_empty())
+}
+
 fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     let (pbi_type, roles) = TYPES
         .iter()
@@ -325,6 +334,11 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
         query_state.insert((*theirs).into(), json!({ "projections": projections }));
     }
     let mut visual = json!({ "visualType": pbi_type });
+    // A synced slicer's group (charted keeps one choice across the group's copies).
+    if let Some(g) = sync_group(v) {
+        visual["syncGroup"] =
+            json!({ "groupName": g, "fieldChanges": true, "filterChanges": true });
+    }
     if !roles.is_empty() {
         let mut query = json!({ "queryState": query_state });
         if let Some(s) = &v.sort
@@ -806,6 +820,11 @@ fn import_visual(
             .collect();
         objects.insert("text".into(), json!({ "content": text.join("\n") }));
     }
+    if ours == "slicer"
+        && let Some(g) = vis.pointer("/syncGroup/groupName").and_then(Value::as_str)
+    {
+        objects.insert("syncGroup".into(), json!({ "groupName": g }));
+    }
     let sort = vis.pointer("/query/sortDefinition/sort/0").and_then(|s| {
         let p = projection(model, s.get("field")?, &BTreeMap::new())?;
         let (role, index) = roles.iter().find_map(|(r, ps)| {
@@ -1081,7 +1100,7 @@ pub fn read_legacy(
             let v = json!({
                 "name": config.get("name").cloned().unwrap_or(json!(format!("visual{}", visuals.len()))),
                 "position": layout,
-                "visual": { "visualType": single.get("visualType").cloned().unwrap_or(json!("")), "query": { "queryState": query_state }, "objects": single.get("objects").cloned().unwrap_or_default(), "visualContainerObjects": single.get("vcObjects").cloned().unwrap_or_default() },
+                "visual": { "visualType": single.get("visualType").cloned().unwrap_or(json!("")), "query": { "queryState": query_state }, "objects": single.get("objects").cloned().unwrap_or_default(), "visualContainerObjects": single.get("vcObjects").cloned().unwrap_or_default(), "syncGroup": single.get("syncGroup").cloned().unwrap_or_default() },
                 "isHidden": single.pointer("/display/mode").and_then(Value::as_str) == Some("hidden"),
             });
             if let Some(vis) = import_visual(model, &v, &settings.name, skipped) {

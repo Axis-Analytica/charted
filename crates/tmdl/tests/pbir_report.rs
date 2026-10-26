@@ -133,3 +133,37 @@ fn the_tab_order_stands_in_for_a_missing_layer_order() {
     let (back, _) = read(&files);
     assert_eq!(back.pages[0].visuals[0].position.z, 7000);
 }
+
+#[test]
+fn synced_slicers_keep_their_group() {
+    let mut a = visual("slicerA", "slicer", 1);
+    a.objects = serde_json::from_value(json!({ "syncGroup": { "groupName": "Region" } })).unwrap();
+    let mut b = a.clone();
+    b.id = "slicerB".into();
+    b.hidden = true;
+    let m = model(vec![
+        Page {
+            id: "p1".into(),
+            settings: PageSettings::named("One"),
+            visuals: vec![a],
+        },
+        Page {
+            id: "p2".into(),
+            settings: PageSettings::named("Two"),
+            visuals: vec![b],
+        },
+    ]);
+    let files = as_power_bi(&m);
+    assert_eq!(
+        file(&files, "slicerB/visual.json")["visual"]["syncGroup"],
+        json!({ "groupName": "Region", "fieldChanges": true, "filterChanges": true })
+    );
+    let (back, _) = read(&files);
+    for p in &back.pages {
+        assert_eq!(
+            p.visuals[0].objects["syncGroup"],
+            json!({ "groupName": "Region" })
+        );
+    }
+    assert!(back.pages[1].visuals[0].hidden);
+}

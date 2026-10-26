@@ -19,6 +19,7 @@ import { useApp } from "../state/app";
 import { useDrillThrough } from "../state/drillthrough";
 import { newId, pageSettings, updateVisual, useReport } from "../state/report";
 import { useSelection } from "../state/selection";
+import { withSync } from "./sync";
 
 /** The bookmark shown last (for next and previous). */
 export const useBookmark = create<{ current: string | null; set(id: string | null): void }>((set) => ({ current: null, set: (current) => set({ current }) }));
@@ -52,7 +53,7 @@ export async function showBookmark(model: Model, b: Bookmark) {
   useDrillThrough.getState().set(null);
   useReport.getState().set({ page: page.id, selected: [] });
   useBookmark.getState().set(b.id);
-  if (changes.length) await useApp.getState().commit("Show bookmark", changes);
+  if (changes.length) await useApp.getState().commit("Show bookmark", withSync(model, changes));
 }
 
 const setBookmarks = (label: string, fn: (bs: Bookmark[], model: Model) => Bookmark[]) => useApp.getState().edit(label, (m) => [{ op: "setBookmarks", bookmarks: fn(m.report.bookmarks ?? [], m) }]);

@@ -19,3 +19,11 @@
 .layer-eye:hover { background: var(--bg-hover); color: var(--fg); }
 .layer.is-hidden .layer-eye { color: var(--fg-faint); }
 .canvas-scroller.is-painting, .canvas-scroller.is-painting .visual { cursor: copy; }
+.sync-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+.sync-table th { height: 28px; color: var(--fg-faint); font-weight: 500; text-align: center; }
+.sync-table th:first-child { text-align: start; }
+.sync-table td { height: 30px; text-align: center; border-top: 1px solid var(--border); }
+.sync-table td.sync-page { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; color: var(--fg); }
+.sync-table tr.is-current td.sync-page { font-weight: 600; }
+.sync-advanced { margin-top: 12px; }
+.sync-advanced summary { cursor: pointer; color: var(--fg-muted); font-size: var(--text-sm); margin-bottom: 6px; }

@@ -259,4 +259,63 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await expect(visuals(page)).toHaveCount(1);
   await expect(page.getByText("Some fields aren't in this model")).toBeVisible();
   await expect(visuals(page).first().locator(".visual-placeholder")).toBeVisible();
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+});
+
+test("sync slicers: one choice filters every synced page, hidden or visible", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Sync A");
+  const cardA = await addVisual(page, "Card", { x: 500, y: 100 });
+  await tick(page, "Sales", "Total Sales");
+  await expect(cardA.locator(".card-value")).toHaveText(/\$/);
+  const total = await cardMillions(cardA);
+  const slicer = await addVisual(page, "Slicer", { x: 140, y: 200 });
+  await tick(page, "Store", "Region");
+  await expect(slicer.locator(".slicer-item", { hasText: "North America" })).toBeVisible();
+  await newPage(page, "Sync B");
+  const cardB = await addVisual(page, "Card", { x: 500, y: 100 });
+  await tick(page, "Sales", "Total Sales");
+  await expect(cardB.locator(".card-value")).toHaveText(/\$/);
+
+  // Sync the slicer to page B without showing it there.
+  await page.getByRole("tab", { name: "Sync A" }).click();
+  await slicer.click({ position: { x: 20, y: 6 } });
+  await page.getByRole("button", { name: "Sync slicers pane" }).click();
+  const pane = page.locator(".sync-pane");
+  await expect(pane.getByRole("checkbox", { name: "Sync to Sync A" })).toBeChecked();
+  await expect(pane.getByRole("checkbox", { name: "Sync to Sync B" })).not.toBeChecked();
+  await pane.getByRole("checkbox", { name: "Sync to Sync B" }).click();
+  await expect(pane.getByRole("checkbox", { name: "Sync to Sync B" })).toBeChecked();
+  await expect(pane.getByRole("checkbox", { name: "Visible on Sync B" })).not.toBeChecked();
+  await pane.getByText("Advanced options").click();
+  await expect(pane.getByRole("textbox", { name: "Group name" })).toHaveValue("Region");
+  await shot(page, "v13-04-sync-slicers");
+
+  // A choice on page A filters page B too.
+  await slicer.locator(".slicer-item", { hasText: "North America" }).click();
+  await expect.poll(() => cardMillions(cardA)).toBeLessThan(total * 0.9);
+  const sliced = await cardMillions(cardA);
+  await page.getByRole("tab", { name: "Sync B" }).click();
+  await expect(visuals(page)).toHaveCount(1);
+  await expect.poll(() => cardMillions(cardB)).toBeCloseTo(sliced, 1);
+
+  // Shown on page B, the copy has the same choice; clearing it there clears page A.
+  await page.getByRole("tab", { name: "Sync A" }).click();
+  await slicer.click({ position: { x: 20, y: 6 } });
+  await pane.getByRole("checkbox", { name: "Visible on Sync B" }).click();
+  await page.getByRole("tab", { name: "Sync B" }).click();
+  await expect(visuals(page)).toHaveCount(2);
+  const copy = page.locator('[data-type="slicer"]');
+  await expect(copy.locator(".slicer-item.is-on", { hasText: "North America" })).toHaveCount(1);
+  await copy.getByRole("button", { name: "Clear selections" }).click();
+  await expect.poll(() => cardMillions(cardB)).toBeCloseTo(total, 1);
+  await page.getByRole("tab", { name: "Sync A" }).click();
+  await expect.poll(() => cardMillions(cardA)).toBeCloseTo(total, 1);
+  // One undo step brings the choice back on both pages.
+  await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Control+z");
+  await expect.poll(() => cardMillions(cardA)).toBeCloseTo(sliced, 1);
+  await page.getByRole("tab", { name: "Sync B" }).click();
+  await expect.poll(() => cardMillions(cardB)).toBeCloseTo(sliced, 1);
 });

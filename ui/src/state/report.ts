@@ -14,6 +14,7 @@ import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { msg } from "../i18n";
 import { type RoleDef, visualDef } from "../report/registry";
+import { withSync } from "../report/sync";
 
 export type View = "report" | "data" | "model" | "query";
 
@@ -22,7 +23,7 @@ interface ReportStore {
   page: string | null;
   selected: string[];
   /** Right-hand panes. */
-  panes: { bookmarks: boolean; selection: boolean; filters: boolean; visualizations: boolean; fields: boolean };
+  panes: { bookmarks: boolean; selection: boolean; sync: boolean; filters: boolean; visualizations: boolean; fields: boolean };
   vizTab: "build" | "format";
   /** Last pointer position on the page, in page units. */
   pointer: { x: number; y: number } | null;
@@ -44,7 +45,7 @@ export const useReport = create<ReportStore>()((set) => ({
   view: "report",
   page: null,
   selected: [],
-  panes: { bookmarks: false, selection: false, filters: true, visualizations: true, fields: true },
+  panes: { bookmarks: false, selection: false, sync: false, filters: true, visualizations: true, fields: true },
   vizTab: "build",
   pointer: null,
   formula: null,
@@ -227,6 +228,7 @@ export function editVisual(page: string, id: string, fn: (v: Visual, model: Mode
   return (model: Model): Change[] | null => {
     const v = visualIn(model, page, id);
     const next = v && fn(v, model);
-    return next ? [updateVisual(page, next)] : null;
+    // A synced slicer's copies on other pages keep its choice.
+    return next ? withSync(model, [updateVisual(page, next)]) : null;
   };
 }

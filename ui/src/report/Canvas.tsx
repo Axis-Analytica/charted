@@ -17,6 +17,7 @@ import { useApp } from "../state/app";
 import { newVisual, updateVisual, useReport, withField } from "../state/report";
 import { useSelection } from "../state/selection";
 import { paint, usePainter } from "./painter";
+import { withSync } from "./sync";
 import { CanvasScale, ThemeKey } from "./scale";
 import { themeStyle, themeTokens } from "./themes";
 import { VisualContainer } from "./VisualContainer";
@@ -112,7 +113,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
   const onDropField = async (field: FieldRef, at: { x: number; y: number }, target?: Visual) => {
     if (target) {
       const next = withField(model, target, field);
-      if (next) await commit("Add field", [updateVisual(page.id, next)]);
+      if (next) await commit("Add field", withSync(model, [updateVisual(page.id, next)]));
       select([target.id]);
       return;
     }
