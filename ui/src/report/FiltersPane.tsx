@@ -21,7 +21,7 @@ import { Button } from "../kit/Button";
 import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
-import { columnOf, defaultAggregation, fieldKey, isGrouping, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
+import { columnOf, defaultAggregation, dropFields, fieldKey, isGrouping, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
 import { relativeLabel } from "./relative";
 import { FIELD_MIME } from "./Canvas";
 import { TooltipFieldsSection } from "./tooltipPages";
@@ -192,8 +192,7 @@ function Section({ title, children, onDropField, dropLabel }: { title: string; c
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
-          const raw = e.dataTransfer.getData(FIELD_MIME);
-          if (raw) onDropField(JSON.parse(raw) as FieldRef);
+          for (const f of dropFields(e.dataTransfer.getData(FIELD_MIME))) onDropField(f);
         }}
       >
         {dropLabel ?? t("Add data fields here")}

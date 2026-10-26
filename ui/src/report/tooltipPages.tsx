@@ -6,7 +6,6 @@ import { MessageSquare, X } from "lucide-react";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { create } from "zustand";
-import type { FieldRef } from "../bridge/generated/FieldRef";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Projection } from "../bridge/generated/Projection";
@@ -14,7 +13,7 @@ import type { QueryFilter } from "../bridge/generated/QueryFilter";
 import type { Visual } from "../bridge/generated/Visual";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
-import { fieldKey, pageSettings, projectionName, sameField } from "../state/report";
+import { dropFields, fieldKey, pageSettings, projectionName, sameField } from "../state/report";
 import { FIELD_MIME } from "./Canvas";
 import { ExtraFilters } from "./data";
 import { TOOLTIP_PAGES } from "./moreVisuals";
@@ -166,11 +165,9 @@ export function TooltipFieldsSection({ model, page }: { model: Model; page: Page
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
-          const raw = e.dataTransfer.getData(FIELD_MIME);
-          if (!raw) return;
-          const field = JSON.parse(raw) as FieldRef;
-          if (field.kind !== "column" || (page.tooltipFields ?? []).some((p) => sameField(p.field, field))) return;
-          setFields("Add tooltip field", (fs) => [...fs, { field, aggregation: null, displayName: null }]);
+          const fields = dropFields(e.dataTransfer.getData(FIELD_MIME)).filter((f) => f.kind === "column" && !(page.tooltipFields ?? []).some((p) => sameField(p.field, f)));
+          if (!fields.length) return;
+          setFields("Add tooltip field", (fs) => [...fs, ...fields.map((field) => ({ field, aggregation: null, displayName: null }))]);
         }}
       >
         {t("Add tooltip fields here")}

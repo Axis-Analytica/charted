@@ -4,14 +4,13 @@
 import { ChevronDown, GripVertical, Search, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Aggregation } from "../bridge/generated/Aggregation";
-import type { FieldRef } from "../bridge/generated/FieldRef";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
-import { aggregationLabel, columnOf, editVisual, newVisual, pageSettings, projectionName, updateVisual, useReport, withField, withoutField } from "../state/report";
+import { aggregationLabel, columnOf, dropFields, editVisual, newVisual, pageSettings, projectionName, updateVisual, useReport, withField, withFields, withoutField } from "../state/report";
 import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
 import { FormatEditor } from "./formatEditors";
 import { TooltipPageSettings } from "./tooltipPages";
@@ -183,10 +182,9 @@ function Well({ model, page, visual, role }: { model: Model; page: Page; visual:
       );
       return;
     }
-    const raw = e.dataTransfer.getData(FIELD_MIME);
-    if (!raw) return;
-    const field = JSON.parse(raw) as FieldRef;
-    await edit("Add field", editVisual(page.id, visual.id, (v, m) => withField(m, v, field, role.name, index)));
+    const fields = dropFields(e.dataTransfer.getData(FIELD_MIME));
+    if (!fields.length) return;
+    await edit("Add field", editVisual(page.id, visual.id, (v, m) => withFields(m, v, fields, role.name, index)));
   };
 
   const setProjection = (i: number, p: Projection) =>

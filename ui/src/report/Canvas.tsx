@@ -14,7 +14,7 @@ import { Database } from "lucide-react";
 import { Button } from "../kit/Button";
 import { useT } from "../i18n";
 import { useApp } from "../state/app";
-import { newVisual, updateVisual, useReport, withField } from "../state/report";
+import { dropFields, newVisual, updateVisual, useReport, withFields } from "../state/report";
 import { useSelection } from "../state/selection";
 import { isActionVisual } from "./actions";
 import { paint, usePainter } from "./painter";
@@ -112,15 +112,17 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
     if (v) live.current.set(id, { ...v.position });
   };
 
-  const onDropField = async (field: FieldRef, at: { x: number; y: number }, target?: Visual) => {
+  const onDropField = async (fields: FieldRef[], at: { x: number; y: number }, target?: Visual) => {
+    const field = fields[0];
+    if (!field) return;
     if (target) {
-      const next = withField(model, target, field);
+      const next = withFields(model, target, fields);
       if (next) await commit("Add field", withSync(model, [updateVisual(page.id, next)]));
       select([target.id]);
       return;
     }
-    const v = newVisual(page, field.kind === "measure" ? "card" : "table", at);
-    const filled = withField(model, v, field) ?? v;
+    const v = newVisual(page, field.kind === "measure" && fields.length === 1 ? "card" : "table", at);
+    const filled = withFields(model, v, fields) ?? v;
     if (await commit("Add visual", [{ op: "addVisual", page: page.id, visual: filled, index: null }])) select([v.id]);
   };
 
@@ -178,7 +180,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
               const target = hit ? byId.get(hit.dataset.visual!) : undefined;
               if (field) {
                 e.preventDefault();
-                onDropField(JSON.parse(field) as FieldRef, at, target);
+                onDropField(dropFields(field), at, target);
               } else if (type) {
                 e.preventDefault();
                 const v = newVisual(page, type, at);

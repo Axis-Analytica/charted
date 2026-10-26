@@ -174,6 +174,30 @@ export function withField(model: Model, v: Visual, field: FieldRef, roleName?: s
   return { ...v, roles: { ...v.roles, [role.name]: list }, selection: v.visualType === "slicer" ? null : v.selection };
 }
 
+/** Adds several fields in order (a hierarchy's levels), all to the role the first one
+ * goes to; null when none fits. */
+export function withFields(model: Model, v: Visual, fields: FieldRef[], roleName?: string, index?: number): Visual | null {
+  let next = v;
+  let role = roleName;
+  let at = index;
+  for (const f of fields) {
+    const r = role ?? roleFor(model, next, f)?.name;
+    const n = r ? withField(model, next, f, r, at) : null;
+    if (!n) break;
+    next = n;
+    role = r;
+    if (at !== undefined) at += 1;
+  }
+  return next === v ? null : next;
+}
+
+/** The fields in a Fields pane drag: one field, or a hierarchy's levels. */
+export function dropFields(raw: string): FieldRef[] {
+  if (!raw) return [];
+  const v = JSON.parse(raw) as FieldRef | FieldRef[];
+  return Array.isArray(v) ? v : [v];
+}
+
 export function withoutField(v: Visual, role: string, index: number): Visual {
   const list = [...(v.roles[role] ?? [])];
   list.splice(index, 1);

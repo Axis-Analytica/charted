@@ -199,6 +199,20 @@ fn arb_change() -> impl Strategy<Value = Change> {
                 column,
                 property: ColumnProperty::SortBy(s)
             }),
+        (table.clone(), column.clone(), any::<bool>()).prop_map(|(table, column, g)| {
+            let mut extras = Extras::new();
+            if g {
+                extras.insert(
+                    "charted".into(),
+                    serde_json::json!({ "group": { "kind": "bin" } }),
+                );
+            }
+            Change::SetColumn {
+                table,
+                column,
+                property: ColumnProperty::Extras(extras),
+            }
+        }),
         (table.clone(), column.clone())
             .prop_map(|(table, column)| Change::RemoveColumn { table, column }),
         table

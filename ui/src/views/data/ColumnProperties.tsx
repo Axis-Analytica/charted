@@ -1,16 +1,15 @@
 import { X } from "lucide-react";
-import { useState } from "react";
 import type { Column } from "../../bridge/generated/Column";
 import type { ColumnProperty } from "../../bridge/generated/ColumnProperty";
 import type { DataType } from "../../bridge/generated/DataType";
 import type { Summarize } from "../../bridge/generated/Summarize";
 import type { Table } from "../../bridge/generated/Table";
-import { formatValue, isDateFormat } from "../../format";
-import { useLanguage, useT } from "../../i18n";
+import { useT } from "../../i18n";
 import { IconButton } from "../../kit/Button";
 import { useApp } from "../../state/app";
 import { DataTypeIcon } from "../icons";
 import { isNumeric } from "./DataGrid";
+import { CATEGORIES, CommitInput, FormatPicker, SUMMARIZE } from "./FormatPicker";
 
 const TYPES: { type: DataType; label: string }[] = [
   { type: "String", label: "Text" },
@@ -24,95 +23,12 @@ const TYPES: { type: DataType; label: string }[] = [
   { type: "Time", label: "Time" },
 ];
 
-const NUMBER_FORMATS = [
-  { format: "#,0", label: "Whole number" },
-  { format: "#,0.00", label: "Decimal number" },
-  { format: "\\$#,0.00;(\\$#,0.00)", label: "Currency" },
-  { format: "0.0%", label: "Percentage" },
-  { format: "#,0.0,K", label: "Thousands" },
-  { format: "#,0.0,,M", label: "Millions" },
-  { format: "0.00E+00", label: "Scientific" },
-];
-// Date patterns are shown as written; only named formats carry a translatable label.
-const DATE_FORMATS: { format: string; label?: string }[] = [
-  { format: "yyyy-mm-dd" },
-  { format: "dd/mm/yyyy" },
-  { format: "m/d/yyyy" },
-  { format: "d mmm yyyy" },
-  { format: "mmmm yyyy" },
-  { format: "Long Date", label: "Long date" },
-];
-const DATETIME_FORMATS: { format: string; label?: string }[] = [{ format: "yyyy-mm-dd hh:mm" }, { format: "General Date", label: "General date" }, ...DATE_FORMATS];
-
-const SUMMARIZE: { value: Summarize; label: string; numericOnly?: boolean }[] = [
-  { value: "Default", label: "Default" },
-  { value: "None", label: "Don't summarize" },
-  { value: "Sum", label: "Sum", numericOnly: true },
-  { value: "Average", label: "Average", numericOnly: true },
-  { value: "Min", label: "Minimum" },
-  { value: "Max", label: "Maximum" },
-  { value: "Count", label: "Count" },
-  { value: "DistinctCount", label: "Count (distinct)" },
-];
-
-const CATEGORIES: { value: string; label: string }[] = [
-  { value: "Address", label: "Address" },
-  { value: "Place", label: "Place" },
-  { value: "City", label: "City" },
-  { value: "County", label: "County" },
-  { value: "StateOrProvince", label: "State or province" },
-  { value: "PostalCode", label: "Postal code" },
-  { value: "Country", label: "Country/region" },
-  { value: "Continent", label: "Continent" },
-  { value: "Latitude", label: "Latitude" },
-  { value: "Longitude", label: "Longitude" },
-  { value: "WebUrl", label: "Web URL" },
-  { value: "ImageUrl", label: "Image URL" },
-  { value: "Barcode", label: "Barcode" },
-];
-
-const SAMPLE_DATE = Date.UTC(2025, 2, 7, 14, 5, 9);
-
-/** A text input that commits on Enter or blur, and reverts on Escape. */
-function CommitInput({ value, onCommit, label, multiline, mono, placeholder, onDraft }: { value: string; onCommit(v: string): void; label: string; multiline?: boolean; mono?: boolean; placeholder?: string; onDraft?(v: string): void }) {
-  const [draft, setDraft] = useState(value);
-  const commit = () => draft !== value && onCommit(draft);
-  const props = {
-    className: `input ${mono ? "mono" : ""}`,
-    "aria-label": label,
-    value: draft,
-    placeholder,
-    onChange: (e: { target: { value: string } }) => (setDraft(e.target.value), onDraft?.(e.target.value)),
-    onBlur: commit,
-    onKeyDown: (e: React.KeyboardEvent) => {
-      e.stopPropagation();
-      if (e.key === "Enter" && !(multiline && e.shiftKey)) (e.preventDefault(), commit());
-      if (e.key === "Escape") (setDraft(value), onDraft?.(value));
-    },
-  };
-  return multiline ? <textarea rows={2} {...props} /> : <input {...props} />;
-}
-
 export function ColumnProperties({ table, column, onClose }: { table: Table; column: Column; onClose(): void }) {
   const { t } = useT();
-  const locale = useLanguage((s) => s.locale);
   const commit = useApp((s) => s.commit);
-  const [draftFormat, setDraftFormat] = useState<string | null>(null);
   const set = (label: string, property: ColumnProperty) => commit(label, [{ op: "setColumn", table: table.id, column: column.id, property }]);
 
   const numeric = isNumeric(column.dataType);
-  const temporal = column.dataType === "Date" || column.dataType === "DateTime" || column.dataType === "DateTimeTz";
-  const presets = numeric ? NUMBER_FORMATS : column.dataType === "Date" ? DATE_FORMATS : temporal ? DATETIME_FORMATS : [];
-  const format = draftFormat ?? column.formatString ?? "";
-  const preset = presets.find((p) => p.format === (column.formatString ?? ""));
-  const preview = (() => {
-    if (numeric) {
-      const v = column.dataType === "Int64" ? 1234567 : 1234.5678;
-      return `${formatValue(v, column.dataType, format, locale)}   ${formatValue(-v, column.dataType, format, locale)}   ${formatValue(0.256, column.dataType, format, locale)}`;
-    }
-    if (temporal || column.dataType === "Time") return formatValue(SAMPLE_DATE, column.dataType, format && isDateFormat(format) ? format : null, locale);
-    return null;
-  })();
   const sortTargets = table.columns.filter((c) => c.id !== column.id && c.kind.kind === "data");
   const source = column.kind.kind === "data" ? column.kind.sourceColumn : null;
 
@@ -144,51 +60,7 @@ export function ColumnProperties({ table, column, onClose }: { table: Table; col
             ))}
           </select>
         </label>
-        {presets.length > 0 && (
-          <>
-            <label className="field">
-              <span className="field-label">{t("Format")}</span>
-              <select
-                className="select"
-                aria-label={t("Format")}
-                value={column.formatString ? (preset ? preset.format : "custom") : ""}
-                onChange={(e) => {
-                  if (e.target.value === "custom") return;
-                  set("Change format", { name: "formatString", value: e.target.value || null });
-                }}
-              >
-                <option value="">{t("General")}</option>
-                {presets.map((p) => (
-                  <option key={p.format} value={p.format}>
-                    {p.label ? t(p.label) : p.format}
-                  </option>
-                ))}
-                <option value="custom">{t("Custom")}</option>
-              </select>
-            </label>
-            <label className="field">
-              <span className="field-label">{t("Format string")}</span>
-              <CommitInput
-                key={column.formatString ?? ""}
-                mono
-                label={t("Format string")}
-                value={column.formatString ?? ""}
-                placeholder={numeric ? "#,0.00" : "yyyy-mm-dd"}
-                onDraft={setDraftFormat}
-                onCommit={(f) => {
-                  setDraftFormat(null);
-                  set("Change format", { name: "formatString", value: f.trim() || null });
-                }}
-              />
-            </label>
-            {preview && (
-              <div className="props-preview" aria-live="polite">
-                <span className="field-label">{t("Preview")}</span>
-                <span className="mono tabular">{preview}</span>
-              </div>
-            )}
-          </>
-        )}
+        <FormatPicker dataType={column.dataType} value={column.formatString ?? null} onChange={(f) => set("Change format", { name: "formatString", value: f })} />
 
         <h3 className="props-section">{t("Properties")}</h3>
         <label className="field">

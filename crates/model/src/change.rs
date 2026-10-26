@@ -153,6 +153,9 @@ pub enum ColumnProperty {
     DataType(DataType),
     /// A calculated column's DAX expression.
     Expression(String),
+    /// What charted keeps on the column without interpreting it, such as the settings
+    /// of the group dialog that wrote a group column's expression.
+    Extras(#[ts(type = "Record<string, unknown>")] Extras),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize, TS)]
@@ -496,6 +499,9 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 }
                 ColumnProperty::DataType(v) => {
                     ColumnProperty::DataType(std::mem::replace(&mut c.data_type, v))
+                }
+                ColumnProperty::Extras(v) => {
+                    ColumnProperty::Extras(std::mem::replace(&mut c.extras, v))
                 }
                 ColumnProperty::Expression(v) => match &mut c.kind {
                     ColumnKind::Calculated { expression, .. } => {

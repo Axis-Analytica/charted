@@ -117,6 +117,29 @@
 .field-icon { display: grid; place-items: center; color: var(--fg-faint); flex: none; }
 .field-icon.is-measure { color: var(--accent-text); }
 .field-name { overflow: hidden; text-overflow: ellipsis; }
+.field-folder { width: 100%; display: flex; align-items: center; gap: 6px; height: 26px; padding-inline-end: 6px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); text-align: start; white-space: nowrap; }
+.field-folder:hover { background: var(--bg-hover); color: var(--fg); }
+.field-folder svg { color: var(--fg-faint); flex: none; }
+.field-folder span { overflow: hidden; text-overflow: ellipsis; }
+.field-folder.is-over, .field-table.is-over { background: var(--accent-soft); outline: 1px dashed var(--accent); outline-offset: -1px; border-radius: var(--radius-sm); }
+.field-row.is-hierarchy { gap: 4px; }
+.field-row.is-hierarchy .field-check { margin-inline-start: 2px; }
+.field-caret { color: var(--fg-faint); flex: none; }
+.field-props textarea { resize: vertical; }
+.hierarchy-levels { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 4px; }
+.hierarchy-levels li { display: flex; align-items: center; gap: 4px; }
+.hierarchy-levels .input { flex: 1; min-width: 0; }
+.hierarchy-level-column { width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-faint); font-size: var(--text-sm); }
+.group-lists { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.group-col { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.group-values { list-style: none; margin: 0; padding: 4px 6px; height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); }
+.group-values > li { padding: 2px 0; }
+.group-item ul { list-style: none; margin: 2px 0 6px; padding: 0 0 0 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+.group-head { display: flex; gap: 4px; align-items: center; }
+.group-head .input { flex: 1; min-width: 0; }
+.group-member { border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; background: var(--bg); color: var(--fg); font-size: var(--text-sm); }
+.group-member:hover { border-color: var(--danger); text-decoration: line-through; }
+.field-error { margin: 0; color: var(--danger); font-size: var(--text-sm); }
 
 /* Visualizations */
 .viz-gallery { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0 10px 10px; flex: none; }
