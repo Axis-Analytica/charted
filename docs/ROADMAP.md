@@ -12,10 +12,11 @@ The corpus is seven public PBIP repositories. Every project imports, its pages a
 visuals come across, and charted's export of it imports again. The import reports point
 at what to build next:
 
-- **DAX:** SUBSTITUTE, FORMAT, DATE, EOMONTH, DATEDIFF, DATESINPERIOD, DATESBETWEEN,
-  LOOKUPVALUE, CONCATENATEX, ADDCOLUMNS and CALCULATETABLE were the commonest
-  functions not yet evaluated. The scalar ones and the rolling date windows are in
-  progress for v1.0.x.
+- **DAX:**
+  - The commonest missing functions were SUBSTITUTE, FORMAT, DATE, EOMONTH, DATEDIFF,
+    DATESINPERIOD and DATESBETWEEN. They're now evaluated, with other text functions.
+  - Still missing: LOOKUPVALUE, CONCATENATEX, ADDCOLUMNS, CALCULATETABLE, TIME, and
+    date sets iterated by AVERAGEX and similar.
 - **Power Query:**
   - Queries that start from another query (`Source = #"RAW-Customer"`, Power BI's
     *Reference*).
@@ -33,6 +34,11 @@ at what to build next:
   - Running totals: `FILTER(ALLSELECTED(col), col <= MAX(col))` as a CALCULATE
     filter.
   - RANKX and TOPN.
+  - Iterating date sets (`AVERAGEX(DATESINPERIOD(…), …)`), and DATESINPERIOD ends
+    computed from other expressions (`EOMONTH(MAX(…), -1)`, `TODAY()`).
+  - SQL and the reference interpreter disagree on the blank-member row for measures
+    that are never blank (`UPPER(SELECTEDVALUE(…))`). Under a Both relationship, SQL is
+    right.
   - LOOKUPVALUE, CONCATENATEX, ADDCOLUMNS, SUMMARIZECOLUMNS and CALCULATETABLE.
 - **Query editor:**
   - Reference queries and *Enter data* tables, with the M to match.

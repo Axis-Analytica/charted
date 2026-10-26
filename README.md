@@ -84,8 +84,10 @@ follow the 1.0 release.
   a formatter, running in WebAssembly.
 - A compiler from DAX to DuckDB SQL covering filter context, `CALCULATE` and its filter
   functions, iterators with context transition, `USERELATIONSHIP`, variables,
-  `SWITCH` and time intelligence (`SAMEPERIODLASTYEAR`, `DATEADD`, `PARALLELPERIOD`,
-  `TOTALYTD`/`QTD`/`MTD` with fiscal years, `PREVIOUS…`/`NEXT…`). It is checked against an independent reference interpreter with hundreds of
+  `SWITCH`, text and date functions (`FORMAT`, `SUBSTITUTE`, `DATE`, `EOMONTH`,
+  `DATEDIFF`…) and time intelligence (`SAMEPERIODLASTYEAR`, `DATEADD`, `PARALLELPERIOD`,
+  `TOTALYTD`/`QTD`/`MTD` with fiscal years, rolling windows with `DATESINPERIOD` and
+  `DATESBETWEEN`, `PREVIOUS…`/`NEXT…`). It is checked against an independent reference interpreter with hundreds of
   fixed cases and thousands of random ones. [docs/dax-support.md](docs/dax-support.md)
   lists what is supported.
 

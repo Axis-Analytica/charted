@@ -552,7 +552,7 @@ Power BI.
 
 ## Deferred from M6
 
-- Time intelligence: DATESBETWEEN, DATESINPERIOD (rolling windows), OPENING/CLOSINGBALANCE,
+- Time intelligence: OPENING/CLOSINGBALANCE,
   STARTOF…/ENDOF…, SAMEPERIOD on DateTime columns with times; date sets only as
   CALCULATE filters (not iterated). PREVIOUSYEAR takes no year-end argument.
 - Drill: charts' axis and pie legend only (the matrix keeps expand/collapse); drill state
