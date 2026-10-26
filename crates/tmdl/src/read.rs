@@ -936,7 +936,12 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 display_folder: c.folder.clone(),
                 hidden: c.hidden,
                 is_key: c.key,
-                extras: Default::default(),
+                extras: c
+                    .annotations
+                    .get("chartedGroup")
+                    .and_then(|g| serde_json::from_str::<serde_json::Value>(g).ok())
+                    .map(|g| [("charted".to_string(), serde_json::json!({ "group": g }))].into())
+                    .unwrap_or_default(),
             });
         }
         // Sort-by columns by name, now that every column has an id.

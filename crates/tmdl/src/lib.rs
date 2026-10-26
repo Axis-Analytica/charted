@@ -235,6 +235,15 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         if default_format {
             let _ = writeln!(out, "\t\tannotation chartedDefaultFormat = true");
         }
+        // A group or bin column is a plain calculated column to Power BI; the group
+        // dialog's settings ride along so charted can reopen them.
+        if let Some(g) = c.extras.get("charted").and_then(|v| v.get("group")) {
+            let _ = writeln!(
+                out,
+                "\t\tannotation chartedGroup = {}",
+                serde_json::to_string(g).unwrap_or_default()
+            );
+        }
     }
     for h in &t.hierarchies {
         out.push('\n');

@@ -64,6 +64,8 @@ datasets:
     custom_extensions:
     - vendor_name: POWER_BI
       data: '{"_v": 2, "lineageTag": "c-margin"}'
+    - vendor_name: CHARTED
+      data: '{"_v": 1, "group": {"column": "c-amt", "kind": "bin", "size": 10, "unit": "number"}}'
   custom_extensions:
   - vendor_name: POWER_BI
     data: '{"_v": 2, "lineageTag": "11111111-0000-0000-0000-000000000001"}'

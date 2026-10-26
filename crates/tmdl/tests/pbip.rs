@@ -157,6 +157,18 @@ fn reported() -> Model {
                 col("c-amt", "Amount", DataType::Double),
                 col("c-day", "Day", DataType::Date),
                 col("c-year", "Year", DataType::Int64),
+                Column {
+                    kind: ColumnKind::Calculated {
+                        expression: "IF ( ISBLANK ( 'Sales'[Amount] ), BLANK (), INT ( 'Sales'[Amount] / 10 ) * 10 )".into(),
+                        language: ExpressionLanguage::Dax,
+                    },
+                    extras: [(
+                        "charted".to_string(),
+                        serde_json::json!({ "group": { "kind": "bin", "column": "c-amt", "unit": "number", "size": 10, "by": "size", "count": 10 } }),
+                    )]
+                    .into(),
+                    ..col("c-bins", "Amount (bins)", DataType::Double)
+                },
             ],
             measures: vec![Measure {
                 id: "m-total".into(),

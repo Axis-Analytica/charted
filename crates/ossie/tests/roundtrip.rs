@@ -90,6 +90,12 @@ fn sample_model() -> Model {
                     expression: "Sales[Amount] - Sales[Unit Cost]".into(),
                     language: ExpressionLanguage::Dax,
                 },
+                // Group dialog settings (charted-only) live in the CHARTED blob.
+                extras: [(
+                    "charted".to_string(),
+                    serde_json::json!({ "group": { "kind": "bin", "column": "c-amt", "unit": "number", "size": 10 } }),
+                )]
+                .into(),
                 ..col("c-margin", "Line Margin", DataType::Decimal)
             },
         ],
