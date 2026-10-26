@@ -125,6 +125,10 @@ pub struct PageSettings {
     /// points that have all of them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tooltip_fields: Vec<Projection>,
+    /// Hidden from the page tabs in reading mode, page navigators and PDF exports
+    /// (tooltip and drill-through pages), but still editable.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub hidden: bool,
 }
 
 fn yes() -> bool {
@@ -178,6 +182,7 @@ impl PageSettings {
             keep_all_filters: true,
             tooltip: false,
             tooltip_fields: Vec::new(),
+            hidden: false,
         }
     }
 }
@@ -220,6 +225,10 @@ pub struct Visual {
     /// legend), one step per level below the top.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub drill: Vec<DrillStep>,
+    /// Hidden in the selection pane: not drawn on the page (a hidden slicer still
+    /// filters it). The layer order, and the tab order, is `position.z`.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub hidden: bool,
 }
 
 /// One level of drilling down a visual's hierarchy.
@@ -533,6 +542,7 @@ mod drill_tests {
             objects: Default::default(),
             selection: None,
             drill,
+            hidden: false,
         }
     }
 

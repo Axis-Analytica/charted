@@ -181,7 +181,7 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
               }
             }}
           >
-            {page.visuals.map((v) => (
+            {page.visuals.filter((v) => !v.hidden).map((v) => (
               <VisualContainer
                 key={v.id}
                 visual={v}

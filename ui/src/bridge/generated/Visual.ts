@@ -31,4 +31,9 @@ selection?: FilterKind | null,
  * How far the visual is drilled down its hierarchy (the fields of its axis or
  * legend), one step per level below the top.
  */
-drill?: Array<DrillStep>, };
+drill?: Array<DrillStep>, 
+/**
+ * Hidden in the selection pane: not drawn on the page (a hidden slicer still
+ * filters it). The layer order, and the tab order, is `position.z`.
+ */
+hidden?: boolean, };

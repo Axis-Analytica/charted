@@ -120,6 +120,7 @@ fn visual(id: &str) -> Visual {
         objects: Default::default(),
         selection: None,
         drill: Vec::new(),
+        hidden: false,
     }
 }
 
@@ -244,10 +245,21 @@ fn report_change() -> impl Strategy<Value = Change> {
         }),
         (page.clone(), vis.clone())
             .prop_map(|(page, visual)| Change::RemoveVisual { page, visual }),
-        (page, vis, 0.0f64..500.0).prop_map(|(page, v, x)| {
-            let mut visual = visual(&v);
-            visual.position.x = x;
-            Change::UpdateVisual { page, visual }
+        (page.clone(), vis, 0.0f64..500.0, any::<bool>(), -3i32..3).prop_map(
+            |(page, v, x, hidden, z)| {
+                let mut visual = visual(&v);
+                visual.position.x = x;
+                visual.position.z = z;
+                visual.hidden = hidden;
+                Change::UpdateVisual { page, visual }
+            }
+        ),
+        (page, any::<bool>()).prop_map(|(page, hidden)| Change::SetPage {
+            page,
+            settings: PageSettings {
+                hidden,
+                ..PageSettings::named("Overview")
+            }
         }),
         Just(Change::SetReportFilters { filters: vec![] }),
     ]

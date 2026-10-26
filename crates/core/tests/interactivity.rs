@@ -126,6 +126,7 @@ impl Sample {
             objects: Default::default(),
             selection: None,
             drill: Vec::new(),
+            hidden: false,
         };
         let page = self.page.clone();
         self.commit(vec![Change::AddVisual {

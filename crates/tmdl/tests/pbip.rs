@@ -377,6 +377,7 @@ fn reported() -> Model {
             } else {
                 vec![]
             },
+            hidden: false,
         })
         .collect();
     let mut overview = PageSettings::named("Overview");

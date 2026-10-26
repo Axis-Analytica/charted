@@ -32,4 +32,9 @@ tooltip?: boolean,
  * A tooltip page's fields: charts set to automatic tooltips use the page for
  * points that have all of them.
  */
-tooltipFields?: Array<Projection>, };
+tooltipFields?: Array<Projection>, 
+/**
+ * Hidden from the page tabs in reading mode, page navigators and PDF exports
+ * (tooltip and drill-through pages), but still editable.
+ */
+hidden?: boolean, };

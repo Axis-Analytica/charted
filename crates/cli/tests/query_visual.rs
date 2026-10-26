@@ -61,6 +61,7 @@ fn query_visual_prints_rows_by_field_name() {
         objects: Default::default(),
         selection: None,
         drill: Vec::new(),
+        hidden: false,
     };
     let page = m.report.pages[0].id.clone();
     app.handle(Request::Commit {

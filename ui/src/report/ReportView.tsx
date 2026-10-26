@@ -15,6 +15,7 @@ import {
   AlignVerticalDistributeCenter,
   BringToFront,
   Filter,
+  Layers,
   ListTree,
   MessageSquare,
   Plus,
@@ -47,6 +48,7 @@ import { FieldsPane } from "./FieldsPane";
 import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
 import { QuickMeasureDialog } from "./QuickMeasure";
+import { SelectionPane } from "./SelectionPane";
 import { VISUALS } from "./registry";
 import { VisualizationsPane } from "./VisualizationsPane";
 import "./report.css";
@@ -221,7 +223,7 @@ export function ReportView({ model }: { model: Model }) {
   // In narrow windows (a tiled half screen) the three panes share one tabbed column.
   const body = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
-  const [paneTab, setPaneTab] = useState<"bookmarks" | "filters" | "visualizations" | "fields">("visualizations");
+  const [paneTab, setPaneTab] = useState<(typeof PANES)[number]>("visualizations");
   useEffect(() => {
     const el = body.current;
     if (!el) return;
@@ -282,7 +284,7 @@ export function ReportView({ model }: { model: Model }) {
     { id: "visual-right8", keys: "Shift+ArrowRight", label: "Move right by 8", group: "Edit", run: () => nudge(8, 0), enabled: hasSelection },
     { id: "visual-up8", keys: "Shift+ArrowUp", label: "Move up by 8", group: "Edit", run: () => nudge(0, -8), enabled: hasSelection },
     { id: "visual-down8", keys: "Shift+ArrowDown", label: "Move down by 8", group: "Edit", run: () => nudge(0, 8), enabled: hasSelection },
-    { id: "visual-all", keys: "Ctrl+A", label: "Select all visuals", group: "Edit", run: () => page && select(page.visuals.map((v) => v.id)), enabled: () => useReport.getState().view === "report" && canvasFocused() },
+    { id: "visual-all", keys: "Ctrl+A", label: "Select all visuals", group: "Edit", run: () => page && select(page.visuals.filter((v) => !v.hidden).map((v) => v.id)), enabled: () => useReport.getState().view === "report" && canvasFocused() },
     {
       id: "visual-none",
       keys: "Escape",
@@ -352,6 +354,7 @@ export function ReportView({ model }: { model: Model }) {
         <ThemeMenu model={model} />
         <span className="status-fill" />
         <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
+        <IconButton label={t("Selection pane")} icon={<Layers size={15} />} pressed={panes.selection} onPress={() => togglePane("selection")} />
         <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
@@ -364,18 +367,19 @@ export function ReportView({ model }: { model: Model }) {
           <PageTabs model={model} page={page} />
         </div>
         {compact ? (
-          (panes.bookmarks || panes.filters || panes.visualizations || panes.fields) && (
+          PANES.some((k) => panes[k]) && (
             <div className="pane-stack">
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
                 {PANES.filter((k) => panes[k]).map((k) => (
                   <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === PANES.find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
-                    {k === "bookmarks" ? t("Bookmarks") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
+                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
                   </button>
                 ))}
               </div>
               {(() => {
                 const shown = panes[paneTab] ? paneTab : PANES.find((x) => panes[x]);
                 if (shown === "bookmarks") return <BookmarksPane model={model} page={page} />;
+                if (shown === "selection") return <SelectionPane model={model} page={page} />;
                 if (shown === "filters") return <FiltersPane model={model} page={page} />;
                 if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
                 return <FieldsPane model={model} page={page} />;
@@ -385,6 +389,7 @@ export function ReportView({ model }: { model: Model }) {
         ) : (
           <>
             {panes.bookmarks && <BookmarksPane model={model} page={page} />}
+            {panes.selection && <SelectionPane model={model} page={page} />}
             {panes.filters && <FiltersPane model={model} page={page} />}
             {panes.visualizations && <VisualizationsPane model={model} page={page} />}
             {panes.fields && <FieldsPane model={model} page={page} />}
@@ -395,7 +400,7 @@ export function ReportView({ model }: { model: Model }) {
   );
 }
 
-const PANES = ["bookmarks", "filters", "visualizations", "fields"] as const;
+const PANES = ["bookmarks", "selection", "filters", "visualizations", "fields"] as const;
 
 /** On a page drilled through to: what it shows, and the way back. Leaving the page
  * ends the drill through. */

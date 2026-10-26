@@ -375,6 +375,9 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
         "visual": visual,
         "annotations": [annotation("chartedVisual", v)],
     });
+    if v.hidden {
+        out["isHidden"] = json!(true);
+    }
     let filters: Vec<Value> = v
         .filters
         .iter()
@@ -449,6 +452,9 @@ pub fn report_files(model: &Model) -> Vec<(String, String)> {
             "width": s.width,
             "annotations": [annotation("chartedPage", s)],
         });
+        if s.hidden {
+            page["visibility"] = json!("HiddenInViewMode");
+        }
         let mut filters: Vec<Value> = s
             .filters
             .iter()
@@ -826,7 +832,12 @@ fn import_visual(
             y: num("y"),
             width: num("width").max(20.0),
             height: num("height").max(20.0),
-            z: num("z") as i32,
+            // The layer order; files without one have only a tab order.
+            z: pos
+                .get("z")
+                .or_else(|| pos.get("tabOrder"))
+                .and_then(Value::as_f64)
+                .unwrap_or(0.0) as i32,
         },
         roles,
         filters,
@@ -834,6 +845,7 @@ fn import_visual(
         objects,
         selection: None,
         drill: Vec::new(),
+        hidden: v.get("isHidden").and_then(Value::as_bool).unwrap_or(false),
     })
 }
 
@@ -936,6 +948,7 @@ pub fn read_pbir(
                 {
                     s.keep_all_filters = false;
                 }
+                s.hidden = p.get("visibility").and_then(Value::as_str) == Some("HiddenInViewMode");
                 s
             }
         };
@@ -997,6 +1010,7 @@ pub fn read_legacy(
         );
         settings.width = s.get("width").and_then(Value::as_f64).unwrap_or(1280.0) as u32;
         settings.height = s.get("height").and_then(Value::as_f64).unwrap_or(720.0) as u32;
+        settings.hidden = s.get("visibility").and_then(Value::as_u64) == Some(1);
         for f in parse(s.get("filters")).as_array().into_iter().flatten() {
             if let Some(rf) = report_filter(model, f) {
                 settings.filters.push(rf);
@@ -1068,6 +1082,7 @@ pub fn read_legacy(
                 "name": config.get("name").cloned().unwrap_or(json!(format!("visual{}", visuals.len()))),
                 "position": layout,
                 "visual": { "visualType": single.get("visualType").cloned().unwrap_or(json!("")), "query": { "queryState": query_state }, "objects": single.get("objects").cloned().unwrap_or_default(), "visualContainerObjects": single.get("vcObjects").cloned().unwrap_or_default() },
+                "isHidden": single.pointer("/display/mode").and_then(Value::as_str) == Some("hidden"),
             });
             if let Some(vis) = import_visual(model, &v, &settings.name, skipped) {
                 visuals.push(vis);

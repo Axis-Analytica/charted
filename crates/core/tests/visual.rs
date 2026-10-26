@@ -448,6 +448,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
         objects: Default::default(),
         selection: None,
         drill: Vec::new(),
+        hidden: false,
     };
     app.handle(Request::Commit {
         label: "Add visual".into(),

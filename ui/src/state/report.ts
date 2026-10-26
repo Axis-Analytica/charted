@@ -22,7 +22,7 @@ interface ReportStore {
   page: string | null;
   selected: string[];
   /** Right-hand panes. */
-  panes: { bookmarks: boolean; filters: boolean; visualizations: boolean; fields: boolean };
+  panes: { bookmarks: boolean; selection: boolean; filters: boolean; visualizations: boolean; fields: boolean };
   vizTab: "build" | "format";
   /** Last pointer position on the page, in page units. */
   pointer: { x: number; y: number } | null;
@@ -44,7 +44,7 @@ export const useReport = create<ReportStore>()((set) => ({
   view: "report",
   page: null,
   selected: [],
-  panes: { bookmarks: false, filters: true, visualizations: true, fields: true },
+  panes: { bookmarks: false, selection: false, filters: true, visualizations: true, fields: true },
   vizTab: "build",
   pointer: null,
   formula: null,

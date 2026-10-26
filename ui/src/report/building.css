@@ -1,0 +1,20 @@
+/* Report building (v1.3): the Selection and Sync slicers panes, the format painter,
+   buttons and page navigators, and the print layout. */
+
+.pane-head-tools { display: flex; align-items: center; gap: 2px; text-transform: none; letter-spacing: 0; }
+.pane-head-tools .icon-btn { width: 24px; height: 24px; }
+.layer-actions { display: flex; gap: 12px; margin: 0 2px 6px; }
+.link-button { padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--text-xs); cursor: pointer; }
+.link-button:hover { text-decoration: underline; }
+.layer-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.layer { display: flex; align-items: center; gap: 2px; padding-inline-start: 2px; border-radius: var(--radius-sm); }
+.layer:hover { background: var(--bg-hover); }
+.layer.is-on { background: var(--bg-active); box-shadow: inset 2px 0 0 var(--accent); }
+.layer.is-over { box-shadow: inset 0 2px 0 var(--accent); }
+.layer-grip { flex: none; color: var(--fg-faint); cursor: grab; }
+.layer-name { flex: 1; min-width: 0; height: 28px; padding-inline: 6px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg); text-align: start; }
+.layer-name span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer.is-hidden .layer-name { color: var(--fg-faint); font-style: italic; }
+.layer-eye { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); }
+.layer-eye:hover { background: var(--bg-hover); color: var(--fg); }
+.layer.is-hidden .layer-eye { color: var(--fg-faint); }
