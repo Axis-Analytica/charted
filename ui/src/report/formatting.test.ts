@@ -14,7 +14,7 @@ const visual = (visualType: string, objects: Visual["objects"] = {}): Visual => 
 describe("formatting several visuals", () => {
   it("shows the sections and props every type has", () => {
     const names = commonObjects(["columnChart", "lineChart"]).map((o) => o.name);
-    expect(names).toEqual(["title", "legend", "categoryAxis", "valueAxis", "dataLabels", "colors", "background"]);
+    expect(names).toEqual(["title", "legend", "categoryAxis", "valueAxis", "dataLabels", "colors", "smallMultiples", "analytics", "tooltip", "background"]);
     expect(commonObjects(["card", "columnChart"]).map((o) => o.name)).toEqual(["title", "background"]);
     // A text box and a shape share nothing.
     expect(commonObjects(["textbox", "shape"])).toEqual([]);

@@ -31,7 +31,8 @@ export function commonObjects(types: string[]): ObjectDef[] {
     const others = rest.map((d) => d.objects.find((x) => x.name === o.name));
     if (others.some((x) => !x)) return [];
     const props = o.props.filter((p) => others.every((x) => sameProp(p, x!.props.find((q) => q.name === p.name))));
-    if (!props.length) return [];
+    // Sections with their own editor (conditional formatting, tooltips) have no props.
+    if (!props.length && !o.editor) return [];
     const toggle = o.toggle && props.some((p) => p.name === o.toggle) ? o.toggle : undefined;
     return [{ ...o, toggle, props }];
   });

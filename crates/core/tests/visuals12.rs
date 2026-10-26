@@ -101,6 +101,7 @@ impl Sample {
             objects: serde_json::from_value(objects).unwrap(),
             selection: None,
             drill: vec![],
+            hidden: false,
         };
         let page = self.page.clone();
         self.commit(vec![Change::AddVisual {
