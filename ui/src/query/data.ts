@@ -11,18 +11,17 @@ import type { QueryProfile } from "../bridge/generated/QueryProfile";
 const decoder = new TextDecoder();
 const parse = <T,>(buf: ArrayBuffer): T => JSON.parse(decoder.decode(buf)) as T;
 
-/** Queries the request depends on: the query and those it merges or appends. */
+/** Queries the request depends on: the query and those it references, merges or appends. */
 function related(query: Query, queries: Query[]): Query[] {
   const out: Query[] = [];
   const visit = (q: Query) => {
     if (out.some((x) => x.id === q.id)) return;
     out.push(q);
-    for (const s of q.steps) {
-      const refs = s.op === "mergeQueries" ? [s.query] : s.op === "appendQueries" ? s.queries : [];
-      for (const r of refs) {
-        const o = queries.find((x) => x.id === r);
-        if (o) visit(o);
-      }
+    const from = q.source.kind === "reference" ? [q.source.query] : [];
+    for (const s of q.steps) from.push(...(s.op === "mergeQueries" ? [s.query] : s.op === "appendQueries" ? s.queries : []));
+    for (const r of from) {
+      const o = queries.find((x) => x.id === r);
+      if (o) visit(o);
     }
   };
   visit(query);

@@ -1,7 +1,7 @@
 // Transform data (Power Query's editor): the queries, a step's preview with column
 // profiles, the applied steps, transforms from the toolbar or a column's menu, and Close
 // & Apply, which loads the changed queries and updates the model.
-import { Check, ChevronDown, Copy, Database, FileSpreadsheet, FileText, FolderOpen, GripVertical, Pencil, Plus, Redo2, Settings2, Trash2, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Database, FileSpreadsheet, FileText, FolderOpen, GripVertical, Link2, Pencil, Plus, Redo2, Settings2, Table2, Trash2, Undo2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { DataType } from "../bridge/generated/DataType";
@@ -22,6 +22,7 @@ import { ConsentDialog, newQuery, PasswordDialog, pickSource, projectPath, Sourc
 import { PreviewTable } from "./PreviewTable";
 import { insertStep, isDirty, moveStep, removeStep, uniqueQueryName, uptoOf, useQueryDraft } from "./state";
 import { CsvOptions } from "./CsvOptions";
+import { EnterDataDialog } from "./EnterData";
 import { StepDialog } from "./StepDialog";
 import { type BuildContext, stepDisplayNames, type Transform, TRANSFORMS, transformById, transformFor } from "./transforms";
 import "./query.css";
@@ -40,6 +41,26 @@ const SOURCES: { kind: SourceKind; label: string; icon: React.ReactNode }[] = [
   { kind: "postgres", label: "PostgreSQL database", icon: <Database size={14} /> },
 ];
 
+/** A reference query's source: the query it starts from, opened by clicking. */
+function ReferenceLink({ id, queries, onOpen }: { id: string; queries: Query[]; onOpen(id: string): void }) {
+  const { t } = useT();
+  const other = queries.find((q) => q.id === id);
+  if (!other) return <span className="qe-hint qe-step-link">{t("missing query")}</span>;
+  return (
+    <button
+      type="button"
+      className="link-btn qe-step-link"
+      title={t("Go to %1", other.name)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen(id);
+      }}
+    >
+      {other.name}
+    </button>
+  );
+}
+
 export function QueryEditor({ project }: { project: ProjectSnapshot }) {
   const { t } = useT();
   const draft = useQueryDraft();
@@ -48,6 +69,8 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
   const [dialog, setDialog] = useState<{ transform: Transform; step: Step | null; column: string | null; index: number | null } | null>(null);
   const [sourceDialog, setSourceDialog] = useState<SourceDialogState | null>(null);
   const [csvOptions, setCsvOptions] = useState(false);
+  /** Enter data: a new table, or the query whose table is edited. */
+  const [enterData, setEnterData] = useState<{ query: Query | null } | null>(null);
   const [consent, setConsent] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [discard, setDiscard] = useState(false);
@@ -175,7 +198,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
   return (
     <div className="qe">
       <div className="qe-ribbon" role="toolbar" aria-label={t("Transform data")}>
-        <Menu label={t("New source")} trigger={<span className="qe-ribbon-btn"><Plus size={14} /> {t("New source")} <ChevronDown size={12} /></span>} items={SOURCES.map((s) => ({ id: s.kind, label: t(s.label), icon: s.icon, run: () => getData(s.kind) }))} />
+        <Menu label={t("New source")} trigger={<span className="qe-ribbon-btn"><Plus size={14} /> {t("New source")} <ChevronDown size={12} /></span>} items={[...SOURCES.map((s) => ({ id: s.kind, label: t(s.label), icon: s.icon, run: () => getData(s.kind) })), null, { id: "enterData", label: `${t("Enter data")}…`, icon: <Table2 size={14} />, run: () => setEnterData({ query: null }) }]} />
         <span className="topbar-sep" />
         {GROUPS.map((g) => (
           <Menu
@@ -204,7 +227,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
           <ul role="listbox" aria-label={t("Queries")}>
             {queries.map((q) => (
               <li key={q.id} role="option" aria-selected={q.id === query?.id} className={`qe-query ${q.id === query?.id ? "is-on" : ""} ${q.noLoad ? "is-noload" : ""}`} onClick={() => draft.select(q.id)}>
-                <FileText size={13} />
+                {q.source.kind === "reference" ? <Link2 size={13} /> : q.source.kind === "table" ? <Table2 size={13} /> : <FileText size={13} />}
                 <span className="qe-query-name">{q.name}</span>
                 <Menu
                   label={t("Options for %1", q.name)}
@@ -220,6 +243,16 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                       },
                     },
                     {
+                      id: "reference",
+                      label: t("Reference"),
+                      icon: <Link2 size={13} />,
+                      run: () => {
+                        // A new query starting from this one's result, as Power Query's Reference.
+                        const ref = newQuery(q.name, { kind: "reference", query: q.id }, queries);
+                        draft.change("Reference query", [...queries, ref], { query: ref.id });
+                      },
+                    },
+                    {
                       id: "load",
                       label: q.noLoad ? t("Enable load") : t("Disable load (only feeds other queries)"),
                       run: () => draft.change("Change load", queries.map((x) => (x.id === q.id ? { ...x, noLoad: !x.noLoad } : x))),
@@ -228,7 +261,11 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                       id: "delete",
                       label: t("Delete"),
                       icon: <Trash2 size={13} />,
-                      disabled: queries.some((o) => o.id !== q.id && o.steps.some((s) => (s.op === "mergeQueries" && s.query === q.id) || (s.op === "appendQueries" && s.queries.includes(q.id)))),
+                      disabled: queries.some(
+                        (o) =>
+                          o.id !== q.id &&
+                          ((o.source.kind === "reference" && o.source.query === q.id) || o.steps.some((s) => (s.op === "mergeQueries" && s.query === q.id) || (s.op === "appendQueries" && s.queries.includes(q.id)))),
+                      ),
                       run: () => draft.change("Delete query", queries.filter((x) => x.id !== q.id), { query: queries.find((x) => x.id !== q.id)?.id ?? "" }),
                     },
                   ]}
@@ -392,6 +429,9 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                       ) : (
                         <span className="qe-step-name">{name}</span>
                       )}
+                      {i === 0 && query.source.kind === "reference" && (
+                        <ReferenceLink id={query.source.query} queries={queries} onOpen={(id) => draft.select(id)} />
+                      )}
                       {i > 0 && renaming !== i && (
                         <span className="qe-step-tools">
                           <button type="button" aria-label={t("Rename %1", name)} title={t("Rename")} onClick={(e) => (e.stopPropagation(), setRenaming(i))}>
@@ -415,7 +455,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                           </button>
                         </span>
                       )}
-                      {i === 0 && query.source.kind !== "postgres" && query.source.kind !== "calendar" && (
+                      {i === 0 && query.source.kind !== "postgres" && query.source.kind !== "calendar" && query.source.kind !== "reference" && (
                         <span className="qe-step-tools">
                           <button
                             type="button"
@@ -424,6 +464,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                             onClick={async (e) => {
                               e.stopPropagation();
                               if (query.source.kind === "csv") return setCsvOptions(true);
+                              if (query.source.kind === "table") return setEnterData({ query });
                               const path = await transport.pick({ title: t("Locate the source"), directory: query.source.kind === "folder" });
                               if (path) setQuery("Change source", { ...query, source: { ...query.source, path: projectPath(project.path, path) } as Query["source"] });
                             }}
@@ -476,6 +517,24 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
           onDone={(qs) => {
             setSourceDialog(null);
             if (qs?.length) draft.change("New source", [...queries, ...qs], { query: qs[0]!.id });
+          }}
+        />
+      )}
+      {enterData && (
+        <EnterDataDialog
+          name={enterData.query?.name ?? uniqueQueryName(t("Table"), queries)}
+          source={enterData.query?.source.kind === "table" ? enterData.query.source : null}
+          onDone={(r) => {
+            const editing = enterData.query;
+            setEnterData(null);
+            if (!r) return;
+            if (editing) {
+              const others = queries.filter((x) => x.id !== editing.id);
+              setQuery("Edit table", { ...editing, name: r.name === editing.name ? r.name : uniqueQueryName(r.name, others), source: r.source });
+            } else {
+              const q = newQuery(r.name, r.source, queries);
+              draft.change("Enter data", [...queries, q], { query: q.id });
+            }
           }}
         />
       )}

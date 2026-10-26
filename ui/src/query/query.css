@@ -99,6 +99,21 @@
 .qe-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .qe-path { margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--fg-muted); overflow-wrap: anywhere; }
 
+/* Enter data */
+.qe-enter-wrap { max-height: 360px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); }
+.qe-enter { border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.qe-enter th, .qe-enter td { padding: 2px; border-bottom: 1px solid var(--border); border-inline-end: 1px solid var(--border); vertical-align: top; }
+.qe-enter th { position: sticky; top: 0; z-index: 1; background: var(--bg-raised); font-weight: 600; }
+.qe-enter .input, .qe-enter .select { width: 100%; min-width: 110px; height: 26px; font-size: 12px; }
+.qe-enter th .select { margin-top: 2px; }
+.qe-enter .qe-rownum { min-width: 32px; padding-inline: 6px; text-align: end; color: var(--fg-faint); font-weight: 400; vertical-align: middle; }
+.qe-enter-head { display: flex; align-items: center; gap: 2px; }
+.qe-enter-x { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); cursor: pointer; }
+.qe-enter-x:hover:not(:disabled) { background: var(--bg-hover); color: var(--fg-strong); }
+.qe-enter-x:disabled { opacity: 0.35; cursor: default; }
+.qe-enter-tools { display: flex; align-items: center; gap: 12px; }
+.qe-step-link { margin-inline-start: 6px; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Excel navigator */
 .qe-navigator { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 12px; height: 420px; }
 .qe-nav-list { display: grid; align-content: start; gap: 2px; overflow: auto; padding: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); }
