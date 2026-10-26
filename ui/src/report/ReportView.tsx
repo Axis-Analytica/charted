@@ -37,7 +37,9 @@ import { Canvas, usePageTheme } from "./Canvas";
 import { modelSignature, useVisualData } from "./data";
 import { CanvasScale, ThemeKey } from "./scale";
 import { BUILT_IN } from "./themes";
+import { copyPayload, pasteVisuals, readClipboard, writeClipboard } from "./clipboard";
 import { paint, usePainter } from "./painter";
+import { toast } from "../state/toasts";
 import { DataTable, VisualContainer } from "./VisualContainer";
 import { Menu } from "../kit/Menu";
 import { Button } from "../kit/Button";
@@ -294,8 +296,33 @@ export function ReportView({ model }: { model: Model }) {
     if (v) usePainter.getState().set({ source: { visualType: v.visualType, objects: v.objects ?? {} } });
   };
 
+  /** Copies the selected visuals to the clipboard (and removes them for a cut). */
+  const copyVisuals = async (cut: boolean) => {
+    const p = pageRef.current;
+    const project = useApp.getState().state?.project;
+    if (!p || !project) return;
+    const vs = p.visuals.filter((v) => useReport.getState().selected.includes(v.id));
+    if (!vs.length) return;
+    await writeClipboard(copyPayload(project.model, project.path, p, vs));
+    if (cut) await commit("Cut visuals", vs.map((v): Change => ({ op: "removeVisual", page: p.id, visual: v.id })));
+  };
+  const pasteClipboard = async () => {
+    const clip = await readClipboard();
+    const p = pageRef.current;
+    const project = useApp.getState().state?.project;
+    if (!clip || !p || !project) return;
+    const { visuals, dropped } = pasteVisuals(project.model, p, clip);
+    if (!visuals.length) return;
+    if (await commit(visuals.length > 1 ? "Paste visuals" : "Paste visual", visuals.map((v): Change => ({ op: "addVisual", page: p.id, visual: v, index: null })))) select(visuals.map((v) => v.id));
+    if (dropped) toast({ kind: "info", title: t("Some fields aren't in this model"), detail: t("%1 fields were left out of the pasted visuals.", dropped) });
+  };
+  const canPaste = () => useReport.getState().view === "report" && canvasFocused() && !window.getSelection()?.toString();
+
   useBookmarkShortcuts(model);
   useShortcut(
+    { id: "visual-copy", keys: "Ctrl+C", label: "Copy selected visuals", group: "Edit", run: () => void copyVisuals(false), enabled: () => hasSelection() && !window.getSelection()?.toString() },
+    { id: "visual-cut", keys: "Ctrl+X", label: "Cut selected visuals", group: "Edit", run: () => void copyVisuals(true), enabled: () => hasSelection() && !window.getSelection()?.toString() },
+    { id: "visual-paste", keys: "Ctrl+V", label: "Paste visuals", group: "Edit", run: () => void pasteClipboard(), enabled: canPaste },
     { id: "painter-off", keys: "Escape", label: "Turn off the format painter", group: "Edit", run: () => usePainter.getState().set({ armed: false, sticky: false }), enabled: () => usePainter.getState().armed },
     { id: "format-copy", keys: "Ctrl+Alt+C", label: "Copy formatting", group: "Edit", run: copyFormat, enabled: () => useReport.getState().selected.length === 1 && hasSelection() },
     {

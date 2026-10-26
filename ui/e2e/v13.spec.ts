@@ -9,6 +9,12 @@ async function openSample(page: Page) {
   await page.goto("/");
   const explore = page.getByRole("button", { name: "Explore the sample" });
   await expect(explore.or(page.locator(".shell"))).toBeVisible();
+  // Another spec may have left a different project open.
+  if (!(await explore.isVisible()) && !(await page.locator(".topbar").textContent())?.includes("Harbor & Pine")) {
+    await page.getByRole("button", { name: "File" }).click();
+    await page.getByRole("menuitem", { name: "Close project" }).click();
+    await expect(explore).toBeVisible();
+  }
   if (await explore.isVisible()) await explore.click();
   await expect(page.locator(".report-view")).toBeVisible({ timeout: 30_000 });
 }
@@ -70,10 +76,15 @@ async function cardMillions(card: Locator): Promise<number> {
   return Number(m[1]) * scale;
 }
 
+async function fileMenu(page: Page, item: string) {
+  await page.getByRole("button", { name: "File", exact: true }).click();
+  await page.getByRole("menuitem", { name: item }).click();
+}
+
 const layerNames = (page: Page) => page.locator(".selection-pane .layer-name").allTextContents();
 
 test.setTimeout(240_000);
-test.use({ actionTimeout: 15_000 });
+test.use({ actionTimeout: 15_000, permissions: ["clipboard-read", "clipboard-write"] });
 
 test("selection pane: layers, hide and show, select hidden visuals, reorder", async ({ page }) => {
   await openSample(page);
@@ -191,4 +202,61 @@ test("format several visuals at once, and the format painter", async ({ page }) 
   await c.click({ position: { x: 30, y: 20 } });
   await page.keyboard.press("Control+Alt+v");
   await expect(c.locator(".textbox")).toHaveCSS("font-size", "30px");
+});
+
+test("copy, cut and paste visuals: on the page, on another page, in another project", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Copies");
+  const card = await addVisual(page, "Card", { x: 200, y: 120 });
+  await tick(page, "Sales", "Total Sales");
+  await expect(card.locator(".card-value")).toHaveText(/\$/);
+  const text = await addVisual(page, "Text box", { x: 600, y: 120 });
+  await card.click({ position: { x: 20, y: 60 } });
+  await text.click({ position: { x: 20, y: 20 }, modifiers: ["Control"] });
+  await page.keyboard.press("Control+c");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("application/x-charted-visuals");
+
+  // Pasted on the same page: offset, on top and selected.
+  await page.keyboard.press("Control+v");
+  await expect(visuals(page)).toHaveCount(4);
+  const box = async (l: Locator) => (await l.boundingBox())!;
+  const [c0, c1] = [await box(card), await box(visuals(page).nth(2))];
+  expect(c1.x - c0.x).toBeGreaterThan(5);
+  expect(c1.y - c0.y).toBeGreaterThan(5);
+  await expect(visuals(page).nth(2).locator(".card-value")).toHaveText(/\$/);
+  await expect(visuals(page).nth(2)).toHaveAttribute("aria-selected", "true");
+  await expect(visuals(page).nth(3)).toHaveAttribute("aria-selected", "true");
+
+  // Cut them: they go, and paste back.
+  await page.keyboard.press("Control+x");
+  await expect(visuals(page)).toHaveCount(2);
+  await page.keyboard.press("Control+v");
+  await expect(visuals(page)).toHaveCount(4);
+
+  // On another page, at the same place.
+  await page.keyboard.press("Escape");
+  await card.click({ position: { x: 6, y: 6 } });
+  await page.keyboard.press("Control+c");
+  await newPage(page, "Elsewhere");
+  await page.keyboard.press("Control+v");
+  await expect(visuals(page)).toHaveCount(1);
+  const pasted = visuals(page).first();
+  await expect(pasted.locator(".card-value")).toHaveText(/\$/);
+  expect(Math.abs((await box(pasted)).x - c0.x)).toBeLessThan(2);
+  await shot(page, "v13-03-pasted");
+
+  // In another project without these fields: the visual comes, its fields don't.
+  await page.keyboard.press("Control+s");
+  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+  await fileMenu(page, "Close project");
+  await page.getByRole("button", { name: "New project…" }).click();
+  const dialog = page.getByRole("dialog", { name: "New project" });
+  await dialog.getByRole("textbox", { name: "Project name" }).fill("Paste target");
+  await dialog.getByRole("button", { name: "Create" }).click();
+  await expect(page.locator(".topbar")).toContainText("Paste target");
+  await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Control+v");
+  await expect(visuals(page)).toHaveCount(1);
+  await expect(page.getByText("Some fields aren't in this model")).toBeVisible();
+  await expect(visuals(page).first().locator(".visual-placeholder")).toBeVisible();
 });
