@@ -250,7 +250,7 @@ test("import a Power BI project, see what didn't come across, export and import 
   const report = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
   await expect(report).toBeVisible({ timeout: 30_000 });
   await expect(report).toContainText("4 tables (2 with data)");
-  for (const s of ["Time Calculations", "Regional managers", "Category Hierarchy", "Sql.Database", "map"]) await expect(report).toContainText(s);
+  for (const s of ["Time Calculations", "Regional managers", "Sql.Database", "map"]) await expect(report).toContainText(s);
   await shot(page, "m6-05-import-report");
   await report.getByRole("button", { name: "Done" }).click();
   await expect(report).toBeHidden();
@@ -258,6 +258,10 @@ test("import a Power BI project, see what didn't come across, export and import 
   await expect(visuals(page)).toHaveCount(4);
   await expect(visuals(page).filter({ has: page.locator(".card-value") }).locator(".card-value")).toHaveText(/\$/);
   await shot(page, "m6-06-imported");
+  // Its hierarchy came across (v1.1).
+  await page.locator(".fields-pane").getByLabel("Search fields").fill("Category Hierarchy");
+  await expect(page.locator(".fields-pane .field-row.is-hierarchy", { hasText: "Category Hierarchy" })).toHaveCount(1);
+  await page.locator(".fields-pane").getByLabel("Search fields").fill("");
 
   // Export for Power BI, and import that: everything comes back.
   await pick(page, `${tmp}/export`);

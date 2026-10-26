@@ -605,7 +605,7 @@ Power BI.
   drill-through; drill-through filters are view state.
 - Bookmarks keep data state only (no visibility/spotlight, selection or "current page"
   options); showing one is an undoable edit.
-- Import: hierarchies, calculation groups, roles, perspectives, translations,
+- Import: calculation groups, roles, perspectives, translations,
   calculated tables, field parameters, dynamic format strings and M beyond the file
   shapes in mquery.rs are reported, not imported. Visual formatting from Power BI is
   limited to titles and text boxes; PBIR export writes `themeCollection: {}` unless the
