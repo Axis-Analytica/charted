@@ -571,6 +571,39 @@ const MEASURES: &[(&str, &str)] = &[
         "Region Quantities",
         "CONCATENATEX ( VALUES ( Store[Region] ), [Quantity], \"|\" )",
     ),
+    // CALCULATETABLE, RELATEDTABLE, LOOKUPVALUE
+    (
+        "Red Sales Rows",
+        "COUNTROWS ( CALCULATETABLE ( Sales, Product[Color] = \"Red\" ) )",
+    ),
+    (
+        "Lines Via Related Table",
+        "SUMX ( Product, COUNTROWS ( RELATEDTABLE ( Sales ) ) )",
+    ),
+    (
+        "Qty Of North Products",
+        "SUMX ( CALCULATETABLE ( VALUES ( Product[Product] ), Store[Region] = \"North\" ), [Quantity] )",
+    ),
+    (
+        "Qty For North Products",
+        "CALCULATE ( [Quantity], CALCULATETABLE ( VALUES ( Product[Product] ), Store[Region] = \"North\" ) )",
+    ),
+    (
+        "Tent List Price",
+        "LOOKUPVALUE ( Product[ListPrice], Product[Product], \"Tent\" )",
+    ),
+    (
+        "Price Of Top Key",
+        "LOOKUPVALUE ( Product[ListPrice], Product[ProductKey], MAX ( Sales[ProductKey] ), -1 )",
+    ),
+    (
+        "Looked Up Value",
+        "SUMX ( Sales, Sales[Qty] * LOOKUPVALUE ( Product[ListPrice], Product[ProductKey], Sales[ProductKey] ) )",
+    ),
+    (
+        "Green Category",
+        "LOOKUPVALUE ( Product[Category], Product[Color], \"Green\" )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1191,6 +1224,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "FILTER ( ALL ( Store[Region] ), [Quantity] > 30 )",
         "DATESINPERIOD ( Date[Date], EOMONTH ( MAX ( Date[Date] ), -1 ), -2, MONTH )",
         "TOPN ( 3, ALL ( Product[Product] ), [Sales Amount] )",
+        "CALCULATETABLE ( VALUES ( Product[Category] ), Store[Region] <> \"South\" )",
     ];
     const ITERS: &[&str] = &[
         "SUMX ( VALUES ( Product[Category] ), {} )",
@@ -1202,6 +1236,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MAXX ( ALLSELECTED ( Date[MonthNumber] ), {} )",
         "AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), {} )",
         "SUMX ( TOPN ( 2, VALUES ( Product[Product] ), [Quantity] ), {} )",
+        "SUMX ( CALCULATETABLE ( VALUES ( Store[Region] ), Product[Category] = \"Camping\" ), {} )",
     ];
     if depth == 0 {
         return r.pick(AGGS).to_string();
@@ -1497,4 +1532,71 @@ fn running_totals_accumulate() {
         );
     }
     assert_eq!(total, 269.0);
+}
+
+/// LOOKUPVALUE that finds several different values is an error in both engines, unless
+/// an alternate result is given.
+#[test]
+fn lookupvalue_with_several_values_is_an_error() {
+    let mut f = fixture();
+    for (id, expr) in [
+        (
+            "m:clash",
+            "LOOKUPVALUE ( Product[Product], Product[Color], \"Green\" )",
+        ),
+        (
+            "m:clash-alt",
+            "LOOKUPVALUE ( Product[Product], Product[Color], \"Green\", \"several\" )",
+        ),
+    ] {
+        f.model.table_mut("Sales").unwrap().measures.push(Measure {
+            id: id.into(),
+            name: id.into(),
+            expression: expr.into(),
+            language: ExpressionLanguage::Dax,
+            description: None,
+            format_string: None,
+            display_folder: None,
+            hidden: false,
+            extras: Default::default(),
+        });
+    }
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let card = |id: &str| VisualQuery {
+        values: vec![Projection {
+            field: FieldRef::Measure {
+                table: "Sales".into(),
+                measure: id.into(),
+            },
+            aggregation: None,
+            display_name: None,
+        }],
+        ..Default::default()
+    };
+    let q = card("m:clash");
+    assert!(
+        interp::run(&f.model, &f.data, &q)
+            .unwrap_err()
+            .contains("more than one value")
+    );
+    let sql = visual::compile(&f.model, &schema, &q).unwrap().sql;
+    assert!(
+        f.db.arrow(&sql)
+            .unwrap_err()
+            .to_string()
+            .contains("more than one value")
+    );
+    let q = card("m:clash-alt");
+    assert_eq!(
+        interp::run(&f.model, &f.data, &q).unwrap(),
+        vec![vec![t("several")]]
+    );
+    let sql = visual::compile(&f.model, &schema, &q).unwrap().sql;
+    assert_eq!(
+        arrow_values(f.db.arrow(&sql).unwrap()),
+        vec![vec![t("several")]]
+    );
 }

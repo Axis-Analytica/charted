@@ -549,6 +549,10 @@ impl<'a> Interp<'a> {
                 Ok(out)
             }
             TableExpr::List(_) => Err("lists are not tables here".into()),
+            TableExpr::CalculateTable { source, filters } => {
+                let c = self.calc_ctx(filters, ctx, rows)?;
+                self.eval_table(source, &c, rows)
+            }
             TableExpr::TopN { n, source, order } => {
                 let n = self.eval(n, ctx, rows)?.num().unwrap_or(0.0);
                 let mut keyed = Vec::new();
@@ -732,6 +736,12 @@ impl<'a> Interp<'a> {
         ctx: &Ctx,
         rows: &[Row],
     ) -> Result<Value> {
+        let c = self.calc_ctx(filters, ctx, rows)?;
+        self.eval(expr, &c, rows)
+    }
+
+    /// The context CALCULATE's filters make of `ctx` (with the current rows transitioned).
+    fn calc_ctx(&mut self, filters: &[FilterArg], ctx: &Ctx, rows: &[Row]) -> Result<Ctx> {
         // Filter arguments see the outer context. Rows they read (other regions' sales
         // in `FILTER ( ALL ( Store[Region] ), [Sales] > 0 )`) don't give the visual row
         // data.
@@ -813,7 +823,7 @@ impl<'a> Interp<'a> {
             }
         }
         c.filters.extend(new.into_iter().map(|(f, _)| f));
-        self.eval(expr, &c, rows)
+        Ok(c)
     }
 
     fn measure(&mut self, id: &str, ctx: &Ctx, rows: &[Row]) -> Result<Value> {
@@ -1105,7 +1115,7 @@ impl<'a> Interp<'a> {
                 alternate,
             } => {
                 match func {
-                    InfoFunc::SelectedValue | InfoFunc::HasOneValue => {
+                    InfoFunc::SelectedValue | InfoFunc::HasOneValue | InfoFunc::Lookup => {
                         let col = column.clone().unwrap_or_default();
                         let vals = self.eval_table(
                             &TableExpr::Values {
@@ -1119,6 +1129,9 @@ impl<'a> Interp<'a> {
                             self.touched = true;
                         }
                         let one = vals.len() == 1;
+                        if *func == InfoFunc::Lookup && vals.len() > 1 && alternate.is_none() {
+                            return Err("LOOKUPVALUE found more than one value".into());
+                        }
                         if *func == InfoFunc::HasOneValue {
                             Value::Bool(one)
                         } else if one {
@@ -1759,7 +1772,7 @@ fn reads_rows(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> bool {
     charted_dax::bind::walk(b, &mut |x| match x {
         Bound::Aggregate { .. } | Bound::Rank { .. } | Bound::ConcatX { .. } => found = true,
         Bound::Info {
-            func: InfoFunc::SelectedValue | InfoFunc::HasOneValue,
+            func: InfoFunc::SelectedValue | InfoFunc::HasOneValue | InfoFunc::Lookup,
             ..
         } => found = true,
         Bound::Measure { measure, .. } if !stack.contains(measure) => {

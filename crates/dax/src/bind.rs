@@ -77,6 +77,9 @@ pub enum InfoFunc {
     IsFiltered,
     /// The column is a grouping level of the current visual row.
     IsInScope,
+    /// LOOKUPVALUE's result: the column's only visible value, the alternate when there
+    /// is none, an error when there are several.
+    Lookup,
 }
 
 /// A calendar unit of the time-intelligence functions.
@@ -160,6 +163,12 @@ pub enum TableExpr {
     List(Vec<Bound>),
     /// Dates of a date column computed from the visible ones (time intelligence).
     Dates { table: Id, column: Id, op: DateOp },
+    /// CALCULATETABLE (and RELATEDTABLE, with no filters): the rows of `source` in the
+    /// context changed by `filters` (the current rows transitioned).
+    CalculateTable {
+        source: Box<TableExpr>,
+        filters: Vec<FilterArg>,
+    },
     /// TOPN: the rows of `source` ranked within the first `n` by the order expressions
     /// (evaluated per row; `true` ascending), ties at the cut kept.
     TopN {
@@ -178,7 +187,9 @@ impl TableExpr {
             | TableExpr::All { table: t, .. }
             | TableExpr::AllSelected { table: t, .. }
             | TableExpr::Dates { table: t, .. } => Some(t),
-            TableExpr::Filter { source, .. } | TableExpr::TopN { source, .. } => source.table(),
+            TableExpr::Filter { source, .. }
+            | TableExpr::TopN { source, .. }
+            | TableExpr::CalculateTable { source, .. } => source.table(),
             TableExpr::List(_) => None,
         }
     }
@@ -198,7 +209,9 @@ impl TableExpr {
                 None
             }
             TableExpr::Dates { column, .. } => Some(std::slice::from_ref(column)),
-            TableExpr::Filter { source, .. } | TableExpr::TopN { source, .. } => source.columns(),
+            TableExpr::Filter { source, .. }
+            | TableExpr::TopN { source, .. }
+            | TableExpr::CalculateTable { source, .. } => source.columns(),
             TableExpr::List(_) => Some(&[]),
         }
     }
@@ -315,7 +328,6 @@ pub enum Bound {
 pub const KNOWN: &[&str] = &[
     "ADDCOLUMNS",
     "AVERAGEA",
-    "CALCULATETABLE",
     "CEILING",
     "COUNTAX",
     "CROSSFILTER",
@@ -332,7 +344,6 @@ pub const KNOWN: &[&str] = &[
     "LASTNONBLANK",
     "LN",
     "LOG",
-    "LOOKUPVALUE",
     "MAXA",
     "MEDIAN",
     "MEDIANX",
@@ -344,7 +355,6 @@ pub const KNOWN: &[&str] = &[
     "POWER",
     "PRODUCT",
     "PRODUCTX",
-    "RELATEDTABLE",
     "REPLACE",
     "ROUNDDOWN",
     "ROUNDUP",
@@ -375,6 +385,7 @@ pub const SUPPORTED: &[&str] = &[
     "AVERAGEX",
     "BLANK",
     "CALCULATE",
+    "CALCULATETABLE",
     "COALESCE",
     "CONCATENATE",
     "CONCATENATEX",
@@ -411,6 +422,7 @@ pub const SUPPORTED: &[&str] = &[
     "LASTDATE",
     "LEFT",
     "LEN",
+    "LOOKUPVALUE",
     "LOWER",
     "MAX",
     "MAXX",
@@ -433,6 +445,7 @@ pub const SUPPORTED: &[&str] = &[
     "QUARTER",
     "RANKX",
     "RELATED",
+    "RELATEDTABLE",
     "REMOVEFILTERS",
     "RIGHT",
     "ROUND",
@@ -989,6 +1002,18 @@ impl<'a> Binder<'a> {
                         let (table, columns) = self.all_args(&upper, args, e.span)?;
                         Some(TableExpr::AllSelected { table, columns })
                     }
+                    "CALCULATETABLE" | "RELATEDTABLE" => {
+                        let max = if upper == "RELATEDTABLE" { 1 } else { usize::MAX };
+                        if !self.arity(&upper, args, e.span, 1, max) {
+                            return None;
+                        }
+                        let source = self.table_expr(&args[0], rows)?;
+                        let filters: Vec<Option<FilterArg>> = args[1..].iter().map(|a| self.filter_arg(a, rows)).collect();
+                        Some(TableExpr::CalculateTable {
+                            source: Box::new(source),
+                            filters: filters.into_iter().collect::<Option<Vec<_>>>()?,
+                        })
+                    }
                     "TOPN" => {
                         if !self.arity(&upper, args, e.span, 3, usize::MAX) {
                             return None;
@@ -1155,10 +1180,11 @@ impl<'a> Binder<'a> {
                             .and(None),
                     };
                 }
-                "FILTER" | "VALUES" | "DISTINCT" | "TOPN" | "SAMEPERIODLASTYEAR" | "DATEADD"
-                | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD"
-                | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER"
-                | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
+                "FILTER" | "VALUES" | "DISTINCT" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE"
+                | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD"
+                | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY"
+                | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY"
+                | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => {
                     return Some(FilterArg::Table(self.table_expr(e, rows)?));
                 }
                 _ => {}
@@ -1385,6 +1411,55 @@ impl<'a> Binder<'a> {
                     column: c.id.clone(),
                 })
             }
+            "LOOKUPVALUE" => {
+                if args.len() < 3 {
+                    return self.err(span, "LOOKUPVALUE takes a result column, then search columns and values");
+                }
+                let (rt, rc) = self.column_arg(&args[0])?;
+                let pairs = (args.len() - 1) / 2;
+                let alternate = if args.len().is_multiple_of(2) { Some(Box::new(self.expr(&args[args.len() - 1], rows)?)) } else { None };
+                // Each value is a variable, evaluated in the calling context; the search
+                // columns are FILTER ( ALL ( column ), column = value ) arguments.
+                let mut lets = Vec::new();
+                let mut filters = Vec::new();
+                for i in 0..pairs {
+                    let (st, sc) = self.column_arg(&args[1 + 2 * i])?;
+                    let value = self.expr(&args[2 + 2 * i], rows)?;
+                    let name = format!("__lookup{}_{i}", self.vars.len());
+                    lets.push((name.clone(), value));
+                    filters.push(FilterArg::Table(TableExpr::Filter {
+                        source: Box::new(TableExpr::All {
+                            table: st.id.clone(),
+                            columns: vec![sc.id.clone()],
+                        }),
+                        condition: Box::new(Bound::Binary {
+                            op: BinaryOp::Eq,
+                            left: Box::new(Bound::Column {
+                                table: st.id.clone(),
+                                column: sc.id.clone(),
+                            }),
+                            right: Box::new(Bound::Var(name)),
+                        }),
+                    }));
+                }
+                let mut out = Bound::Calculate {
+                    expr: Box::new(Bound::Info {
+                        func: InfoFunc::Lookup,
+                        table: rt.id.clone(),
+                        column: Some(rc.id.clone()),
+                        alternate,
+                    }),
+                    filters,
+                };
+                for (name, value) in lets.into_iter().rev() {
+                    out = Bound::Let {
+                        name,
+                        value: Box::new(value),
+                        body: Box::new(out),
+                    };
+                }
+                Some(out)
+            }
             "SELECTEDVALUE" | "HASONEVALUE" | "ISINSCOPE" | "ISFILTERED" => {
                 let (min, max) = if upper == "SELECTEDVALUE" { (1, 2) } else { (1, 1) };
                 if !self.arity(&upper, args, span, min, max) {
@@ -1536,7 +1611,7 @@ impl<'a> Binder<'a> {
                     })),
                 })
             }
-            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
+            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
             | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
@@ -1736,6 +1811,10 @@ fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
             walk(condition, f);
         }
         TableExpr::List(items) => items.iter().for_each(|a| walk(a, f)),
+        TableExpr::CalculateTable { source, filters } => {
+            walk_table(source, f);
+            filters.iter().for_each(|fa| walk_filter(fa, f));
+        }
         TableExpr::TopN { n, source, order } => {
             walk(n, f);
             walk_table(source, f);

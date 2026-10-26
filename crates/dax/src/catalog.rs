@@ -247,6 +247,11 @@ pub fn support_markdown() -> String {
            descending by default with blank as zero, and works as a CALCULATE filter or an \
            iterated table. **CONCATENATEX** takes its delimiter as text and orders by its \
            order expression, then by the text.\n\
+         - **LOOKUPVALUE** filters the search columns to the values (evaluated where it is \
+           called) in the current filter context, and returns the result column's value; \
+           several different values are an error unless there is an alternate result. \
+           **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context \
+           and can be iterated or used as filters.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (87 functions)
+## Evaluated (90 functions)
 
 ### Aggregation
 
@@ -46,6 +46,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ALLEXCEPT ( Table, Column, [Column]… )` | Removes all filters on a table except those on the listed columns. |
 | `ALLSELECTED ( [TableOrColumn], [Column]… )` | Removes filters from inside the visual, keeping the filters from outside it (slicers, page and report filters). |
 | `CALCULATE ( Expression, [Filter]… )` | Evaluates an expression in a filter context changed by the filters. |
+| `CALCULATETABLE ( Table, [Filter]… )` | Evaluates a table in a filter context changed by the filters. |
 | `FILTER ( Table, FilterExpression )` | The rows of a table for which the expression is TRUE. |
 | `KEEPFILTERS ( Filter )` | Applies a CALCULATE filter on top of existing filters instead of replacing them. |
 | `REMOVEFILTERS ( [TableOrColumn], [Column]… )` | Removes filters from tables or columns (in CALCULATE). |
@@ -59,6 +60,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ISBLANK ( Value )` | TRUE when the value is blank. |
 | `ISFILTERED ( TableOrColumn )` | TRUE when the column (or any column of the table) is filtered directly. |
 | `ISINSCOPE ( Column )` | TRUE when the column is a grouping level of the current row in the visual. |
+| `LOOKUPVALUE ( ResultColumn, SearchColumn, SearchValue, [SearchColumn, SearchValue]…, [AlternateResult] )` | The value of a column in the row matching the search values. |
 | `SELECTEDVALUE ( Column, [AlternateResult] )` | The column's value when the filter context leaves exactly one, otherwise the alternate result. |
 
 ### Logical
@@ -89,6 +91,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | Function | Description |
 |---|---|
 | `RELATED ( Column )` | The value of a column in the related table on the one side of a relationship. |
+| `RELATEDTABLE ( Table )` | The rows of a table on the many side related to the current row. |
 | `USERELATIONSHIP ( ColumnName1, ColumnName2 )` | Uses an inactive relationship for the duration of a CALCULATE. |
 
 ### Statistical
@@ -158,12 +161,13 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **DATESINPERIOD and DATESBETWEEN** take any date expression for their ends (`MAX ( 'Date'[Date] )`, `EOMONTH ( MAX ( 'Date'[Date] ), -1 )`, `TODAY ()`, a variable), evaluated in the outer filter context; a blank end of DATESBETWEEN is open. Time-intelligence tables can be iterated (`AVERAGEX ( DATESINPERIOD ( … ), [Sales] )`) as well as used as filters.
 - **RANKX** ranks with blank as zero (or empty text), descending by default; ties share a rank and skip the next ones unless DENSE. The value argument may be left out (`RANKX ( T, e, , ASC )`).
 - **TOPN** keeps the rows tied at the cut (so it can return more than N), orders descending by default with blank as zero, and works as a CALCULATE filter or an iterated table. **CONCATENATEX** takes its delimiter as text and orders by its order expression, then by the text.
+- **LOOKUPVALUE** filters the search columns to the values (evaluated where it is called) in the current filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
 - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (49)
+## Recognised, not yet evaluated (46)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`ADDCOLUMNS`, `AVERAGEA`, `CALCULATETABLE`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EARLIER`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `LOOKUPVALUE`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `RELATEDTABLE`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`
+`ADDCOLUMNS`, `AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EARLIER`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`

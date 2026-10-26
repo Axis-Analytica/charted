@@ -299,6 +299,12 @@ struct Compiler<'a> {
     dom: Option<String>,
     dks: Vec<(Id, String, Vec<String>)>,
     counter: usize,
+    /// CTEs that give visual rows data besides the values' own: variables' values
+    /// (evaluated whether used or not, as the interpreter does).
+    extra_top: BTreeSet<usize>,
+    /// A value read the visual's own key (SELECTEDVALUE): every row of the key domain
+    /// has data.
+    dom_rows: bool,
 }
 
 fn alias(model: &Model, table: &str) -> String {
@@ -1328,8 +1334,13 @@ impl<'a> Compiler<'a> {
                     "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
-            TableExpr::Filter { .. } | TableExpr::AllSelected { .. } | TableExpr::TopN { .. } => {
-                unreachable!("filters and ALLSELECTED were unwrapped; TOPN takes the frame path")
+            TableExpr::Filter { .. }
+            | TableExpr::AllSelected { .. }
+            | TableExpr::TopN { .. }
+            | TableExpr::CalculateTable { .. } => {
+                unreachable!(
+                    "filters and ALLSELECTED were unwrapped; TOPN and CALCULATETABLE take the frame path"
+                )
             }
         };
         let mut related: Vec<(Id, Id)> = Vec::new();
@@ -2011,6 +2022,15 @@ impl<'a> Compiler<'a> {
                     _ => unreachable!("matched above"),
                 }
             }
+            // CALCULATETABLE as a filter: its rows per frame row.
+            TableExpr::CalculateTable { source, .. } => {
+                let replaces = matches!(
+                    &**source,
+                    TableExpr::All { .. } | TableExpr::AllSelected { .. }
+                );
+                let f = self.filter_set(t, outer, frame, rows)?;
+                added.push((f, keep || !replaces));
+            }
             // TOPN as a filter: its rows per frame row.
             TableExpr::TopN { source, .. } => {
                 let replaces = matches!(
@@ -2589,6 +2609,17 @@ impl<'a> Compiler<'a> {
             Some((t, c)) => (t, c),
             None => (cur, ctx),
         };
+        // CALCULATETABLE: its source's rows read in the context its filters make (the
+        // current rows transitioned); FILTERs around it test them in this one.
+        if let TableExpr::CalculateTable { source, filters } = cur {
+            let inner = self.calculate_ctx(ctx, filters, frame, rows)?;
+            let mut rf = self.row_frame(source, exprs, &inner, frame, rows)?;
+            for c in conds {
+                let s = self.scalar(c, ctx, &rf.frame, &rf.rows)?;
+                rf.conds.push(bool_of(&(s.sql, s.ty)));
+            }
+            return Ok(rf);
+        }
         // TOPN: its source's rows per row of the frame, ranked within each.
         if let TableExpr::TopN { n, source, order } = cur {
             return self.top_rows(n, source, order, conds, ctx, frame, rows);
@@ -2648,8 +2679,9 @@ impl<'a> Compiler<'a> {
             TableExpr::Filter { .. }
             | TableExpr::AllSelected { .. }
             | TableExpr::Dates { .. }
-            | TableExpr::TopN { .. } => {
-                unreachable!("filters, ALLSELECTED, dates and TOPN were handled")
+            | TableExpr::TopN { .. }
+            | TableExpr::CalculateTable { .. } => {
+                unreachable!("filters, ALLSELECTED, dates, TOPN and CALCULATETABLE were handled")
             }
         };
         let tab = table(self.model, &t)?;
@@ -2882,6 +2914,13 @@ impl<'a> Compiler<'a> {
                 .ok_or_else(|| CompileError::Field(format!("unknown variable {name}"))),
             Bound::Let { name, value, body } => {
                 let v = self.scalar(value, ctx, frame, rows)?;
+                if frame.rel == "k" {
+                    let mut parts = v.sql.split('\u{1}');
+                    parts.next();
+                    while let (Some(idx), Some(_)) = (parts.next(), parts.next()) {
+                        self.extra_top.insert(idx.parse().unwrap_or(0));
+                    }
+                }
                 self.vars.push((name.clone(), v));
                 let out = self.scalar(body, ctx, frame, rows);
                 self.vars.pop();
@@ -2928,7 +2967,12 @@ impl<'a> Compiler<'a> {
                         t = source;
                     }
                     // Date sets are per frame row: they always take the frame path.
-                    ok && !matches!(t, TableExpr::Dates { .. } | TableExpr::TopN { .. })
+                    ok && !matches!(
+                        t,
+                        TableExpr::Dates { .. }
+                            | TableExpr::TopN { .. }
+                            | TableExpr::CalculateTable { .. }
+                    )
                 };
                 if pure {
                     self.simple_aggregate(*func, source, arg.as_deref(), ctx)
@@ -2983,10 +3027,17 @@ impl<'a> Compiler<'a> {
                     });
                     lit(hit.to_string().to_uppercase(), ValueType::Bool)
                 }
-                InfoFunc::SelectedValue | InfoFunc::HasOneValue => {
+                InfoFunc::SelectedValue | InfoFunc::HasOneValue | InfoFunc::Lookup => {
                     let col = column.clone().unwrap_or_default();
                     let ty = ValueType::of(self.column_type(table, &col));
-                    if let Some(k) = ctx.keys.iter().find(|k| k.column == col) {
+                    // The visual's own key (LOOKUPVALUE checks the rows: its search may
+                    // leave none).
+                    if let Some(k) = ctx.keys.iter().find(|k| k.column == col)
+                        && *func != InfoFunc::Lookup
+                    {
+                        if frame.rel == "k" && self.is_visual_ctx(ctx) {
+                            self.dom_rows = true;
+                        }
                         return if *func == InfoFunc::HasOneValue {
                             lit("TRUE".into(), ValueType::Bool)
                         } else {
@@ -3023,9 +3074,19 @@ impl<'a> Compiler<'a> {
                         },
                     };
                     let (parts, ty) = unify(&[(v.sql, ty), (alt.sql, alt.ty)]);
+                    // LOOKUPVALUE: several values are an error (unless there's an
+                    // alternate), as in Power BI.
+                    let several = if *func == InfoFunc::Lookup && alternate.is_none() {
+                        format!(
+                            " WHEN {} > 1 THEN error('LOOKUPVALUE found more than one value')",
+                            n.sql
+                        )
+                    } else {
+                        String::new()
+                    };
                     lit(
                         format!(
-                            "(CASE WHEN {} = 1 THEN {} ELSE {} END)",
+                            "(CASE WHEN {} = 1 THEN {}{several} ELSE {} END)",
                             n.sql, parts[0], parts[1]
                         ),
                         ty,
@@ -3181,6 +3242,8 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         dom: None,
         dks: Vec::new(),
         counter: 0,
+        extra_top: BTreeSet::new(),
+        dom_rows: false,
     };
 
     // Column filters (Top N filters become value lists via a subquery); value filters
@@ -3263,9 +3326,10 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
             top.insert(idx.parse().unwrap_or(0));
         }
     }
+    top.extend(c.extra_top.iter().copied());
     let k_sql = if key_names.is_empty() {
         "SELECT 1 AS one".to_string()
-    } else if top.is_empty() {
+    } else if top.is_empty() || c.dom_rows {
         format!("SELECT * FROM {}", c.domain()?)
     } else {
         let mut parts = Vec::new();
@@ -3514,6 +3578,8 @@ pub fn calculated_column(
         dom: None,
         dks: Vec::new(),
         counter: 0,
+        extra_top: BTreeSet::new(),
+        dom_rows: false,
     };
     let mut related = Vec::new();
     related_refs(&bound, &mut related);

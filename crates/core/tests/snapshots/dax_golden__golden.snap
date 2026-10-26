@@ -691,6 +691,67 @@ expression: golden
 "Camping" | "21|24|37"
 "Footwear" | "17|23|33"
 
+## Red Sales Rows — card
+25
+
+## Red Sales Rows — by category
+"Apparel" | 25
+
+## Lines Via Related Table — card
+89
+
+## Lines Via Related Table — by category
+"Apparel" | 38
+"Camping" | 29
+"Footwear" | 22
+
+## Qty Of North Products — card
+269
+
+## Qty Of North Products — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Qty For North Products — card
+269
+
+## Qty For North Products — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Tent List Price — card
+300
+
+## Tent List Price — by category
+"Camping" | 300
+
+## Price Of Top Key — card
+-1
+
+## Price Of Top Key — by category
+∅ | -1
+"Apparel" | 30
+"Camping" | 40
+"Footwear" | 60
+
+## Looked Up Value — card
+28205
+
+## Looked Up Value — by category
+"Apparel" | 8225
+"Camping" | 12180
+"Footwear" | 7800
+
+## Green Category — card
+"Camping"
+
+## Green Category — by category
+"Camping" | "Camping"
+
 ## Neither Apparel Nor Camping — card
 76
 
