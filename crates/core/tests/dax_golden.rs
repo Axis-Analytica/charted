@@ -1600,3 +1600,87 @@ fn lookupvalue_with_several_values_is_an_error() {
         vec![vec![t("several")]]
     );
 }
+
+/// Row-level security: with role filters on Store and Product, every measure agrees,
+/// and ALL inside a measure doesn't see past them.
+#[test]
+fn security_filters_agree_with_the_reference_interpreter() {
+    let f = fixture();
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = f.model.tables.iter().find(|t| t.source == source)?;
+        t.columns.iter().find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column)).map(|c| c.data_type)
+    };
+    let security = vec![
+        visual::RowFilter {
+            table: "Store".into(),
+            expression: "Store[Region] <> \"North\"".into(),
+        },
+        visual::RowFilter {
+            table: "Product".into(),
+            expression: "Product[Category] <> \"Apparel\"".into(),
+        },
+    ];
+    let mut failures = Vec::new();
+    for (name, _) in MEASURES {
+        for (shape, base) in shapes(&f.model) {
+            let q = VisualQuery {
+                values: vec![Projection {
+                    field: FieldRef::Measure {
+                        table: "Sales".into(),
+                        measure: format!("m:{name}"),
+                    },
+                    aggregation: None,
+                    display_name: None,
+                }],
+                security: security.clone(),
+                ..base
+            };
+            let expected = interp::run(&f.model, &f.data, &q).map(canonical);
+            let got = visual::compile(&f.model, &schema, &q)
+                .map_err(|e| e.to_string())
+                .and_then(|c| f.db.arrow(&c.sql).map_err(|e| e.to_string()))
+                .map(|b| canonical(arrow_values(b)));
+            match (expected, got) {
+                (Ok(e), Ok(g)) => {
+                    let ok = g.len() == e.len()
+                        && g.iter()
+                            .zip(&e)
+                            .all(|(a, b)| a.iter().zip(b).all(|(x, y)| same(x, y)));
+                    if !ok {
+                        failures.push(format!(
+                            "{name} / {shape}:\n  expected:\n    {}\n  got:\n    {}",
+                            show(&e).replace('\n', "\n    "),
+                            show(&g).replace('\n', "\n    ")
+                        ));
+                    }
+                }
+                (e, g) => {
+                    failures.push(format!("{name} / {shape}: {:?} vs {:?}", e.err(), g.err()))
+                }
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "{} cases differ:\n\n{}",
+        failures.len(),
+        failures.join("\n\n")
+    );
+    // All products, as the role sees them: no Apparel.
+    let q = VisualQuery {
+        values: vec![Projection {
+            field: FieldRef::Measure {
+                table: "Sales".into(),
+                measure: "m:Product Count".into(),
+            },
+            aggregation: None,
+            display_name: None,
+        }],
+        security,
+        ..Default::default()
+    };
+    assert_eq!(
+        interp::run(&f.model, &f.data, &q).unwrap(),
+        vec![vec![n(5.0)]]
+    );
+}

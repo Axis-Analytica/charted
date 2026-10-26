@@ -1556,6 +1556,15 @@ fn kind_holds(v: &Value, kind: &FilterKind, text: bool) -> bool {
 /// Evaluates a visual query. Rows hold the groups then the values; they come back in
 /// the order requested (by default, ascending by the groups).
 pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>>> {
+    // Row-level security restricts the data itself.
+    if !q.security.is_empty() {
+        let secured = secure(model, data, &q.security)?;
+        let open = VisualQuery {
+            security: Vec::new(),
+            ..q.clone()
+        };
+        return run(model, &secured, &open);
+    }
     let mut it = Interp {
         model,
         data,
@@ -1639,6 +1648,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
                 }],
                 limit: Some(*count),
                 keys: false,
+                security: Vec::new(),
             },
         )?;
         let FieldRef::Column { table, column } = &f.field.field else {
@@ -1767,6 +1777,62 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
 }
 
 /// Whether evaluating an expression reads table rows (aggregates, VALUES…).
+/// The rows a role sees: each table's rows whose own row, and the rows they reach
+/// through many-to-one relationships, pass the role's filters (a missing related row
+/// doesn't).
+fn secure(model: &Model, data: &Data, filters: &[crate::visual::RowFilter]) -> Result<Data> {
+    let mut it = Interp {
+        model,
+        data,
+        vars: Vec::new(),
+        touched: false,
+    };
+    let mut conds = Vec::new();
+    for f in filters {
+        let (b, d) = charted_dax::check_in(model, &f.expression, Some(&f.table));
+        let b = b.ok_or_else(|| d.first().map(|d| d.message.clone()).unwrap_or_default())?;
+        conds.push((f.table.clone(), b));
+    }
+    let many_to_one = |h: &Hop| {
+        model
+            .relationships
+            .iter()
+            .any(|r| r.from_column == h.from_col && r.to_column == h.to_col)
+    };
+    let mut tables = HashMap::new();
+    for (tid, td) in &data.tables {
+        let mut rows = Vec::new();
+        'rows: for r in &td.rows {
+            for (st, b) in &conds {
+                let target = if st == tid {
+                    Some(r.clone())
+                } else {
+                    match it.path(&Ctx::default(), tid, st) {
+                        Some(hops) if hops.iter().all(many_to_one) => {
+                            it.follow(tid, r, &hops)?.map(|(_, v)| v)
+                        }
+                        _ => continue,
+                    }
+                };
+                let Some(target) = target else { continue 'rows };
+                let row = it.to_row(st, &target, None)?;
+                if !it.eval(b, &Ctx::default(), &[row])?.truthy() {
+                    continue 'rows;
+                }
+            }
+            rows.push(r.clone());
+        }
+        tables.insert(
+            tid.clone(),
+            TableData {
+                columns: td.columns.clone(),
+                rows,
+            },
+        );
+    }
+    Ok(Data { tables })
+}
+
 fn reads_rows(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> bool {
     let mut found = false;
     charted_dax::bind::walk(b, &mut |x| match x {

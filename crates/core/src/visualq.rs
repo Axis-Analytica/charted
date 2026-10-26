@@ -91,6 +91,7 @@ pub fn field_values_sql(
             }],
             limit: None,
             keys: false,
+            security: Vec::new(),
         },
     )?;
     let search = search
@@ -731,6 +732,7 @@ fn slicer_sql(
         order: vec![],
         limit: Some(5_000),
         keys: true,
+        security: q.security,
     };
     let search = search.map(str::trim).filter(|s| !s.is_empty());
     let Some(search) = search else {

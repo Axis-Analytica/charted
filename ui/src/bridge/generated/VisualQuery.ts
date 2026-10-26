@@ -2,6 +2,7 @@
 import type { OrderBy } from "./OrderBy";
 import type { Projection } from "./Projection";
 import type { QueryFilter } from "./QueryFilter";
+import type { RowFilter } from "./RowFilter";
 
 /**
  * What a visual asks for. Output columns are named `g0…` for groups and `v0…` for
@@ -24,4 +25,10 @@ order: Array<OrderBy>, limit: number | null,
  * Also return each group's value as text (`k0…`, after the values), as filters
  * compare it: selections in a visual become filters on these.
  */
-keys: boolean, };
+keys: boolean, 
+/**
+ * Row-level security: rows of these tables, and of the tables that reach them
+ * through many-to-one relationships, are left out unless the condition holds.
+ * Unlike filters, nothing in DAX removes them.
+ */
+security?: Array<RowFilter>, };

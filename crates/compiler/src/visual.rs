@@ -99,6 +99,20 @@ pub struct VisualQuery {
     /// compare it: selections in a visual become filters on these.
     #[serde(default)]
     pub keys: bool,
+    /// Row-level security: rows of these tables, and of the tables that reach them
+    /// through many-to-one relationships, are left out unless the condition holds.
+    /// Unlike filters, nothing in DAX removes them.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub security: Vec<RowFilter>,
+}
+
+/// A role's filter on a table: a DAX condition evaluated per row (`[Region] = "North"`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RowFilter {
+    pub table: Id,
+    pub expression: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, Serialize, Deserialize, TS)]
@@ -305,6 +319,8 @@ struct Compiler<'a> {
     /// A value read the visual's own key (SELECTEDVALUE): every row of the key domain
     /// has data.
     dom_rows: bool,
+    /// Row-level security conditions by table (row expressions over the table).
+    security: Vec<(Id, Bound)>,
 }
 
 fn alias(model: &Model, table: &str) -> String {
@@ -1118,23 +1134,45 @@ impl<'a> Compiler<'a> {
 
     /// SQL that is true when another table refers to keys `t` lacks: `t` then has a blank
     /// member (DAX's blank row).
-    fn blank_exists(&self, t: &str) -> Result<Option<String>> {
+    fn blank_exists(&mut self, t: &str) -> Result<Option<String>> {
         let mut exists = Vec::new();
-        for r in self
+        let rels: Vec<(Id, Id, Id)> = self
             .model
             .relationships
             .iter()
             .filter(|r| r.active && r.to_table == t)
-        {
-            let (fk, _) = self.column_sql(&r.from_table, &r.from_column)?;
-            let (pk, _) = self.column_sql(&r.to_table, &r.to_column)?;
-            exists.push(format!(
-                "EXISTS (SELECT 1 FROM {} AS {} WHERE {fk} IS NOT NULL AND NOT EXISTS (SELECT 1 FROM {} AS {} WHERE {pk} = {fk}))",
-                ident(&table(self.model, &r.from_table)?.source),
-                alias(self.model, &r.from_table),
+            .map(|r| {
+                (
+                    r.from_table.clone(),
+                    r.from_column.clone(),
+                    r.to_column.clone(),
+                )
+            })
+            .collect();
+        for (from_table, from_column, to_column) in rels {
+            let (fk, _) = self.column_sql(&from_table, &from_column)?;
+            let (pk, _) = self.column_sql(t, &to_column)?;
+            let inner = format!(
+                "SELECT 1 FROM {} AS {} WHERE {pk} = {fk}",
                 ident(&table(self.model, t)?.source),
                 alias(self.model, t),
-            ));
+            );
+            if self.security.is_empty() {
+                exists.push(format!(
+                    "EXISTS (SELECT 1 FROM {} AS {} WHERE {fk} IS NOT NULL AND NOT EXISTS ({inner}))",
+                    ident(&table(self.model, &from_table)?.source),
+                    alias(self.model, &from_table),
+                ));
+            } else {
+                // Only rows the role sees (a missing related row fails its filters).
+                let (_, preds, from, _) = self.scope(&from_table, &Ctx::default(), &[], false)?;
+                let mut wh = vec![format!("{fk} IS NOT NULL"), format!("NOT EXISTS ({inner})")];
+                wh.extend(preds);
+                exists.push(format!(
+                    "EXISTS (SELECT 1 FROM {from} WHERE {})",
+                    wh.join(" AND ")
+                ));
+            }
         }
         Ok((!exists.is_empty()).then(|| format!("({})", exists.join(" OR "))))
     }
@@ -1153,7 +1191,7 @@ impl<'a> Compiler<'a> {
     /// `SELECT DISTINCT cols FROM from WHERE preds`, plus the blank member's row when the
     /// table has one and it passes `preds`.
     fn distinct_with_blank(
-        &self,
+        &mut self,
         cols: &str,
         base: &str,
         from: &str,
@@ -1217,6 +1255,19 @@ impl<'a> Compiler<'a> {
             );
         }
         needed.extend(extra_tables.iter().cloned());
+        // Row-level security on this table and the tables it reaches, whatever the context.
+        let security: Vec<(Id, Bound)> = self
+            .security
+            .iter()
+            .filter(|(t, _)| t == base || reach.reaches(base, t))
+            .cloned()
+            .collect();
+        for (t, b) in &security {
+            needed.push(t.clone());
+            let mut rel = Vec::new();
+            related_refs(b, &mut rel);
+            needed.extend(rel.into_iter().map(|(t, _)| t));
+        }
         for t in &needed {
             if t != base && !reach.reaches(base, t) {
                 return Err(CompileError::Field(format!(
@@ -1232,6 +1283,9 @@ impl<'a> Compiler<'a> {
             .map(|k| Ok((k.clone(), self.column_sql(&k.table, &k.column)?.0)))
             .collect::<Result<_>>()?;
         let mut preds = Vec::new();
+        for (_, b) in &security {
+            preds.push(format!("coalesce({}, FALSE)", bool_of(&self.row(b, None)?)));
+        }
         for f in &filters {
             if let Pred::InSet {
                 set,
@@ -3244,6 +3298,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         counter: 0,
         extra_top: BTreeSet::new(),
         dom_rows: false,
+        security: Vec::new(),
     };
 
     // Column filters (Top N filters become value lists via a subquery); value filters
@@ -3274,6 +3329,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
                             }],
                             limit: Some(*count),
                             keys: false,
+                            security: q.security.clone(),
                         },
                     )?;
                     filters.push(CFilter {
@@ -3296,6 +3352,22 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         }
     }
     c.top_filters = filters.clone();
+    for f in &q.security {
+        let (b, diags) = charted_dax::check_in(model, &f.expression, Some(&f.table));
+        let b = b.filter(row_pure).ok_or_else(|| {
+            CompileError::Field(format!(
+                "the role filter on '{}' {}",
+                table(model, &f.table)
+                    .map(|t| t.name.as_str())
+                    .unwrap_or("?"),
+                diags
+                    .first()
+                    .map(|d| format!("has an error: {}", d.message))
+                    .unwrap_or_else(|| "must be a condition on the table's rows".into())
+            ))
+        })?;
+        c.security.push((f.table.clone(), b));
+    }
 
     let ctx = Ctx {
         keys: keys.clone(),
@@ -3580,6 +3652,7 @@ pub fn calculated_column(
         counter: 0,
         extra_top: BTreeSet::new(),
         dom_rows: false,
+        security: Vec::new(),
     };
     let mut related = Vec::new();
     related_refs(&bound, &mut related);
