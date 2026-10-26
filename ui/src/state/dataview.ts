@@ -27,6 +27,9 @@ interface DataViewStore {
   counts: { table: string; rows: number | null; distinct: number | null } | null;
   /** Milliseconds from opening a view (or changing its sort/filters) to its first rows. */
   firstRows: number | null;
+  /** A request from elsewhere (the Fields pane) to show a table, optionally with a new
+   * calculated column's formula open. */
+  goTo: { table: string; newColumn: boolean } | null;
   view(table: string): TableView;
   setSort(table: string, sort: SortKey[]): void;
   setFilter(table: string, column: string, filter: Filter | null): void;
@@ -34,7 +37,7 @@ interface DataViewStore {
   setWidth(table: string, column: string, width: number): void;
   select(table: string, column: string | undefined): void;
   reset(): void;
-  set(patch: Partial<Pick<DataViewStore, "statsOpen" | "propsOpen" | "findOpen" | "counts" | "firstRows">>): void;
+  set(patch: Partial<Pick<DataViewStore, "statsOpen" | "propsOpen" | "findOpen" | "counts" | "firstRows" | "goTo">>): void;
 }
 
 export const useDataView = create<DataViewStore>()((set, get) => ({
@@ -45,6 +48,7 @@ export const useDataView = create<DataViewStore>()((set, get) => ({
   findOpen: false,
   counts: null,
   firstRows: null,
+  goTo: null,
   view: (table) => get().views[table] ?? emptyView,
   setSort: (table, sort) => set((s) => ({ views: { ...s.views, [table]: { ...(s.views[table] ?? emptyView), sort } } })),
   setFilter: (table, column, filter) =>

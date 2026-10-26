@@ -3,7 +3,7 @@ use duckdb::Connection;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ArrowError {
-    #[error("query failed: {0}")]
+    #[error("{}", crate::db::plain(&.0.to_string()))]
     Query(#[from] duckdb::Error),
     #[error("could not encode Arrow IPC: {0}")]
     Encode(String),

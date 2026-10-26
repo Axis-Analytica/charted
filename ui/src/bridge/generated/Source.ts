@@ -4,4 +4,9 @@ export type Source = { "kind": "csv",
 /**
  * Path relative to the project folder, or absolute.
  */
-path: string, delimiter?: string | null, header: boolean, encoding?: string | null, } | { "kind": "parquet", path: string, } | { "kind": "json", path: string, } | { "kind": "excel", path: string, sheet: string, header: boolean, } | { "kind": "folder", path: string, pattern: string, header: boolean, } | { "kind": "sqlite", path: string, table: string, } | { "kind": "postgres", host: string, port: number, database: string, user: string, schema: string, table: string, } | { "kind": "calendar", start: string, end: string, fiscalStart: number, };
+path: string, delimiter?: string | null, header: boolean, encoding?: string | null, 
+/**
+ * The decimal separator, "," for files written with European conventions
+ * ("1.234,5"). Detected when not set.
+ */
+decimal?: string | null, } | { "kind": "parquet", path: string, } | { "kind": "json", path: string, } | { "kind": "excel", path: string, sheet: string, header: boolean, } | { "kind": "folder", path: string, pattern: string, header: boolean, } | { "kind": "sqlite", path: string, table: string, } | { "kind": "postgres", host: string, port: number, database: string, user: string, schema: string, table: string, } | { "kind": "calendar", start: string, end: string, fiscalStart: number, };

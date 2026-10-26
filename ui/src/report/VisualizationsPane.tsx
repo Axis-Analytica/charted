@@ -1,8 +1,8 @@
 // The Visualizations pane: the visual gallery, field wells (Build) and the formatting
 // options generated from the registry (Format). With no visual selected, Format shows
 // the page's settings.
-import { ChevronDown, GripVertical, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, GripVertical, Search, X } from "lucide-react";
+import { useRef, useState } from "react";
 import type { Aggregation } from "../bridge/generated/Aggregation";
 import type { FieldRef } from "../bridge/generated/FieldRef";
 import type { Model } from "../bridge/generated/Model";
@@ -13,7 +13,7 @@ import { useT } from "../i18n";
 import { useApp } from "../state/app";
 import { aggregationLabel, columnOf, editVisual, newVisual, pageSettings, projectionName, updateVisual, useReport, withField, withoutField } from "../state/report";
 import { FIELD_MIME, VISUAL_MIME } from "./Canvas";
-import { type ObjectDef, type PropDef, type RoleDef, VISUALS, prop, visualDef } from "./registry";
+import { type ObjectDef, type PropDef, type RoleDef, VISUAL_KEYWORDS, VISUALS, prop, visualDef } from "./registry";
 import { palette } from "./visuals/common";
 
 const CHIP_MIME = "application/x-charted-chip";
@@ -31,6 +31,10 @@ export function VisualizationsPane({ model, page }: { model: Model; page: Page }
   const commit = useApp((s) => s.commit);
   const { selected, select, vizTab, set } = useReport();
   const visual = selected.length === 1 ? page.visuals.find((v) => v.id === selected[0]) : undefined;
+  const [search, setSearch] = useState("");
+  const gallery = useRef<HTMLDivElement>(null);
+  const q = search.trim().toLowerCase();
+  const shown = q ? VISUALS.filter((d) => [t(d.label), d.label, d.type, ...(VISUAL_KEYWORDS[d.type] ?? [])].some((w) => w.toLowerCase().includes(q))) : VISUALS;
 
   const pick = async (type: string) => {
     if (visual) {
@@ -46,8 +50,40 @@ export function VisualizationsPane({ model, page }: { model: Model; page: Page }
       <div className="pane-head">
         <span>{t("Visualizations")}</span>
       </div>
-      <div className="viz-gallery" role="toolbar" aria-label={t("Visual types")}>
-        {VISUALS.map((d) => (
+      <label className="pane-search">
+        <Search size={13} />
+        <input
+          value={search}
+          placeholder={t("Search visuals")}
+          aria-label={t("Search visuals")}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && shown[0]) {
+              e.preventDefault();
+              pick(shown[0].type);
+              setSearch("");
+            } else if (e.key === "ArrowDown") {
+              e.preventDefault();
+              gallery.current?.querySelector<HTMLButtonElement>(".viz-type")?.focus();
+            } else if (e.key === "Escape" && search) {
+              e.stopPropagation();
+              setSearch("");
+            }
+          }}
+        />
+      </label>
+      <div
+        ref={gallery}
+        className="viz-gallery"
+        role="toolbar"
+        aria-label={t("Visual types")}
+        onKeyDown={(e) => {
+          // Typing in the gallery searches it.
+          if (e.key.length === 1 && e.key !== " " && !e.ctrlKey && !e.metaKey && !e.altKey) e.currentTarget.previousElementSibling?.querySelector("input")?.focus();
+        }}
+      >
+        {shown.length === 0 && <p className="pane-hint viz-none">{t("No visual matches “%1”.", search)}</p>}
+        {shown.map((d) => (
           <button
             key={d.type}
             type="button"

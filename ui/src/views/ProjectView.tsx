@@ -31,6 +31,11 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   useEffect(() => {
     if (selected && !project.model.tables.some((x) => x.id === selected)) setSelected(project.model.tables[0]?.id ?? null);
   }, [project, selected]);
+  // The Fields pane asks for a table (its properties, or a new column).
+  const goTo = useDataView((s) => s.goTo?.table);
+  useEffect(() => {
+    if (goTo) setSelected(goTo);
+  }, [goTo]);
   // Sort, filters and selection belong to the project they were made in.
   useEffect(() => {
     useDataView.getState().reset();

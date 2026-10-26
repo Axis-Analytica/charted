@@ -62,6 +62,12 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
   const dataKey = columns.map((c) => `${c.id}:${c.dataType}:${c.sortBy ?? ""}:${c.kind.kind === "calculated" ? c.kind.expression : ""}`).join("|");
   // The formula bar: a new column, or the selected calculated column.
   const [newColumn, setNewColumn] = useState(false);
+  const goTo = useDataView((s) => s.goTo);
+  useEffect(() => {
+    if (goTo?.table !== table.id) return;
+    if (goTo.newColumn) setNewColumn(true);
+    useDataView.getState().set({ goTo: null });
+  }, [goTo, table.id]);
   // A new column is shown once the grid has it.
   const scrollTo = useRef<string | null>(null);
   useEffect(() => {

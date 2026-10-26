@@ -371,6 +371,9 @@ pub struct VisualSqlOptions<'a> {
     /// Name columns after the fields ("Sum of Quantity") instead of `role:index`, with
     /// no key columns (exports and the command line).
     pub captions: bool,
+    /// A slicer's search: only values whose text contains this (any case), so a field
+    /// with more values than a slicer lists can still be searched.
+    pub search: Option<&'a str>,
 }
 
 /// The SQL behind a report visual. Columns are named `role:index`, with each group's
@@ -391,7 +394,7 @@ pub fn report_visual_sql(
         .ok_or_else(|| CoreError::Invalid(format!("there is no visual with id {visual}")))?;
     let (mut q, names) = report_visual_query(model, visual, o.totals, o.filters)?;
     if v.is_slicer() {
-        return slicer_sql(model, schema, v, q);
+        return slicer_sql(model, schema, v, q, o.search);
     }
     if o.captions {
         let names: Vec<String> = q
@@ -563,6 +566,7 @@ fn slicer_sql(
     schema: &Schema,
     v: &charted_model::Visual,
     q: VisualQuery,
+    search: Option<&str>,
 ) -> Result<String, CoreError> {
     let Some(field) = v.roles.get("field").and_then(|f| f.first()) else {
         return Ok("SELECT 1 WHERE FALSE".into());
@@ -605,10 +609,21 @@ fn slicer_sql(
         limit: Some(5_000),
         keys: true,
     };
-    let c = compile(model, schema, &lq)?;
+    let search = search.map(str::trim).filter(|s| !s.is_empty());
+    let Some(search) = search else {
+        let c = compile(model, schema, &lq)?;
+        return Ok(format!(
+            "SELECT g0 AS \"field:0\", k0 AS \"key:field:0\" FROM ({}) AS s",
+            c.sql
+        ));
+    };
+    // The search applies before the limit, so it finds values past the first 5,000.
+    let c = compile(model, schema, &VisualQuery { limit: None, ..lq })?;
     Ok(format!(
-        "SELECT g0 AS \"field:0\", k0 AS \"key:field:0\" FROM ({}) AS s",
-        c.sql
+        "SELECT g0 AS \"field:0\", k0 AS \"key:field:0\" FROM ({}) AS s \
+         WHERE contains(lower(CAST(g0 AS VARCHAR)), lower('{}')) LIMIT 5000",
+        c.sql,
+        search.replace('\'', "''")
     ))
 }
 

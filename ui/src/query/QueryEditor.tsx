@@ -21,6 +21,7 @@ import { analyze, useProfile, usePreview, useQueryInfo } from "./data";
 import { ConsentDialog, newQuery, PasswordDialog, pickSource, projectPath, SourceDialog, type SourceDialogState, type SourceKind } from "./NewSource";
 import { PreviewTable } from "./PreviewTable";
 import { insertStep, isDirty, moveStep, removeStep, uniqueQueryName, uptoOf, useQueryDraft } from "./state";
+import { CsvOptions } from "./CsvOptions";
 import { StepDialog } from "./StepDialog";
 import { type BuildContext, stepDisplayNames, type Transform, TRANSFORMS, transformById, transformFor } from "./transforms";
 import "./query.css";
@@ -46,6 +47,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
   const defs = useMemo(() => project.queries.map((q) => q.definition), [project.queries]);
   const [dialog, setDialog] = useState<{ transform: Transform; step: Step | null; column: string | null; index: number | null } | null>(null);
   const [sourceDialog, setSourceDialog] = useState<SourceDialogState | null>(null);
+  const [csvOptions, setCsvOptions] = useState(false);
   const [consent, setConsent] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [discard, setDiscard] = useState(false);
@@ -421,6 +423,7 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
                             title={t("Change the source")}
                             onClick={async (e) => {
                               e.stopPropagation();
+                              if (query.source.kind === "csv") return setCsvOptions(true);
                               const path = await transport.pick({ title: t("Locate the source"), directory: query.source.kind === "folder" });
                               if (path) setQuery("Change source", { ...query, source: { ...query.source, path: projectPath(project.path, path) } as Query["source"] });
                             }}
@@ -453,6 +456,16 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
               steps[d.index] = s;
               setQuery("Edit step", { ...query, steps }, upto === query.steps.length ? undefined : upto);
             } else addStep(s, d.transform.label);
+          }}
+        />
+      )}
+      {csvOptions && query?.source.kind === "csv" && (
+        <CsvOptions
+          source={query.source}
+          project={project.path}
+          onDone={(s) => {
+            setCsvOptions(false);
+            if (s) setQuery("Change source", { ...query, source: s });
           }}
         />
       )}

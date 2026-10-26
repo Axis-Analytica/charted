@@ -107,6 +107,7 @@ fn writes_a_power_bi_project() {
                 delimiter: None,
                 header: true,
                 encoding: None,
+                decimal: None,
             },
             steps: vec![],
             step_names: Default::default(),

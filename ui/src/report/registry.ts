@@ -60,6 +60,25 @@ export interface VisualDef {
   decor?: boolean;
 }
 
+/** Other words people search the gallery with (English; labels are matched translated too). */
+export const VISUAL_KEYWORDS: Record<string, string[]> = {
+  card: ["kpi", "number", "big number", "single value", "total"],
+  columnChart: ["bar", "vertical", "histogram"],
+  barChart: ["horizontal", "column", "ranking"],
+  lineChart: ["trend", "time", "series"],
+  stackedColumnChart: ["bar", "stacked", "vertical"],
+  stackedBarChart: ["column", "stacked", "horizontal"],
+  pieChart: ["share", "proportion", "circle"],
+  donutChart: ["doughnut", "ring", "pie", "share"],
+  scatterChart: ["bubble", "correlation", "xy", "points"],
+  table: ["grid", "list", "rows", "details"],
+  matrix: ["pivot", "crosstab", "grid", "table"],
+  slicer: ["filter", "dropdown", "list", "picker", "date range"],
+  textbox: ["text", "label", "heading", "title"],
+  image: ["picture", "logo", "photo"],
+  shape: ["rectangle", "line", "box", "decoration"],
+};
+
 const title: ObjectDef = {
   name: "title",
   label: "Title",
@@ -356,7 +375,7 @@ VISUALS.push(
         props: [
           { name: "multi", label: "Multi-select without Ctrl", type: "bool", default: false },
           { name: "selectAll", label: "Show \"Select all\"", type: "bool", default: true },
-          { name: "search", label: "Search", type: "bool", default: false },
+          { name: "search", label: "Search", type: "bool", default: true },
         ],
       },
       { name: "header", label: "Slicer header", toggle: "show", props: [{ name: "show", label: "Show", type: "bool", default: true }] },

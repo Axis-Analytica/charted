@@ -929,6 +929,7 @@ dependencies = [
  "insta",
  "keyring",
  "notify",
+ "rust_xlsxwriter",
  "serde",
  "serde_json",
  "tempfile",

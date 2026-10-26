@@ -30,6 +30,8 @@ interface ReportStore {
   formula: string | null;
   /** The field selected in the Fields pane. */
   field: FieldRef | null;
+  /** The quick measure dialog, open for a home table's id. */
+  quick: string | null;
   /** Edit interactions mode: the selected visual's effect on the others is shown on each. */
   editInteractions: boolean;
   /** A visual shown on its own over the canvas (focus mode), optionally with its data. */
@@ -47,6 +49,7 @@ export const useReport = create<ReportStore>()((set) => ({
   pointer: null,
   formula: null,
   field: null,
+  quick: null,
   editInteractions: false,
   focus: null,
   set: (patch) => set(patch),

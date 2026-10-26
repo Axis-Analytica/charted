@@ -107,6 +107,7 @@ fn csv(path: &str, header: bool) -> Source {
         delimiter: None,
         header,
         encoding: None,
+        decimal: None,
     }
 }
 

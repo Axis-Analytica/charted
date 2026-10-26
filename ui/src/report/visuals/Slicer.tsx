@@ -13,6 +13,7 @@ import type { Visual } from "../../bridge/generated/Visual";
 import { useLanguage, useT } from "../../i18n";
 import { useApp } from "../../state/app";
 import { columnOf, editVisual, projectionName } from "../../state/report";
+import { SLICER_LIMIT, useSlicerSearch } from "../../state/slicersearch";
 import { keysOf, type VisualData } from "../data";
 import { prop, visualDef } from "../registry";
 import { PERIODS, relativeLabel, UNITS } from "../relative";
@@ -77,7 +78,22 @@ function ListSlicer({ visual, page, model, data, dropdown }: { visual: Visual; p
   }, [data, f, locale, t]);
   const chosen = visual.selection?.kind === "basic" && !visual.selection.exclude ? visual.selection.values : [];
   const isChosen = (k: string | null) => chosen.some((c) => c === k);
-  const shown = search.trim() ? items.filter((i) => i.label.toLowerCase().includes(search.trim().toLowerCase())) : items;
+  const q = search.trim();
+  // A field with more values than the slicer lists is searched in the core.
+  const coreSearch = useSlicerSearch((s) => s.byVisual[visual.id] ?? "");
+  const [truncated, setTruncated] = useState(false);
+  useEffect(() => {
+    if (data && !coreSearch) setTruncated(data.rows >= SLICER_LIMIT);
+  }, [data, coreSearch]);
+  useEffect(() => {
+    const set = useSlicerSearch.getState().set;
+    if (!truncated) return set(visual.id, "");
+    const id = window.setTimeout(() => set(visual.id, q), 150);
+    return () => window.clearTimeout(id);
+  }, [q, truncated, visual.id]);
+  useEffect(() => () => useSlicerSearch.getState().set(visual.id, ""), [visual.id]);
+  const shown = q && !(truncated && coreSearch) ? items.filter((i) => i.label.toLowerCase().includes(q.toLowerCase())) : items;
+  const allShown = shown.length > 0 && shown.every((i) => isChosen(i.key));
 
   useEffect(() => {
     if (!open) return;
@@ -95,10 +111,26 @@ function ListSlicer({ visual, page, model, data, dropdown }: { visual: Visual; p
 
   const list = (
     <div className="slicer-list" role="listbox" aria-multiselectable={multi} aria-label={projectionName(model, field, t)}>
-      {selectAll && !search && (
+      {selectAll && !q && (
         <label className="slicer-item">
           <input type="checkbox" checked={chosen.length === 0} onChange={() => setSelection(page, visual, null, "Clear slicer")} />
           <span>{t("Select all")}</span>
+        </label>
+      )}
+      {selectAll && q && shown.length > 0 && (
+        // While searching, "Select all" means the values found; the rest of the
+        // selection stays.
+        <label className="slicer-item">
+          <input
+            type="checkbox"
+            checked={allShown}
+            onChange={() => {
+              const found = new Set(shown.map((i) => i.key));
+              const next = allShown ? chosen.filter((c) => !found.has(c)) : [...chosen, ...shown.map((i) => i.key).filter((k) => !isChosen(k))];
+              setSelection(page, visual, next.length ? { kind: "basic", values: next, exclude: false } : null);
+            }}
+          />
+          <span>{t("Select all results")}</span>
         </label>
       )}
       {shown.map((i) => (
@@ -122,7 +154,16 @@ function ListSlicer({ visual, page, model, data, dropdown }: { visual: Visual; p
   const searchBox = searchable && (
     <div className="slicer-search">
       <Search size={12} />
-      <input value={search} placeholder={t("Search")} aria-label={t("Search")} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.stopPropagation()} />
+      <input
+        value={search}
+        placeholder={t("Search")}
+        aria-label={t("Search %1", projectionName(model, field, t))}
+        onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === "Escape") setSearch("");
+        }}
+      />
     </div>
   );
 

@@ -29,7 +29,7 @@ import { useShortcut } from "../app/shortcuts";
 import { useT } from "../i18n";
 import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
-import { currentPage, newId, pageSettings, updateVisual, useReport } from "../state/report";
+import { currentPage, newId, newVisual, pageSettings, updateVisual, useReport } from "../state/report";
 import { Canvas, usePageTheme } from "./Canvas";
 import { modelSignature, useVisualData } from "./data";
 import { CanvasScale, ThemeKey } from "./scale";
@@ -45,6 +45,8 @@ import { transport } from "../bridge";
 import { FieldsPane } from "./FieldsPane";
 import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
+import { QuickMeasureDialog } from "./QuickMeasure";
+import { VISUALS } from "./registry";
 import { VisualizationsPane } from "./VisualizationsPane";
 import "./report.css";
 
@@ -305,6 +307,20 @@ export function ReportView({ model }: { model: Model }) {
       enabled: hasSelection,
     },
     { id: "new-measure", keys: "Ctrl+M", label: "New measure", group: "Edit", run: () => model.tables[0] && set({ formula: `new:${(useReport.getState().field?.table ?? model.tables[0].id)}` }), enabled: () => model.tables.length > 0 },
+    { id: "new-quick-measure", keys: "", label: "New quick measure…", group: "Edit", run: () => model.tables[0] && set({ quick: useReport.getState().field?.table ?? model.tables[0].id }), enabled: () => model.tables.length > 0 },
+    // Every visual type can be added from the command palette.
+    ...VISUALS.map((d) => ({
+      id: `add-visual-${d.type}`,
+      keys: "",
+      label: d.label,
+      group: "Edit" as const,
+      run: async () => {
+        if (!page) return;
+        const v = newVisual(page, d.type, useReport.getState().pointer);
+        if (await commit("Add visual", [{ op: "addVisual", page: page.id, visual: v, index: null }])) select([v.id]);
+      },
+      enabled: () => useReport.getState().view === "report" && !!page,
+    })),
   );
 
   if (!page) return <div className="main-empty">{t("This report has no pages.")}</div>;
@@ -314,6 +330,7 @@ export function ReportView({ model }: { model: Model }) {
   return (
     <div className="report-view">
       {formula && <FormulaBar model={model} />}
+      <QuickMeasureDialog model={model} />
       <div className="report-toolbar" role="toolbar" aria-label={t("Arrange")}>
         <span className="report-toolbar-label">{chosen.length > 1 ? t("%1 visuals selected", chosen.length) : chosen.length === 1 ? t("1 visual selected") : t("Arrange")}</span>
         <IconButton label={t("Align left")} icon={<AlignStartVertical size={15} />} isDisabled={chosen.length < 2} onPress={() => align("left")} />

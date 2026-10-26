@@ -42,6 +42,7 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
                     delimiter: None,
                     header: true,
                     encoding: None,
+                    decimal: None,
                 }
             };
             Query {

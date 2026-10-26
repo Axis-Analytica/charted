@@ -54,8 +54,15 @@ export async function pickSource(kind: SourceKind, project: string, queries: Que
   if (!path) return null;
   const rel = projectPath(project, path);
   switch (kind) {
-    case "csv":
-      return { query: await withHeadersAndTypes(newQuery(stem(path), { kind: "csv", path: rel, delimiter: null, header: false, encoding: null }, queries)) };
+    case "csv": {
+      // What reading the file's start found is kept with the query, so its settings
+      // show it and Power BI reads the file the same way.
+      const found = await transport
+        .data({ type: "detectCsv", path: rel })
+        .then((b) => JSON.parse(new TextDecoder().decode(b)) as { encoding: string | null; decimal: string | null })
+        .catch(() => ({ encoding: null, decimal: null }));
+      return { query: await withHeadersAndTypes(newQuery(stem(path), { kind: "csv", path: rel, delimiter: null, header: false, encoding: found.encoding, decimal: found.decimal }, queries)) };
+    }
     case "json":
       return { query: newQuery(stem(path), { kind: "json", path: rel }, queries) };
     case "parquet":

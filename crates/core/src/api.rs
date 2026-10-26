@@ -226,6 +226,10 @@ pub enum DataRequest {
         highlight: Vec<QueryFilter>,
         #[serde(default)]
         tag: Option<String>,
+        /// A slicer's search text.
+        #[serde(default)]
+        #[ts(optional)]
+        search: Option<String>,
     },
     /// Values of a column for a filter card, under the other filters (JSON
     /// `DistinctValues`, counts are zero).
@@ -289,6 +293,11 @@ pub enum DataRequest {
     },
     /// The sheets of an Excel workbook (JSON list of names).
     ExcelSheets {
+        path: String,
+    },
+    /// A text file's encoding and decimal separator, as far as its start shows (JSON
+    /// `{ encoding, decimal }`, null for UTF-8 and a decimal point).
+    DetectCsv {
         path: String,
     },
     /// Each file source compared with when it was loaded (JSON `SourceStatus[]`).
@@ -682,6 +691,7 @@ impl App {
                 filters,
                 highlight,
                 tag,
+                search,
             } => {
                 let sql = visualq::report_visual_sql(
                     model,
@@ -692,6 +702,7 @@ impl App {
                         filters,
                         highlight,
                         captions: false,
+                        search: search.as_deref(),
                     },
                 )?;
                 let db = s.database().clone();
@@ -773,6 +784,16 @@ impl App {
                 let p = charted_compiler::steps::resolve_path(&s.project.dir_str(), path);
                 return Ok(DataJob::Ready(json(crate::sources::excel_sheets(
                     Path::new(&p),
+                ))?));
+            }
+            DataRequest::DetectCsv { path } => {
+                let p = charted_compiler::steps::resolve_path(&s.project.dir_str(), path);
+                let found = crate::sources::detect_csv(Path::new(&p));
+                return Ok(DataJob::Ready(json(Ok::<_, CoreError>(
+                    serde_json::json!({
+                        "encoding": found.encoding,
+                        "decimal": found.decimal,
+                    }),
                 ))?));
             }
             DataRequest::SourceStatus => {

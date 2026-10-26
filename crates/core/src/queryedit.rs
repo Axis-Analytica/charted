@@ -106,6 +106,8 @@ pub struct Prepared {
     pub sql: String,
     /// The step before, when the step at `upto` changes types (its errors are counted).
     pub type_change: Option<(String, Vec<String>)>,
+    /// The query's numbers are written "1.234,5".
+    pub decimal_comma: bool,
 }
 
 pub fn info(p: &Prepared, query: &Query, queries: &[Query]) -> Result<QueryInfo, CoreError> {
@@ -289,8 +291,24 @@ pub fn analyze(p: &Prepared, a: &Analysis) -> Result<Value, CoreError> {
                         (DataType::Date, "DATE"),
                         (DataType::DateTime, "TIMESTAMP"),
                     ] {
+                        // Numbers written "1.234,5" read that way (as Change type will).
+                        let v = if p.decimal_comma
+                            && matches!(cand, DataType::Int64 | DataType::Double)
+                        {
+                            charted_compiler::steps::comma_number_text(&e)
+                        } else {
+                            format!("trim({e})")
+                        };
+                        // DuckDB rounds "2.5" to a whole number; that's a decimal.
+                        let fits = if cand == DataType::Int64 {
+                            format!(
+                                "TRY_CAST({v} AS BIGINT) IS NOT NULL AND TRY_CAST({v} AS DOUBLE) = TRY_CAST({v} AS BIGINT)"
+                            )
+                        } else {
+                            format!("TRY_CAST({v} AS {sql_ty}) IS NOT NULL")
+                        };
                         let bad = p.db.query_u64(&format!(
-                            "SELECT count(*) FILTER (WHERE trim({e}) <> '' AND TRY_CAST(trim({e}) AS {sql_ty}) IS NULL) + (count(*) FILTER (WHERE trim({e}) <> '') = 0)::INT FROM {sample}"
+                            "SELECT count(*) FILTER (WHERE trim({e}) <> '' AND NOT ({fits})) + (count(*) FILTER (WHERE trim({e}) <> '') = 0)::INT FROM {sample}"
                         ))?;
                         if bad == 0 {
                             ty = cand;

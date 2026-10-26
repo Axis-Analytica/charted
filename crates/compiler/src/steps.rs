@@ -53,6 +53,10 @@ pub enum Source {
         header: bool,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         encoding: Option<String>,
+        /// The decimal separator, "," for files written with European conventions
+        /// ("1.234,5"). Detected when not set.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        decimal: Option<String>,
     },
     Parquet {
         path: String,
@@ -509,6 +513,49 @@ pub fn sheet_key(path: &str, sheet: &str) -> String {
     format!("{path}\u{1}{sheet}")
 }
 
+/// The key of a CSV file's detected settings in `Ctx::sheets` (see `CsvDetected`).
+pub fn csv_key(path: &str) -> String {
+    format!("{path}\u{2}csv")
+}
+
+/// What reading a CSV file's first bytes found, for settings the query leaves unset.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CsvDetected {
+    pub encoding: Option<String>,
+    pub decimal: Option<String>,
+    /// Small enough to read whole when working out column types, so a value that
+    /// doesn't fit far down the file can't fail the load.
+    pub whole: bool,
+    /// Some rows below the header have fewer or more values than it.
+    pub ragged: bool,
+}
+
+impl CsvDetected {
+    /// As stored in `Ctx::sheets`.
+    pub fn encode(&self) -> String {
+        format!(
+            "{};{};{};{}",
+            self.encoding.as_deref().unwrap_or(""),
+            self.decimal.as_deref().unwrap_or(""),
+            self.whole,
+            self.ragged
+        )
+    }
+
+    pub fn decode(s: &str) -> Self {
+        let mut p = s.split(';');
+        let mut next = || p.next().filter(|x| !x.is_empty()).map(String::from);
+        let (encoding, decimal) = (next(), next());
+        let whole = next().as_deref() == Some("true");
+        Self {
+            encoding,
+            decimal,
+            whole,
+            ragged: next().as_deref() == Some("true"),
+        }
+    }
+}
+
 /// The DuckDB name a PostgreSQL connection is attached as.
 pub fn postgres_alias(host: &str, port: u16, database: &str, user: &str) -> String {
     // FNV-1a: stable across runs and platforms.
@@ -529,6 +576,46 @@ pub fn resolve_path(project_dir: &str, path: &str) -> String {
     }
 }
 
+/// Whether a query's numbers are written "1.234,5": set on its CSV source, or found
+/// in the file (`Ctx::sheets`).
+pub fn decimal_comma(source: &Source, sheets: &BTreeMap<String, String>) -> bool {
+    match source {
+        Source::Csv { path, decimal, .. } => match decimal {
+            Some(d) => d == ",",
+            None => sheets
+                .get(&csv_key(path))
+                .is_some_and(|s| CsvDetected::decode(s).decimal.as_deref() == Some(",")),
+        },
+        _ => false,
+    }
+}
+
+/// Text written "1.234,5" as SQL text DuckDB reads as a number ("1234.5").
+pub fn comma_number_text(e: &str) -> String {
+    format!(
+        "replace(replace(regexp_replace(trim(CAST({e} AS VARCHAR)), '[$€£\\s]', '', 'g'), '.', ''), ',', '.')"
+    )
+}
+
+/// The Windows code page Power Query names an encoding by.
+pub fn code_page(encoding: Option<&str>) -> u32 {
+    match encoding.map(str::to_ascii_lowercase).as_deref() {
+        Some("utf-16" | "utf-16le") => 1200,
+        // Files that aren't UTF-8 are nearly always Windows' Western European.
+        Some("latin-1" | "iso-8859-1" | "windows-1252" | "cp1252") => 1252,
+        _ => 65001,
+    }
+}
+
+/// The encoding charted reads a Power Query code page as.
+pub fn encoding_of_code_page(page: u32) -> Option<&'static str> {
+    match page {
+        1200 => Some("utf-16"),
+        28591 | 1252 => Some("latin-1"),
+        _ => None,
+    }
+}
+
 fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
     let file = |p: &str| quote::string(&resolve_path(ctx.project_dir, p));
     Ok(match source {
@@ -537,13 +624,36 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
             delimiter,
             header,
             encoding,
+            decimal,
         } => {
+            let found = ctx
+                .sheets
+                .get(&csv_key(path))
+                .map(|s| CsvDetected::decode(s))
+                .unwrap_or_default();
             let mut opts = vec![format!("header = {header}")];
+            // Rows with fewer values than the header get blanks rather than turning
+            // the whole file into one column (read in one pass, as values may hold
+            // line breaks).
+            if found.ragged {
+                opts.push("null_padding = true, parallel = false".into());
+            }
             if let Some(d) = delimiter {
                 opts.push(format!("delim = {}", quote::string(d)));
             }
-            if let Some(e) = encoding {
+            if let Some(e) = encoding.as_ref().or(found.encoding.as_ref()) {
                 opts.push(format!("encoding = {}", quote::string(e)));
+            }
+            if decimal
+                .as_ref()
+                .or(found.decimal.as_ref())
+                .map(String::as_str)
+                == Some(",")
+            {
+                opts.push("decimal_separator = ',', thousands = '.'".into());
+            }
+            if found.whole {
+                opts.push("sample_size = -1".into());
             }
             format!(
                 "SELECT * FROM read_csv({}, {})",
@@ -602,7 +712,7 @@ fn source_sql(source: &Source, ctx: &Ctx) -> Result<String, StepError> {
                 pattern
             );
             format!(
-                "SELECT * EXCLUDE (filename), parse_filename(filename) AS \"Source.Name\" FROM read_csv({}, header = {header}, union_by_name = true, filename = true)",
+                "SELECT * EXCLUDE (filename), parse_filename(filename) AS \"Source.Name\" FROM read_csv({}, header = {header}, union_by_name = true, null_padding = true, filename = true)",
                 quote::string(&glob)
             )
         }
@@ -705,6 +815,7 @@ fn step_sql(
     input: &str,
     ctx: &Ctx,
     seen: &mut Vec<String>,
+    comma: bool,
 ) -> Result<String, StepError> {
     Ok(match step {
         Step::RemoveTopRows { count } => format!(
@@ -734,6 +845,12 @@ fn step_sql(
                 .map(|(c, t)| {
                     let e = quote::ident(c);
                     let cast = match t {
+                        // In a file that writes numbers "1.234,5", text reads that way.
+                        DataType::Int64 | DataType::Double | DataType::Decimal if comma => format!(
+                            "CASE WHEN typeof({e}) = 'VARCHAR' THEN TRY_CAST({} AS {ty}) ELSE TRY_CAST({e} AS {ty}) END",
+                            comma_number_text(&e),
+                            ty = duckdb_type(*t)
+                        ),
                         // Text like "1,234.50" or "$12" still reads as a number.
                         DataType::Int64 | DataType::Double | DataType::Decimal => format!(
                             "coalesce(TRY_CAST({e} AS {ty}), TRY_CAST(regexp_replace(CAST({e} AS VARCHAR), '[,$€£\\s]', '', 'g') AS {ty}))",
@@ -1151,6 +1268,7 @@ fn sql_upto(
     }
     seen.push(query.id.clone());
     let source = source_sql(&query.source, ctx)?;
+    let comma = decimal_comma(&query.source, ctx.sheets);
     let n = upto.min(query.steps.len());
     let out = if n == 0 {
         source
@@ -1160,7 +1278,7 @@ fn sql_upto(
             ctes.push(format!(
                 "s{} AS ({})",
                 i + 1,
-                step_sql(step, &format!("s{i}"), ctx, seen)?
+                step_sql(step, &format!("s{i}"), ctx, seen, comma)?
             ));
         }
         format!("WITH {}\nSELECT * FROM s{n}", ctes.join(",\n"))
@@ -1298,15 +1416,17 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
             path,
             delimiter,
             header,
+            encoding,
             ..
         } => {
             let delim = delimiter.clone().unwrap_or_else(|| ",".into());
             steps.push((
                 "Source".into(),
                 format!(
-                    "Csv.Document({}, [Delimiter={}, Encoding=65001, QuoteStyle=QuoteStyle.Csv])",
+                    "Csv.Document({}, [Delimiter={}, Encoding={}, QuoteStyle=QuoteStyle.Csv])",
                     file(path),
-                    m_string(&delim)
+                    m_string(&delim),
+                    code_page(encoding.as_deref())
                 ),
             ));
             if *header {
@@ -1501,12 +1621,18 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
                 format!("Table.PromoteHeaders({prev}, [PromoteAllScalars=true])")
             }
             Step::ChangeTypes { columns } => format!(
-                "Table.TransformColumnTypes({prev}, {{{}}})",
+                "Table.TransformColumnTypes({prev}, {{{}}}{})",
                 columns
                     .iter()
                     .map(|(c, t)| format!("{{{}, {}}}", m_string(c), m_type(*t)))
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", "),
+                // Numbers written "1.234,5" read in a culture that writes them so.
+                if matches!(&q.source, Source::Csv { decimal: Some(d), .. } if d == ",") {
+                    ", \"de-DE\""
+                } else {
+                    ""
+                }
             ),
             Step::SelectColumns { columns } => {
                 format!("Table.SelectColumns({prev}, {})", m_list(columns))
@@ -1837,6 +1963,7 @@ mod tests {
                 delimiter: Some(";".into()),
                 header: true,
                 encoding: None,
+                decimal: None,
             },
             steps,
             step_names: Default::default(),

@@ -458,6 +458,7 @@ impl Session {
             db: self.db.clone(),
             sql,
             type_change,
+            decimal_comma: charted_compiler::steps::decimal_comma(&query.source, &sheets),
         })
     }
 
@@ -664,7 +665,17 @@ impl Session {
             {
                 let select = crate::sources::query_sql(&dir, queries, &sheets, q, None)?;
                 let tmp = format!("__staging_{i}");
-                self.db.materialise(&tmp, &select).map_err(|e| {
+                let mut loaded = self.db.materialise(&tmp, &select);
+                // A value far down a CSV file that doesn't fit the type worked out from
+                // its start: read the whole file for types, once.
+                if let Err(e) = &loaded
+                    && let Some(whole) =
+                        crate::sources::whole_file_types(&sheets, q, &e.to_string())
+                {
+                    let select = crate::sources::query_sql(&dir, queries, &whole, q, None)?;
+                    loaded = self.db.materialise(&tmp, &select);
+                }
+                loaded.map_err(|e| {
                     CoreError::Invalid(format!(
                         "could not load \"{}\" from {}: {e}",
                         q.name,

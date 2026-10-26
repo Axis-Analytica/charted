@@ -143,6 +143,16 @@ impl Sample {
     }
 
     fn data(&self, id: &str, filters: Vec<QueryFilter>, highlight: Vec<QueryFilter>) -> Vec<Row> {
+        self.search(id, filters, highlight, None)
+    }
+
+    fn search(
+        &self,
+        id: &str,
+        filters: Vec<QueryFilter>,
+        highlight: Vec<QueryFilter>,
+        search: Option<&str>,
+    ) -> Vec<Row> {
         rows(
             self.app
                 .data(DataRequest::ReportVisual {
@@ -151,6 +161,7 @@ impl Sample {
                     filters,
                     highlight,
                     tag: None,
+                    search: search.map(String::from),
                 })
                 .unwrap_or_else(|e| panic!("{}", e.message)),
         )
@@ -259,6 +270,36 @@ fn slicers_filter_the_page_unless_the_interaction_is_off() {
     assert_eq!(r.len(), 1);
     assert!(r[0]["min"].starts_with("2024-01-01"), "{r:?}");
     assert!(r[0]["max"].starts_with("2024-12-31"), "{r:?}");
+}
+
+#[test]
+fn a_slicer_search_finds_values_past_the_ones_listed() {
+    let mut s = Sample::new();
+    s.add(
+        "slicer",
+        "slicer",
+        vec![("field", vec![s.col("Customer", "CustomerKey")])],
+    );
+    // 20,000 customers; the slicer lists 5,000 of them.
+    let listed = s.data("slicer", vec![], vec![]);
+    assert_eq!(listed.len(), 5000);
+    let keys: Vec<&str> = listed.iter().map(|r| r["key:field:0"].as_str()).collect();
+    // The search runs before the limit, so it finds one that isn't listed.
+    let missing = (1..=20_000)
+        .map(|k| k.to_string())
+        .find(|k| !keys.contains(&k.as_str()))
+        .unwrap();
+    let found = s.search("slicer", vec![], vec![], Some(&format!(" {missing} ")));
+    assert!(
+        found.iter().any(|r| r["key:field:0"] == missing),
+        "{missing} not in {found:?}"
+    );
+    assert!(found.iter().all(|r| r["key:field:0"].contains(&missing)));
+    // Quotes are text, not SQL.
+    assert!(
+        s.search("slicer", vec![], vec![], Some("1' OR '1'='1"))
+            .is_empty()
+    );
 }
 
 #[test]

@@ -466,6 +466,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
                 filters: vec![],
                 highlight: vec![],
                 tag: None,
+                search: None,
             })
             .unwrap(),
         )
@@ -482,6 +483,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
             filters: vec![],
             highlight: vec![],
             tag: None,
+            search: None,
         })
         .unwrap(),
     );

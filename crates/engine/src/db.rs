@@ -9,7 +9,7 @@ use crate::sql;
 
 #[derive(Debug, thiserror::Error)]
 pub enum DbError {
-    #[error("{0}")]
+    #[error("{}", plain(&.0.to_string()))]
     Duck(#[from] duckdb::Error),
     #[error(transparent)]
     Arrow(#[from] ArrowError),
@@ -217,5 +217,54 @@ mod tests {
             )
             .unwrap();
         assert_eq!(v, "false");
+    }
+}
+
+/// DuckDB's messages for the commonest source problems, in plain words; others as
+/// they are.
+pub fn plain(e: &str) -> String {
+    let quoted = |after: &str| {
+        let rest = &e[e.find(after)? + after.len()..];
+        let q = rest.chars().next().filter(|c| *c == '"' || *c == '\'')?;
+        rest[1..].split(q).next().map(String::from)
+    };
+    if let Some(f) = quoted("No files found that match the pattern ") {
+        return format!("{f} doesn't exist (was it moved or renamed?)");
+    }
+    if let Some(f) = quoted("No magic bytes found at end of file ") {
+        return format!("{f} isn't a Parquet file, or it is damaged");
+    }
+    if let Some(f) = quoted("Malformed JSON in file ") {
+        let at = e
+            .split(", at ")
+            .nth(1)
+            .map(|s| s.split(':').next().unwrap_or(s))
+            .unwrap_or("");
+        return format!("{f} isn't valid JSON ({at})");
+    }
+    e.to_string()
+}
+
+#[cfg(test)]
+mod plain_tests {
+    use super::plain;
+
+    #[test]
+    fn common_source_errors_read_plainly() {
+        assert_eq!(
+            plain(r#"IO Error: No files found that match the pattern "/d/a.csv""#),
+            "/d/a.csv doesn't exist (was it moved or renamed?)"
+        );
+        assert_eq!(
+            plain("Invalid Input Error: No magic bytes found at end of file '/d/b.parquet'"),
+            "/d/b.parquet isn't a Parquet file, or it is damaged"
+        );
+        assert_eq!(
+            plain(
+                r#"Invalid Input Error: Malformed JSON in file "/d/c.json", at byte 2 in record/value 2: unexpected character."#
+            ),
+            "/d/c.json isn't valid JSON (byte 2 in record/value 2)"
+        );
+        assert_eq!(plain("Binder Error: x"), "Binder Error: x");
     }
 }

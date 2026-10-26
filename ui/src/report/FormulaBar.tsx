@@ -7,8 +7,7 @@ import type { DaxCheck } from "../bridge/generated/DaxCheck";
 import type { Measure } from "../bridge/generated/Measure";
 import type { Model } from "../bridge/generated/Model";
 import { useT } from "../i18n";
-import { Button, IconButton } from "../kit/Button";
-import { Dialog } from "../kit/Dialog";
+import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { newId, useReport } from "../state/report";
@@ -32,7 +31,7 @@ function split(text: string, fallback: string): { name: string; expression: stri
   return { name: name ?? fallback, expression: rest.trim(), exprStart, lead: rest.length - rest.trimStart().length };
 }
 
-function uniqueName(model: Model, base: string): string {
+export function uniqueName(model: Model, base: string): string {
   const taken = new Set(model.tables.flatMap((t) => [...t.measures.map((m) => m.name.toLowerCase()), ...t.columns.map((c) => c.name.toLowerCase())]));
   if (!taken.has(base.toLowerCase())) return base;
   for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`.toLowerCase())) return `${base} ${i}`;
@@ -52,7 +51,6 @@ export function FormulaBar({ model }: { model: Model }) {
   const initial = measure ? `${measure.name} = ${measure.expression}` : `${fallback} = `;
   const [text, setText] = useState(initial);
   const [check, setCheck] = useState<DaxCheck | null>(null);
-  const [quick, setQuick] = useState(false);
 
   // A different measure (or an undo that changed this one) resets the text.
   useEffect(() => {
@@ -138,7 +136,7 @@ export function FormulaBar({ model }: { model: Model }) {
           </select>
         )}
         <IconButton label={t("Format DAX")} shortcut="Shift+Alt+F" icon={<WandSparkles size={15} />} onPress={() => ref.current?.format()} />
-        <IconButton label={t("Quick measure")} icon={<Sparkles size={15} />} onPress={() => setQuick(true)} />
+        <IconButton label={t("Quick measure")} icon={<Sparkles size={15} />} onPress={() => set({ quick: home.id })} />
         {measure && (
           <IconButton
             label={t("Delete measure")}
@@ -150,145 +148,6 @@ export function FormulaBar({ model }: { model: Model }) {
         )}
         <IconButton label={t("Close formula bar")} icon={<X size={15} />} onPress={() => set({ formula: null })} />
       </div>
-      <QuickMeasure
-        open={quick}
-        model={model}
-        home={home.id}
-        onClose={() => setQuick(false)}
-        onCreate={(n, e) => {
-          setQuick(false);
-          setText(`${uniqueName(model, n)} = ${e}`);
-          set({ formula: `new:${home.id}` });
-          requestAnimationFrame(() => ref.current?.focus());
-        }}
-      />
     </div>
-  );
-}
-
-type Calc = "sum" | "average" | "countRows" | "distinct" | "ratio" | "difference" | "percentDifference";
-
-function QuickMeasure({ open, model, home, onClose, onCreate }: { open: boolean; model: Model; home: string; onClose(): void; onCreate(name: string, expression: string): void }) {
-  const { t } = useT();
-  const [calc, setCalc] = useState<Calc>("ratio");
-  // Fields as DAX references.
-  const refs = useMemo(() => {
-    const quote = (s: string) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(s) ? s : `'${s.replace(/'/g, "''")}'`);
-    const out: { ref: string; label: string; short: string; kind: "measure" | "column"; numeric: boolean; table: string }[] = [];
-    for (const tb of model.tables) {
-      for (const m of tb.measures) out.push({ ref: `[${m.name}]`, label: m.name, short: m.name, kind: "measure", numeric: true, table: tb.name });
-      for (const c of tb.columns) {
-        const numeric = c.dataType === "Int64" || c.dataType === "Double" || c.dataType === "Decimal";
-        out.push({ ref: `${quote(tb.name)}[${c.name}]`, label: `${tb.name}[${c.name}]`, short: c.name, kind: "column", numeric, table: tb.name });
-      }
-    }
-    return out;
-  }, [model]);
-  const tables = model.tables.map((tb) => tb.name);
-  const values = refs.filter((r) => r.kind === "measure" || r.numeric);
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
-  const [table, setTable] = useState("");
-  const first = (s: string) => s || values[0]?.ref || "";
-  const val = (r: string) => (refs.find((x) => x.ref === r)?.kind === "column" ? `SUM ( ${r} )` : r);
-  const label = (r: string) => refs.find((x) => x.ref === r)?.short ?? r;
-  const A = first(a);
-  const B = b || values[1]?.ref || A;
-  const T = table || model.tables.find((x) => x.id === home)?.name || tables[0] || "";
-  const quoteT = /^[A-Za-z_][A-Za-z0-9_]*$/.test(T) ? T : `'${T.replace(/'/g, "''")}'`;
-  const col = refs.find((x) => x.ref === A && x.kind === "column");
-  const result: [string, string] = (() => {
-    switch (calc) {
-      case "sum":
-        return [`Total ${label(A)}`, val(A)];
-      case "average":
-        return col ? [`Average ${label(A)}`, `AVERAGE ( ${A} )`] : [`Average ${label(A)}`, `${A}`];
-      case "countRows":
-        return [`${T} rows`, `COUNTROWS ( ${quoteT} )`];
-      case "distinct":
-        return [`Distinct ${label(A)}`, col ? `DISTINCTCOUNT ( ${A} )` : `DISTINCTCOUNT ( ${A} )`];
-      case "ratio":
-        return [`${label(A)} per ${label(B)}`, `DIVIDE ( ${val(A)}, ${val(B)} )`];
-      case "difference":
-        return [`${label(A)} - ${label(B)}`, `${val(A)} - ${val(B)}`];
-      case "percentDifference":
-        return [`${label(A)} vs ${label(B)} %`, `DIVIDE ( ${val(A)} - ${val(B)}, ${val(B)} )`];
-    }
-  })();
-  const pickA = calc !== "countRows";
-  const pickB = calc === "ratio" || calc === "difference" || calc === "percentDifference";
-  const options = calc === "distinct" ? refs.filter((r) => r.kind === "column") : values;
-  return (
-    <Dialog
-      open={open}
-      onOpenChange={(o) => !o && onClose()}
-      title={t("Quick measure")}
-      width={480}
-      footer={
-        <>
-          <Button variant="ghost" onPress={onClose}>
-            {t("Cancel")}
-          </Button>
-          <Button variant="primary" onPress={() => onCreate(result[0].replace(/[[\]]/g, ""), result[1])}>
-            {t("Add")}
-          </Button>
-        </>
-      }
-    >
-      <div className="quick-measure">
-        <label className="field">
-          <span className="field-label">{t("Calculation")}</span>
-          <select className="select" value={calc} onChange={(e) => setCalc(e.target.value as Calc)}>
-            <option value="sum">{t("Total")}</option>
-            <option value="average">{t("Average")}</option>
-            <option value="countRows">{t("Count of rows")}</option>
-            <option value="distinct">{t("Count (distinct)")}</option>
-            <option value="ratio">{t("Ratio (divide)")}</option>
-            <option value="difference">{t("Difference")}</option>
-            <option value="percentDifference">{t("Percentage difference")}</option>
-          </select>
-        </label>
-        {pickA && (
-          <label className="field">
-            <span className="field-label">{pickB ? t("First value") : t("Value")}</span>
-            <select className="select" value={A} onChange={(e) => setA(e.target.value)}>
-              {options.map((r) => (
-                <option key={r.ref} value={r.ref}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {pickB && (
-          <label className="field">
-            <span className="field-label">{t("Second value")}</span>
-            <select className="select" value={B} onChange={(e) => setB(e.target.value)}>
-              {values.map((r) => (
-                <option key={r.ref} value={r.ref}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {calc === "countRows" && (
-          <label className="field">
-            <span className="field-label">{t("Table")}</span>
-            <select className="select" value={T} onChange={(e) => setTable(e.target.value)}>
-              {tables.map((x) => (
-                <option key={x} value={x}>
-                  {x}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <div className="field">
-          <span className="field-label">{t("DAX")}</span>
-          <pre className="quick-dax mono">{`${result[0]} = ${result[1]}`}</pre>
-        </div>
-      </div>
-    </Dialog>
   );
 }

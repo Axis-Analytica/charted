@@ -107,3 +107,5 @@
 .qe-nav-item.is-on { background: var(--bg-active); }
 .qe-nav-preview { min-width: 0; min-height: 0; display: flex; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .qe-nav-preview > * { flex: 1; min-width: 0; min-height: 0; }
+.csv-file { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.csv-file .mono { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--fg-muted); }

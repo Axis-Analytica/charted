@@ -35,3 +35,4 @@ arrow-cast.workspace = true
 insta.workspace = true
 notify.workspace = true
 tempfile = "3"
+rust_xlsxwriter = { version = "0.101", default-features = false }

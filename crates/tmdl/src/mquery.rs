@@ -388,25 +388,26 @@ pub fn to_query(
         match (&source, call, e) {
             (None, Some((f, args)), _) if f == "Csv.Document" => {
                 let path = file(args.first().ok_or("Csv.Document needs a file")?, params)?;
-                let delimiter = args.get(1).and_then(|o| match o {
-                    M::Record(fs) => {
-                        fs.iter()
-                            .find(|(k, _)| k == "Delimiter")
-                            .and_then(|(_, v)| {
-                                if let M::Str(s) = v {
-                                    Some(s.clone())
-                                } else {
-                                    None
-                                }
-                            })
+                let option = |key: &str| match args.get(1) {
+                    Some(M::Record(fs)) => fs.iter().find(|(k, _)| k == key).map(|(_, v)| v),
+                    _ => None,
+                };
+                let delimiter = match option("Delimiter") {
+                    Some(M::Str(s)) => Some(s.clone()),
+                    _ => None,
+                };
+                let encoding = match option("Encoding") {
+                    Some(M::Num(n)) => {
+                        charted_compiler::steps::encoding_of_code_page(*n as u32).map(String::from)
                     }
                     _ => None,
-                });
+                };
                 source = Some(Source::Csv {
                     path,
                     delimiter: delimiter.filter(|d| d != ","),
                     header: false,
-                    encoding: None,
+                    encoding,
+                    decimal: None,
                 });
             }
             (None, Some((f, args)), _) if f == "Excel.Workbook" => {
@@ -569,7 +570,8 @@ in
                 path: "/data/sales.csv".into(),
                 delimiter: Some(";".into()),
                 header: true,
-                encoding: None
+                encoding: None,
+                decimal: None
             }
         );
         assert_eq!(steps.len(), 3);

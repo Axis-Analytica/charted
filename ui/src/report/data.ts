@@ -11,6 +11,7 @@ import type { QueryFilter } from "../bridge/generated/QueryFilter";
 import type { Visual } from "../bridge/generated/Visual";
 import { drillFilters, useDrillThrough } from "../state/drillthrough";
 import { selectionEffect, useSelection } from "../state/selection";
+import { useSlicerSearch } from "../state/slicersearch";
 
 export interface VisualData {
   rows: number;
@@ -42,9 +43,9 @@ function decode(buf: ArrayBuffer): { rows: number; columns: Map<string, Vector> 
   return { rows: table.numRows, columns };
 }
 
-async function load(visual: Visual, totals: boolean, filters: QueryFilter[], highlight: QueryFilter[]): Promise<VisualData> {
+async function load(visual: Visual, totals: boolean, filters: QueryFilter[], highlight: QueryFilter[], search: string): Promise<VisualData> {
   const t0 = performance.now();
-  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters, highlight, tag: visual.id });
+  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters, highlight, tag: visual.id, ...(search ? { search } : {}) });
   const tot = totals ? transport.data({ type: "reportVisual", visual: visual.id, totals: true, filters, highlight: [], tag: `${visual.id}:totals` }) : null;
   const d = decode(await main);
   let totalsRow: Map<string, unknown> | undefined;
@@ -67,8 +68,9 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
   const drilled = useDrillThrough((s) => drillFilters(s.current, page.id));
   const own = selectionEffect(selection, page, visual);
   const effect = drilled.length ? { ...own, filters: [...drilled, ...own.filters] } : own;
+  const search = useSlicerSearch((s) => (visual.visualType === "slicer" ? (s.byVisual[visual.id] ?? "") : ""));
   const key = hasFields
-    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, pageSignature(page), model.report.filters, signature, withTotals, effect])
+    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, pageSignature(page), model.report.filters, signature, withTotals, effect, search])
     : "";
   const [state, setState] = useState<{ key: string; data: VisualData | null; error: string | null; loading: boolean }>({ key: "", data: null, error: null, loading: false });
 
@@ -80,7 +82,7 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
     let live = true;
     let p = cache.get(key);
     if (!p) {
-      p = load(visual, withTotals, effect.filters, effect.highlight);
+      p = load(visual, withTotals, effect.filters, effect.highlight, search);
       cache.set(key, p);
       p.catch(() => cache.delete(key));
       while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!);

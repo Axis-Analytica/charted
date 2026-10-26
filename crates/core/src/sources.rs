@@ -39,7 +39,8 @@ fn csv_cell(d: &Data) -> String {
         Data::Bool(b) => b.to_string(),
         Data::DateTime(dt) => excel_date(dt.as_f64()),
         Data::DateTimeIso(s) | Data::DurationIso(s) => s.clone(),
-        Data::Error(e) => format!("#{e:?}"),
+        // An error (#DIV/0!) is a blank cell, so the column keeps its type.
+        Data::Error(_) => String::new(),
     };
     if text.contains([',', '"', '\n', '\r']) {
         format!("\"{}\"", text.replace('"', "\"\""))
@@ -200,8 +201,154 @@ pub fn full_stamp(project_dir: &str, source: &Source) -> Option<Stamp> {
     })
 }
 
+/// Reads the start of a CSV file for what DuckDB doesn't detect: UTF-16 (by its byte
+/// order mark) and Windows' Western European text (bytes that aren't UTF-8), and
+/// European numbers ("1.234,5") in a file separated by semicolons.
+pub fn detect_csv(file: &Path) -> steps::CsvDetected {
+    use std::io::Read;
+    let mut head = Vec::new();
+    let Ok(f) = std::fs::File::open(file) else {
+        return Default::default();
+    };
+    let size = f.metadata().map(|m| m.len()).unwrap_or(u64::MAX);
+    let _ = f.take(256 << 10).read_to_end(&mut head);
+    let (encoding, text) = if head.starts_with(&[0xFF, 0xFE]) || head.starts_with(&[0xFE, 0xFF]) {
+        let le = head[0] == 0xFF;
+        let units: Vec<u16> = head[2..]
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .map(|&c| {
+                if le {
+                    u16::from_le_bytes(c)
+                } else {
+                    u16::from_be_bytes(c)
+                }
+            })
+            .collect();
+        (Some("utf-16"), String::from_utf16_lossy(&units))
+    } else {
+        match std::str::from_utf8(&head) {
+            Ok(t) => (None, t.to_string()),
+            // Cut through a character at the end of what was read: still UTF-8.
+            Err(e) if e.error_len().is_none() => (
+                None,
+                String::from_utf8_lossy(&head[..e.valid_up_to()]).into_owned(),
+            ),
+            Err(_) => (Some("latin-1"), head.iter().map(|&b| b as char).collect()),
+        }
+    };
+    steps::CsvDetected {
+        encoding: encoding.map(String::from),
+        decimal: european_numbers(&text).then(|| ",".to_string()),
+        whole: false,
+        ragged: ragged(&text, size as usize > head.len()),
+    }
+}
+
+/// Whether rows below the header have a different number of values than it (title
+/// lines above the header, which DuckDB skips, don't count). Quoted values may hold
+/// delimiters and line breaks.
+fn ragged(text: &str, cut: bool) -> bool {
+    let delim = [',', ';', '\t', '|']
+        .into_iter()
+        .max_by_key(|&d| {
+            text.lines()
+                .take(50)
+                .map(|l| l.matches(d).count())
+                .sum::<usize>()
+        })
+        .unwrap_or(',');
+    let mut counts = Vec::new();
+    let (mut fields, mut quoted, mut any) = (1, false, false);
+    for c in text.chars() {
+        match c {
+            '"' => quoted = !quoted,
+            c if c == delim && !quoted => fields += 1,
+            '\n' if !quoted => {
+                if any {
+                    counts.push(fields);
+                }
+                (fields, any) = (1, false);
+                continue;
+            }
+            '\r' => continue,
+            _ => {}
+        }
+        any = true;
+    }
+    // The last line may be cut off where reading stopped.
+    if any && !cut {
+        counts.push(fields);
+    }
+    let Some(&width) = counts
+        .iter()
+        .max_by_key(|&&n| counts.iter().filter(|&&m| m == n).count())
+    else {
+        return false;
+    };
+    let body = counts.iter().position(|&n| n == width).unwrap_or(0);
+    counts[body..].iter().any(|&n| n != width)
+}
+
+/// Whether a file separated by semicolons writes its numbers "1.234,5": some values
+/// have a decimal comma and none a decimal point.
+fn european_numbers(text: &str) -> bool {
+    let lines: Vec<&str> = text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .take(200)
+        .collect();
+    let count = |c: char| lines.iter().map(|l| l.matches(c).count()).sum::<usize>();
+    if count(';') <= count(',') || count(';') < lines.len() {
+        return false;
+    }
+    let (mut comma, mut point) = (0, 0);
+    for v in lines.iter().flat_map(|l| l.split(';')) {
+        let v = v.trim().trim_matches('"').trim_start_matches('-');
+        let digits = |s: &str| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit());
+        if let Some((int, frac)) = v.rsplit_once(',') {
+            if digits(frac) && int.split('.').all(digits) {
+                comma += 1;
+            }
+        } else if let Some((int, frac)) = v.split_once('.') {
+            // "1.234" could be a thousand; "1.5" is a decimal point.
+            if digits(int) && digits(frac) && frac.len() != 3 {
+                point += 1;
+            }
+        }
+    }
+    comma > 0 && point == 0
+}
+
+/// After a load failed on a value that doesn't fit its column's type (found far into
+/// a CSV file, past what DuckDB reads to work out types): the same settings with the
+/// whole file read for types, or None when that can't help.
+pub fn whole_file_types(
+    sheets: &BTreeMap<String, String>,
+    query: &Query,
+    error: &str,
+) -> Option<BTreeMap<String, String>> {
+    let Source::Csv { path, .. } = &query.source else {
+        return None;
+    };
+    if !error.contains("Conversion Error") && !error.contains("Could not convert") {
+        return None;
+    }
+    let key = steps::csv_key(path);
+    let mut found = steps::CsvDetected::decode(sheets.get(&key)?);
+    if found.whole {
+        return None;
+    }
+    found.whole = true;
+    let mut out = sheets.clone();
+    out.insert(key, found.encode());
+    Some(out)
+}
+
 /// Caches every Excel sheet the queries read (again when the workbook changed) and
-/// returns where each is, for `Ctx::sheets`.
+/// returns where each is, for `Ctx::sheets`, with what reading each CSV file's start
+/// found (see `detect_csv`).
 pub fn prepare_sheets(
     project_dir: &str,
     cache: &Path,
@@ -209,6 +356,24 @@ pub fn prepare_sheets(
 ) -> Result<BTreeMap<String, String>, CoreError> {
     let mut out = BTreeMap::new();
     for q in queries {
+        if let Source::Csv {
+            path,
+            encoding,
+            decimal,
+            ..
+        } = &q.source
+        {
+            let file = PathBuf::from(steps::resolve_path(project_dir, path));
+            let mut found = detect_csv(&file);
+            if encoding.is_some() {
+                found.encoding = None;
+            }
+            if decimal.is_some() {
+                found.decimal = None;
+            }
+            out.insert(steps::csv_key(path), found.encode());
+            continue;
+        }
         let Source::Excel { path, sheet, .. } = &q.source else {
             continue;
         };
