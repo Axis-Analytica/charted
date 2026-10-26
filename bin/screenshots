@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# bin/screenshots — renders the README's screenshots into docs/screenshots/, from the
+# projects the checkpoint tests built (run bin/checkpoint m4, m5 and m6 first), in
+# Chromium against the real core with the desktop's Omarchy theme.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+cargo build -q -p charted-cli
+mkdir -p docs/screenshots
+out="$(pwd)/docs/screenshots"
+(cd ui && CHARTED_README_SHOTS="$out" CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium || true)}" pnpm exec playwright test e2e/screenshots.spec.ts)
+ls "$out"

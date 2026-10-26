@@ -11,9 +11,18 @@ with a report of anything that doesn't come across.
 > **Status:** 1.0 release candidate. All seven milestones are built: get and shape
 > data, model it, write DAX (time intelligence included), build interactive reports
 > with drill-down, drill-through and bookmarks, and move projects to and from Power BI.
-> See [Install](#install).
+> See [Install](#install) and what comes next in [docs/ROADMAP.md](docs/ROADMAP.md).
 
-![charted showing a Trends page: sales against last year, year to date, and a column chart drilled into 2024's quarters](docs/screenshot.png)
+![charted's report view: a card, a column chart, a matrix of sales by category and year with Camping selected, cross-filtering a line chart and a region slicer](docs/screenshots/report.png)
+
+| | |
+|---|---|
+| ![The Trends page with a TOTALYTD measure open in the formula bar](docs/screenshots/dax.png) | ![Searching the visual gallery, and the Fields pane's right-click menu](docs/screenshots/visuals.png) |
+| Time intelligence and the DAX formula bar | Searching visuals; right-click a table for new measures, quick measures and columns |
+| ![The model view: the sample's star schema with its relationships](docs/screenshots/model.png) | ![The query editor cleaning a messy store list, with its applied steps](docs/screenshots/query.png) |
+| The model view | Transform data, with applied steps, profiles and M |
+| ![Importing a Power BI project, with a report of what didn't come across](docs/screenshots/import.png) | ![The welcome screen](docs/screenshots/welcome.png) |
+| Opening a Power BI project | Start from scratch, a project, or the sample |
 
 ## Install
 
@@ -35,7 +44,8 @@ follow the 1.0 release.
 - Projects as plain folders: the model in `model.ossie.yaml`, load queries in `queries/`,
   the report in `report/` (one small JSON file per page and visual, so changes diff
   well in git), data cached in DuckDB. Atomic saves, crash recovery, unlimited undo.
-- No telemetry and no network access, except opt-in downloads of database connectors.
+- No telemetry. The network is used only for what you ask for: database connectors
+  (downloaded once you agree) and data files you read from the web.
 
 **Getting and shaping data**
 - Start a new project (Ctrl+N) and get data into it, or open an existing one.
@@ -45,9 +55,14 @@ follow the 1.0 release.
   replace values, split and merge columns, custom and conditional columns, group by,
   pivot and unpivot, fill down, merge and append queries, and more.
 - Column profiles (quality and distribution) over the first 1,000 rows or all of them.
-- Sources: CSV, Excel (with a sheet navigator), JSON, Parquet, a folder of files, and
-  SQLite and PostgreSQL (their connectors are downloaded only after you agree;
-  passwords stay in your desktop keyring). charted notices when a source file changes.
+- Sources: CSV, Excel (with a sheet navigator), JSON, Parquet, a folder of files, files
+  on the web, and SQLite and PostgreSQL (their connectors are downloaded only after you
+  agree; passwords stay in your desktop keyring). charted notices when a source file
+  changes.
+- Awkward files read right: UTF-16 and Western European (Windows) text, semicolons with
+  decimal commas, ragged rows, title lines above the header, and a column whose type
+  changes far down a file. Each text file's delimiter, encoding and decimal separator are
+  shown and can be changed.
 
 **Data view**
 - A virtual grid that scrolls 10 million rows at 60 fps: sort, filter, find, copy.
@@ -77,6 +92,12 @@ follow the 1.0 release.
 **Reports**
 - A page canvas with snapping, alignment, multiple pages, and report, page and visual
   filters (basic, advanced, top N).
+- Search the visual gallery (type "donut", press Enter) and every slicer; a slicer's
+  search finds values past the ones it lists, and *Select all* selects what you found.
+- Right-click a table or field in the Fields pane: new measure, quick measure or column,
+  rename, hide, delete, properties. Quick measures write the DAX for totals, averages
+  and counts, per-category values, percentage of total, year-to-date and
+  year-over-year, ratios and differences.
 - Visuals: card, table, matrix (with subtotals), clustered and stacked column and bar,
   line, pie, donut, scatter/bubble, slicer (list, dropdown, range, relative date), text
   box, image and shape.
@@ -93,9 +114,12 @@ follow the 1.0 release.
 - Export to a Power BI project: PBIP with the model in TMDL (tables, measures,
   calculated columns, relationships, Power Query partitions) and the report in PBIR
   (pages, visuals, filters, drill-through, themes), checked against Microsoft's schemas.
+  Optionally copy the data files into the export and set the folder Power BI reads them
+  from (for opening it on Windows).
 - Import Power BI projects (TMDL or `model.bim`, PBIR or the older `report.json`): the
-  model, the Power Query that reads files, and the report, with an import report of what
-  charted can't use yet. An export imports back unchanged.
+  model, the Power Query that reads files (on disk or the web), and the report, with an
+  import report of what charted can't use yet. An export imports back unchanged.
+  Public Power BI projects are part of the tests (`bin/corpus`).
 - `.chartedz` bundles: a whole project in one file to share. Export or import Apache
   Ossie with a diff preview.
 - A command line for scripts and agents, all with `--json`: `charted check`,
@@ -129,7 +153,9 @@ and the DAX support list, and `docs/HANDOFF.md` for the architecture.
 | M3 | Real modeling: relationships, DAX language service and compiler, Power BI export | Done |
 | M4 | Interactivity: cross-filter/highlight, slicers, matrix, themes | Done |
 | M5 | Query editor: applied steps, transforms, profiling, more sources | Done |
-| M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | In review |
+| M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | Done |
+| v1.x | Modelling and DAX, more visuals, report building, interop depth | [Planned](docs/ROADMAP.md) |
+| M7 | An agent inside charted that builds report pages on request | [Planned](docs/ROADMAP.md#m7-an-agent-that-builds-reports-inside-charted) |
 
 ## License
 
