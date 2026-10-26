@@ -13,6 +13,7 @@ import { Button, IconButton } from "../../kit/Button";
 import { Banner, Spinner } from "../../kit/misc";
 import { dataJson, nextSort, useDataView, viewSpec } from "../../state/dataview";
 import { toast } from "../../state/toasts";
+import { useViewAs, viewedRoles } from "../../state/viewas";
 import { fetchRows } from "./blocks";
 import { ColumnFormulaBar } from "./ColumnFormulaBar";
 import { ColumnProperties } from "./ColumnProperties";
@@ -79,6 +80,7 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
   }, [columns]);
   const formulaColumn = newColumn ? null : selected?.kind.kind === "calculated" ? selected : undefined;
   const total = Number(project.tables.find((s) => s.id === table.id)?.rows ?? 0);
+  const viewing = useViewAs((s) => viewedRoles(s, project.path));
   const query = project.queries.find((q) => q.table === table.source);
 
   const grid = useRef<GridHandle>(null);
@@ -255,6 +257,7 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
         </div>
       )}
       {error && <Banner tone="danger">{error}</Banner>}
+      {viewing.length > 0 && <Banner tone="info">{t("View as applies to the report: the data view shows every row.")}</Banner>}
       <div className="dv-body">
         <div className="dv-main">
           <div className="preview-grid">

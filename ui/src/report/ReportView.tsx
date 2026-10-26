@@ -56,6 +56,7 @@ import { FiltersPane } from "./FiltersPane";
 import { FormulaBar } from "./FormulaBar";
 import { QuickMeasureDialog } from "./QuickMeasure";
 import { PrintLayout } from "./PrintLayout";
+import { ManageRolesDialog, RolesMenu, useRolesDialog, ViewAsBanner, ViewAsDialog } from "./Roles";
 import { SelectionPane } from "./SelectionPane";
 import { SyncSlicersPane } from "./SyncSlicersPane";
 import { VISUALS } from "./registry";
@@ -375,6 +376,8 @@ export function ReportView({ model }: { model: Model }) {
       },
       enabled: hasSelection,
     },
+    { id: "manage-roles", keys: "", label: "Manage roles…", group: "Edit", run: () => useRolesDialog.getState().set("manage"), enabled: () => useReport.getState().view === "report" },
+    { id: "view-as", keys: "", label: "View as roles…", group: "View", run: () => useRolesDialog.getState().set("viewAs"), enabled: () => useReport.getState().view === "report" && !!model.roles?.length },
     { id: "new-measure", keys: "Ctrl+M", label: "New measure", group: "Edit", run: () => model.tables[0] && set({ formula: `new:${(useReport.getState().field?.table ?? model.tables[0].id)}` }), enabled: () => model.tables.length > 0 },
     { id: "new-quick-measure", keys: "", label: "New quick measure…", group: "Edit", run: () => model.tables[0] && set({ quick: useReport.getState().field?.table ?? model.tables[0].id }), enabled: () => model.tables.length > 0 },
     // Every visual type can be added from the command palette.
@@ -401,6 +404,8 @@ export function ReportView({ model }: { model: Model }) {
       {formula && <FormulaBar model={model} />}
       <QuickMeasureDialog model={model} />
       <PrintLayout model={model} />
+      <ManageRolesDialog model={model} />
+      <ViewAsDialog model={model} />
       {reading ? (
         <div className="report-toolbar" role="toolbar" aria-label={t("Reading view")}>
           <span className="report-toolbar-label">{t("Reading view")}</span>
@@ -434,6 +439,7 @@ export function ReportView({ model }: { model: Model }) {
         <span className="topbar-sep" />
         <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
         <ThemeMenu model={model} />
+        <RolesMenu model={model} />
         <IconButton label={t("Reading view")} icon={<BookOpen size={15} />} onPress={() => set({ reading: true, selected: [], editInteractions: false })} />
         <span className="status-fill" />
         <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
@@ -446,6 +452,7 @@ export function ReportView({ model }: { model: Model }) {
       )}
       <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
         <div className="report-center">
+          <ViewAsBanner model={model} />
           <DrillBar model={model} page={page} />
           <Canvas model={model} page={page} signature={signature} />
           {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}

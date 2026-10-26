@@ -336,3 +336,20 @@
 .context-menu .menu-sep { height: 1px; margin: 4px 0; background: var(--border); }
 .field-rename { flex: 1; min-width: 0; height: 22px; padding: 0 4px; border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--bg-sunken); color: var(--fg); font: inherit; }
 .field-row.is-hidden, .field-table.is-hidden { opacity: 0.55; }
+
+/* Row-level security: View as and Manage roles. */
+.view-as-bar { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 10px; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--warning) 14%, var(--bg-raised)); font-size: var(--text-sm); color: var(--fg); }
+.view-as-roles { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.view-as-list { display: grid; gap: 8px; margin-bottom: 12px; }
+.roles-dialog { display: grid; grid-template-columns: 180px 180px 1fr; gap: 14px; min-height: 340px; }
+.roles-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; border-inline-end: 1px solid var(--border); padding-inline-end: 12px; }
+.roles-col-head { display: flex; align-items: center; justify-content: space-between; min-height: 26px; font-size: var(--text-sm); font-weight: 600; color: var(--fg-muted); }
+.roles-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; overflow: auto; max-height: 360px; }
+.roles-items li { display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 28px; padding-inline: 8px; border-radius: var(--radius-sm); color: var(--fg); cursor: default; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.roles-items li:hover { background: var(--bg-hover); }
+.roles-items li.is-on { background: var(--bg-active); box-shadow: inset 2px 0 0 var(--accent); }
+.roles-items li svg { flex: none; color: var(--accent); }
+.roles-edit { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.roles-dax { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); padding: 2px 4px; }
+.roles-dax.has-error { border-color: var(--danger); }
+.roles-error { font-size: var(--text-sm); color: var(--danger); }
