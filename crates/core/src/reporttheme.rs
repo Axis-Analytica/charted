@@ -1,5 +1,6 @@
 //! Power BI theme files (`.json`): imported whole into the report, so properties
-//! charted doesn't use yet (`visualStyles`, text classes) survive a round trip.
+//! charted doesn't use survive a round trip. The UI reads the colours, text classes
+//! and the visual styles it has format objects for (ui/src/report/themeStyles.ts).
 
 use charted_model::ReportTheme;
 use serde_json::Value;
@@ -25,6 +26,18 @@ pub fn read(path: &Path) -> Result<ReportTheme, CoreError> {
         &text,
         path.file_stem().and_then(|s| s.to_str()).unwrap_or("Theme"),
     )
+}
+
+/// Writes `theme` as a Power BI theme file, named after it.
+pub fn write(path: &Path, theme: &ReportTheme) -> Result<(), CoreError> {
+    let mut json = theme.json.clone();
+    if let Some(o) = json.as_object_mut() {
+        o.insert("name".into(), Value::String(theme.name.clone()));
+    }
+    let mut text = serde_json::to_string_pretty(&json).unwrap_or_default();
+    text.push('\n');
+    crate::atomic::write(path, text.as_bytes())
+        .map_err(|e| CoreError::Invalid(format!("couldn't write {}: {e}", path.display())))
 }
 
 pub fn parse(text: &str, fallback_name: &str) -> Result<ReportTheme, CoreError> {
@@ -98,5 +111,20 @@ mod tests {
         ] {
             assert!(parse(bad, "x").is_err(), "{bad}");
         }
+    }
+
+    #[test]
+    fn written_themes_read_back() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("t.json");
+        let theme = ReportTheme {
+            name: "Edited".into(),
+            json: serde_json::json!({"name": "Old", "dataColors": ["#123456"], "textClasses": {"title": {"fontSize": 16}}, "visualStyles": {"*": {"*": {"title": [{"show": false}]}}}}),
+        };
+        write(&path, &theme).unwrap();
+        let back = read(&path).unwrap();
+        assert_eq!(back.name, "Edited");
+        assert_eq!(back.json["visualStyles"], theme.json["visualStyles"]);
+        assert_eq!(back.json["textClasses"], theme.json["textClasses"]);
     }
 }

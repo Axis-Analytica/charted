@@ -633,6 +633,39 @@ fn the_project_comes_back_from_its_export() {
     assert_eq!(back.model.roles, model.roles);
 }
 
+/// A theme edited in charted (text classes, visual styles, more colours) comes back
+/// from its export, also when Power BI has dropped charted's annotation and only the
+/// custom theme file is left.
+#[test]
+fn edited_themes_come_back_from_the_report() {
+    let mut model = reported();
+    let theme = ReportTheme {
+        name: "Harbor (edited)".into(),
+        json: serde_json::json!({
+            "name": "Harbor (edited)",
+            "dataColors": ["#123456", "#abcdef", "#0f0f0f"],
+            "background": "#FFFFFF",
+            "foreground": "#252423",
+            "tableAccent": "#123456",
+            "textClasses": { "title": { "fontSize": 16, "fontFace": "Georgia", "color": "#AA0000" } },
+            "visualStyles": { "*": { "*": { "title": [{ "show": true, "fontSize": 20 }], "legend": [{ "position": "Bottom" }], "labels": [{ "show": true }] } } }
+        }),
+    };
+    model.report.theme = Some(theme.clone());
+    let files = charted_tmdl::pbir::report_files(&model);
+    let mut report: std::collections::BTreeMap<String, String> = files.into_iter().collect();
+    let mut skipped = Vec::new();
+    let back = charted_tmdl::pbir::read_pbir(&model, &report, &mut skipped).unwrap();
+    assert_eq!(back.theme.as_ref(), Some(&theme));
+    // Without charted's annotation, the theme comes from its resource file.
+    let json: &mut String = report.get_mut("definition/report.json").unwrap();
+    let mut v: serde_json::Value = serde_json::from_str(json).unwrap();
+    v.as_object_mut().unwrap().remove("annotations");
+    *json = v.to_string();
+    let back = charted_tmdl::pbir::read_pbir(&model, &report, &mut skipped).unwrap();
+    assert_eq!(back.theme, Some(theme));
+}
+
 /// Roles as Power BI Desktop writes them, in TMDL and in model.bim.
 #[test]
 fn power_bi_roles_are_imported() {

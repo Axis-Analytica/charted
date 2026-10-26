@@ -3,6 +3,7 @@ import type { Change } from "./Change";
 import type { PbipOptions } from "./PbipOptions";
 import type { Query } from "./Query";
 import type { QueryFilter } from "./QueryFilter";
+import type { ReportTheme } from "./ReportTheme";
 
 export type Request = { "type": "state" } | { "type": "openProject", path: string, } | { "type": "newProject", name: string, dir: string | null, } | { "type": "openSample", dir: string | null, } | { "type": "closeProject" } | { "type": "commit", label: string, changes: Array<Change>, } | { "type": "undo" } | { "type": "redo" } | { "type": "save" } | { "type": "restoreRecovery" } | { "type": "discardRecovery" } | { "type": "forgetRecent", path: string, } | { "type": "exportPbip", dir: string, options?: PbipOptions, } | { "type": "exportOssie", path: string, } | { "type": "importOssie", path: string, } | { "type": "importPowerBi", path: string, dir: string | null, } | { "type": "dismissImportReport" } | { "type": "dismissCrash" } | { "type": "saveBundle", path: string, } | { "type": "applyQueries", queries: Array<Query>, } | { "type": "refresh" } | { "type": "createDateTable", name: string, 
 /**
@@ -16,7 +17,7 @@ fiscalStart: number,
 /**
  * Date columns to relate to it: (table id, column id).
  */
-relate: Array<[string, string]>, } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, 
+relate: Array<[string, string]>, } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportTheme", path: string, theme: ReportTheme, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, 
 /**
  * The roles the report is viewed as (row-level security).
  */

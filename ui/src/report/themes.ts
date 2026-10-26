@@ -5,6 +5,7 @@
 import type { Desktop } from "../bridge/generated/Desktop";
 import type { ReportTheme } from "../bridge/generated/ReportTheme";
 import { deriveTokens, type Tokens } from "../design/theme";
+import { textTokens } from "./themeStyles";
 
 /** Built-in themes. Classic is Power BI's default palette; Daylight and Nightfall
  * are colour-vision-checked palettes (validated for lightness, chroma and
@@ -75,6 +76,7 @@ export function themeTokens(theme: ReportTheme | null | undefined, desktop: Desk
   list.forEach((c, i) => (tokens[`--chart-${i + 1}`] = c));
   tokens["--chart-count"] = String(list.length);
   tokens["--mode"] = mode;
+  Object.assign(tokens, textTokens(theme.json));
   return tokens;
 }
 

@@ -3,6 +3,7 @@
 // this, so adding a visual type is one entry plus its renderer.
 import { msg } from "../i18n";
 import { extendRegistry } from "./moreVisuals";
+import { themeDefault } from "./themeStyles";
 import {
   ChartBarBig,
   ChartBarStacked,
@@ -577,5 +578,15 @@ export function prop<T>(objects: Record<string, Record<string, unknown>> | undef
   const set = objects?.[object]?.[name];
   if (set !== undefined) return set as T;
   const p = def?.objects.find((o) => o.name === object)?.props.find((x) => x.name === name);
+  // The report theme's visual styles come between the visual's own and the defaults.
+  const themed = def && p ? themeDefault(def.type, object, name) : undefined;
+  if (themed !== undefined && fits(p!, themed)) return themed as T;
   return p?.default as T;
+}
+
+/** Whether a theme's value can stand for a property (right type, a known option). */
+function fits(p: PropDef, v: unknown): boolean {
+  if (p.type === "select") return p.options.some((o) => o.value === v);
+  if (p.type === "number") return typeof v === "number" && (p.min === undefined || v >= p.min) && (p.max === undefined || v <= p.max);
+  return typeof v === typeof p.default;
 }

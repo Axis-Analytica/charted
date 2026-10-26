@@ -21,6 +21,9 @@ import { paint, usePainter } from "./painter";
 import { withSync } from "./sync";
 import { CanvasScale, ThemeKey } from "./scale";
 import { themeStyle, themeTokens } from "./themes";
+import { setStyleDefaults, styleDefaults } from "./themeStyles";
+import { useThemeDraft } from "../state/themedraft";
+import type { ReportTheme } from "../bridge/generated/ReportTheme";
 import { VisualContainer } from "./VisualContainer";
 
 export const FIELD_MIME = "application/x-charted-field";
@@ -29,12 +32,21 @@ export const VISUAL_MIME = "application/x-charted-visual";
 
 const GRID = 8;
 
-/** The report theme's tokens for page content, or null to follow the desktop. */
+/** The report theme shown: the one being edited in the theme editor, else the report's. */
+export function useReportTheme(model: Model): ReportTheme | null {
+  const draft = useThemeDraft((s) => s.draft);
+  return draft !== undefined ? draft : (model.report.theme ?? null);
+}
+
+/** The report theme's tokens for page content, or null to follow the desktop. Also
+ * makes its visual styles the format defaults that `prop` reads. */
 export function usePageTheme(model: Model) {
   const desktop = useApp((s) => s.env?.desktop);
-  const theme = model.report.theme ?? null;
+  const theme = useReportTheme(model);
   const tokens = useMemo(() => (desktop ? themeTokens(theme, desktop) : null), [theme, desktop]);
-  const key = useMemo(() => JSON.stringify(tokens), [tokens]);
+  const defaults = useMemo(() => styleDefaults(theme?.json), [theme]);
+  setStyleDefaults(defaults);
+  const key = useMemo(() => JSON.stringify([tokens, defaults]), [tokens, defaults]);
   return { tokens, key, style: themeStyle(tokens) };
 }
 

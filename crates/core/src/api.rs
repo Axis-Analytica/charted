@@ -117,6 +117,11 @@ pub enum Request {
     ImportTheme {
         path: String,
     },
+    /// Writes a theme as a Power BI theme file (the theme editor's export).
+    ExportTheme {
+        path: String,
+        theme: charted_model::ReportTheme,
+    },
     /// Writes a report visual's data as CSV, named after its fields, with `filters`
     /// added (a selection elsewhere filtering it).
     ExportVisualCsv {
@@ -657,6 +662,9 @@ impl App {
                     "Import theme",
                     vec![charted_model::Change::SetTheme { theme: Some(theme) }],
                 )?;
+            }
+            Request::ExportTheme { path, theme } => {
+                crate::reporttheme::write(Path::new(&path), &theme)?
             }
             Request::ExportVisualCsv {
                 visual,

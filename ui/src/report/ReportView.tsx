@@ -57,6 +57,7 @@ import { FormulaBar } from "./FormulaBar";
 import { QuickMeasureDialog } from "./QuickMeasure";
 import { PrintLayout } from "./PrintLayout";
 import { ManageRolesDialog, RolesMenu, useRolesDialog, ViewAsBanner, ViewAsDialog } from "./Roles";
+import { ThemeEditor, useThemeEditor } from "./ThemeEditor";
 import { SelectionPane } from "./SelectionPane";
 import { SyncSlicersPane } from "./SyncSlicersPane";
 import { VISUALS } from "./registry";
@@ -210,6 +211,7 @@ function ThemeMenu({ model }: { model: Model }) {
         ...BUILT_IN.map((th) => ({ id: `theme-${th.name}`, label: th.name, icon: mark(current === th.name), run: () => commit("Change theme", [{ op: "setTheme", theme: th }]) })),
         ...(current && !BUILT_IN.some((b) => b.name === current) ? [{ id: "current", label: current, icon: mark(true), run: () => {} }] : []),
         null,
+        { id: "customize", label: t("Customize current theme…"), run: () => useThemeEditor.getState().set(true) },
         {
           id: "browse",
           label: t("Browse for themes…"),
@@ -229,6 +231,8 @@ export function ReportView({ model }: { model: Model }) {
   const { page: pageId, selected, panes, formula, set, select, editInteractions, focus, reading } = useReport();
   const page = currentPage(model, pageId);
   const signature = useMemo(() => modelSignature(model), [model]);
+  // Sets the theme's format defaults before the canvas and the format pane read them.
+  usePageTheme(model);
   const pageRef = useRef(page);
   pageRef.current = page;
   // In narrow windows (a tiled half screen) the three panes share one tabbed column.
@@ -405,6 +409,7 @@ export function ReportView({ model }: { model: Model }) {
       <QuickMeasureDialog model={model} />
       <PrintLayout model={model} />
       <ManageRolesDialog model={model} />
+      <ThemeEditor model={model} />
       <ViewAsDialog model={model} />
       {reading ? (
         <div className="report-toolbar" role="toolbar" aria-label={t("Reading view")}>

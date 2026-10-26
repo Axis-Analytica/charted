@@ -16,7 +16,7 @@
 /* Canvas */
 .canvas-scroller { position: relative; overflow: auto; display: grid; place-items: center; padding: 16px; background: var(--bg-sunken); outline: none; }
 .page-frame { position: relative; flex: none; }
-.page { position: absolute; top: 0; left: 0; transform-origin: 0 0; background: var(--bg); box-shadow: 0 0 0 1px var(--border), var(--shadow); }
+.page { position: absolute; top: 0; left: 0; transform-origin: 0 0; background: var(--bg); font-family: var(--report-font, inherit); box-shadow: 0 0 0 1px var(--border), var(--shadow); }
 .page-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--fg-faint); pointer-events: none; }
 .page-empty p { margin: 4px 0; font-size: 20px; color: var(--fg-muted); }
 .page-empty .page-empty-hint { font-size: 13px; color: var(--fg-faint); }
@@ -28,7 +28,7 @@
 .visual.has-border { box-shadow: 0 0 0 1px var(--border); }
 .visual:hover .visual-header, .visual.is-selected .visual-header { opacity: 1; }
 .visual.is-selected { box-shadow: 0 0 0 1px var(--accent); }
-.visual-title { flex: none; padding: 8px 12px 0; font-weight: 600; color: var(--fg-strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.visual-title { flex: none; padding: 8px 12px 0; font-weight: 600; color: var(--report-title-fg, var(--fg-strong)); font-family: var(--report-title-font, inherit); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .visual-body { position: relative; flex: 1; min-height: 0; display: flex; }
 .visual-body > * { flex: 1; min-width: 0; }
 .visual-placeholder { display: grid; place-items: center; color: var(--fg-faint); opacity: 0.6; }
@@ -353,3 +353,18 @@
 .roles-dax { border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); padding: 2px 4px; }
 .roles-dax.has-error { border-color: var(--danger); }
 .roles-error { font-size: var(--text-sm); color: var(--danger); }
+
+/* The theme editor sits at the side, so the page shows its changes as they're made. */
+.overlay:has(.theme-editor) { place-items: center end; padding-inline-end: 24px; background: transparent; }
+.theme-editor { display: grid; gap: 14px; }
+.theme-section { display: grid; gap: 8px; margin: 0; padding: 10px 12px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.theme-section legend { padding-inline: 4px; font-size: var(--text-sm); font-weight: 600; color: var(--fg-muted); }
+.theme-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.theme-colors { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 210px; overflow: auto; }
+.theme-colors li { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
+.theme-editor input[type="color"] { width: 28px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: none; }
+.theme-color-field { display: flex; align-items: center; gap: 8px; font-size: var(--text-sm); }
+.theme-text { display: grid; gap: 6px; }
+.theme-text-row { display: grid; grid-template-columns: 110px 1fr 96px 30px; align-items: center; gap: 8px; }
+.theme-text-name { font-size: var(--text-sm); color: var(--fg); }
+.theme-size { width: 96px; }
