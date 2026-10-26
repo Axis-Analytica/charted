@@ -721,6 +721,7 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             hierarchies: Vec::new(),
             hidden,
             is_date_table,
+            calculated: None,
             extras: Extras::new(),
         };
         let mut sort_by_names: Vec<(usize, String)> = Vec::new();

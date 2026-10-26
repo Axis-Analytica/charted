@@ -292,6 +292,7 @@ fn fixture() -> Fixture {
             hidden: false,
             hierarchies: Vec::new(),
             is_date_table: name == "Date",
+            calculated: None,
             extras: Default::default(),
         });
     }

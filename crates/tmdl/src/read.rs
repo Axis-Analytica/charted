@@ -1018,6 +1018,7 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             hierarchies,
             hidden: t.hidden,
             is_date_table: t.date_table,
+            calculated: None,
             extras: Default::default(),
         });
     }

@@ -46,6 +46,7 @@ fn table(id: &str, name: &str, columns: Vec<Column>) -> Table {
         hidden: false,
         hierarchies: Vec::new(),
         is_date_table: false,
+        calculated: None,
         extras: Default::default(),
     }
 }

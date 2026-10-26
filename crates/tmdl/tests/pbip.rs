@@ -57,6 +57,7 @@ fn writes_a_power_bi_project() {
                 hierarchies: Vec::new(),
                 hidden: false,
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -86,6 +87,7 @@ fn writes_a_power_bi_project() {
                     extras: Default::default(),
                 }],
                 is_date_table: true,
+                calculated: None,
                 extras: Default::default(),
             },
         ],
@@ -201,6 +203,7 @@ fn reported() -> Model {
             }],
             hidden: false,
             is_date_table: false,
+            calculated: None,
             extras: Default::default(),
         }],
         ..Default::default()
@@ -710,6 +713,7 @@ fn power_query_sources_come_back_from_their_m() {
         measures: vec![],
         hidden: false,
         is_date_table: false,
+        calculated: None,
         hierarchies: Vec::new(),
         extras: Default::default(),
     };
