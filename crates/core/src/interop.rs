@@ -150,7 +150,7 @@ fn changed_props(a: &serde_json::Value, b: &serde_json::Value, skip: &[&str]) ->
 }
 
 fn diff_table(out: &mut Vec<String>, a: &Table, b: &Table) {
-    let changed = changed_props(&json(a), &json(b), &["columns", "measures"]);
+    let changed = changed_props(&json(a), &json(b), &["columns", "measures", "hierarchies"]);
     if !changed.is_empty() {
         out.push(format!("{}: {} changed", a.name, changed.join(", ")));
     }
@@ -194,6 +194,27 @@ fn diff_table(out: &mut Vec<String>, a: &Table, b: &Table) {
     for m in &b.measures {
         if !a.measures.iter().any(|x| x.id == m.id) {
             out.push(format!("{}: measure {} added", a.name, m.name));
+        }
+    }
+    for h in &a.hierarchies {
+        match b.hierarchy(&h.id) {
+            None => out.push(format!("{}: hierarchy {} removed", a.name, h.name)),
+            Some(o) => {
+                let ch = changed_props(&json(h), &json(o), &[]);
+                if !ch.is_empty() {
+                    out.push(format!(
+                        "{}: hierarchy {} — {} changed",
+                        a.name,
+                        h.name,
+                        ch.join(", ")
+                    ));
+                }
+            }
+        }
+    }
+    for h in &b.hierarchies {
+        if a.hierarchy(&h.id).is_none() {
+            out.push(format!("{}: hierarchy {} added", a.name, h.name));
         }
     }
 }

@@ -1,6 +1,6 @@
 //! Reads a Power BI semantic model — TMDL (a PBIP's `definition/` folder) or TMSL
 //! (`model.bim`) — into a charted model and its queries. What charted can't use is
-//! listed in the import report instead of being dropped silently: hierarchies,
+//! listed in the import report instead of being dropped silently:
 //! calculation groups, roles, perspectives, translations, calculated tables and M
 //! queries it doesn't understand (their tables come in without data).
 //!
@@ -69,6 +69,17 @@ struct ImMeasure {
 }
 
 #[derive(Debug, Clone, Default)]
+struct ImHierarchy {
+    name: String,
+    lineage: Option<String>,
+    description: Option<String>,
+    hidden: bool,
+    folder: Option<String>,
+    /// (ordinal, name, column name)
+    levels: Vec<(i64, String, String)>,
+}
+
+#[derive(Debug, Clone, Default)]
 struct ImPartition {
     kind: String,
     source: String,
@@ -85,7 +96,7 @@ struct ImTable {
     columns: Vec<ImColumn>,
     measures: Vec<ImMeasure>,
     partitions: Vec<ImPartition>,
-    hierarchies: Vec<String>,
+    hierarchies: Vec<ImHierarchy>,
     calculation_group: bool,
     annotations: BTreeMap<String, String>,
 }
@@ -415,7 +426,35 @@ fn tmdl_table(n: &Node, name: String) -> ImTable {
                     annotations: annotations(c),
                 });
             }
-            "hierarchy" => t.hierarchies.push(name),
+            "hierarchy" => {
+                let levels = c
+                    .children
+                    .iter()
+                    .filter(|l| l.depth == c.depth + 1)
+                    .filter_map(|l| {
+                        let (kw, name, _) = object(&l.text)?;
+                        (kw == "level").then_some((l, name))
+                    })
+                    .enumerate()
+                    .map(|(i, (l, name))| {
+                        let lp = props(l);
+                        let ordinal = lp
+                            .get("ordinal")
+                            .and_then(|o| o.parse().ok())
+                            .unwrap_or(i as i64);
+                        let column = lp.get("column").map(|c| take_name(c).0).unwrap_or_default();
+                        (ordinal, name, column)
+                    })
+                    .collect();
+                t.hierarchies.push(ImHierarchy {
+                    lineage: cp.get("lineageTag").cloned(),
+                    description: doc(c),
+                    hidden: cp.contains_key("isHidden"),
+                    folder: cp.get("displayFolder").cloned(),
+                    levels,
+                    name,
+                })
+            }
             "calculationGroup" => t.calculation_group = true,
             _ => {}
         }
@@ -556,7 +595,26 @@ fn read_bim(text: &str) -> Result<Sm, String> {
             calculation_group: t.get("calculationGroup").is_some(),
             hierarchies: arr(&t, "hierarchies")
                 .iter()
-                .filter_map(|h| s(h, "name"))
+                .map(|h| ImHierarchy {
+                    name: s(h, "name").unwrap_or_default(),
+                    lineage: s(h, "lineageTag"),
+                    description: s(h, "description"),
+                    hidden: b(h, "isHidden"),
+                    folder: s(h, "displayFolder"),
+                    levels: arr(h, "levels")
+                        .iter()
+                        .enumerate()
+                        .map(|(i, l)| {
+                            (
+                                l.get("ordinal")
+                                    .and_then(|o| o.as_i64())
+                                    .unwrap_or(i as i64),
+                                s(l, "name").unwrap_or_default(),
+                                s(l, "column").unwrap_or_default(),
+                            )
+                        })
+                        .collect(),
+                })
                 .collect(),
             ..Default::default()
         };
@@ -846,13 +904,6 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
         if let Some(q) = query {
             queries.push(q);
         }
-        for h in &t.hierarchies {
-            skip(
-                "hierarchy",
-                format!("{}[{}]", t.name, h),
-                "hierarchies aren't supported yet; their columns are imported",
-            );
-        }
         let mut columns: Vec<Column> = Vec::new();
         for c in &t.columns {
             if c.row_number {
@@ -917,6 +968,41 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 }
             })
             .collect();
+        let mut hierarchies: Vec<Hierarchy> = Vec::new();
+        for h in &t.hierarchies {
+            let mut levels = h.levels.clone();
+            levels.sort_by_key(|l| l.0);
+            let mut out = Vec::new();
+            for (_, level, column) in &levels {
+                match columns.iter().find(|c| c.name == *column) {
+                    Some(c) if !out.iter().any(|l: &Level| l.column == c.id) => out.push(Level {
+                        name: if level.is_empty() {
+                            column.clone()
+                        } else {
+                            level.clone()
+                        },
+                        column: c.id.clone(),
+                    }),
+                    _ => skip(
+                        "hierarchy level",
+                        format!("{}[{}].{}", t.name, h.name, level),
+                        "its column wasn't imported",
+                    ),
+                }
+            }
+            if out.is_empty() {
+                continue;
+            }
+            hierarchies.push(Hierarchy {
+                id: h.lineage.clone().unwrap_or_else(&new_id),
+                name: h.name.clone(),
+                description: h.description.clone(),
+                levels: out,
+                hidden: h.hidden,
+                display_folder: h.folder.clone(),
+                extras: Default::default(),
+            });
+        }
         model.tables.push(Table {
             id,
             name: t.name.clone(),
@@ -924,6 +1010,7 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             source,
             columns,
             measures,
+            hierarchies,
             hidden: t.hidden,
             is_date_table: t.date_table,
             extras: Default::default(),
@@ -1101,5 +1188,27 @@ mod tests {
         assert_eq!(table.measures[0].expression, "SUM ( Sales[Amount] )\n+ 1");
         assert_eq!(table.measures[0].format.as_deref(), Some("0"));
         assert_eq!(table.columns[0].data_type, "double");
+    }
+
+    #[test]
+    fn hierarchies_from_model_bim() {
+        let bim = r#"{"name": "M", "model": {"tables": [{"name": "Product",
+            "columns": [{"name": "Category", "dataType": "string", "sourceColumn": "Category"},
+                        {"name": "Sub", "dataType": "string", "sourceColumn": "Sub"}],
+            "hierarchies": [{"name": "Cats", "lineageTag": "h1", "displayFolder": "F", "isHidden": true,
+                "levels": [{"name": "Subcategory", "ordinal": 1, "column": "Sub"},
+                           {"name": "Category", "ordinal": 0, "column": "Category"},
+                           {"name": "Gone", "ordinal": 2, "column": "Missing"}]}]}]}}"#;
+        let im = from_bim(bim, "M").unwrap();
+        let t = &im.model.tables[0];
+        let h = &t.hierarchies[0];
+        assert_eq!((h.id.as_str(), h.name.as_str()), ("h1", "Cats"));
+        assert!(h.hidden);
+        assert_eq!(h.display_folder.as_deref(), Some("F"));
+        let names: Vec<&str> = h.levels.iter().map(|l| l.name.as_str()).collect();
+        assert_eq!(names, ["Category", "Subcategory"]);
+        assert_eq!(h.levels[1].column, t.column_by_name("Sub").unwrap().id);
+        assert_eq!(im.skipped.len(), 1, "{:?}", im.skipped);
+        assert_eq!(im.skipped[0].kind, "hierarchy level");
     }
 }

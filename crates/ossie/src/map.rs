@@ -256,8 +256,107 @@ fn write_table(model: &Model, t: &Table, generated: &GeneratedDialects) -> doc::
         unknown: unknown_of(&t.extras),
     };
     let _ = model;
+    if !t.hierarchies.is_empty() {
+        pb.insert(
+            "hierarchies".into(),
+            Value::Array(
+                t.hierarchies
+                    .iter()
+                    .map(|h| write_hierarchy(t, h))
+                    .collect(),
+            ),
+        );
+    }
     finish_extensions(&mut d.custom_extensions, &t.extras, pb, Map::new());
     d
+}
+
+/// A hierarchy as TMSL describes it, which is how the converter keeps it in the table's
+/// `POWER_BI` blob (levels name their column; lineage tags are derived for levels).
+fn write_hierarchy(t: &Table, h: &Hierarchy) -> Value {
+    let mut o = match h.extras.get(X_POWERBI) {
+        Some(Value::Object(preserved)) => preserved.clone(),
+        _ => Map::new(),
+    };
+    o.insert("name".into(), h.name.clone().into());
+    o.insert("lineageTag".into(), h.id.clone().into());
+    put(&mut o, "description", h.description.clone());
+    put(&mut o, "displayFolder", h.display_folder.clone());
+    if h.hidden {
+        o.insert("isHidden".into(), true.into());
+    }
+    let levels: Vec<Value> = h
+        .levels
+        .iter()
+        .enumerate()
+        .map(|(i, l)| {
+            json!({
+                "name": l.name,
+                "ordinal": i,
+                "column": t.column(&l.column).map(|c| c.name.as_str()).unwrap_or_default(),
+                "lineageTag": derived_id("level", &format!("{}/{}", h.id, l.name)),
+            })
+        })
+        .collect();
+    o.insert("levels".into(), Value::Array(levels));
+    Value::Object(o)
+}
+
+/// Reads the hierarchies in a table's `POWER_BI` blob, resolving level columns by name.
+fn read_hierarchies(r: &mut Reader, table: &mut Table, pb: &mut Map<String, Value>) {
+    let Some(Value::Array(items)) = pb.remove("hierarchies") else {
+        return;
+    };
+    for item in items {
+        let Value::Object(mut o) = item else { continue };
+        let name = take_str(&mut o, "name").unwrap_or_default();
+        let scope = format!("hierarchy {}[{name}]", table.name);
+        let mut levels: Vec<(i64, Level)> = Vec::new();
+        let mut missing = false;
+        if let Some(Value::Array(ls)) = o.remove("levels") {
+            for (i, l) in ls.iter().enumerate() {
+                let col = l.get("column").and_then(Value::as_str).unwrap_or_default();
+                let Some(c) = table.column_by_name(col) else {
+                    missing = true;
+                    continue;
+                };
+                let ordinal = l.get("ordinal").and_then(Value::as_i64).unwrap_or(i as i64);
+                let level_name = l.get("name").and_then(Value::as_str).unwrap_or(col);
+                levels.push((
+                    ordinal,
+                    Level {
+                        name: level_name.to_string(),
+                        column: c.id.clone(),
+                    },
+                ));
+            }
+        }
+        if missing {
+            r.warn(
+                &scope,
+                "a level refers to a column that does not exist and was skipped",
+            );
+        }
+        if levels.is_empty() {
+            r.warn(&scope, "it has no levels and was skipped");
+            continue;
+        }
+        levels.sort_by_key(|(o, _)| *o);
+        let mut h = Hierarchy {
+            id: take_str(&mut o, "lineageTag")
+                .unwrap_or_else(|| derived_id("hierarchy", &format!("{}.{name}", table.name))),
+            name,
+            description: take_str(&mut o, "description"),
+            levels: levels.into_iter().map(|(_, l)| l).collect(),
+            hidden: take_bool(&mut o, "isHidden").unwrap_or(false),
+            display_folder: take_str(&mut o, "displayFolder"),
+            extras: Extras::new(),
+        };
+        if !o.is_empty() {
+            h.extras.insert(X_POWERBI.into(), Value::Object(o));
+        }
+        table.hierarchies.push(h);
+    }
 }
 
 fn write_column(t: &Table, c: &Column, generated: &GeneratedDialects) -> doc::Field {
@@ -619,6 +718,7 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             source: ds.source.clone(),
             columns: Vec::new(),
             measures: Vec::new(),
+            hierarchies: Vec::new(),
             hidden,
             is_date_table,
             extras: Extras::new(),
@@ -716,6 +816,7 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
                 ),
             }
         }
+        read_hierarchies(&mut r, &mut table, &mut pb);
         if ds.primary_key.len() > 1 {
             r.warn(
                 format!("table {}", ds.name),

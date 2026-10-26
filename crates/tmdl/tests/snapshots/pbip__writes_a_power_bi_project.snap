@@ -1,6 +1,5 @@
 ---
 source: crates/tmdl/tests/pbip.rs
-assertion_line: 122
 expression: all
 ---
 === Shop.pbip
@@ -167,6 +166,19 @@ table Date
 		sourceColumn: MonthNumber
 
 		annotation SummarizationSetBy = Automatic
+
+	/// Months by number
+	hierarchy Calendar
+		displayFolder: Dates
+		lineageTag: h-cal
+
+		level 'Month Number'
+			lineageTag: 172dfe0a-81ce-4b57-a665-43d23ed17d45
+			column: MonthNumber
+
+		level Month
+			lineageTag: b0aca7b2-df2e-4419-a369-748edddac156
+			column: 'Month Name'
 
 	annotation chartedQuery = {"id":"q2","name":"Date","table":"date","source":{"kind":"csv","path":"data/date.csv","header":true},"steps":[]}
 

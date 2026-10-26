@@ -54,6 +54,7 @@ fn writes_a_power_bi_project() {
                     hidden: false,
                     extras: Default::default(),
                 }],
+                hierarchies: Vec::new(),
                 hidden: false,
                 is_date_table: false,
                 extras: Default::default(),
@@ -66,6 +67,24 @@ fn writes_a_power_bi_project() {
                 columns: vec![key, month, col("c-mnum", "MonthNumber", DataType::Int64)],
                 measures: vec![],
                 hidden: false,
+                hierarchies: vec![Hierarchy {
+                    id: "h-cal".into(),
+                    name: "Calendar".into(),
+                    description: Some("Months by number".into()),
+                    levels: vec![
+                        Level {
+                            name: "Month Number".into(),
+                            column: "c-mnum".into(),
+                        },
+                        Level {
+                            name: "Month".into(),
+                            column: "c-month".into(),
+                        },
+                    ],
+                    hidden: false,
+                    display_folder: Some("Dates".into()),
+                    extras: Default::default(),
+                }],
                 is_date_table: true,
                 extras: Default::default(),
             },
@@ -148,6 +167,24 @@ fn reported() -> Model {
                 format_string: None,
                 display_folder: None,
                 hidden: false,
+                extras: Default::default(),
+            }],
+            hierarchies: vec![Hierarchy {
+                id: "h-1".into(),
+                name: "Calendar".into(),
+                description: None,
+                levels: vec![
+                    Level {
+                        name: "Year".into(),
+                        column: "c-year".into(),
+                    },
+                    Level {
+                        name: "Day of sale".into(),
+                        column: "c-day".into(),
+                    },
+                ],
+                hidden: true,
+                display_folder: Some("Time\\Calendars".into()),
                 extras: Default::default(),
             }],
             hidden: false,

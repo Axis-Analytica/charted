@@ -290,6 +290,7 @@ fn fixture() -> Fixture {
             columns,
             measures: vec![],
             hidden: false,
+            hierarchies: Vec::new(),
             is_date_table: name == "Date",
             extras: Default::default(),
         });

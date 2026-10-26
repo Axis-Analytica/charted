@@ -53,6 +53,9 @@ pub struct Table {
     pub columns: Vec<Column>,
     #[serde(default)]
     pub measures: Vec<Measure>,
+    /// Drill paths through the table's columns (Year → Quarter → Month).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hierarchies: Vec<Hierarchy>,
     #[serde(default)]
     pub hidden: bool,
     /// Marked as the model's date table (required by time intelligence).
@@ -177,6 +180,36 @@ pub struct Measure {
     pub extras: Extras,
 }
 
+/// A named, ordered list of a table's columns that visuals drill through.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Hierarchy {
+    pub id: Id,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// From the top (e.g. Year) down.
+    pub levels: Vec<Level>,
+    #[serde(default)]
+    pub hidden: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_folder: Option<String>,
+    #[serde(default, skip_serializing_if = "Extras::is_empty")]
+    #[ts(type = "Record<string, unknown>")]
+    pub extras: Extras,
+}
+
+/// One level of a hierarchy: a column of the hierarchy's table, under a name of its own.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Level {
+    pub name: String,
+    /// The column's id.
+    pub column: Id,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum Cardinality {
@@ -252,10 +285,15 @@ impl Table {
         self.measures.iter_mut().find(|m| m.id == id)
     }
 
-    /// True when `name` is already used by a column or measure of this table.
+    pub fn hierarchy(&self, id: &str) -> Option<&Hierarchy> {
+        self.hierarchies.iter().find(|h| h.id == id)
+    }
+
+    /// True when `name` is already used by a column, measure or hierarchy of this table.
     pub fn has_field_named(&self, name: &str, except: Option<&str>) -> bool {
         let clash = |id: &str, n: &str| Some(id) != except && n.eq_ignore_ascii_case(name);
         self.columns.iter().any(|c| clash(&c.id, &c.name))
             || self.measures.iter().any(|m| clash(&m.id, &m.name))
+            || self.hierarchies.iter().any(|h| clash(&h.id, &h.name))
     }
 }

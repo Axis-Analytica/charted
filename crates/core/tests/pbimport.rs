@@ -45,7 +45,6 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         "table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4",
         "table Date",
         "query Targets",
-        "hierarchy Product[Category Hierarchy]",
         "role Regional managers",
         "measure Orders[Avg Order]",
         "visual Overview: map",
@@ -57,11 +56,11 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     }
     // RANKX is evaluated now.
     assert!(!skipped.iter().any(|s| s == "measure Orders[Sales Rank]"));
-    // Time intelligence, DIVIDE and the calculated column are fine.
+    // Time intelligence, DIVIDE, the calculated column and hierarchies are fine.
     assert!(
         !skipped
             .iter()
-            .any(|s| s.contains("Sales LY") || s.contains("Big Order")),
+            .any(|s| s.contains("Sales LY") || s.contains("Big Order") || s.contains("Hierarchy")),
         "{skipped:#?}"
     );
     assert_eq!(
@@ -107,6 +106,24 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     assert_eq!(
         total.description.as_deref(),
         Some("Sales in dollars, before returns.")
+    );
+    let product = m.table_by_name("Product").unwrap();
+    let h = &product.hierarchies[0];
+    assert_eq!(h.name, "Category Hierarchy");
+    assert_eq!(h.id, "5b8e0d2f-1c5a-4f9d-8a3b-5c0e3f9b19c0");
+    let levels: Vec<(&str, &str)> = h
+        .levels
+        .iter()
+        .map(|l| {
+            (
+                l.name.as_str(),
+                product.column(&l.column).unwrap().name.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        levels,
+        [("Category", "Category"), ("Subcategory", "Subcategory")]
     );
     let overview = &m.report.pages[0];
     assert_eq!(overview.settings.name, "Overview");

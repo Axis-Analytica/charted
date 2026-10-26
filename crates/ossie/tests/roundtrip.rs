@@ -44,6 +44,7 @@ fn table(id: &str, name: &str, columns: Vec<Column>) -> Table {
         columns,
         measures: vec![],
         hidden: false,
+        hierarchies: Vec::new(),
         is_date_table: false,
         extras: Default::default(),
     }
@@ -143,6 +144,24 @@ fn sample_model() -> Model {
         ],
     );
     date.is_date_table = true;
+    date.hierarchies = vec![Hierarchy {
+        id: "h-cal".into(),
+        name: "Calendar".into(),
+        description: Some("Months by number".into()),
+        levels: vec![
+            Level {
+                name: "Month".into(),
+                column: "c-d-month".into(),
+            },
+            Level {
+                name: "Day".into(),
+                column: "c-d-date".into(),
+            },
+        ],
+        hidden: true,
+        display_folder: Some("Dates\\Calendars".into()),
+        extras: Default::default(),
+    }];
     let mut ship = rel(
         "r-ship",
         "11111111-0000-0000-0000-000000000001",

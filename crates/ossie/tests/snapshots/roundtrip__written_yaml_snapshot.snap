@@ -136,7 +136,7 @@ datasets:
       data: '{"_v": 2, "lineageTag": "c-d-month", "sortByColumn": "MonthNumber"}'
   custom_extensions:
   - vendor_name: POWER_BI
-    data: '{"_v": 2, "dataCategory": "Time", "lineageTag": "d-1"}'
+    data: '{"_v": 2, "dataCategory": "Time", "hierarchies": [{"description": "Months by number", "displayFolder": "Dates\\Calendars", "isHidden": true, "levels": [{"column": "Month Name", "lineageTag": "0b2aad8d-3ba7-9821-e91c-9f4556cad576", "name": "Month", "ordinal": 0}, {"column": "Date", "lineageTag": "b271da76-5c35-4361-326d-1da55e6a8162", "name": "Day", "ordinal": 1}], "lineageTag": "h-cal", "name": "Calendar"}], "lineageTag": "d-1"}'
 relationships:
 - name: Sales_OrderDateKey_to_Date_DateKey
   from: Sales

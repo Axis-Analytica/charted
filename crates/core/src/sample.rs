@@ -121,6 +121,7 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
                 .collect(),
             measures: vec![],
             hidden: false,
+            hierarchies: Vec::new(),
             is_date_table: false,
             extras: Default::default(),
         });

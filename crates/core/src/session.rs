@@ -809,6 +809,7 @@ impl Session {
                                 .collect(),
                             measures: vec![],
                             hidden: false,
+                            hierarchies: Vec::new(),
                             is_date_table: false,
                             extras: Default::default(),
                         },

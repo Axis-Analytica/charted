@@ -43,6 +43,7 @@ fn fixture() -> Model {
             language: ExpressionLanguage::Dax,
             extras: Default::default(),
         }],
+        hierarchies: vec![hierarchy("h-1", "Keys", &["c-s-date", "c-s-prod"])],
         hidden: false,
         is_date_table: false,
         extras: Default::default(),
@@ -57,6 +58,7 @@ fn fixture() -> Model {
             col("c-p-cat", "Category", DataType::String),
         ],
         measures: vec![],
+        hierarchies: vec![],
         hidden: false,
         is_date_table: false,
         extras: Default::default(),
@@ -89,6 +91,24 @@ fn fixture() -> Model {
             theme: None,
             bookmarks: Vec::new(),
         },
+    }
+}
+
+fn hierarchy(id: &str, name: &str, columns: &[&str]) -> Hierarchy {
+    Hierarchy {
+        id: id.into(),
+        name: name.into(),
+        description: None,
+        levels: columns
+            .iter()
+            .map(|c| Level {
+                name: format!("L {c}"),
+                column: c.to_string(),
+            })
+            .collect(),
+        hidden: false,
+        display_folder: None,
+        extras: Default::default(),
     }
 }
 
@@ -203,7 +223,62 @@ fn arb_change() -> impl Strategy<Value = Change> {
             index: None,
         }),
         (table, any::<bool>()).prop_map(|(table, hidden)| Change::SetTableHidden { table, hidden }),
+        hierarchy_change(),
         report_change(),
+    ]
+}
+
+fn hierarchy_change() -> impl Strategy<Value = Change> {
+    let table = prop_oneof![
+        Just("t-sales".to_string()),
+        Just("t-prod".to_string()),
+        Just("t-missing".to_string())
+    ];
+    let id = prop_oneof![
+        Just("h-1".to_string()),
+        Just("h-2".to_string()),
+        Just("c-s-amt".to_string())
+    ];
+    let name = prop_oneof![
+        Just("Keys".to_string()),
+        Just("Amount".to_string()),
+        Just("".to_string()),
+        "[A-Z][a-z]{1,8}"
+    ];
+    let columns = proptest::sample::subsequence(
+        vec!["c-s-date", "c-s-prod", "c-s-amt", "c-p-cat", "c-missing"],
+        0..4,
+    )
+    .prop_shuffle();
+    prop_oneof![
+        (
+            table.clone(),
+            id.clone(),
+            name.clone(),
+            columns.clone(),
+            0usize..3
+        )
+            .prop_map(|(table, id, name, cols, i)| Change::AddHierarchy {
+                table,
+                hierarchy: hierarchy(&id, &name, &cols),
+                index: Some(i),
+            }),
+        (
+            table.clone(),
+            id.clone(),
+            name,
+            columns,
+            any::<Option<String>>()
+        )
+            .prop_map(|(table, id, name, cols, folder)| {
+                let mut h = hierarchy(&id, &name, &cols);
+                h.display_folder = folder;
+                Change::UpdateHierarchy {
+                    table,
+                    hierarchy: h,
+                }
+            }),
+        (table, id).prop_map(|(table, hierarchy)| Change::RemoveHierarchy { table, hierarchy }),
     ]
 }
 
@@ -370,4 +445,81 @@ fn names_are_validated() {
         matches!(r, Err(ChangeError::NameTaken { .. })),
         "columns and measures share a namespace"
     );
+}
+
+#[test]
+fn removing_a_column_takes_it_out_of_hierarchies_and_undo_puts_it_back() {
+    let mut model = fixture();
+    let mut history = History::new();
+    // The relationship uses ProductKey; remove it first.
+    history
+        .commit(
+            &mut model,
+            "Delete column",
+            vec![
+                Change::RemoveRelationship {
+                    relationship: "r-1".into(),
+                },
+                Change::RemoveColumn {
+                    table: "t-sales".into(),
+                    column: "c-s-prod".into(),
+                },
+            ],
+        )
+        .unwrap();
+    let h = &model.tables[0].hierarchies[0];
+    assert_eq!(h.levels.len(), 1);
+    assert_eq!(h.levels[0].column, "c-s-date");
+    history
+        .commit(
+            &mut model,
+            "Delete column",
+            vec![Change::RemoveColumn {
+                table: "t-sales".into(),
+                column: "c-s-date".into(),
+            }],
+        )
+        .unwrap();
+    assert!(
+        model.tables[0].hierarchies.is_empty(),
+        "an empty hierarchy goes"
+    );
+    history.undo(&mut model).unwrap();
+    history.undo(&mut model).unwrap();
+    assert_eq!(model, fixture());
+}
+
+#[test]
+fn hierarchies_are_validated() {
+    let mut model = fixture();
+    let add = |h: Hierarchy| Change::AddHierarchy {
+        table: "t-sales".into(),
+        hierarchy: h,
+        index: None,
+    };
+    let cases = [
+        hierarchy("h-2", "Amount", &["c-s-amt"]),
+        hierarchy("h-2", "Total Sales", &["c-s-amt"]),
+        hierarchy("h-2", "Keys", &["c-s-amt"]),
+        hierarchy("h-2", "Other", &[]),
+        hierarchy("h-2", "Other", &["c-p-cat"]),
+        hierarchy("h-2", "Other", &["c-s-amt", "c-s-amt"]),
+        hierarchy("h-1", "Other", &["c-s-amt"]),
+    ];
+    for h in cases {
+        let before = model.clone();
+        assert!(apply(&mut model, add(h.clone())).is_err(), "{h:?}");
+        assert_eq!(model, before);
+    }
+    apply(&mut model, add(hierarchy("h-2", "Other", &["c-s-amt"]))).unwrap();
+    // Columns can't take a hierarchy's name.
+    let r = apply(
+        &mut model,
+        Change::RenameColumn {
+            table: "t-sales".into(),
+            column: "c-s-amt".into(),
+            name: "Other".into(),
+        },
+    );
+    assert!(matches!(r, Err(ChangeError::NameTaken { .. })));
 }

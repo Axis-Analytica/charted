@@ -236,6 +236,36 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             let _ = writeln!(out, "\t\tannotation chartedDefaultFormat = true");
         }
     }
+    for h in &t.hierarchies {
+        out.push('\n');
+        if let Some(d) = &h.description {
+            for l in d.lines() {
+                let _ = writeln!(out, "\t/// {l}");
+            }
+        }
+        let _ = writeln!(out, "\thierarchy {}", name(&h.name));
+        if h.hidden {
+            let _ = writeln!(out, "\t\tisHidden");
+        }
+        if let Some(f) = &h.display_folder {
+            prop(&mut out, 2, "displayFolder", f);
+        }
+        prop(&mut out, 2, "lineageTag", &h.id);
+        for l in &h.levels {
+            let Some(c) = t.column(&l.column) else {
+                continue;
+            };
+            out.push('\n');
+            let _ = writeln!(out, "\t\tlevel {}", name(&l.name));
+            prop(
+                &mut out,
+                3,
+                "lineageTag",
+                logical_id(&format!("{}\u{1}{}", h.id, l.name)),
+            );
+            prop(&mut out, 3, "column", name(&c.name));
+        }
+    }
     if let Some(q) = query {
         out.push('\n');
         // charted's own query, so importing this file brings it back exactly.

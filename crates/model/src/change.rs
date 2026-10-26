@@ -66,6 +66,20 @@ pub enum Change {
         table: Id,
         measure: Measure,
     },
+    AddHierarchy {
+        table: Id,
+        hierarchy: Hierarchy,
+        index: Option<usize>,
+    },
+    RemoveHierarchy {
+        table: Id,
+        hierarchy: Id,
+    },
+    /// Replaces a hierarchy wholesale (name, levels, folder…), keeping its id.
+    UpdateHierarchy {
+        table: Id,
+        hierarchy: Hierarchy,
+    },
     AddRelationship {
         relationship: Relationship,
         index: Option<usize>,
@@ -155,6 +169,8 @@ pub enum ChangeError {
     UnknownColumn { id: Id },
     #[error("there is no measure with id {id}")]
     UnknownMeasure { id: Id },
+    #[error("there is no hierarchy with id {id}")]
+    UnknownHierarchy { id: Id },
     #[error("there is no relationship with id {id}")]
     UnknownRelationship { id: Id },
     #[error("there is no page with id {id}")]
@@ -222,6 +238,7 @@ fn ids_in_use(model: &Model) -> impl Iterator<Item = &str> {
             std::iter::once(t.id.as_str())
                 .chain(t.columns.iter().map(|c| c.id.as_str()))
                 .chain(t.measures.iter().map(|m| m.id.as_str()))
+                .chain(t.hierarchies.iter().map(|h| h.id.as_str()))
         })
         .chain(model.relationships.iter().map(|r| r.id.as_str()))
         .chain(model.report.pages.iter().flat_map(|p| {
@@ -254,6 +271,40 @@ fn validate_page_name(model: &Model, id: &str, name: &str) -> Result<()> {
 fn ensure_fresh_id(model: &Model, id: &str) -> Result<()> {
     if ids_in_use(model).any(|x| x == id) {
         return Err(ChangeError::DuplicateId { id: id.to_string() });
+    }
+    Ok(())
+}
+
+fn validate_hierarchy(t: &Table, h: &Hierarchy) -> Result<()> {
+    validate_name(&h.name)?;
+    if t.has_field_named(&h.name, Some(&h.id)) {
+        return Err(ChangeError::NameTaken {
+            name: h.name.clone(),
+        });
+    }
+    if h.levels.is_empty() {
+        return Err(ChangeError::Invalid {
+            message: "a hierarchy needs at least one level".into(),
+        });
+    }
+    for (i, l) in h.levels.iter().enumerate() {
+        validate_name(&l.name)?;
+        if t.column(&l.column).is_none() {
+            return Err(ChangeError::UnknownColumn {
+                id: l.column.clone(),
+            });
+        }
+        let earlier = &h.levels[..i];
+        if earlier.iter().any(|o| o.name.eq_ignore_ascii_case(&l.name)) {
+            return Err(ChangeError::NameTaken {
+                name: l.name.clone(),
+            });
+        }
+        if earlier.iter().any(|o| o.column == l.column) {
+            return Err(ChangeError::Invalid {
+                message: "a column can be only one level of a hierarchy".into(),
+            });
+        }
     }
     Ok(())
 }
@@ -503,11 +554,37 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 || ChangeError::UnknownColumn { id: column.clone() },
             )?;
             let c = t.columns.remove(i);
-            Ok(vec![Change::AddColumn {
-                table,
+            let mut inverse = vec![Change::AddColumn {
+                table: table.clone(),
                 column: c,
                 index: Some(i),
-            }])
+            }];
+            // The column leaves the hierarchies it is a level of; an emptied hierarchy goes.
+            let mut k = 0;
+            while k < t.hierarchies.len() {
+                let h = &mut t.hierarchies[k];
+                if !h.levels.iter().any(|l| l.column == column) {
+                    k += 1;
+                    continue;
+                }
+                let old = h.clone();
+                h.levels.retain(|l| l.column != column);
+                if h.levels.is_empty() {
+                    t.hierarchies.remove(k);
+                    inverse.push(Change::AddHierarchy {
+                        table: table.clone(),
+                        hierarchy: old,
+                        index: Some(k),
+                    });
+                } else {
+                    inverse.push(Change::UpdateHierarchy {
+                        table: table.clone(),
+                        hierarchy: old,
+                    });
+                    k += 1;
+                }
+            }
+            Ok(inverse)
         }
         Change::AddMeasure {
             table,
@@ -554,6 +631,52 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
             Ok(vec![Change::UpdateMeasure {
                 table,
                 measure: old,
+            }])
+        }
+        Change::AddHierarchy {
+            table,
+            hierarchy,
+            index,
+        } => {
+            ensure_fresh_id(model, &hierarchy.id)?;
+            let t = table_mut(model, &table)?;
+            validate_hierarchy(t, &hierarchy)?;
+            let id = hierarchy.id.clone();
+            insert_at(&mut t.hierarchies, index, hierarchy);
+            Ok(vec![Change::RemoveHierarchy {
+                table,
+                hierarchy: id,
+            }])
+        }
+        Change::RemoveHierarchy { table, hierarchy } => {
+            let t = table_mut(model, &table)?;
+            let i = index_of(
+                &t.hierarchies,
+                |h| h.id == hierarchy,
+                || ChangeError::UnknownHierarchy {
+                    id: hierarchy.clone(),
+                },
+            )?;
+            let h = t.hierarchies.remove(i);
+            Ok(vec![Change::AddHierarchy {
+                table,
+                hierarchy: h,
+                index: Some(i),
+            }])
+        }
+        Change::UpdateHierarchy { table, hierarchy } => {
+            let t = table_mut(model, &table)?;
+            validate_hierarchy(t, &hierarchy)?;
+            let id = hierarchy.id.clone();
+            let h = t
+                .hierarchies
+                .iter_mut()
+                .find(|h| h.id == id)
+                .ok_or(ChangeError::UnknownHierarchy { id })?;
+            let old = std::mem::replace(h, hierarchy);
+            Ok(vec![Change::UpdateHierarchy {
+                table,
+                hierarchy: old,
             }])
         }
         Change::AddRelationship {
