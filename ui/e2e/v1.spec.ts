@@ -8,6 +8,12 @@ async function openSample(page: Page) {
   await page.goto("/");
   const explore = page.getByRole("button", { name: "Explore the sample" });
   await expect(explore.or(page.locator(".shell"))).toBeVisible();
+  // Another spec may have left a different project open.
+  if (!(await explore.isVisible()) && !(await page.locator(".topbar").textContent())?.includes("Harbor & Pine")) {
+    await page.getByRole("button", { name: "File" }).click();
+    await page.getByRole("menuitem", { name: "Close project" }).click();
+    await expect(explore).toBeVisible();
+  }
   if (await explore.isVisible()) await explore.click();
   await expect(page.locator(".report-view")).toBeVisible({ timeout: 30_000 });
 }
