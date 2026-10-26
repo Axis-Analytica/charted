@@ -90,15 +90,15 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await search.press("Escape");
   await expect(page.locator(".viz-gallery .viz-type").first()).toBeVisible();
 
-  // A slicer of 20,000 customers lists 5,000; its search finds any of them.
+  // A slicer of every order number lists 5,000; its search finds any of them.
   const slicer = await addVisual(page, "Slicer", { x: 200, y: 200 });
-  await tick(page, "Customer", "Customer");
+  await tick(page, "Sales", "OrderNumber");
   const box = slicer.getByRole("textbox", { name: /^Search/ });
   await expect(box).toBeVisible();
-  await box.fill("son");
+  await box.fill("77");
   const items = slicer.locator(".slicer-item[role=option] span");
   await expect(items.first()).toBeVisible();
-  await expect.poll(async () => (await items.allTextContents()).every((x) => x.toLowerCase().includes("son"))).toBe(true);
+  await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
   const found = await items.count();
   await slicer.getByText("Select all results").click();
   await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found);
