@@ -1,7 +1,7 @@
 //! Report queries: a visual's data, the values a filter card lists, and checking DAX.
 
 use charted_compiler::visual::{
-    self, Catalog, Compiled, OrderBy, OrderTarget, QueryFilter, VisualQuery,
+    self, Catalog, Compiled, OrderBy, OrderTarget, QueryFilter, RowFilter, VisualQuery,
 };
 use charted_engine::{Database, sql};
 use charted_model::{DataType, FieldRef, FilterKind, InteractionKind, Model, Page, Projection};
@@ -63,12 +63,14 @@ pub fn compile(model: &Model, schema: &Schema, q: &VisualQuery) -> Result<Compil
     visual::compile(model, schema, q).map_err(compile_err)
 }
 
-/// The SQL listing a column's values for a filter card: ascending, under `filters`.
+/// The SQL listing a column's values for a filter card: ascending, under `filters`,
+/// and only the rows `security` (the roles viewed as) lets through.
 pub fn field_values_sql(
     model: &Model,
     schema: &Schema,
     field: &Projection,
     filters: &[QueryFilter],
+    security: &[RowFilter],
     search: Option<&str>,
     limit: u32,
 ) -> Result<String, CoreError> {
@@ -91,7 +93,7 @@ pub fn field_values_sql(
             }],
             limit: None,
             keys: false,
-            security: Vec::new(),
+            security: security.to_vec(),
         },
     )?;
     let search = search
@@ -391,6 +393,9 @@ pub struct VisualSqlOptions<'a> {
     /// A slicer's search: only values whose text contains this (any case), so a field
     /// with more values than a slicer lists can still be searched.
     pub search: Option<&'a str>,
+    /// Row-level security: the filters of the roles the report is viewed as
+    /// (`roles::security`). Every query behind the visual carries them.
+    pub security: &'a [RowFilter],
 }
 
 /// The SQL behind a report visual. Columns are named `role:index`, with each group's
@@ -410,6 +415,7 @@ pub fn report_visual_sql(
         .visual(visual)
         .ok_or_else(|| CoreError::Invalid(format!("there is no visual with id {visual}")))?;
     let (mut q, mut names) = report_visual_query(model, visual, o.totals, o.filters)?;
+    q.security = o.security.to_vec();
     if v.is_slicer() {
         return slicer_sql(model, schema, v, q, o.search);
     }
@@ -717,6 +723,7 @@ fn slicer_sql(
                 agg(charted_model::Aggregation::Max),
             ],
             filters: q.filters,
+            security: q.security,
             ..Default::default()
         };
         let c = compile(model, schema, &rq)?;

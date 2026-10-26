@@ -222,7 +222,11 @@ fn diff_table(out: &mut Vec<String>, a: &Table, b: &Table) {
 /// Differences in the semantic model from `a` to `b` (the report is not compared).
 pub fn diff(a: &Model, b: &Model) -> Vec<String> {
     let mut out = Vec::new();
-    let top = changed_props(&json(a), &json(b), &["tables", "relationships", "report"]);
+    let top = changed_props(
+        &json(a),
+        &json(b),
+        &["tables", "relationships", "roles", "report"],
+    );
     if !top.is_empty() {
         out.push(format!("model: {} changed", top.join(", ")));
     }
@@ -273,6 +277,22 @@ pub fn diff(a: &Model, b: &Model) -> Vec<String> {
     for r in &b.relationships {
         if a.relationship(&r.id).is_none() {
             out.push(format!("relationship {} added", rel_name(b, r)));
+        }
+    }
+    for r in &a.roles {
+        match b.role(&r.id) {
+            None => out.push(format!("role {} removed", r.name)),
+            Some(o) => {
+                let ch = changed_props(&json(r), &json(o), &[]);
+                if !ch.is_empty() {
+                    out.push(format!("role {} — {} changed", r.name, ch.join(", ")));
+                }
+            }
+        }
+    }
+    for r in &b.roles {
+        if a.role(&r.id).is_none() {
+            out.push(format!("role {} added", r.name));
         }
     }
     out

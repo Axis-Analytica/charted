@@ -20,6 +20,7 @@ import { useLanguage, useT } from "../i18n";
 import { Button } from "../kit/Button";
 import { Spinner } from "../kit/misc";
 import { useApp } from "../state/app";
+import { useViewedRoles } from "./data";
 import { dataJson } from "../state/dataview";
 import { columnOf, defaultAggregation, dropFields, fieldKey, isGrouping, newId, projectionName, updateVisual, useReport, pageSettings } from "../state/report";
 import { relativeLabel } from "./relative";
@@ -280,10 +281,11 @@ function BasicFilter({ model, field, current, onChange }: { model: Model; field:
   const [list, setList] = useState<DistinctValues | null>(null);
   const [error, setError] = useState<string | null>(null);
   const col = columnOf(model, field.field);
+  const roles = useViewedRoles();
   useEffect(() => {
     let live = true;
     const timer = setTimeout(() => {
-      dataJson<DistinctValues>({ type: "fieldValues", field: { ...field, aggregation: null }, filters: [], search: search || null, limit: 500 })
+      dataJson<DistinctValues>({ type: "fieldValues", field: { ...field, aggregation: null }, filters: [], search: search || null, limit: 500, roles })
         .then((d) => live && (setList(d), setError(null)))
         .catch((e) => live && setError(errorMessage(e)));
     }, search ? 150 : 0);
@@ -291,7 +293,7 @@ function BasicFilter({ model, field, current, onChange }: { model: Model; field:
       live = false;
       clearTimeout(timer);
     };
-  }, [field, search]);
+  }, [field, search, roles]);
   const values = current.kind === "basic" ? current.values : [];
   const exclude = current.kind === "basic" && current.exclude;
   const checked = (k: string | null) => (current.kind === "basic" ? values.includes(k) !== exclude : false);

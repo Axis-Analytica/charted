@@ -8,6 +8,7 @@
 //! <Name>.SemanticModel/definition.pbism
 //! <Name>.SemanticModel/definition/{database,model,relationships,expressions}.tmdl
 //! <Name>.SemanticModel/definition/tables/<Table>.tmdl
+//! <Name>.SemanticModel/definition/roles/<Role>.tmdl
 //! <Name>.Report/definition.pbir
 //! <Name>.Report/definition/…            the report as PBIR (see `pbir`)
 //! ```
@@ -333,6 +334,38 @@ fn relationships_tmdl(m: &Model) -> String {
     out
 }
 
+/// A role: its model permission, members and a `tablePermission` per filtered table.
+fn role_tmdl(m: &Model, r: &Role) -> String {
+    let mut out = String::new();
+    if let Some(d) = &r.description {
+        for l in d.lines() {
+            let _ = writeln!(out, "/// {l}");
+        }
+    }
+    let _ = writeln!(out, "role {}", name(&r.name));
+    let permission = r
+        .extras
+        .get("powerbi")
+        .and_then(|p| p.get("modelPermission"))
+        .and_then(|p| p.as_str())
+        .unwrap_or("read");
+    prop(&mut out, 1, "modelPermission", permission);
+    for member in &r.members {
+        let _ = writeln!(out, "\n\tmember {}", name(member));
+    }
+    for f in &r.filters {
+        let Some(t) = m.table(&f.table) else {
+            continue;
+        };
+        let _ = write!(out, "\n\ttablePermission {} =", name(&t.name));
+        expression(&mut out, &f.expression, 1);
+    }
+    // Power BI roles have no lineage tag: charted's id comes back from an annotation.
+    let _ = writeln!(out, "\n\tannotation chartedId = {}", r.id);
+    out.push('\n');
+    out
+}
+
 /// A stable UUID-shaped id for `key` (the same project exports the same ids).
 fn logical_id(key: &str) -> String {
     let mut h: [u64; 2] = [0xcbf29ce484222325, 0x84222325cbf29ce4];
@@ -397,6 +430,12 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
         let _ = writeln!(model_tmdl, "ref table {}", name(&t.name));
     }
     model_tmdl.push_str("\nref cultureInfo en-US\n");
+    if !model.roles.is_empty() {
+        model_tmdl.push('\n');
+        for r in &model.roles {
+            let _ = writeln!(model_tmdl, "ref role {}", name(&r.name));
+        }
+    }
     files.push((format!("{def}/model.tmdl"), model_tmdl));
     // The culture Desktop writes into every project (Q&A's linguistic schema).
     files.push((
@@ -443,6 +482,12 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
         files.push((
             format!("{def}/relationships.tmdl"),
             relationships_tmdl(model),
+        ));
+    }
+    for r in &model.roles {
+        files.push((
+            format!("{def}/roles/{}.tmdl", file_name(&r.name)),
+            role_tmdl(model, r),
         ));
     }
     for t in &model.tables {

@@ -397,6 +397,28 @@ impl Session {
             )));
         }
         for c in changes {
+            if let Change::AddRole { role, .. } | Change::UpdateRole { role } = c {
+                // Filters as they were are kept (an imported one charted can't run).
+                let before = self.project.model.role(&role.id);
+                for f in role
+                    .filters
+                    .iter()
+                    .filter(|f| before.is_none_or(|b| !b.filters.contains(f)))
+                {
+                    if let Some(d) =
+                        crate::roles::check_filter(&after, &f.table, &f.expression).first()
+                    {
+                        let table = after.table(&f.table).map(|t| t.name.as_str());
+                        return Err(CoreError::Invalid(format!(
+                            "{}: the filter on '{}': {}",
+                            role.name,
+                            table.unwrap_or("?"),
+                            d.message
+                        )));
+                    }
+                }
+                continue;
+            }
             let (table, column) = match c {
                 Change::AddColumn { table, column, .. } => (table, column.id.clone()),
                 Change::SetColumn {
@@ -1092,12 +1114,17 @@ fn read_recovery(project: &Project) -> Option<RecoveryFile> {
 /// Changes that turn `from` into `to` by replacing every table, relationship and page.
 fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
     let mut changes: Vec<Change> = from
-        .relationships
+        .roles
         .iter()
-        .map(|r| Change::RemoveRelationship {
-            relationship: r.id.clone(),
-        })
+        .map(|r| Change::RemoveRole { role: r.id.clone() })
         .collect();
+    changes.extend(
+        from.relationships
+            .iter()
+            .map(|r| Change::RemoveRelationship {
+                relationship: r.id.clone(),
+            }),
+    );
     changes.extend(from.tables.iter().map(|t| Change::RemoveTable {
         table: t.id.clone(),
     }));
@@ -1107,6 +1134,10 @@ fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
     }));
     changes.extend(to.relationships.iter().map(|r| Change::AddRelationship {
         relationship: r.clone(),
+        index: None,
+    }));
+    changes.extend(to.roles.iter().map(|r| Change::AddRole {
+        role: r.clone(),
         index: None,
     }));
     changes.extend(

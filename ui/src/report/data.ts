@@ -12,6 +12,8 @@ import type { Visual } from "../bridge/generated/Visual";
 import { drillFilters, useDrillThrough } from "../state/drillthrough";
 import { selectionEffect, useSelection } from "../state/selection";
 import { useSlicerSearch } from "../state/slicersearch";
+import { useApp } from "../state/app";
+import { useViewAs, viewedRoles } from "../state/viewas";
 
 export interface VisualData {
   rows: number;
@@ -46,10 +48,10 @@ function decode(buf: ArrayBuffer): { rows: number; columns: Map<string, Vector> 
   return { rows: table.numRows, columns };
 }
 
-async function load(visual: Visual, totals: boolean, filters: QueryFilter[], highlight: QueryFilter[], search: string): Promise<VisualData> {
+async function load(visual: Visual, totals: boolean, filters: QueryFilter[], highlight: QueryFilter[], search: string, roles: string[]): Promise<VisualData> {
   const t0 = performance.now();
-  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters, highlight, tag: visual.id, ...(search ? { search } : {}) });
-  const tot = totals ? transport.data({ type: "reportVisual", visual: visual.id, totals: true, filters, highlight: [], tag: `${visual.id}:totals` }) : null;
+  const main = transport.data({ type: "reportVisual", visual: visual.id, totals: false, filters, highlight, tag: visual.id, ...(search ? { search } : {}), roles });
+  const tot = totals ? transport.data({ type: "reportVisual", visual: visual.id, totals: true, filters, highlight: [], tag: `${visual.id}:totals`, roles }) : null;
   const d = decode(await main);
   let totalsRow: Map<string, unknown> | undefined;
   if (tot) {
@@ -73,8 +75,11 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
   const own = selectionEffect(selection, page, visual);
   const effect = drilled.length || extra.length ? { ...own, filters: [...drilled, ...extra, ...own.filters] } : own;
   const search = useSlicerSearch((s) => (visual.visualType === "slicer" ? (s.byVisual[visual.id] ?? "") : ""));
+  const roles = useViewedRoles();
+  // The viewed roles' filters change what every query returns.
+  const security = roles.length ? model.roles?.filter((r) => roles.includes(r.id)).map((r) => [r.id, r.filters]) : null;
   const key = hasFields
-    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, formattingFields(visual), pageSignature(page), model.report.filters, signature, withTotals, effect, search])
+    ? JSON.stringify([visual.id, visual.visualType, visual.roles, visual.filters, visual.sort, visual.drill ?? [], visual.visualType === "slicer" ? visual.objects?.slicer?.style : null, formattingFields(visual), pageSignature(page), model.report.filters, signature, withTotals, effect, search, security])
     : "";
   const [state, setState] = useState<{ key: string; data: VisualData | null; error: string | null; loading: boolean }>({ key: "", data: null, error: null, loading: false });
 
@@ -86,7 +91,7 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
     let live = true;
     let p = cache.get(key);
     if (!p) {
-      p = load(visual, withTotals, effect.filters, effect.highlight, search);
+      p = load(visual, withTotals, effect.filters, effect.highlight, search, roles);
       cache.set(key, p);
       p.catch(() => cache.delete(key));
       while (cache.size > MAX_CACHED) cache.delete(cache.keys().next().value!);
@@ -108,6 +113,12 @@ export function useVisualData(visual: Visual, page: Page, model: Model, signatur
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return state;
+}
+
+/** Ids of the roles the open project's report is viewed as (empty when not viewing). */
+export function useViewedRoles(): string[] {
+  const project = useApp((s) => s.state?.project?.path);
+  return useViewAs((s) => viewedRoles(s, project));
 }
 
 /** The fields conditional formatting reads (they are hidden values of the query). */

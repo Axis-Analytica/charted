@@ -101,6 +101,23 @@ fn writes_a_power_bi_project() {
             active: false,
             extras: Default::default(),
         }],
+        roles: vec![Role {
+            id: "role-1".into(),
+            name: "Last month's sales".into(),
+            description: Some("Sales staff".into()),
+            filters: vec![
+                RoleFilter {
+                    table: "t-date".into(),
+                    expression: "'Date'[MonthNumber] = 12".into(),
+                },
+                RoleFilter {
+                    table: "t-sales".into(),
+                    expression: "VAR x = 10\nRETURN Sales[Sales Amount] > x".into(),
+                },
+            ],
+            members: vec!["sales@shop.example".into()],
+            extras: Default::default(),
+        }],
         ..Default::default()
     };
     let queries = vec![
@@ -453,6 +470,31 @@ fn reported() -> Model {
     tip.tooltip_fields = vec![c("c-cat")];
     tip.width = 320;
     tip.height = 240;
+    model.roles = vec![
+        Role {
+            id: "role-a".into(),
+            name: "Bikes".into(),
+            description: None,
+            filters: vec![RoleFilter {
+                table: "t-sales".into(),
+                expression: "Sales[Category] = \"Bikes\"".into(),
+            }],
+            members: vec![],
+            extras: Default::default(),
+        },
+        Role {
+            id: "role-b".into(),
+            name: "Admins".into(),
+            description: Some("Everything".into()),
+            filters: vec![],
+            members: vec!["admins".into(), "it@shop.example".into()],
+            extras: [(
+                "powerbi".to_string(),
+                serde_json::json!({ "modelPermission": "administrator" }),
+            )]
+            .into(),
+        },
+    ];
     model.report = Report {
         pages: vec![
             Page {
@@ -587,6 +629,60 @@ fn the_project_comes_back_from_its_export() {
     );
     assert_eq!(back.model.report, model.report);
     assert_eq!(back.model.name, model.name);
+    // Roles keep their ids through an annotation (Power BI roles have no lineage tag).
+    assert_eq!(back.model.roles, model.roles);
+}
+
+/// Roles as Power BI Desktop writes them, in TMDL and in model.bim.
+#[test]
+fn power_bi_roles_are_imported() {
+    let mut def = std::collections::BTreeMap::new();
+    def.insert(
+        "model.tmdl".to_string(),
+        "model Model\n\tculture: en-US\n\nref table Store\nref role 'North only'\n".to_string(),
+    );
+    def.insert(
+        "tables/Store.tmdl".to_string(),
+        "table Store\n\tlineageTag: t-store\n\n\tcolumn Region\n\t\tdataType: string\n\t\tlineageTag: c-region\n\t\tsourceColumn: Region\n".to_string(),
+    );
+    def.insert(
+        "roles/North only.tmdl".to_string(),
+        "/// Northern managers\nrole 'North only'\n\tmodelPermission: read\n\n\tmember 'north@contoso.com'\n\t\tmemberType: user\n\n\ttablePermission Store = [Region] = \"North\"\n\n\ttablePermission Missing = TRUE()\n\n\tannotation PBI_Id = 123\n".to_string(),
+    );
+    let back = charted_tmdl::read::from_tmdl(&def, "Shop");
+    let r = &back.model.roles[0];
+    assert_eq!(r.name, "North only");
+    assert_eq!(r.description.as_deref(), Some("Northern managers"));
+    assert_eq!(r.members, vec!["north@contoso.com".to_string()]);
+    assert_eq!(
+        r.filters,
+        vec![RoleFilter {
+            table: "t-store".into(),
+            expression: "[Region] = \"North\"".into()
+        }]
+    );
+    assert!(
+        back.skipped.iter().any(|s| s.kind == "role filter"),
+        "{:?}",
+        back.skipped
+    );
+
+    let bim = r#"{"name": "M", "model": {"tables": [{"name": "Store", "lineageTag": "t-store", "columns": [{"name": "Region", "dataType": "string", "sourceColumn": "Region"}]}],
+      "roles": [{"name": "North", "modelPermission": "read", "members": [{"memberName": "a@b.example"}],
+                 "tablePermissions": [{"name": "Store", "filterExpression": ["[Region]", " = \"North\""]}]},
+                {"name": "Admins", "modelPermission": "administrator"}]}}"#;
+    let back = charted_tmdl::read::from_bim(bim, "Shop").unwrap();
+    assert_eq!(back.model.roles.len(), 2);
+    assert_eq!(back.model.roles[0].filters[0].table, "t-store");
+    assert_eq!(
+        back.model.roles[0].filters[0].expression,
+        "[Region]\n = \"North\""
+    );
+    assert_eq!(
+        back.model.roles[1].extras["powerbi"]["modelPermission"],
+        "administrator"
+    );
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
 }
 
 /// Power BI's own files (no charted annotations): the v1.2 visual types map to

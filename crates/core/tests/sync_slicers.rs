@@ -17,6 +17,7 @@ fn card_value(app: &App, id: &str) -> f64 {
             highlight: vec![],
             tag: None,
             search: None,
+            roles: vec![],
         })
         .unwrap_or_else(|e| panic!("{}", e.message));
     let reader = StreamReader::try_new(std::io::Cursor::new(bytes), None).unwrap();

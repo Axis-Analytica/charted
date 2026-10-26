@@ -122,6 +122,7 @@ impl Sample {
                 highlight: vec![],
                 tag: None,
                 search: None,
+                roles: vec![],
             })
             .unwrap_or_else(|e| panic!("{}", e.message));
         named(bytes)

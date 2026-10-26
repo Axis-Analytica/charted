@@ -90,6 +90,17 @@ pub enum Change {
     UpdateRelationship {
         relationship: Relationship,
     },
+    AddRole {
+        role: Role,
+        index: Option<usize>,
+    },
+    RemoveRole {
+        role: Id,
+    },
+    /// Replaces a role wholesale (name, description, filters, members), keeping its id.
+    UpdateRole {
+        role: Role,
+    },
     AddPage {
         page: Page,
         index: Option<usize>,
@@ -176,6 +187,8 @@ pub enum ChangeError {
     UnknownHierarchy { id: Id },
     #[error("there is no relationship with id {id}")]
     UnknownRelationship { id: Id },
+    #[error("there is no role with id {id}")]
+    UnknownRole { id: Id },
     #[error("there is no page with id {id}")]
     UnknownPage { id: Id },
     #[error("there is no visual with id {id}")]
@@ -244,9 +257,37 @@ fn ids_in_use(model: &Model) -> impl Iterator<Item = &str> {
                 .chain(t.hierarchies.iter().map(|h| h.id.as_str()))
         })
         .chain(model.relationships.iter().map(|r| r.id.as_str()))
+        .chain(model.roles.iter().map(|r| r.id.as_str()))
         .chain(model.report.pages.iter().flat_map(|p| {
             std::iter::once(p.id.as_str()).chain(p.visuals.iter().map(|v| v.id.as_str()))
         }))
+}
+
+/// A role's name is unique among roles, and it filters each table at most once.
+fn validate_role(model: &Model, r: &Role) -> Result<()> {
+    validate_name(&r.name)?;
+    if model
+        .roles
+        .iter()
+        .any(|o| o.id != r.id && o.name.eq_ignore_ascii_case(&r.name))
+    {
+        return Err(ChangeError::NameTaken {
+            name: r.name.clone(),
+        });
+    }
+    for (i, f) in r.filters.iter().enumerate() {
+        if model.table(&f.table).is_none() {
+            return Err(ChangeError::UnknownTable {
+                id: f.table.clone(),
+            });
+        }
+        if r.filters[..i].iter().any(|o| o.table == f.table) {
+            return Err(ChangeError::Invalid {
+                message: "a role filters each table once".into(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn page_mut<'a>(model: &'a mut Model, id: &str) -> Result<&'a mut Page> {
@@ -394,6 +435,13 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                     index: Some(i),
                 }
             }));
+            // So do the roles' filters on it.
+            for r in model.roles.iter_mut() {
+                if r.filters.iter().any(|f| f.table == table) {
+                    inverse.push(Change::UpdateRole { role: r.clone() });
+                    r.filters.retain(|f| f.table != table);
+                }
+            }
             Ok(inverse)
         }
         Change::RenameTable { table, name } => {
@@ -719,6 +767,36 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 .ok_or(ChangeError::UnknownRelationship { id })?;
             let old = std::mem::replace(r, relationship);
             Ok(vec![Change::UpdateRelationship { relationship: old }])
+        }
+        Change::AddRole { role, index } => {
+            ensure_fresh_id(model, &role.id)?;
+            validate_role(model, &role)?;
+            let id = role.id.clone();
+            insert_at(&mut model.roles, index, role);
+            Ok(vec![Change::RemoveRole { role: id }])
+        }
+        Change::RemoveRole { role } => {
+            let i = index_of(
+                &model.roles,
+                |r| r.id == role,
+                || ChangeError::UnknownRole { id: role.clone() },
+            )?;
+            let r = model.roles.remove(i);
+            Ok(vec![Change::AddRole {
+                role: r,
+                index: Some(i),
+            }])
+        }
+        Change::UpdateRole { role } => {
+            validate_role(model, &role)?;
+            let id = role.id.clone();
+            let r = model
+                .roles
+                .iter_mut()
+                .find(|r| r.id == id)
+                .ok_or(ChangeError::UnknownRole { id })?;
+            let old = std::mem::replace(r, role);
+            Ok(vec![Change::UpdateRole { role: old }])
         }
         Change::AddPage { page, index } => {
             validate_page_name(model, &page.id, &page.settings.name)?;

@@ -20,6 +20,7 @@ pub mod recent;
 pub mod relcheck;
 pub mod reportfile;
 pub mod reporttheme;
+pub mod roles;
 pub mod sample;
 pub mod session;
 pub mod sources;

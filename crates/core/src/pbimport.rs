@@ -400,4 +400,25 @@ fn check_dax(model: &Model, skipped: &mut Vec<Skipped>) {
             }
         }
     }
+    for r in &model.roles {
+        for f in &r.filters {
+            if let Some(d) = crate::roles::check_filter(model, &f.table, &f.expression).first() {
+                skipped.push(Skipped {
+                    kind: "role".into(),
+                    name: format!(
+                        "{}: {}",
+                        r.name,
+                        model
+                            .table(&f.table)
+                            .map(|t| t.name.as_str())
+                            .unwrap_or("?")
+                    ),
+                    reason: format!(
+                        "imported, but View as can't apply this filter: {}",
+                        d.message
+                    ),
+                });
+            }
+        }
+    }
 }

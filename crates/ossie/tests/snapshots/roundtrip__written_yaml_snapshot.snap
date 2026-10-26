@@ -196,3 +196,8 @@ metrics:
   custom_extensions:
   - vendor_name: POWER_BI
     data: '{"_v": 2, "formatString": "0.0%", "lineageTag": "m-share", "table": "Sales"}'
+custom_extensions:
+- vendor_name: POWER_BI
+  data: '{"_v": 2, "roles": [{"description": "Product managers for bikes", "members": [{"memberName": "bikes@harbor.example"}], "modelPermission": "read", "name": "Bikes only", "tablePermissions": [{"filterExpression": "Product[Category] = \"Bikes\"", "name": "Product"}]}, {"modelPermission": "read", "name": "Everyone"}]}'
+- vendor_name: CHARTED
+  data: '{"_v": 1, "roleIds": {"Bikes only": "role-bikes", "Everyone": "role-all"}}'

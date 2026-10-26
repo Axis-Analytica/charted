@@ -199,6 +199,27 @@ fn sample_model() -> Model {
             ship,
             prod,
         ],
+        roles: vec![
+            Role {
+                id: "role-bikes".into(),
+                name: "Bikes only".into(),
+                description: Some("Product managers for bikes".into()),
+                filters: vec![RoleFilter {
+                    table: "p-1".into(),
+                    expression: "Product[Category] = \"Bikes\"".into(),
+                }],
+                members: vec!["bikes@harbor.example".into()],
+                extras: Default::default(),
+            },
+            Role {
+                id: "role-all".into(),
+                name: "Everyone".into(),
+                description: None,
+                filters: vec![],
+                members: vec![],
+                extras: Default::default(),
+            },
+        ],
         extras: Default::default(),
         report: Default::default(),
     }
@@ -333,4 +354,38 @@ relationships:
 fn rejects_other_spec_versions() {
     let err = read_str("version: 0.1.0\nname: x\ndatasets: []\n").unwrap_err();
     assert!(err.to_string().contains("0.1.0"));
+}
+
+/// Roles as the official converter writes them (no charted ids): filters resolve
+/// their tables by name, and what charted doesn't model comes back unchanged.
+#[test]
+fn converter_roles_are_read_and_kept() {
+    let yaml = r#"
+version: 0.2.0.dev0
+name: m
+datasets:
+  - name: Store
+    source: store
+    fields:
+      - { name: Region, expression: { dialects: [ { dialect: ANSI_SQL, expression: Region } ] } }
+custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "roles": [{"name": "North", "modelPermission": "read", "members": [{"memberName": "a@x.example"}], "tablePermissions": [{"name": "Store", "filterExpression": "[Region] = \"North\""}, {"name": "Store2", "filterExpression": "TRUE()"}, {"name": "Store", "metadataPermission": "none"}]}, {"name": "Admins", "modelPermission": "administrator"}]}'
+"#;
+    let (model, warnings) = read_str(yaml).unwrap();
+    assert_eq!(model.roles.len(), 2);
+    let north = &model.roles[0];
+    assert_eq!(north.members, vec!["a@x.example".to_string()]);
+    assert_eq!(north.filters.len(), 1);
+    assert_eq!(north.filters[0].table, model.tables[0].id);
+    assert_eq!(north.filters[0].expression, "[Region] = \"North\"");
+    assert!(
+        warnings.iter().any(|w| w.message.contains("Store2")),
+        "{warnings:?}"
+    );
+    let written = write_string(&model, &GeneratedDialects::new());
+    assert!(written.contains("metadataPermission"), "{written}");
+    assert!(written.contains("administrator"), "{written}");
+    let (again, _) = read_str(&written).unwrap();
+    assert_eq!(again, model);
 }

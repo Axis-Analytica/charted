@@ -79,6 +79,7 @@ fn fixture() -> Model {
             active: true,
             extras: Default::default(),
         }],
+        roles: vec![role("role-1", "Bikes", &["t-prod"])],
         extras: Default::default(),
         report: Report {
             pages: vec![Page {
@@ -142,6 +143,52 @@ fn visual(id: &str) -> Visual {
         drill: Vec::new(),
         hidden: false,
     }
+}
+
+fn role(id: &str, name: &str, tables: &[&str]) -> Role {
+    Role {
+        id: id.into(),
+        name: name.into(),
+        description: None,
+        filters: tables
+            .iter()
+            .map(|t| RoleFilter {
+                table: t.to_string(),
+                expression: "TRUE()".into(),
+            })
+            .collect(),
+        members: vec!["someone@example.com".into()],
+        extras: Default::default(),
+    }
+}
+
+fn role_change() -> impl Strategy<Value = Change> {
+    let id = prop_oneof![
+        Just("role-1".to_string()),
+        Just("role-2".to_string()),
+        Just("role-missing".to_string())
+    ];
+    let name = prop_oneof![
+        Just("Bikes".to_string()),
+        Just("North".to_string()),
+        Just("".to_string())
+    ];
+    let tables = proptest::collection::vec(
+        prop_oneof![Just("t-sales"), Just("t-prod"), Just("t-missing")],
+        0..3,
+    );
+    prop_oneof![
+        (id.clone(), name.clone(), tables.clone(), 0usize..3).prop_map(|(id, n, ts, i)| {
+            Change::AddRole {
+                role: role(&id, &n, &ts),
+                index: Some(i),
+            }
+        }),
+        id.clone().prop_map(|role| Change::RemoveRole { role }),
+        (id, name, tables).prop_map(|(id, n, ts)| Change::UpdateRole {
+            role: role(&id, &n, &ts)
+        }),
+    ]
 }
 
 fn arb_change() -> impl Strategy<Value = Change> {
@@ -239,6 +286,7 @@ fn arb_change() -> impl Strategy<Value = Change> {
         (table, any::<bool>()).prop_map(|(table, hidden)| Change::SetTableHidden { table, hidden }),
         hierarchy_change(),
         report_change(),
+        role_change(),
     ]
 }
 
@@ -536,4 +584,53 @@ fn hierarchies_are_validated() {
         },
     );
     assert!(matches!(r, Err(ChangeError::NameTaken { .. })));
+}
+
+#[test]
+fn removing_a_table_drops_role_filters_on_it_and_undo_restores_them() {
+    let mut model = fixture();
+    let mut history = History::new();
+    history
+        .commit(
+            &mut model,
+            "Delete table",
+            vec![Change::RemoveTable {
+                table: "t-prod".into(),
+            }],
+        )
+        .unwrap();
+    assert!(model.roles[0].filters.is_empty());
+    history.undo(&mut model).unwrap();
+    assert_eq!(model, fixture());
+}
+
+#[test]
+fn roles_are_validated() {
+    let mut model = fixture();
+    let dup = apply(
+        &mut model,
+        Change::AddRole {
+            role: role("role-2", "bikes", &[]),
+            index: None,
+        },
+    );
+    assert!(matches!(dup, Err(ChangeError::NameTaken { .. })), "{dup:?}");
+    let twice = apply(
+        &mut model,
+        Change::UpdateRole {
+            role: role("role-1", "Bikes", &["t-prod", "t-prod"]),
+        },
+    );
+    assert!(
+        matches!(twice, Err(ChangeError::Invalid { .. })),
+        "{twice:?}"
+    );
+    let missing = apply(
+        &mut model,
+        Change::UpdateRole {
+            role: role("role-1", "Bikes", &["t-missing"]),
+        },
+    );
+    assert!(matches!(missing, Err(ChangeError::UnknownTable { .. })));
+    assert_eq!(model, fixture());
 }

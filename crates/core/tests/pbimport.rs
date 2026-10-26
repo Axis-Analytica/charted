@@ -45,7 +45,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         "table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4",
         "table Date",
         "query Targets",
-        "role Regional managers",
+        "role Regional managers: Orders",
         "measure Orders[Avg Order]",
         "visual Overview: map",
     ] {
@@ -107,6 +107,11 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         total.description.as_deref(),
         Some("Sales in dollars, before returns.")
     );
+    // Roles come in (this one's dynamic filter is kept for Power BI).
+    let role = &m.roles[0];
+    assert_eq!(role.name, "Regional managers");
+    assert_eq!(role.filters[0].table, orders.id);
+    assert_eq!(role.filters[0].expression, "[Region] = USERPRINCIPALNAME()");
     let product = m.table_by_name("Product").unwrap();
     let h = &product.hierarchies[0];
     assert_eq!(h.name, "Category Hierarchy");
@@ -185,7 +190,12 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         Vec::<String>::new()
     );
     assert_eq!(back.model.report, m.report);
-    // Nothing is reported this time: every measure that came across evaluates.
-    assert!(report2.skipped.is_empty(), "{:#?}", report2.skipped);
+    // Nothing else is reported this time: every measure that came across evaluates
+    // (the role's dynamic filter is noted again).
+    assert!(
+        report2.skipped.iter().all(|s| s.kind == "role"),
+        "{:#?}",
+        report2.skipped
+    );
     assert_eq!(report2.loaded, 2);
 }

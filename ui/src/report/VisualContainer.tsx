@@ -35,7 +35,7 @@ import { drillTargets, drillThrough } from "../state/drillthrough";
 import { editVisual, isGrouping, newId, pageSettings, projectionName, useReport, visualTitle } from "../state/report";
 import { interaction, interactionKinds, isDataVisual, selectionEffect, useSelection } from "../state/selection";
 import { toast } from "../state/toasts";
-import { type VisualData, useVisualData } from "./data";
+import { type VisualData, useViewedRoles, useVisualData } from "./data";
 import { prop, visualDef } from "./registry";
 import { CanvasScale } from "./scale";
 import { VisualBoundary } from "./VisualBoundary";
@@ -174,13 +174,14 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const sortBy = (role: string, index: number, descending: boolean) =>
     useApp.getState().edit("Sort visual", editVisual(page.id, visual.id, (v) => ({ ...v, sort: { role, index, descending } })));
 
+  const viewing = useViewedRoles();
   const exportData = async () => {
     const name = (title || t(def?.label ?? "Visual")).replace(/[/\\?%*:|"<>]/g, "-");
     const path = await transport.pick({ title: t("Export data"), saveAs: `${name}.csv`, filters: [{ name: "CSV", extensions: ["csv"] }] });
     if (!path) return;
     const filters = selectionEffect(useSelection.getState().selection, page, visual).filters;
     try {
-      await transport.rpc({ type: "exportVisualCsv", visual: visual.id, path, filters });
+      await transport.rpc({ type: "exportVisualCsv", visual: visual.id, path, filters, roles: viewing });
       toast({ kind: "success", title: t("Exported the data"), detail: path });
     } catch (e) {
       toast({ kind: "error", title: errorMessage(e) });

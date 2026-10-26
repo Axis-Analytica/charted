@@ -87,6 +87,7 @@ fn public_power_bi_projects_import_render_and_round_trip() {
                     highlight: vec![],
                     tag: None,
                     search: None,
+                    roles: vec![],
                 }) {
                     Ok(_) => ok += 1,
                     Err(e) => failed.push(format!(

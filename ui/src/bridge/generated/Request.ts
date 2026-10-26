@@ -16,4 +16,8 @@ fiscalStart: number,
 /**
  * Date columns to relate to it: (table id, column id).
  */
-relate: Array<[string, string]>, } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, };
+relate: Array<[string, string]>, } | { "type": "allowExtension", name: string, } | { "type": "setPassword", host: string, port: number, database: string, user: string, password: string, } | { "type": "importTheme", path: string, } | { "type": "exportVisualCsv", visual: string, path: string, filters: Array<QueryFilter>, 
+/**
+ * The roles the report is viewed as (row-level security).
+ */
+roles?: Array<string>, };

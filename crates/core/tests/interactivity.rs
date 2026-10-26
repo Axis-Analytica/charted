@@ -46,6 +46,8 @@ fn num(r: &Row, k: &str) -> f64 {
 struct Sample {
     app: App,
     page: Id,
+    /// The roles the report is viewed as.
+    viewing: Vec<Id>,
     _dir: tempfile::TempDir,
 }
 
@@ -63,6 +65,7 @@ impl Sample {
         Self {
             app,
             page,
+            viewing: Vec::new(),
             _dir: dir,
         }
     }
@@ -163,6 +166,7 @@ impl Sample {
                     highlight,
                     tag: None,
                     search: search.map(String::from),
+                    roles: self.viewing.clone(),
                 })
                 .unwrap_or_else(|e| panic!("{}", e.message)),
         )
@@ -514,6 +518,7 @@ fn themes_import_and_visual_data_exports_as_csv() {
             visual: "chart".into(),
             path: csv.display().to_string(),
             filters: vec![equals(category, "Camping")],
+            roles: vec![],
         })
         .unwrap();
     let text = std::fs::read_to_string(&csv).unwrap();
@@ -577,5 +582,133 @@ fn drilling_a_hierarchy_shows_one_level_filtered_to_its_members() {
     assert_eq!(
         cats(&s.data("drill", vec![], vec![]), "category:2"),
         ["July", "August", "September"]
+    );
+}
+
+fn role(id: &str, filters: Vec<(&Id, &str)>) -> Role {
+    Role {
+        id: id.into(),
+        name: id.into(),
+        description: None,
+        filters: filters
+            .into_iter()
+            .map(|(t, e)| RoleFilter {
+                table: t.clone(),
+                expression: e.into(),
+            })
+            .collect(),
+        members: vec![],
+        extras: Default::default(),
+    }
+}
+
+/// View as: the roles' filters restrict every query a report visual makes (cards,
+/// slicers, totals, filter cards, exports), and several roles combine as a union.
+#[test]
+fn viewing_as_roles_restricts_every_report_query() {
+    let mut s = Sample::new();
+    let region = s.col("Store", "Region");
+    let category = s.col("Product", "Category");
+    let sales = s.measure("Total Sales");
+    let store = s.model().table_by_name("Store").unwrap().id.clone();
+    let product = s.model().table_by_name("Product").unwrap().id.clone();
+    s.commit(vec![
+        Change::AddRole {
+            role: role("north", vec![(&store, "Store[Region] = \"North America\"")]),
+            index: None,
+        },
+        Change::AddRole {
+            role: role("europe", vec![(&store, "[Region] = \"Europe\"")]),
+            index: None,
+        },
+        Change::AddRole {
+            role: role(
+                "camping",
+                vec![(&product, "Product[Category] = \"Camping\"")],
+            ),
+            index: None,
+        },
+    ]);
+    s.add("card", "card", vec![("values", vec![sales.clone()])]);
+    s.add("slicer", "slicer", vec![("field", vec![region.clone()])]);
+    s.add(
+        "table",
+        "table",
+        vec![("values", vec![category.clone(), sales.clone()])],
+    );
+    let card = |s: &Sample| num(&s.data("card", vec![], vec![])[0], "values:0");
+    let everything = card(&s);
+    let na = s.total(vec![equals(region.clone(), "North America")]);
+    let eu = s.total(vec![equals(region.clone(), "Europe")]);
+    assert!(na > 0.0 && na < everything);
+
+    s.viewing = vec!["north".into()];
+    assert!((card(&s) - na).abs() < 0.01);
+    let listed: Vec<String> = s
+        .data("slicer", vec![], vec![])
+        .iter()
+        .map(|r| r["key:field:0"].clone())
+        .collect();
+    assert_eq!(listed, vec!["North America".to_string()]);
+    let rows: f64 = s
+        .data("table", vec![], vec![])
+        .iter()
+        .map(|r| num(r, "values:1"))
+        .sum();
+    assert!((rows - na).abs() < 0.01);
+
+    // The union of two roles on the same table.
+    s.viewing = vec!["north".into(), "europe".into()];
+    assert!((card(&s) - (na + eu)).abs() < 0.01);
+    // A role that leaves Store unrestricted makes the union unrestricted there.
+    s.viewing = vec!["north".into(), "camping".into()];
+    assert!((card(&s) - everything).abs() < 0.01);
+    s.viewing = vec![];
+    assert!((card(&s) - everything).abs() < 0.01);
+
+    // Filter cards list what the role sees.
+    let values: serde_json::Value = serde_json::from_slice(
+        &s.app
+            .data(DataRequest::FieldValues {
+                field: region.clone(),
+                filters: vec![],
+                search: None,
+                limit: 100,
+                roles: vec!["europe".into()],
+            })
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(values["total"], 1, "{values}");
+
+    // Exports too.
+    let csv = s._dir.path().join("roles.csv");
+    s.app
+        .handle(Request::ExportVisualCsv {
+            visual: "table".into(),
+            path: csv.display().to_string(),
+            filters: vec![],
+            roles: vec!["camping".into()],
+        })
+        .unwrap();
+    let text = std::fs::read_to_string(&csv).unwrap();
+    assert_eq!(text.lines().count(), 2, "{text}");
+    assert!(text.contains("Camping"));
+
+    // A filter must be a row condition.
+    let err = s
+        .app
+        .handle(Request::Commit {
+            label: "test".into(),
+            changes: vec![Change::AddRole {
+                role: role("bad", vec![(&store, "SUM ( Sales[Quantity] ) > 0")]),
+                index: None,
+            }],
+        })
+        .unwrap_err();
+    assert!(
+        err.message.contains("condition on each row"),
+        "{}",
+        err.message
     );
 }

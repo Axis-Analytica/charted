@@ -24,4 +24,12 @@ after: number | null, backwards: boolean, } | { "type": "visual", query: VisualQ
 /**
  * A slicer's search text.
  */
-search?: string, } | { "type": "fieldValues", field: Projection, filters: Array<QueryFilter>, search: string | null, limit: number, } | { "type": "checkDax", expression: string, measure: string | null, } | { "type": "ossieDiff", path: string, } | { "type": "readImage", path: string, } | { "type": "queryPreview", query: Query, queries: Array<Query>, upto: number, limit: number, } | { "type": "queryInfo", query: Query, queries: Array<Query>, upto: number, } | { "type": "queryProfile", query: Query, queries: Array<Query>, upto: number, full: boolean, } | { "type": "queryAnalyze", query: Query, queries: Array<Query>, upto: number, analysis: Analysis, } | { "type": "excelSheets", path: string, } | { "type": "detectCsv", path: string, } | { "type": "sourceStatus" } | { "type": "checkRelationship", fromTable: string, fromColumn: string, toTable: string, toColumn: string, };
+search?: string, 
+/**
+ * The roles the report is viewed as: only the rows they see count.
+ */
+roles?: Array<string>, } | { "type": "fieldValues", field: Projection, filters: Array<QueryFilter>, search: string | null, limit: number, 
+/**
+ * The roles the report is viewed as.
+ */
+roles?: Array<string>, } | { "type": "checkRoleFilter", table: string, expression: string, } | { "type": "checkDax", expression: string, measure: string | null, } | { "type": "ossieDiff", path: string, } | { "type": "readImage", path: string, } | { "type": "queryPreview", query: Query, queries: Array<Query>, upto: number, limit: number, } | { "type": "queryInfo", query: Query, queries: Array<Query>, upto: number, } | { "type": "queryProfile", query: Query, queries: Array<Query>, upto: number, full: boolean, } | { "type": "queryAnalyze", query: Query, queries: Array<Query>, upto: number, analysis: Analysis, } | { "type": "excelSheets", path: string, } | { "type": "detectCsv", path: string, } | { "type": "sourceStatus" } | { "type": "checkRelationship", fromTable: string, fromColumn: string, toTable: string, toColumn: string, };

@@ -30,6 +30,9 @@ pub struct Model {
     pub tables: Vec<Table>,
     #[serde(default)]
     pub relationships: Vec<Relationship>,
+    /// Row-level security roles (what *View as* previews).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub roles: Vec<Role>,
     #[serde(default, skip_serializing_if = "Extras::is_empty")]
     #[ts(type = "Record<string, unknown>")]
     pub extras: Extras,
@@ -210,6 +213,35 @@ pub struct Level {
     pub column: Id,
 }
 
+/// A row-level security role: who it's for and which rows of each table they see.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct Role {
+    pub id: Id,
+    pub name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    /// At most one per table. Tables without a filter are not restricted by the role.
+    #[serde(default)]
+    pub filters: Vec<RoleFilter>,
+    /// Members (users or groups) as Power BI names them; kept for the round trip.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub members: Vec<String>,
+    #[serde(default, skip_serializing_if = "Extras::is_empty")]
+    #[ts(type = "Record<string, unknown>")]
+    pub extras: Extras,
+}
+
+/// A role's filter on a table: a DAX condition evaluated per row (`[Region] = "North"`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct RoleFilter {
+    pub table: Id,
+    pub expression: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[ts(export)]
 pub enum Cardinality {
@@ -259,6 +291,10 @@ impl Model {
         self.tables
             .iter()
             .find(|t| t.name.eq_ignore_ascii_case(name))
+    }
+
+    pub fn role(&self, id: &str) -> Option<&Role> {
+        self.roles.iter().find(|r| r.id == id)
     }
 
     pub fn relationship(&self, id: &str) -> Option<&Relationship> {

@@ -54,6 +54,7 @@ const X_POWERBI: &str = "powerbi";
 const X_UNIQUE_KEYS: &str = "ossie.uniqueKeys";
 const X_IS_TIME: &str = "ossie.isTime";
 const X_CHARTED: &str = "charted";
+const X_TABLE_PERMISSIONS: &str = "powerbi.tablePermissions";
 
 // ---------------------------------------------------------------------------
 // Writing
@@ -88,13 +89,138 @@ pub fn to_document(model: &Model, generated: &GeneratedDialects) -> Document {
         custom_extensions: Vec::new(),
         unknown: unknown_of(&model.extras),
     };
-    finish_extensions(
-        &mut d.custom_extensions,
-        &model.extras,
-        Map::new(),
-        Map::new(),
-    );
+    let (mut pb, mut ch) = (Map::new(), Map::new());
+    if !model.roles.is_empty() {
+        pb.insert(
+            "roles".into(),
+            Value::Array(model.roles.iter().map(|r| write_role(model, r)).collect()),
+        );
+        ch.insert(
+            "roleIds".into(),
+            Value::Object(
+                model
+                    .roles
+                    .iter()
+                    .map(|r| (r.name.clone(), Value::String(r.id.clone())))
+                    .collect(),
+            ),
+        );
+    }
+    finish_extensions(&mut d.custom_extensions, &model.extras, pb, ch);
     d
+}
+
+/// A role as TMSL describes it, which is how the converter keeps roles in the model's
+/// `POWER_BI` blob: table permissions name their table. charted's ids go in the
+/// `CHARTED` blob (`roleIds`, by name), since TMSL roles have no lineage tag.
+fn write_role(model: &Model, r: &Role) -> Value {
+    let mut o = match r.extras.get(X_POWERBI) {
+        Some(Value::Object(preserved)) => preserved.clone(),
+        _ => Map::new(),
+    };
+    o.insert("name".into(), r.name.clone().into());
+    put(&mut o, "description", r.description.clone());
+    o.entry("modelPermission").or_insert_with(|| "read".into());
+    if !r.members.is_empty() {
+        o.insert(
+            "members".into(),
+            Value::Array(
+                r.members
+                    .iter()
+                    .map(|m| json!({ "memberName": m }))
+                    .collect(),
+            ),
+        );
+    }
+    let mut permissions: Vec<Value> = r
+        .filters
+        .iter()
+        .filter_map(|f| {
+            Some(json!({
+                "name": model.table(&f.table)?.name,
+                "filterExpression": f.expression,
+            }))
+        })
+        .collect();
+    // Table permissions without a filter (column permissions…) are kept as they were.
+    if let Some(Value::Array(kept)) = r.extras.get(X_TABLE_PERMISSIONS) {
+        permissions.extend(kept.iter().cloned());
+    }
+    if !permissions.is_empty() {
+        o.insert("tablePermissions".into(), Value::Array(permissions));
+    }
+    Value::Object(o)
+}
+
+/// Reads the roles in the model's `POWER_BI` blob, resolving tables by name.
+fn read_roles(
+    r: &mut Reader,
+    model: &mut Model,
+    pb: &mut Map<String, Value>,
+    ch: &mut Map<String, Value>,
+) {
+    let Some(Value::Array(items)) = pb.remove("roles") else {
+        return;
+    };
+    let ids = match ch.remove("roleIds") {
+        Some(Value::Object(ids)) => ids,
+        _ => Map::new(),
+    };
+    for item in items {
+        let Value::Object(mut o) = item else { continue };
+        let name = take_str(&mut o, "name").unwrap_or_default();
+        let mut role = Role {
+            id: ids
+                .get(&name)
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| derived_id("role", &name)),
+            name: name.clone(),
+            description: take_str(&mut o, "description"),
+            filters: Vec::new(),
+            members: Vec::new(),
+            extras: Extras::new(),
+        };
+        if o.get("modelPermission").and_then(Value::as_str) == Some("read") {
+            o.remove("modelPermission");
+        }
+        if let Some(Value::Array(members)) = o.remove("members") {
+            role.members = members
+                .iter()
+                .filter_map(|m| m.get("memberName").and_then(Value::as_str))
+                .map(str::to_string)
+                .collect();
+        }
+        let mut kept = Vec::new();
+        if let Some(Value::Array(perms)) = o.remove("tablePermissions") {
+            for p in perms {
+                let table = p.get("name").and_then(Value::as_str).unwrap_or_default();
+                let expr = p.get("filterExpression").and_then(Value::as_str);
+                let only_filter = p
+                    .as_object()
+                    .is_some_and(|m| m.keys().all(|k| k == "name" || k == "filterExpression"));
+                match (model.table_by_name(table), expr) {
+                    (Some(t), Some(e)) if only_filter => role.filters.push(RoleFilter {
+                        table: t.id.clone(),
+                        expression: e.to_string(),
+                    }),
+                    (None, _) => r.warn(
+                        format!("role {name}"),
+                        format!("its filter on {table}, which does not exist, was skipped"),
+                    ),
+                    _ => kept.push(p),
+                }
+            }
+        }
+        if !kept.is_empty() {
+            role.extras
+                .insert(X_TABLE_PERMISSIONS.into(), Value::Array(kept));
+        }
+        if !o.is_empty() {
+            role.extras.insert(X_POWERBI.into(), Value::Object(o));
+        }
+        model.roles.push(role);
+    }
 }
 
 fn unknown_of(extras: &Extras) -> doc::Unknown {
@@ -956,8 +1082,9 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
         model.relationships.push(rel_out);
     }
 
-    let pb = stash::read(&d.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
-    let ch = stash::read(&d.custom_extensions, CHARTED, CHARTED_STASH_VERSION)?;
+    let mut pb = stash::read(&d.custom_extensions, POWER_BI, POWER_BI_STASH_VERSION)?;
+    let mut ch = stash::read(&d.custom_extensions, CHARTED, CHARTED_STASH_VERSION)?;
+    read_roles(&mut r, &mut model, &mut pb, &mut ch);
     collect_extras(
         &mut model.extras,
         &d.custom_extensions,

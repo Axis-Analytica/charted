@@ -1,7 +1,7 @@
 //! Reads a Power BI semantic model — TMDL (a PBIP's `definition/` folder) or TMSL
 //! (`model.bim`) — into a charted model and its queries. What charted can't use is
 //! listed in the import report instead of being dropped silently:
-//! calculation groups, roles, perspectives, translations, calculated tables and M
+//! calculation groups, perspectives, translations, calculated tables and M
 //! queries it doesn't understand (their tables come in without data).
 //!
 //! charted's own exports carry each table's query as an annotation (`chartedQuery`),
@@ -119,6 +119,18 @@ struct ImExpression {
     annotations: BTreeMap<String, String>,
 }
 
+#[derive(Debug, Clone, Default)]
+struct ImRole {
+    name: String,
+    /// charted's id (the `chartedId` annotation).
+    id: Option<String>,
+    description: Option<String>,
+    permission: Option<String>,
+    members: Vec<String>,
+    /// (table name, DAX filter)
+    filters: Vec<(String, String)>,
+}
+
 /// The semantic model, as TMDL and TMSL both describe it.
 #[derive(Debug, Clone, Default)]
 struct Sm {
@@ -127,8 +139,11 @@ struct Sm {
     tables: Vec<ImTable>,
     relationships: Vec<ImRelationship>,
     expressions: Vec<ImExpression>,
+    roles: Vec<ImRole>,
     /// Table order (`ref table` in model.tmdl).
     order: Vec<String>,
+    /// Role order (`ref role`).
+    role_order: Vec<String>,
     /// Model-level objects charted doesn't support: (kind, name).
     other: Vec<(String, String)>,
 }
@@ -477,6 +492,30 @@ fn tmdl_relationship(n: &Node, name: String) -> ImRelationship {
     }
 }
 
+fn tmdl_role(n: &Node, name: String) -> ImRole {
+    let p = props(n);
+    let mut r = ImRole {
+        name,
+        id: annotations(n).remove("chartedId"),
+        description: doc(n),
+        permission: p.get("modelPermission").cloned(),
+        ..Default::default()
+    };
+    for c in n.children.iter().filter(|c| c.depth == n.depth + 1) {
+        match object(&c.text) {
+            Some((kw, member, _)) if kw == "member" => r.members.push(member),
+            Some((kw, table, expr)) if kw == "tablePermission" => {
+                let e = expression_of(c, expr);
+                if !e.trim().is_empty() {
+                    r.filters.push((table, e));
+                }
+            }
+            _ => {}
+        }
+    }
+    r
+}
+
 /// Reads TMDL files (paths relative to the `definition` folder, and their text).
 fn read_tmdl(files: &BTreeMap<String, String>) -> Sm {
     let mut sm = Sm::default();
@@ -499,11 +538,14 @@ fn read_tmdl(files: &BTreeMap<String, String>) -> Sm {
                                         .trim()
                                         .split_once(char::is_whitespace)
                                         .unwrap_or(("", ""));
-                                    if what == "table" {
-                                        sm.order.push(take_name(rest).0);
+                                    match what {
+                                        "table" => sm.order.push(take_name(rest).0),
+                                        "role" => sm.role_order.push(take_name(rest).0),
+                                        _ => {}
                                     }
                                 }
-                                "perspective" | "role" | "culture" => sm.other.push((k, name)),
+                                "role" => sm.roles.push(tmdl_role(c, name)),
+                                "perspective" | "culture" => sm.other.push((k, name)),
                                 _ => {}
                             }
                         }
@@ -511,6 +553,12 @@ fn read_tmdl(files: &BTreeMap<String, String>) -> Sm {
                 }
                 "table" => sm.tables.push(tmdl_table(&n, name)),
                 "relationship" => sm.relationships.push(tmdl_relationship(&n, name)),
+                "role" => sm.roles.push(tmdl_role(&n, name)),
+                // Desktop writes `ref role` at the top of model.tmdl.
+                "ref" if name == "role" => {
+                    let rest = n.text["ref".len()..].trim_start()["role".len()..].trim();
+                    sm.role_order.push(take_name(rest).0);
+                }
                 "expression" => {
                     let e = expression_of(&n, expr);
                     sm.expressions.push(ImExpression {
@@ -526,7 +574,7 @@ fn read_tmdl(files: &BTreeMap<String, String>) -> Sm {
                         .children
                         .iter()
                         .any(|c| c.text.trim_start().starts_with("translations")) => {}
-                "role" | "perspective" | "cultureInfo" | "culture" => {
+                "perspective" | "cultureInfo" | "culture" => {
                     sm.other.push((kw.replace("cultureInfo", "culture"), name))
                 }
                 _ => {}
@@ -684,11 +732,26 @@ fn read_bim(text: &str) -> Result<Sm, String> {
             annotations: bim_annotations(&e),
         });
     }
-    for (k, kind) in [
-        ("roles", "role"),
-        ("perspectives", "perspective"),
-        ("cultures", "culture"),
-    ] {
+    for r in arr(m, "roles") {
+        sm.roles.push(ImRole {
+            name: s(&r, "name").unwrap_or_default(),
+            id: bim_annotations(&r).remove("chartedId"),
+            description: s(&r, "description"),
+            permission: s(&r, "modelPermission"),
+            members: arr(&r, "members")
+                .iter()
+                .filter_map(|x| s(x, "memberName"))
+                .collect(),
+            filters: arr(&r, "tablePermissions")
+                .iter()
+                .filter_map(|p| {
+                    let e = lines_or_text(p.get("filterExpression"));
+                    (!e.trim().is_empty()).then(|| (s(p, "name").unwrap_or_default(), e))
+                })
+                .collect(),
+        });
+    }
+    for (k, kind) in [("perspectives", "perspective"), ("cultures", "culture")] {
         for x in arr(m, k) {
             if kind == "culture" && x.get("translations").is_none() {
                 continue;
@@ -1145,9 +1208,45 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             }
         }
     }
+    let mut roles = sm.roles.clone();
+    roles.sort_by_key(|r| {
+        sm.role_order
+            .iter()
+            .position(|o| *o == r.name)
+            .unwrap_or(usize::MAX)
+    });
+    for r in &roles {
+        let mut role = Role {
+            id: r.id.clone().unwrap_or_else(&new_id),
+            name: r.name.clone(),
+            description: r.description.clone(),
+            filters: Vec::new(),
+            members: r.members.clone(),
+            extras: Default::default(),
+        };
+        for (table, expression) in &r.filters {
+            match model.tables.iter().find(|t| t.name == *table) {
+                Some(t) => role.filters.push(RoleFilter {
+                    table: t.id.clone(),
+                    expression: expression.clone(),
+                }),
+                None => skip(
+                    "role filter",
+                    format!("{}: {table}", r.name),
+                    "its table wasn't imported",
+                ),
+            }
+        }
+        if let Some(p) = r.permission.as_ref().filter(|p| *p != "read") {
+            role.extras.insert(
+                "powerbi".into(),
+                serde_json::json!({ "modelPermission": p }),
+            );
+        }
+        model.roles.push(role);
+    }
     for (kind, name) in &sm.other {
         let reason = match kind.as_str() {
-            "role" => "row-level security roles aren't supported",
             "perspective" => "perspectives aren't supported",
             _ => "translations aren't supported",
         };

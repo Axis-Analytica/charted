@@ -124,6 +124,9 @@ pub enum Request {
         path: String,
         #[serde(default)]
         filters: Vec<QueryFilter>,
+        /// The roles the report is viewed as (row-level security).
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        roles: Vec<Id>,
     },
 }
 
@@ -233,6 +236,9 @@ pub enum DataRequest {
         #[serde(default)]
         #[ts(optional)]
         search: Option<String>,
+        /// The roles the report is viewed as: only the rows they see count.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        roles: Vec<Id>,
     },
     /// Values of a column for a filter card, under the other filters (JSON
     /// `DistinctValues`, counts are zero).
@@ -243,6 +249,14 @@ pub enum DataRequest {
         #[serde(default)]
         search: Option<String>,
         limit: u32,
+        /// The roles the report is viewed as.
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        roles: Vec<Id>,
+    },
+    /// Checks a role's filter on `table` (JSON `DaxCheck`, without SQL).
+    CheckRoleFilter {
+        table: Id,
+        expression: String,
     },
     /// Checks a measure expression (JSON `DaxCheck`). `measure` is the measure being
     /// edited, if it exists.
@@ -648,8 +662,10 @@ impl App {
                 visual,
                 path,
                 filters,
+                roles,
             } => {
                 let s = self.session_mut()?;
+                let security = crate::roles::security(&s.project.model, &roles);
                 let sql = visualq::report_visual_sql(
                     &s.project.model,
                     s.schema(),
@@ -657,6 +673,7 @@ impl App {
                     &visualq::VisualSqlOptions {
                         filters: &filters,
                         captions: true,
+                        security: &security,
                         ..Default::default()
                     },
                 )?;
@@ -699,7 +716,9 @@ impl App {
                 highlight,
                 tag,
                 search,
+                roles,
             } => {
+                let security = crate::roles::security(model, roles);
                 let sql = visualq::report_visual_sql(
                     model,
                     s.schema(),
@@ -710,6 +729,7 @@ impl App {
                         highlight,
                         captions: false,
                         search: search.as_deref(),
+                        security: &security,
                     },
                 )?;
                 let db = s.database().clone();
@@ -723,12 +743,14 @@ impl App {
                 filters,
                 search,
                 limit,
+                roles,
             } => {
                 let sql = visualq::field_values_sql(
                     model,
                     s.schema(),
                     field,
                     filters,
+                    &crate::roles::security(model, roles),
                     search.as_deref(),
                     *limit,
                 )?;
@@ -811,6 +833,13 @@ impl App {
                     .map(|(_, d)| d)
                     .map_err(CoreError::from);
                 return Ok(DataJob::Ready(json(d)?));
+            }
+            DataRequest::CheckRoleFilter { table, expression } => {
+                let check = visualq::DaxCheck {
+                    diagnostics: crate::roles::check_filter(model, table, expression),
+                    sql: None,
+                };
+                return Ok(DataJob::Ready(json(Ok::<_, CoreError>(check))?));
             }
             DataRequest::CheckDax {
                 expression,

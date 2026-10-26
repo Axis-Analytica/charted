@@ -47,6 +47,8 @@ ref table Date
 
 ref cultureInfo en-US
 
+ref role 'Last month''s sales'
+
 === Shop.SemanticModel/definition/cultures/en-US.tmdl
 cultureInfo en-US
 
@@ -95,6 +97,22 @@ relationship r-1
 	crossFilteringBehavior: bothDirections
 	fromColumn: Sales.DateKey
 	toColumn: Date.DateKey
+
+
+=== Shop.SemanticModel/definition/roles/Last month's sales.tmdl
+/// Sales staff
+role 'Last month''s sales'
+	modelPermission: read
+
+	member 'sales@shop.example'
+
+	tablePermission Date = 'Date'[MonthNumber] = 12
+
+	tablePermission Sales =
+			VAR x = 10
+			RETURN Sales[Sales Amount] > x
+
+	annotation chartedId = role-1
 
 
 === Shop.SemanticModel/definition/tables/Sales.tmdl

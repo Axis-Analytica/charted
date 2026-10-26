@@ -377,6 +377,7 @@ fn field_values_for_filter_cards() {
                 filters: vec![],
                 search: None,
                 limit: 100,
+                roles: vec![],
             })
             .unwrap(),
     )
@@ -468,6 +469,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
                 highlight: vec![],
                 tag: None,
                 search: None,
+                roles: vec![],
             })
             .unwrap(),
         )
@@ -485,6 +487,7 @@ fn report_visuals_query_by_role_and_survive_save_and_reopen() {
             highlight: vec![],
             tag: None,
             search: None,
+            roles: vec![],
         })
         .unwrap(),
     );
