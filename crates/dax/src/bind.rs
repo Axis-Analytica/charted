@@ -169,6 +169,38 @@ pub enum TableExpr {
         source: Box<TableExpr>,
         filters: Vec<FilterArg>,
     },
+    /// ADDCOLUMNS: the rows of `source` with columns computed per row.
+    AddColumns {
+        source: Box<TableExpr>,
+        cols: Vec<(String, Bound)>,
+    },
+    /// SELECTCOLUMNS: only the columns computed per row of `source`.
+    SelectColumns {
+        source: Box<TableExpr>,
+        cols: Vec<(String, Bound)>,
+    },
+    /// SUMMARIZE ( table, columns… ): the distinct combinations of the group columns
+    /// (of the table and the tables it reaches) in the table's visible rows.
+    Summarize {
+        source: Box<TableExpr>,
+        group: Vec<(Id, Id)>,
+    },
+    /// SUMMARIZECOLUMNS: the combinations of the group columns' visible values (under
+    /// `filters`), with columns computed per combination; combinations where every
+    /// computed column is blank are left out.
+    SummarizeColumns {
+        group: Vec<(Id, Id)>,
+        filters: Vec<FilterArg>,
+        cols: Vec<(String, Bound)>,
+    },
+    /// CALENDAR: one row per date from `start` to `end`, in a column `Date`.
+    Calendar { start: Box<Bound>, end: Box<Bound> },
+    /// GENERATESERIES: `start`, `start + step`… up to `end`, in a column `Value`.
+    GenerateSeries {
+        start: Box<Bound>,
+        end: Box<Bound>,
+        step: Box<Bound>,
+    },
     /// TOPN: the rows of `source` ranked within the first `n` by the order expressions
     /// (evaluated per row; `true` ascending), ties at the cut kept.
     TopN {
@@ -189,8 +221,14 @@ impl TableExpr {
             | TableExpr::Dates { table: t, .. } => Some(t),
             TableExpr::Filter { source, .. }
             | TableExpr::TopN { source, .. }
-            | TableExpr::CalculateTable { source, .. } => source.table(),
-            TableExpr::List(_) => None,
+            | TableExpr::CalculateTable { source, .. }
+            | TableExpr::AddColumns { source, .. }
+            | TableExpr::SelectColumns { source, .. }
+            | TableExpr::Summarize { source, .. } => source.table(),
+            TableExpr::SummarizeColumns { group, .. } => group.first().map(|(t, _)| t),
+            TableExpr::List(_) | TableExpr::Calendar { .. } | TableExpr::GenerateSeries { .. } => {
+                None
+            }
         }
     }
 
@@ -211,8 +249,115 @@ impl TableExpr {
             TableExpr::Dates { column, .. } => Some(std::slice::from_ref(column)),
             TableExpr::Filter { source, .. }
             | TableExpr::TopN { source, .. }
-            | TableExpr::CalculateTable { source, .. } => source.columns(),
-            TableExpr::List(_) => Some(&[]),
+            | TableExpr::CalculateTable { source, .. }
+            | TableExpr::AddColumns { source, .. } => source.columns(),
+            TableExpr::SelectColumns { .. }
+            | TableExpr::Summarize { .. }
+            | TableExpr::SummarizeColumns { .. }
+            | TableExpr::List(_)
+            | TableExpr::Calendar { .. }
+            | TableExpr::GenerateSeries { .. } => Some(&[]),
+        }
+    }
+}
+
+/// The key under which a row holds an added column (`[Name]`): not a model id.
+pub fn ext_key(name: &str) -> Id {
+    format!("\u{0}{}", name.to_lowercase())
+}
+
+impl TableExpr {
+    /// The columns of the table's rows, in order: each one's key (a model column's id,
+    /// or `ext_key` of an added column) and its name.
+    pub fn shape(&self, model: &Model) -> Vec<(Id, String)> {
+        let model_cols = |ids: &[Id]| -> Vec<(Id, String)> {
+            ids.iter()
+                .map(|id| {
+                    let name = model
+                        .tables
+                        .iter()
+                        .find_map(|t| t.column(id))
+                        .map(|c| c.name.clone())
+                        .unwrap_or_default();
+                    (id.clone(), name)
+                })
+                .collect()
+        };
+        let all = |t: &Id| -> Vec<Id> {
+            model
+                .table(t)
+                .map(|t| t.columns.iter().map(|c| c.id.clone()).collect())
+                .unwrap_or_default()
+        };
+        let ext = |cols: &[(String, Bound)]| -> Vec<(Id, String)> {
+            cols.iter().map(|(n, _)| (ext_key(n), n.clone())).collect()
+        };
+        match self {
+            TableExpr::Table(t) => model_cols(&all(t)),
+            TableExpr::Values { table, columns }
+            | TableExpr::All { table, columns }
+            | TableExpr::AllSelected { table, columns } => {
+                if columns.is_empty() {
+                    model_cols(&all(table))
+                } else {
+                    model_cols(columns)
+                }
+            }
+            TableExpr::Dates { column, .. } => model_cols(std::slice::from_ref(column)),
+            TableExpr::Filter { source, .. }
+            | TableExpr::TopN { source, .. }
+            | TableExpr::CalculateTable { source, .. } => source.shape(model),
+            TableExpr::AddColumns { source, cols } => {
+                let mut s = source.shape(model);
+                s.extend(ext(cols));
+                s
+            }
+            TableExpr::SelectColumns { cols, .. } => ext(cols),
+            TableExpr::Summarize { group, .. } => {
+                model_cols(&group.iter().map(|(_, c)| c.clone()).collect::<Vec<_>>())
+            }
+            TableExpr::SummarizeColumns { group, cols, .. } => {
+                let mut s = model_cols(&group.iter().map(|(_, c)| c.clone()).collect::<Vec<_>>());
+                s.extend(ext(cols));
+                s
+            }
+            TableExpr::Calendar { .. } => vec![(ext_key("Date"), "Date".into())],
+            TableExpr::GenerateSeries { .. } => vec![(ext_key("Value"), "Value".into())],
+            TableExpr::List(_) => Vec::new(),
+        }
+    }
+
+    /// Columns added to the rows (`[Name]` inside expressions over them).
+    pub fn ext_names(&self) -> Vec<String> {
+        match self {
+            TableExpr::Filter { source, .. }
+            | TableExpr::TopN { source, .. }
+            | TableExpr::CalculateTable { source, .. } => source.ext_names(),
+            TableExpr::AddColumns { source, cols } => {
+                let mut s = source.ext_names();
+                s.extend(cols.iter().map(|(n, _)| n.clone()));
+                s
+            }
+            TableExpr::SelectColumns { cols, .. } | TableExpr::SummarizeColumns { cols, .. } => {
+                cols.iter().map(|(n, _)| n.clone()).collect()
+            }
+            TableExpr::Calendar { .. } => vec!["Date".into()],
+            TableExpr::GenerateSeries { .. } => vec!["Value".into()],
+            _ => Vec::new(),
+        }
+    }
+
+    /// Model columns of other tables the rows carry (SUMMARIZE's group columns).
+    pub fn carried(&self) -> Vec<Id> {
+        match self {
+            TableExpr::Filter { source, .. }
+            | TableExpr::TopN { source, .. }
+            | TableExpr::CalculateTable { source, .. }
+            | TableExpr::AddColumns { source, .. } => source.carried(),
+            TableExpr::Summarize { group, .. } | TableExpr::SummarizeColumns { group, .. } => {
+                group.iter().map(|(_, c)| c.clone()).collect()
+            }
+            _ => Vec::new(),
         }
     }
 }
@@ -254,6 +399,11 @@ pub enum Bound {
     Related {
         table: Id,
         column: Id,
+    },
+    /// `[Name]`, a column ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZECOLUMNS, CALENDAR or
+    /// GENERATESERIES added to the rows being iterated.
+    Ext {
+        name: String,
     },
     /// EARLIER ( column, n ): the column's value in the row context `n` levels out from
     /// the innermost row of its table.
@@ -333,7 +483,6 @@ pub enum Bound {
 
 /// DAX functions charted knows of but cannot evaluate yet, so their message can say so.
 pub const KNOWN: &[&str] = &[
-    "ADDCOLUMNS",
     "AVERAGEA",
     "CEILING",
     "COUNTAX",
@@ -365,13 +514,10 @@ pub const KNOWN: &[&str] = &[
     "ROUNDDOWN",
     "ROUNDUP",
     "SEARCH",
-    "SELECTCOLUMNS",
     "SIGN",
     "SQRT",
     "STDEV.P",
     "STDEV.S",
-    "SUMMARIZE",
-    "SUMMARIZECOLUMNS",
     "TREATAS",
     "TRUNC",
     "VALUE",
@@ -383,6 +529,7 @@ pub const KNOWN: &[&str] = &[
 /// Functions charted evaluates, for docs/dax-support.md.
 pub const SUPPORTED: &[&str] = &[
     "ABS",
+    "ADDCOLUMNS",
     "ALL",
     "ALLEXCEPT",
     "ALLSELECTED",
@@ -392,6 +539,7 @@ pub const SUPPORTED: &[&str] = &[
     "BLANK",
     "CALCULATE",
     "CALCULATETABLE",
+    "CALENDAR",
     "COALESCE",
     "CONCATENATE",
     "CONCATENATEX",
@@ -419,6 +567,7 @@ pub const SUPPORTED: &[&str] = &[
     "FILTER",
     "FIRSTDATE",
     "FORMAT",
+    "GENERATESERIES",
     "HASONEVALUE",
     "IF",
     "INT",
@@ -457,9 +606,12 @@ pub const SUPPORTED: &[&str] = &[
     "RIGHT",
     "ROUND",
     "SAMEPERIODLASTYEAR",
+    "SELECTCOLUMNS",
     "SELECTEDVALUE",
     "SUBSTITUTE",
     "SUM",
+    "SUMMARIZE",
+    "SUMMARIZECOLUMNS",
     "SUMX",
     "SWITCH",
     "TODAY",
@@ -487,6 +639,8 @@ pub fn bind_table(model: &Model, expr: &Expr) -> (Option<TableExpr>, Vec<Diagnos
         diags: Vec::new(),
         vars: Vec::new(),
         depth: 0,
+        exts: Vec::new(),
+        carried: Vec::new(),
     };
     let bound = b.table_expr(expr, &[]);
     let ok = b.diags.is_empty();
@@ -504,6 +658,8 @@ pub fn bind_in(
         diags: Vec::new(),
         vars: Vec::new(),
         depth: 0,
+        exts: Vec::new(),
+        carried: Vec::new(),
     };
     let rows: Vec<&Table> = row_table.and_then(|t| model.table(t)).into_iter().collect();
     let bound = b.expr(expr, &rows);
@@ -519,6 +675,10 @@ struct Binder<'a> {
     /// How many filter or row context changes (CALCULATE, iterators, FILTER) enclose
     /// the expression being bound.
     depth: usize,
+    /// Columns added to the rows being iterated (`[Name]`), innermost last.
+    exts: Vec<String>,
+    /// Other tables' columns the rows being iterated carry (SUMMARIZE's groups).
+    carried: Vec<Id>,
 }
 
 /// A variable in scope: its definition, and the context depth it was defined at (its
@@ -561,6 +721,78 @@ pub fn reaches(model: &Model, from: &str, to: &str) -> bool {
 }
 
 impl<'a> Binder<'a> {
+    /// `name, expression` pairs of SUMMARIZE and SUMMARIZECOLUMNS: each expression is
+    /// evaluated per row of `rows_of` in that row's filter context (CALCULATE ( e )).
+    fn pairs(
+        &mut self,
+        args: &[Expr],
+        rows_of: &TableExpr,
+        rows: Rows<'a, '_>,
+    ) -> Option<Vec<(String, Bound)>> {
+        if !args.len().is_multiple_of(2) {
+            return self
+                .err(
+                    args[args.len() - 1].span,
+                    "names and expressions go in pairs",
+                )
+                .and(None);
+        }
+        let mut cols = Vec::new();
+        for pair in args.chunks(2) {
+            let ExprKind::Text(name) = &pair[0].kind else {
+                return self
+                    .err(pair[0].span, "the new column's name, as text")
+                    .and(None);
+            };
+            let x = self.with_row(rows_of, |b| b.expr(&pair[1], rows))?;
+            cols.push((
+                name.clone(),
+                Bound::Calculate {
+                    expr: Box::new(x),
+                    filters: Vec::new(),
+                },
+            ));
+        }
+        Some(cols)
+    }
+
+    /// The row contexts inside an iterator over `source`: its model table, if it has one
+    /// (CALENDAR and GENERATESERIES rows only have added columns).
+    fn inner_rows<'r>(
+        &mut self,
+        source: &TableExpr,
+        rows: Rows<'a, 'r>,
+        span: Span,
+        name: &str,
+    ) -> Option<Vec<&'a Table>> {
+        let mut inner = rows.to_vec();
+        match source.table().and_then(|t| self.model.table(t)) {
+            Some(t) => inner.push(t),
+            None if !source.ext_names().is_empty() => {}
+            None => {
+                return self
+                    .err(
+                        span,
+                        format!("{name} over a list of values isn't supported yet"),
+                    )
+                    .and(None);
+            }
+        }
+        Some(inner)
+    }
+
+    /// Binds inside the row context of `source`: its added and carried columns can be
+    /// named.
+    fn with_row<T>(&mut self, source: &TableExpr, f: impl FnOnce(&mut Self) -> T) -> T {
+        let (ne, nc) = (self.exts.len(), self.carried.len());
+        self.exts.extend(source.ext_names());
+        self.carried.extend(source.carried());
+        let out = self.nested(f);
+        self.exts.truncate(ne);
+        self.carried.truncate(nc);
+        out
+    }
+
     fn err(&mut self, span: Span, message: impl Into<String>) -> Option<Bound> {
         self.diags.push(Diagnostic::error(span, message.into()));
         None
@@ -693,6 +925,14 @@ impl<'a> Binder<'a> {
                 }
             }
             None => {
+                if let Some(e) = self
+                    .exts
+                    .iter()
+                    .rev()
+                    .find(|e| e.eq_ignore_ascii_case(name))
+                {
+                    return Some(Bound::Ext { name: e.clone() });
+                }
                 if let Some((t, m)) = self.measure_named(name) {
                     return Some(Bound::Measure {
                         table: t.id.clone(),
@@ -709,7 +949,7 @@ impl<'a> Binder<'a> {
                 }
             }
         };
-        if rows.iter().any(|r| r.id == t.id) {
+        if rows.iter().any(|r| r.id == t.id) || self.carried.contains(&c.id) {
             return Some(Bound::Column {
                 table: t.id.clone(),
                 column: c.id.clone(),
@@ -1022,6 +1262,87 @@ impl<'a> Binder<'a> {
                         let (table, columns) = self.all_args(&upper, args, e.span)?;
                         Some(TableExpr::AllSelected { table, columns })
                     }
+                    "ADDCOLUMNS" | "SELECTCOLUMNS" => {
+                        if !self.arity(&upper, args, e.span, 3, usize::MAX) {
+                            return None;
+                        }
+                        if args.len().is_multiple_of(2) {
+                            return self.err(e.span, format!("{upper} takes a table, then names and expressions in pairs")).and(None);
+                        }
+                        let source = self.table_expr(&args[0], rows)?;
+                        let inner = self.inner_rows(&source, rows, args[0].span, &upper)?;
+                        let mut cols = Vec::new();
+                        for pair in args[1..].chunks(2) {
+                            let ExprKind::Text(name) = &pair[0].kind else {
+                                return self.err(pair[0].span, "the new column's name, as text").and(None);
+                            };
+                            let x = self.with_row(&source, |b| b.expr(&pair[1], &inner))?;
+                            cols.push((name.clone(), x));
+                        }
+                        Some(if upper == "ADDCOLUMNS" {
+                            TableExpr::AddColumns { source: Box::new(source), cols }
+                        } else {
+                            TableExpr::SelectColumns { source: Box::new(source), cols }
+                        })
+                    }
+                    "SUMMARIZE" => {
+                        if !self.arity(&upper, args, e.span, 2, usize::MAX) {
+                            return None;
+                        }
+                        let source = self.table_expr(&args[0], rows)?;
+                        let first = args.iter().skip(1).position(|a| matches!(a.kind, ExprKind::Text(_))).map(|i| i + 1).unwrap_or(args.len());
+                        let mut group = Vec::new();
+                        for a in &args[1..first] {
+                            let (t, c) = self.column_arg(a)?;
+                            group.push((t.id.clone(), c.id.clone()));
+                        }
+                        let table = Box::new(TableExpr::Summarize { source: Box::new(source), group });
+                        if first == args.len() {
+                            return Some(*table);
+                        }
+                        // Added columns are evaluated per group, as CALCULATE would.
+                        let cols = self.pairs(&args[first..], &table, rows)?;
+                        Some(TableExpr::AddColumns { source: table, cols })
+                    }
+                    "SUMMARIZECOLUMNS" => {
+                        let first = args.iter().position(|a| matches!(a.kind, ExprKind::Text(_))).unwrap_or(args.len());
+                        let mut group = Vec::new();
+                        let mut filters = Vec::new();
+                        for a in &args[..first] {
+                            if matches!(a.kind, ExprKind::Ref { table: Some(_), .. }) {
+                                let (t, c) = self.column_arg(a)?;
+                                group.push((t.id.clone(), c.id.clone()));
+                            } else {
+                                filters.push(self.filter_arg(a, rows)?);
+                            }
+                        }
+                        if group.is_empty() {
+                            return self.err(e.span, "SUMMARIZECOLUMNS needs at least one column to group by").and(None);
+                        }
+                        let shape = TableExpr::SummarizeColumns { group: group.clone(), filters: filters.clone(), cols: Vec::new() };
+                        let cols = self.pairs(&args[first..], &shape, rows)?;
+                        Some(TableExpr::SummarizeColumns { group, filters, cols })
+                    }
+                    "CALENDAR" => {
+                        if !self.arity(&upper, args, e.span, 2, 2) {
+                            return None;
+                        }
+                        let start = self.expr(&args[0], rows);
+                        let end = self.expr(&args[1], rows);
+                        Some(TableExpr::Calendar { start: Box::new(start?), end: Box::new(end?) })
+                    }
+                    "GENERATESERIES" => {
+                        if !self.arity(&upper, args, e.span, 2, 3) {
+                            return None;
+                        }
+                        let start = self.expr(&args[0], rows);
+                        let end = self.expr(&args[1], rows);
+                        let step = match args.get(2) {
+                            Some(a) => self.expr(a, rows),
+                            None => Some(Bound::Number(1.0)),
+                        };
+                        Some(TableExpr::GenerateSeries { start: Box::new(start?), end: Box::new(end?), step: Box::new(step?) })
+                    }
                     "CALCULATETABLE" | "RELATEDTABLE" => {
                         let max = if upper == "RELATEDTABLE" { 1 } else { usize::MAX };
                         if !self.arity(&upper, args, e.span, 1, max) {
@@ -1040,16 +1361,12 @@ impl<'a> Binder<'a> {
                         }
                         let n = self.expr(&args[0], rows);
                         let source = self.table_expr(&args[1], rows)?;
-                        let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
-                            return self.err(args[1].span, "TOPN over a list of values isn't supported yet").and(None);
-                        };
-                        let mut inner: Vec<&Table> = rows.to_vec();
-                        inner.push(t);
+                        let inner = self.inner_rows(&source, rows, args[1].span, "TOPN")?;
                         // Order expressions, each optionally followed by ASC or DESC.
                         let mut order: Vec<(Bound, bool)> = Vec::new();
                         let mut i = 2;
                         while i < args.len() {
-                            let o = self.nested(|b| b.expr(&args[i], &inner))?;
+                            let o = self.with_row(&source, |b| b.expr(&args[i], &inner))?;
                             let asc = match args.get(i + 1).and_then(order_keyword) {
                                 Some(a) => {
                                     i += 1;
@@ -1071,12 +1388,8 @@ impl<'a> Binder<'a> {
                             return None;
                         }
                         let source = self.table_expr(&args[0], rows)?;
-                        let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
-                            return self.err(args[0].span, "FILTER over a list of values isn't supported yet").and(None);
-                        };
-                        let mut inner: Vec<&Table> = rows.to_vec();
-                        inner.push(t);
-                        let condition = self.nested(|b| b.expr(&args[1], &inner))?;
+                        let inner = self.inner_rows(&source, rows, args[0].span, "FILTER")?;
+                        let condition = self.with_row(&source, |b| b.expr(&args[1], &inner))?;
                         Some(TableExpr::Filter {
                             source: Box::new(source),
                             condition: Box::new(condition),
@@ -1300,15 +1613,8 @@ impl<'a> Binder<'a> {
                 return None;
             }
             let source = self.table_expr(&args[0], rows)?;
-            let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
-                return self.err(
-                    args[0].span,
-                    format!("{upper} over a list of values isn't supported yet"),
-                );
-            };
-            let mut inner: Vec<&Table> = rows.to_vec();
-            inner.push(t);
-            let arg = self.nested(|b| b.expr(&args[1], &inner))?;
+            let inner = self.inner_rows(&source, rows, args[0].span, &upper)?;
+            let arg = self.with_row(&source, |b| b.expr(&args[1], &inner))?;
             return Some(Bound::Aggregate {
                 func,
                 source,
@@ -1321,12 +1627,8 @@ impl<'a> Binder<'a> {
                     return None;
                 }
                 let source = self.table_expr(&args[0], rows)?;
-                let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
-                    return self.err(args[0].span, "CONCATENATEX over a list of values isn't supported yet");
-                };
-                let mut inner: Vec<&Table> = rows.to_vec();
-                inner.push(t);
-                let expr = self.nested(|b| b.expr(&args[1], &inner));
+                let inner = self.inner_rows(&source, rows, args[0].span, "CONCATENATEX")?;
+                let expr = self.with_row(&source, |b| b.expr(&args[1], &inner));
                 let delimiter = match args.get(2).map(|a| &a.kind) {
                     Some(ExprKind::Text(d)) => d.clone(),
                     Some(ExprKind::Omitted) | None => String::new(),
@@ -1335,7 +1637,7 @@ impl<'a> Binder<'a> {
                 let order = match args.get(3) {
                     Some(Expr { kind: ExprKind::Omitted, .. }) | None => None,
                     Some(o) => {
-                        let o = self.nested(|b| b.expr(o, &inner))?;
+                        let o = self.with_row(&source, |b| b.expr(o, &inner))?;
                         let asc = args.get(4).and_then(order_keyword).unwrap_or(true);
                         Some((Box::new(o), asc))
                     }
@@ -1352,12 +1654,8 @@ impl<'a> Binder<'a> {
                     return None;
                 }
                 let source = self.table_expr(&args[0], rows)?;
-                let Some(t) = source.table().and_then(|t| self.model.table(t)) else {
-                    return self.err(args[0].span, "RANKX over a list of values isn't supported yet");
-                };
-                let mut inner: Vec<&Table> = rows.to_vec();
-                inner.push(t);
-                let expr = self.nested(|b| b.expr(&args[1], &inner));
+                let inner = self.inner_rows(&source, rows, args[0].span, "RANKX")?;
+                let expr = self.with_row(&source, |b| b.expr(&args[1], &inner));
                 let value = match args.get(2) {
                     Some(Expr { kind: ExprKind::Omitted, .. }) | None => None,
                     Some(v) => Some(Box::new(self.expr(v, rows)?)),
@@ -1392,7 +1690,7 @@ impl<'a> Binder<'a> {
                     return None;
                 }
                 let source = self.table_expr(&args[0], rows)?;
-                if source.table().is_none() {
+                if source.table().is_none() && source.ext_names().is_empty() {
                     return self.err(args[0].span, "COUNTROWS of a list of values isn't supported yet");
                 }
                 Some(Bound::Aggregate {
@@ -1653,7 +1951,7 @@ impl<'a> Binder<'a> {
                     })),
                 })
             }
-            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
+            "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE" | "ADDCOLUMNS" | "SELECTCOLUMNS" | "SUMMARIZE" | "SUMMARIZECOLUMNS" | "CALENDAR" | "GENERATESERIES" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
             | "USERELATIONSHIP" | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD" | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY" | "PREVIOUSMONTH" | "PREVIOUSQUARTER" | "PREVIOUSYEAR" | "NEXTDAY" | "NEXTMONTH" | "NEXTQUARTER" | "NEXTYEAR" => self.err(
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
@@ -1856,6 +2154,24 @@ fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
         TableExpr::CalculateTable { source, filters } => {
             walk_table(source, f);
             filters.iter().for_each(|fa| walk_filter(fa, f));
+        }
+        TableExpr::AddColumns { source, cols } | TableExpr::SelectColumns { source, cols } => {
+            walk_table(source, f);
+            cols.iter().for_each(|(_, x)| walk(x, f));
+        }
+        TableExpr::Summarize { source, .. } => walk_table(source, f),
+        TableExpr::SummarizeColumns { filters, cols, .. } => {
+            filters.iter().for_each(|fa| walk_filter(fa, f));
+            cols.iter().for_each(|(_, x)| walk(x, f));
+        }
+        TableExpr::Calendar { start, end } => {
+            walk(start, f);
+            walk(end, f);
+        }
+        TableExpr::GenerateSeries { start, end, step } => {
+            walk(start, f);
+            walk(end, f);
+            walk(step, f);
         }
         TableExpr::TopN { n, source, order } => {
             walk(n, f);

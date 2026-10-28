@@ -604,6 +604,40 @@ const MEASURES: &[(&str, &str)] = &[
         "Green Category",
         "LOOKUPVALUE ( Product[Category], Product[Color], \"Green\" )",
     ),
+    // Tables with added columns
+    (
+        "Best Category Sales",
+        "MAXX ( ADDCOLUMNS ( VALUES ( Product[Category] ), \"s\", [Sales Amount] ), [s] )",
+    ),
+    (
+        "Busy Categories",
+        "COUNTROWS ( FILTER ( ADDCOLUMNS ( VALUES ( Product[Category] ), \"q\", [Quantity] ), [q] > 50 ) )",
+    ),
+    (
+        "Sold Colors",
+        "COUNTROWS ( SUMMARIZE ( Sales, Product[Color] ) )",
+    ),
+    (
+        "Qty Over Category Regions",
+        "SUMX ( SUMMARIZE ( Sales, Product[Category], Store[Region] ), [Quantity] )",
+    ),
+    (
+        "Selected Prices",
+        "SUMX ( SELECTCOLUMNS ( Product, \"p\", Product[ListPrice] ), [p] )",
+    ),
+    (
+        "Best Category Qty",
+        "MAXX ( SUMMARIZECOLUMNS ( Product[Category], \"q\", [Quantity] ), [q] )",
+    ),
+    (
+        "Days In Q1 2024",
+        "COUNTROWS ( CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2024, 3, 31 ) ) )",
+    ),
+    ("Odd Sum", "SUMX ( GENERATESERIES ( 1, 10, 2 ), [Value] )"),
+    (
+        "Best Category Units",
+        "MAXX ( SUMMARIZE ( Sales, Product[Category], \"q\", SUM ( Sales[Qty] ) ), [q] )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1236,6 +1270,7 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MAXX ( ALLSELECTED ( Date[MonthNumber] ), {} )",
         "AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), {} )",
         "SUMX ( TOPN ( 2, VALUES ( Product[Product] ), [Quantity] ), {} )",
+        "MAXX ( SUMMARIZE ( Sales, Product[Category], Store[Region] ), {} )",
         "SUMX ( CALCULATETABLE ( VALUES ( Store[Region] ), Product[Category] = \"Camping\" ), {} )",
     ];
     if depth == 0 {
@@ -1893,6 +1928,15 @@ const TABLES: &[&str] = &[
     "TOPN ( 3, VALUES ( Product[Product] ), [Sales Amount] )",
     "CALCULATETABLE ( VALUES ( Store[Region] ), Product[Category] = \"Camping\" )",
     "CALCULATETABLE ( Targets, Store[Region] = \"North\" )",
+    "ADDCOLUMNS ( VALUES ( Product[Category] ), \"Sales\", [Sales Amount] )",
+    "SUMMARIZECOLUMNS ( Product[Category], Date[Year], \"Qty\", [Quantity] )",
+    "SUMMARIZECOLUMNS ( Product[Category], Store[Region], FILTER ( ALL ( Date[Year] ), Date[Year] = 2025 ), \"Orders\", [Orders] )",
+    "SUMMARIZE ( Sales, Product[Category], Store[Region] )",
+    "SELECTCOLUMNS ( Product, \"Name\", Product[Product], \"Double Price\", Product[ListPrice] * 2 )",
+    "CALENDAR ( DATE ( 2025, 1, 1 ), DATE ( 2025, 1, 31 ) )",
+    "CALENDAR ( MIN ( Date[Date] ), MAX ( Date[Date] ) )",
+    "GENERATESERIES ( 0, 1, 0.25 )",
+    "TOPN ( 2, ADDCOLUMNS ( VALUES ( Product[Category] ), \"Q\", [Quantity] ), [Q] )",
 ];
 
 #[test]

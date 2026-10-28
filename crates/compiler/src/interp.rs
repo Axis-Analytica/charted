@@ -553,6 +553,162 @@ impl<'a> Interp<'a> {
                 let c = self.calc_ctx(filters, ctx, rows)?;
                 self.eval_table(source, &c, rows)
             }
+            TableExpr::AddColumns { source, cols } | TableExpr::SelectColumns { source, cols } => {
+                let select = matches!(t, TableExpr::SelectColumns { .. });
+                let mut out = Vec::new();
+                for r in self.eval_table(source, ctx, rows)? {
+                    let mut stack = rows.to_vec();
+                    stack.push(r.clone());
+                    let mut values = if select {
+                        HashMap::new()
+                    } else {
+                        r.values.clone()
+                    };
+                    for (name, x) in cols {
+                        let v = self.eval(x, ctx, &stack)?;
+                        // A plain column keeps its lineage.
+                        if let (true, Bound::Column { column, .. }) = (select, x) {
+                            values.insert(column.clone(), v.clone());
+                        }
+                        values.insert(charted_dax::bind::ext_key(name), v);
+                    }
+                    out.push(Row {
+                        table: r.table.clone(),
+                        values,
+                    });
+                }
+                Ok(out)
+            }
+            TableExpr::Summarize { source, group } => {
+                let mut out = Vec::new();
+                for r in self.eval_table(source, ctx, rows)? {
+                    let mut values = HashMap::new();
+                    for (gt, gc) in group {
+                        let v = match r.values.get(gc) {
+                            Some(v) => v.clone(),
+                            None => {
+                                let mut stack = rows.to_vec();
+                                stack.push(r.clone());
+                                let rel = Bound::Related {
+                                    table: gt.clone(),
+                                    column: gc.clone(),
+                                };
+                                self.eval(&rel, ctx, &stack)?
+                            }
+                        };
+                        values.insert(gc.clone(), v);
+                    }
+                    out.push(Row {
+                        table: r.table.clone(),
+                        values,
+                    });
+                }
+                Ok(self.distinct(out))
+            }
+            TableExpr::SummarizeColumns {
+                group,
+                filters,
+                cols,
+            } => {
+                let c = self.calc_ctx(filters, ctx, rows)?;
+                // Each table's visible combinations of its group columns, crossed.
+                let mut tables: Vec<Id> = Vec::new();
+                for (gt, _) in group {
+                    if !tables.contains(gt) {
+                        tables.push(gt.clone());
+                    }
+                }
+                let mut combos: Vec<HashMap<Id, Value>> = vec![HashMap::new()];
+                for gt in &tables {
+                    let columns: Vec<Id> = group
+                        .iter()
+                        .filter(|(t, _)| t == gt)
+                        .map(|(_, c)| c.clone())
+                        .collect();
+                    let vals = self.eval_table(
+                        &TableExpr::Values {
+                            table: gt.clone(),
+                            columns,
+                        },
+                        &c,
+                        rows,
+                    )?;
+                    let mut next = Vec::new();
+                    for base in &combos {
+                        for v in &vals {
+                            let mut m = base.clone();
+                            m.extend(v.values.clone());
+                            next.push(m);
+                        }
+                    }
+                    combos = next;
+                }
+                let mut out = Vec::new();
+                for values in combos {
+                    let mut row = Row {
+                        table: tables[0].clone(),
+                        values,
+                    };
+                    if !cols.is_empty() {
+                        let mut stack = rows.to_vec();
+                        stack.push(row.clone());
+                        let mut any = false;
+                        let mut added = Vec::new();
+                        for (name, x) in cols {
+                            let v = self.eval(x, &c, &stack)?;
+                            any |= !v.is_blank();
+                            added.push((charted_dax::bind::ext_key(name), v));
+                        }
+                        if !any {
+                            continue;
+                        }
+                        row.values.extend(added);
+                    }
+                    out.push(row);
+                }
+                Ok(out)
+            }
+            TableExpr::Calendar { start, end } => {
+                let day = |v: &Value| match v {
+                    Value::Text(s) => cal::parse(s),
+                    _ => None,
+                };
+                let (a, b) = (self.eval(start, ctx, rows)?, self.eval(end, ctx, rows)?);
+                let (Some(a), Some(b)) = (day(&a), day(&b)) else {
+                    return Ok(Vec::new());
+                };
+                Ok((a..=b)
+                    .map(|d| Row {
+                        table: String::new(),
+                        values: HashMap::from([(
+                            charted_dax::bind::ext_key("Date"),
+                            Value::Text(cal::format(d)),
+                        )]),
+                    })
+                    .collect())
+            }
+            TableExpr::GenerateSeries { start, end, step } => {
+                let num = |v: Value| v.num().unwrap_or(0.0);
+                let (a, b, s) = (
+                    num(self.eval(start, ctx, rows)?),
+                    num(self.eval(end, ctx, rows)?),
+                    num(self.eval(step, ctx, rows)?),
+                );
+                if s <= 0.0 {
+                    return Err("GENERATESERIES needs a positive increment".into());
+                }
+                let n = ((b - a) / s + 1e-9).floor();
+                Ok((0..=(n.max(-1.0) as i64))
+                    .filter(|_| n >= 0.0)
+                    .map(|i| Row {
+                        table: String::new(),
+                        values: HashMap::from([(
+                            charted_dax::bind::ext_key("Value"),
+                            Value::Num(a + i as f64 * s),
+                        )]),
+                    })
+                    .collect())
+            }
             TableExpr::TopN { n, source, order } => {
                 let n = self.eval(n, ctx, rows)?.num().unwrap_or(0.0);
                 let mut keyed = Vec::new();
@@ -717,9 +873,20 @@ impl<'a> Interp<'a> {
         let mut c = ctx.clone();
         for r in rows {
             for (col, v) in &r.values {
+                // Added columns don't filter; carried columns filter their own table.
+                if col.starts_with('\u{0}') {
+                    continue;
+                }
+                let table = self
+                    .model
+                    .tables
+                    .iter()
+                    .find(|t| t.column(col).is_some())
+                    .map(|t| t.id.clone())
+                    .unwrap_or_else(|| r.table.clone());
                 c.filters.retain(|f| !f.columns.contains(col));
                 c.filters.push(Filter {
-                    table: r.table.clone(),
+                    table,
                     columns: vec![col.clone()],
                     tuples: HashSet::from([vec![v.key()]]),
                     grouping: true,
@@ -930,12 +1097,22 @@ impl<'a> Interp<'a> {
             Bound::Text(s) => Value::Text(s.clone()),
             Bound::Bool(v) => Value::Bool(*v),
             Bound::Blank => Value::Blank,
-            Bound::Column { table, column } => rows
+            // Column ids are unique across tables: a row may carry another table's
+            // columns (SUMMARIZE's groups).
+            Bound::Column { column, .. } => rows
                 .iter()
                 .rev()
-                .find(|r| &r.table == table && r.values.contains_key(column))
+                .find(|r| r.values.contains_key(column))
                 .map(|r| r.values[column].clone())
                 .unwrap_or(Value::Blank),
+            Bound::Ext { name } => {
+                let key = charted_dax::bind::ext_key(name);
+                rows.iter()
+                    .rev()
+                    .find(|r| r.values.contains_key(&key))
+                    .map(|r| r.values[&key].clone())
+                    .unwrap_or(Value::Blank)
+            }
             Bound::Earlier { table, column, n } => rows
                 .iter()
                 .rev()
@@ -1821,15 +1998,9 @@ pub fn calculated_table(model: &Model, data: &Data, expression: &str) -> Result<
         touched: false,
     };
     let rows = it.eval_table(&t, &Ctx::default(), &[])?;
-    let table = t.table().ok_or("a calculated table needs a table")?;
-    let mt = model.table(table).ok_or("missing table")?;
-    let ids: Vec<Id> = match t.columns() {
-        Some(cs) => cs.to_vec(),
-        None => mt.columns.iter().map(|c| c.id.clone()).collect(),
-    };
+    let shape = t.shape(model);
     let mut names: Vec<String> = Vec::new();
-    for id in &ids {
-        let base = mt.column(id).map(|c| c.name.clone()).unwrap_or_default();
+    for (_, base) in &shape {
         let mut name = base.clone();
         let mut i = 1;
         while names.iter().any(|x| x.eq_ignore_ascii_case(&name)) {
@@ -1843,8 +2014,9 @@ pub fn calculated_table(model: &Model, data: &Data, expression: &str) -> Result<
         rows: rows
             .iter()
             .map(|r| {
-                ids.iter()
-                    .map(|c| r.values.get(c).cloned().unwrap_or(Value::Blank))
+                shape
+                    .iter()
+                    .map(|(k, _)| r.values.get(k).cloned().unwrap_or(Value::Blank))
                     .collect()
             })
             .collect(),
