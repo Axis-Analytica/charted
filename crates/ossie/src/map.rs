@@ -230,6 +230,23 @@ fn write_table(model: &Model, t: &Table, generated: &GeneratedDialects) -> doc::
     if t.is_date_table {
         pb.insert("dataCategory".into(), "Time".into());
     }
+    if let Some(calc) = &t.calculated {
+        // As TMSL describes the table, which the converter keeps in the dataset's
+        // `POWER_BI` blob (it reads calculated tables by their partition's source type).
+        let language = match calc.language {
+            ExpressionLanguage::Dax => None,
+            ExpressionLanguage::Sql => Some("sql"),
+        };
+        let mut partition = json!({
+            "name": t.name,
+            "mode": "import",
+            "source": { "type": "calculated", "expression": calc.expression },
+        });
+        if let Some(l) = language {
+            partition["source"]["charted.language"] = l.into();
+        }
+        pb.insert("partitions".into(), Value::Array(vec![partition]));
+    }
     let mut d = doc::Dataset {
         name: t.name.clone(),
         source: t.source.clone(),
@@ -685,6 +702,38 @@ fn generated_dialects(charted: &mut Map<String, Value>) -> Vec<String> {
 
 /// Reads an Ossie document into a model, with warnings for anything imported with
 /// reduced fidelity.
+/// A calculated table's definition: a single partition whose source is `calculated`
+/// (taken out of the blob; anything else about the partitions stays there).
+fn read_calculated(pb: &mut Map<String, Value>) -> Option<CalculatedTable> {
+    let parts = pb.get("partitions")?.as_array()?;
+    let [part] = parts.as_slice() else {
+        return None;
+    };
+    let source = part.get("source")?;
+    if source.get("type")?.as_str()? != "calculated" {
+        return None;
+    }
+    let expression = match source.get("expression")? {
+        Value::String(s) => s.clone(),
+        // TMSL may split long expressions into lines.
+        Value::Array(lines) => lines
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => return None,
+    };
+    let language = match source.get("charted.language").and_then(Value::as_str) {
+        Some("sql") => ExpressionLanguage::Sql,
+        _ => ExpressionLanguage::Dax,
+    };
+    pb.remove("partitions");
+    Some(CalculatedTable {
+        expression,
+        language,
+    })
+}
+
 pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
     if d.version != SPEC_VERSION {
         return Err(MapError::Version(d.version.clone()));
@@ -711,17 +760,23 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             }
             None => false,
         };
+        let calculated = read_calculated(&mut pb);
+        let source = if calculated.is_some() {
+            calculated_table_source(&id)
+        } else {
+            ds.source.clone()
+        };
         let mut table = Table {
             id,
             name: ds.name.clone(),
             description: ds.description.clone(),
-            source: ds.source.clone(),
+            source,
             columns: Vec::new(),
             measures: Vec::new(),
             hierarchies: Vec::new(),
             hidden,
             is_date_table,
-            calculated: None,
+            calculated,
             extras: Extras::new(),
         };
         let mut sort_by_names: Vec<(usize, String)> = Vec::new();

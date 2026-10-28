@@ -139,6 +139,31 @@ datasets:
   custom_extensions:
   - vendor_name: POWER_BI
     data: '{"_v": 2, "dataCategory": "Time", "hierarchies": [{"description": "Months by number", "displayFolder": "Dates\\Calendars", "isHidden": true, "levels": [{"column": "Month Name", "lineageTag": "0b2aad8d-3ba7-9821-e91c-9f4556cad576", "name": "Month", "ordinal": 0}, {"column": "Date", "lineageTag": "b271da76-5c35-4361-326d-1da55e6a8162", "name": "Day", "ordinal": 1}], "lineageTag": "h-cal", "name": "Calendar"}], "lineageTag": "d-1"}'
+- name: Top products
+  source: __calc_table_t-top
+  fields:
+  - name: Product
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Product
+    description: Best sellers
+    datatype: String
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-t-name"}'
+  - name: Name Length
+    expression:
+      dialects:
+      - dialect: DAX
+        expression: LEN ( 'Top products'[Product] )
+    datatype: Float
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-t-len"}'
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "lineageTag": "t-top", "partitions": [{"mode": "import", "name": "Top products", "source": {"expression": "TOPN ( 5, VALUES ( Product[Product] ), [Total Sales] )", "type": "calculated"}}]}'
 relationships:
 - name: Sales_OrderDateKey_to_Date_DateKey
   from: Sales

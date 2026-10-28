@@ -185,10 +185,33 @@ fn sample_model() -> Model {
         "c-p-key",
     );
     prod.cross_filter = CrossFilter::Both;
+    // A calculated table, with a calculated column of its own.
+    let mut top = table(
+        "t-top",
+        "Top products",
+        vec![
+            Column {
+                description: Some("Best sellers".into()),
+                ..col("c-t-name", "Product", DataType::String)
+            },
+            Column {
+                kind: ColumnKind::Calculated {
+                    expression: "LEN ( 'Top products'[Product] )".into(),
+                    language: ExpressionLanguage::Dax,
+                },
+                ..col("c-t-len", "Name Length", DataType::Double)
+            },
+        ],
+    );
+    top.source = calculated_table_source("t-top");
+    top.calculated = Some(CalculatedTable {
+        expression: "TOPN ( 5, VALUES ( Product[Product] ), [Total Sales] )".into(),
+        language: ExpressionLanguage::Dax,
+    });
     Model {
         name: "Harbor & Pine".into(),
         description: Some("Retail sales sample".into()),
-        tables: vec![sales, product, date],
+        tables: vec![sales, product, date, top],
         relationships: vec![
             rel(
                 "r-order",
