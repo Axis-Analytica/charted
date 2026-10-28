@@ -752,6 +752,85 @@ expression: golden
 ## Green Category — by category
 "Camping" | "Camping"
 
+## Best Category Sales — card
+10138
+
+## Best Category Sales — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Busy Categories — card
+3
+
+## Busy Categories — by category
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Sold Colors — card
+5
+
+## Sold Colors — by category
+∅ | 1
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## Qty Over Category Regions — card
+269
+
+## Qty Over Category Regions — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Selected Prices — card
+925
+
+## Selected Prices — by category
+"Apparel" | 255
+"Camping" | 460
+"Footwear" | 210
+
+## Best Category Qty — card
+111
+
+## Best Category Qty — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Days In Q1 2024 — card
+91
+
+## Days In Q1 2024 — by category
+∅ | 91
+"Apparel" | 91
+"Camping" | 91
+"Footwear" | 91
+
+## Odd Sum — card
+25
+
+## Odd Sum — by category
+∅ | 25
+"Apparel" | 25
+"Camping" | 25
+"Footwear" | 25
+
+## Best Category Units — card
+111
+
+## Best Category Units — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
 ## Neither Apparel Nor Camping — card
 76
 
