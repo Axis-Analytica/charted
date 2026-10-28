@@ -15,6 +15,7 @@ ref table Product
 ref table Date
 ref table Targets
 ref table 'Time Calculations'
+ref table 'Metric Choice'
 ref table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4
 
 ref role 'Regional managers'

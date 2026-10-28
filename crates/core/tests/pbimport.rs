@@ -43,7 +43,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     for expected in [
         "table Time Calculations",
         "table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4",
-        "table Date",
+        "table Metric Choice",
         "query Targets",
         "role Regional managers",
         "measure Orders[Avg Order]",
@@ -54,6 +54,8 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
             "{expected} not in {skipped:#?}"
         );
     }
+    // The calendar is a calculated table now; only the field parameter is reported.
+    assert!(!skipped.iter().any(|s| s == "table Date"), "{skipped:#?}");
     // RANKX is evaluated now.
     assert!(!skipped.iter().any(|s| s == "measure Orders[Sales Rank]"));
     // Time intelligence, DIVIDE, the calculated column and hierarchies are fine.
@@ -65,7 +67,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     );
     assert_eq!(
         (report.tables, report.loaded, report.relationships),
-        (4, 2, 2)
+        (5, 2, 2)
     );
     // The KPI (v1.2) comes across; the map doesn't.
     assert!(!skipped.iter().any(|s| s.contains("kpi")), "{skipped:#?}");
@@ -84,6 +86,17 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     let m = app.session().unwrap().project.model.clone();
     let date = m.table_by_name("Date").unwrap();
     assert!(date.is_date_table);
+    assert_eq!(
+        date.calculated.as_ref().map(|c| c.expression.as_str()),
+        Some("CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2025, 12, 31 ) )")
+    );
+    let snap = app.session().unwrap().snapshot().unwrap();
+    assert!(snap.calc_errors.is_empty(), "{:?}", snap.calc_errors);
+    assert_eq!(
+        snap.tables.iter().find(|t| t.id == date.id).unwrap().rows,
+        731,
+        "two years of days"
+    );
     assert_eq!(
         date.column_by_name("Date").unwrap().data_type,
         DataType::Date
@@ -188,4 +201,15 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     // Nothing is reported this time: every measure that came across evaluates.
     assert!(report2.skipped.is_empty(), "{:#?}", report2.skipped);
     assert_eq!(report2.loaded, 2);
+    // The interop diff names a calculated table's changed expression.
+    let mut edited = back.model.clone();
+    let date_id = m.table_by_name("Date").unwrap().id.clone();
+    edited.table_mut(&date_id).unwrap().calculated = Some(CalculatedTable {
+        expression: "CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2024, 12, 31 ) )".into(),
+        language: ExpressionLanguage::Dax,
+    });
+    assert_eq!(
+        charted_core::interop::diff(&m, &edited),
+        ["Date: expression changed"]
+    );
 }
