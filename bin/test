@@ -3,6 +3,8 @@
 # WebAssembly-compatibility checks, TypeScript, i18n catalogs and end-to-end tests.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Memory-capped and one at a time across checkouts and agents (see bin/heavy).
+[ -n "${CHARTED_HEAVY:-}" ] || exec bin/heavy "$0" "$@"
 . bin/env
 cargo fmt --all --check
 cargo clippy --workspace --all-targets -q -- -D warnings

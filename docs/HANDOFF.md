@@ -365,6 +365,15 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 ## Gotchas learned the hard way
 
+- **Run builds and tests through `bin/heavy`.** On this 8 GB machine systemd-oomd kills the
+  largest app.slice scope once RAM and swap both pass 90%. A cargo or Playwright run
+  started from a terminal lives in that terminal's scope, so oomd killed the whole terminal
+  (every Claude session in it) four times on 2026-10-27/29. `bin/heavy CMD` runs CMD in its
+  own scope (MemoryHigh 3G, MemoryMax 4G, swap 2G; `CHARTED_HEAVY_HIGH/MAX/SWAP`), queued
+  behind a machine-wide lock. bin/test, build, checkpoint, screenshots and wasm wrap
+  themselves; a full `bin/test` peaks at about 3.1 GB plus 0.8 GB swap (7.5 min). Agents in
+  worktrees use `/mnt/mac/charted/bin/heavy`. A local Claude hook blocks unwrapped runs.
+
 - **`~/Work` is `/mnt/mac`, a host shared folder with no inotify events.** Vite needs
   `CHARTED_POLL=1` there (bin/dev and bin/checkpoint set it automatically). Any future
   file watching of project files (M5 source refresh, external-edit reload) needs a

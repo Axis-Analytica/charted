@@ -9,7 +9,7 @@ case "$(stat -f -c %T .)" in
   ext2/ext3|ext4|btrfs|xfs|tmpfs|zfs|f2fs) ;;
   *) export CHARTED_POLL=1 ;;
 esac
-cargo build -p charted
+bin/heavy cargo build -p charted
 bin/wasm
 (cd ui && exec pnpm exec vite --port 1420 --strictPort) &
 VITE=$!
