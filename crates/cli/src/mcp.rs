@@ -19,7 +19,11 @@ pub fn serve(socket: &Path, token: &str) -> i32 {
     if writeln!(to_app, "{}", json!({ "hello": token })).is_err() {
         return super::fail("charted closed the connection");
     }
-    match from_app.next().and_then(Result::ok).and_then(|l| serde_json::from_str::<Value>(&l).ok()) {
+    match from_app
+        .next()
+        .and_then(Result::ok)
+        .and_then(|l| serde_json::from_str::<Value>(&l).ok())
+    {
         Some(v) if v["ok"] == true => {}
         Some(v) => return super::fail(v["error"].as_str().unwrap_or("charted refused the agent")),
         None => return super::fail("charted closed the connection"),
@@ -27,13 +31,21 @@ pub fn serve(socket: &Path, token: &str) -> i32 {
     let stdout = std::io::stdout();
     let mut next = 0u64;
     for line in std::io::stdin().lock().lines().map_while(Result::ok) {
-        let Ok(msg) = serde_json::from_str::<Value>(&line) else { continue };
-        let Some(id) = msg.get("id").cloned() else { continue }; // a notification
+        let Ok(msg) = serde_json::from_str::<Value>(&line) else {
+            continue;
+        };
+        let Some(id) = msg.get("id").cloned() else {
+            continue;
+        }; // a notification
         let method = msg["method"].as_str().unwrap_or("");
         let reply = match method {
             "initialize" => {
                 let asked = msg["params"]["protocolVersion"].as_str().unwrap_or("");
-                let version = if PROTOCOLS.contains(&asked) { asked } else { "2025-06-18" };
+                let version = if PROTOCOLS.contains(&asked) {
+                    asked
+                } else {
+                    "2025-06-18"
+                };
                 json!({ "result": {
                     "protocolVersion": version,
                     "capabilities": { "tools": {} },
@@ -43,13 +55,26 @@ pub fn serve(socket: &Path, token: &str) -> i32 {
             "ping" => json!({ "result": {} }),
             "tools/list" | "tools/call" => {
                 next += 1;
-                let sent = writeln!(to_app, "{}", json!({ "id": next, "method": method, "params": msg["params"] }));
-                match sent.ok().and_then(|_| from_app.next()).and_then(Result::ok).and_then(|l| serde_json::from_str::<Value>(&l).ok()) {
+                let sent = writeln!(
+                    to_app,
+                    "{}",
+                    json!({ "id": next, "method": method, "params": msg["params"] })
+                );
+                match sent
+                    .ok()
+                    .and_then(|_| from_app.next())
+                    .and_then(Result::ok)
+                    .and_then(|l| serde_json::from_str::<Value>(&l).ok())
+                {
                     Some(v) => json!({ "result": v["result"] }),
-                    None => json!({ "error": { "code": -32000, "message": "charted closed the connection" } }),
+                    None => {
+                        json!({ "error": { "code": -32000, "message": "charted closed the connection" } })
+                    }
                 }
             }
-            _ => json!({ "error": { "code": -32601, "message": format!("unknown method {method}") } }),
+            _ => {
+                json!({ "error": { "code": -32601, "message": format!("unknown method {method}") } })
+            }
         };
         let mut out = reply;
         out["jsonrpc"] = json!("2.0");

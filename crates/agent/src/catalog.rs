@@ -56,20 +56,32 @@ pub struct PropDef {
 
 pub fn catalog() -> &'static Catalog {
     static C: OnceLock<Catalog> = OnceLock::new();
-    C.get_or_init(|| serde_json::from_str(include_str!("catalog.json")).expect("catalog.json is valid"))
+    C.get_or_init(|| {
+        serde_json::from_str(include_str!("catalog.json")).expect("catalog.json is valid")
+    })
 }
 
 pub fn visual(ty: &str) -> Option<&'static VisualDef> {
-    catalog().visuals.iter().find(|v| v.ty.eq_ignore_ascii_case(ty))
+    catalog()
+        .visuals
+        .iter()
+        .find(|v| v.ty.eq_ignore_ascii_case(ty))
 }
 
 pub fn types() -> String {
-    catalog().visuals.iter().map(|v| v.ty.as_str()).collect::<Vec<_>>().join(", ")
+    catalog()
+        .visuals
+        .iter()
+        .map(|v| v.ty.as_str())
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 impl VisualDef {
     pub fn role(&self, name: &str) -> Option<&RoleDef> {
-        self.roles.iter().find(|r| r.name.eq_ignore_ascii_case(name))
+        self.roles
+            .iter()
+            .find(|r| r.name.eq_ignore_ascii_case(name))
     }
 
     /// The type described for the agent: roles, size and formatting.
@@ -87,7 +99,11 @@ impl VisualDef {
             "{} — {}; roles: {}; default size {}×{}",
             self.ty,
             self.label,
-            if roles.is_empty() { "none".into() } else { roles },
+            if roles.is_empty() {
+                "none".into()
+            } else {
+                roles
+            },
             self.size.width,
             self.size.height
         );
@@ -128,7 +144,11 @@ impl VisualDef {
                 return Err(format!(
                     "{} has no format object \"{name}\"; it has {}.",
                     self.ty,
-                    self.objects.iter().map(|o| o.name.as_str()).collect::<Vec<_>>().join(", ")
+                    self.objects
+                        .iter()
+                        .map(|o| o.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ));
             };
             let Some(props) = props.as_object() else {
@@ -139,7 +159,11 @@ impl VisualDef {
                 let Some(pd) = def.props.iter().find(|d| &d.name == p) else {
                     return Err(format!(
                         "format.{name} has no \"{p}\"; it has {}.",
-                        def.props.iter().map(|d| d.name.as_str()).collect::<Vec<_>>().join(", ")
+                        def.props
+                            .iter()
+                            .map(|d| d.name.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     ));
                 };
                 let ok = match pd.ty.as_str() {
@@ -147,9 +171,11 @@ impl VisualDef {
                     "number" => v.as_f64().is_some_and(|n| {
                         pd.min.is_none_or(|m| n >= m) && pd.max.is_none_or(|m| n <= m)
                     }),
-                    "select" => v
-                        .as_str()
-                        .is_some_and(|s| pd.options.as_ref().is_some_and(|o| o.iter().any(|x| x == s))),
+                    "select" => v.as_str().is_some_and(|s| {
+                        pd.options
+                            .as_ref()
+                            .is_some_and(|o| o.iter().any(|x| x == s))
+                    }),
                     "color" => v.as_str().is_some_and(is_color),
                     _ => v.is_string(),
                 };
@@ -179,8 +205,14 @@ mod tests {
     fn the_catalog_loads_and_checks_formatting() {
         let line = visual("lineChart").unwrap();
         assert!(line.role("category").is_some() || line.role("axis").is_some());
-        assert!(line.check_format(&serde_json::json!({"title": {"text": "Sales", "show": true}})).is_ok());
-        assert!(line.check_format(&serde_json::json!({"title": {"colour": 1}})).is_err());
+        assert!(
+            line.check_format(&serde_json::json!({"title": {"text": "Sales", "show": true}}))
+                .is_ok()
+        );
+        assert!(
+            line.check_format(&serde_json::json!({"title": {"colour": 1}}))
+                .is_err()
+        );
         assert!(line.check_format(&serde_json::json!({"nope": {}})).is_err());
         assert_eq!(catalog().themes.len(), 3);
     }

@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  Sparkles,
   BookOpen,
   Bookmark as BookmarkIcon,
   Check,
@@ -63,6 +64,7 @@ import { SyncSlicersPane } from "./SyncSlicersPane";
 import { VISUALS } from "./registry";
 import { VisualizationsPane } from "./VisualizationsPane";
 import "./report.css";
+import { AgentPane } from "../agent/AgentPane";
 
 type Align = "left" | "center" | "right" | "top" | "middle" | "bottom";
 
@@ -331,6 +333,21 @@ export function ReportView({ model }: { model: Model }) {
 
   useBookmarkShortcuts(model);
   useShortcut(
+    {
+      id: "agent-pane",
+      keys: "Ctrl+I",
+      label: "Agent pane",
+      group: "View",
+      run: () => {
+        const r = useReport.getState();
+        r.set({ panes: { ...r.panes, agent: !r.panes.agent } });
+        if (!r.panes.agent) {
+          setPaneTab("agent");
+          requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".agent-input")?.focus());
+        }
+      },
+      enabled: () => useReport.getState().view === "report" && !useReport.getState().reading,
+    },
     { id: "visual-copy", keys: "Ctrl+C", label: "Copy selected visuals", group: "Edit", run: () => void copyVisuals(false), enabled: () => hasSelection() && !window.getSelection()?.toString() },
     { id: "visual-cut", keys: "Ctrl+X", label: "Cut selected visuals", group: "Edit", run: () => void copyVisuals(true), enabled: () => hasSelection() && !window.getSelection()?.toString() },
     { id: "visual-paste", keys: "Ctrl+V", label: "Paste visuals", group: "Edit", run: () => void pasteClipboard(), enabled: canPaste },
@@ -453,6 +470,7 @@ export function ReportView({ model }: { model: Model }) {
         <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
         <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
         <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
+        <IconButton label={t("Agent pane")} shortcut="Ctrl+I" icon={<Sparkles size={15} />} pressed={panes.agent} onPress={() => togglePane("agent")} />
       </div>
       )}
       <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
@@ -469,7 +487,7 @@ export function ReportView({ model }: { model: Model }) {
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
                 {PANES.filter((k) => panes[k]).map((k) => (
                   <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === PANES.find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
-                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "sync" ? t("Sync slicers") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : t("Fields")}
+                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "sync" ? t("Sync slicers") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : k === "agent" ? t("Agent") : t("Fields")}
                   </button>
                 ))}
               </div>
@@ -480,6 +498,7 @@ export function ReportView({ model }: { model: Model }) {
                 if (shown === "sync") return <SyncSlicersPane model={model} page={page} />;
                 if (shown === "filters") return <FiltersPane model={model} page={page} />;
                 if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
+                if (shown === "agent") return <AgentPane model={model} page={page} />;
                 return <FieldsPane model={model} page={page} />;
               })()}
             </div>
@@ -492,6 +511,7 @@ export function ReportView({ model }: { model: Model }) {
             {panes.filters && <FiltersPane model={model} page={page} />}
             {panes.visualizations && <VisualizationsPane model={model} page={page} />}
             {panes.fields && <FieldsPane model={model} page={page} />}
+            {panes.agent && <AgentPane model={model} page={page} />}
           </>
         )}
       </div>
@@ -499,7 +519,7 @@ export function ReportView({ model }: { model: Model }) {
   );
 }
 
-const PANES = ["bookmarks", "selection", "sync", "filters", "visualizations", "fields"] as const;
+const PANES = ["bookmarks", "selection", "sync", "filters", "visualizations", "fields", "agent"] as const;
 
 /** On a page drilled through to: what it shows, and the way back. Leaving the page
  * ends the drill through. */

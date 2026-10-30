@@ -8,21 +8,41 @@ pub const GAP: f64 = 16.0;
 const GRID: f64 = 8.0;
 
 fn overlaps(a: &Position, b: &Position) -> bool {
-    a.x < b.x + b.width + GAP && b.x < a.x + a.width + GAP && a.y < b.y + b.height + GAP && b.y < a.y + a.height + GAP
+    a.x < b.x + b.width + GAP
+        && b.x < a.x + a.width + GAP
+        && a.y < b.y + b.height + GAP
+        && b.y < a.y + a.height + GAP
 }
 
 /// A spot for a `width` × `height` visual among `existing` on a page of `page_w` ×
 /// `page_h`: the first free one scanning rows from the top left, else under everything
 /// (the page then needs to grow: the second value is the height it needs).
-pub fn place(page_w: f64, page_h: f64, existing: &[Position], width: f64, height: f64) -> (Position, f64) {
+pub fn place(
+    page_w: f64,
+    page_h: f64,
+    existing: &[Position],
+    width: f64,
+    height: f64,
+) -> (Position, f64) {
     let width = width.min(page_w - 2.0 * MARGIN).max(GRID);
     let z = existing.iter().map(|p| p.z).max().unwrap_or(0) + 1;
     let mut y = MARGIN;
     while y + height + MARGIN <= page_h {
         let mut x = MARGIN;
         while x + width + MARGIN <= page_w {
-            let at = Position { x, y, width, height, z };
-            match existing.iter().filter(|p| overlaps(&at, p)).map(|p| p.x + p.width + GAP).reduce(f64::max) {
+            let at = Position {
+                x,
+                y,
+                width,
+                height,
+                z,
+            };
+            match existing
+                .iter()
+                .filter(|p| overlaps(&at, p))
+                .map(|p| p.x + p.width + GAP)
+                .reduce(f64::max)
+            {
                 None => return (at, page_h),
                 // Skip past what's in the way.
                 Some(right) => x = snap_up(right.max(x + GRID)),
@@ -31,8 +51,21 @@ pub fn place(page_w: f64, page_h: f64, existing: &[Position], width: f64, height
         y += GRID;
     }
     let bottom = existing.iter().map(|p| p.y + p.height).fold(0.0, f64::max);
-    let y = snap_up(if existing.is_empty() { MARGIN } else { bottom + GAP });
-    (Position { x: MARGIN, y, width, height, z }, page_h.max(y + height + MARGIN))
+    let y = snap_up(if existing.is_empty() {
+        MARGIN
+    } else {
+        bottom + GAP
+    });
+    (
+        Position {
+            x: MARGIN,
+            y,
+            width,
+            height,
+            z,
+        },
+        page_h.max(y + height + MARGIN),
+    )
 }
 
 fn snap_up(n: f64) -> f64 {
@@ -64,18 +97,26 @@ pub fn band(visual_type: &str) -> Band {
 /// Positions for every visual (in the order given, by band): slicers across the top,
 /// then cards in a row, then charts two (or three) to a row, then tables full width.
 /// Returns the positions and the page height needed (never less than `page_h`).
-pub fn arrange(page_w: f64, page_h: f64, visuals: &[(String, &str)]) -> (Vec<(String, Position)>, f64) {
+pub fn arrange(
+    page_w: f64,
+    page_h: f64,
+    visuals: &[(String, &str)],
+) -> (Vec<(String, Position)>, f64) {
     let inner = page_w - 2.0 * MARGIN;
     let mut ordered: Vec<(usize, &(String, &str))> = visuals.iter().enumerate().collect();
     ordered.sort_by_key(|(i, (_, t))| (band(t), *i));
     let count = |b: Band| visuals.iter().filter(|(_, t)| band(t) == b).count();
     let charts = count(Band::Chart);
     // Height left for charts once the fixed bands are placed.
-    let fixed = [(Band::Slicer, 72.0), (Band::Card, 120.0), (Band::Table, 280.0)]
-        .iter()
-        .filter(|(b, _)| count(*b) > 0)
-        .map(|(_, h)| h + GAP)
-        .sum::<f64>();
+    let fixed = [
+        (Band::Slicer, 72.0),
+        (Band::Card, 120.0),
+        (Band::Table, 280.0),
+    ]
+    .iter()
+    .filter(|(b, _)| count(*b) > 0)
+    .map(|(_, h)| h + GAP)
+    .sum::<f64>();
     let per_row = if charts >= 5 { 3 } else { 2 };
     let rows = charts.div_ceil(per_row).max(1) as f64;
     let chart_h = snap(((page_h - 2.0 * MARGIN - fixed - (rows - 1.0) * GAP) / rows).max(240.0));
@@ -83,7 +124,11 @@ pub fn arrange(page_w: f64, page_h: f64, visuals: &[(String, &str)]) -> (Vec<(St
     let mut y = MARGIN;
     let mut z = 0;
     for b in [Band::Slicer, Band::Card, Band::Chart, Band::Table] {
-        let items: Vec<&String> = ordered.iter().filter(|(_, (_, t))| band(t) == b).map(|(_, (id, _))| id).collect();
+        let items: Vec<&String> = ordered
+            .iter()
+            .filter(|(_, (_, t))| band(t) == b)
+            .map(|(_, (id, _))| id)
+            .collect();
         if items.is_empty() {
             continue;
         }
@@ -124,7 +169,10 @@ mod tests {
     use proptest::prelude::*;
 
     fn clear(a: &Position, b: &Position) -> bool {
-        a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y
+        a.x + a.width <= b.x
+            || b.x + b.width <= a.x
+            || a.y + a.height <= b.y
+            || b.y + b.height <= a.y
     }
 
     #[test]
@@ -137,7 +185,13 @@ mod tests {
 
     #[test]
     fn a_full_page_grows() {
-        let big = Position { x: 0.0, y: 0.0, width: 1280.0, height: 700.0, z: 1 };
+        let big = Position {
+            x: 0.0,
+            y: 0.0,
+            width: 1280.0,
+            height: 700.0,
+            z: 1,
+        };
         let (p, h) = place(1280.0, 720.0, &[big], 400.0, 260.0);
         assert_eq!(p.y, 720.0);
         assert!(h >= p.y + p.height);
@@ -145,8 +199,13 @@ mod tests {
 
     #[test]
     fn arrange_puts_slicers_first_and_tables_last() {
-        let v = [("t", "table"), ("c", "lineChart"), ("s", "slicer"), ("k", "card")]
-            .map(|(a, b)| (a.to_string(), b));
+        let v = [
+            ("t", "table"),
+            ("c", "lineChart"),
+            ("s", "slicer"),
+            ("k", "card"),
+        ]
+        .map(|(a, b)| (a.to_string(), b));
         let (out, _) = arrange(1280.0, 720.0, &v);
         let y = |id: &str| out.iter().find(|(i, _)| i == id).unwrap().1.y;
         assert!(y("s") < y("k") && y("k") < y("c") && y("c") < y("t"));

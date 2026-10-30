@@ -3,12 +3,14 @@
 
 use charted_core::visualq;
 use charted_model::{
-    Bookmark, Change, FieldRef, FilterKind, Model, Page, PageSettings, Position, Projection, ReportFilter, ReportTheme,
-    Visual, VisualState,
+    Bookmark, Change, FieldRef, FilterKind, Model, Page, PageSettings, Position, Projection,
+    ReportFilter, ReportTheme, Visual, VisualState,
 };
 use serde_json::{Map, Value, json};
 
-use super::{Cx, Done, Fail, Res, Step, ToolDef, action, fail, opt_bool, opt_str, schema, str_arg, str_list};
+use super::{
+    Cx, Done, Fail, Res, Step, ToolDef, action, fail, opt_bool, opt_str, schema, str_arg, str_list,
+};
 use crate::builders::new_id;
 use crate::catalog::{self, VisualDef};
 use crate::layout;
@@ -65,12 +67,18 @@ pub fn defs() -> Vec<ToolDef> {
         ToolDef {
             name: "remove_visual",
             description: "Removes visuals (ids or titles).",
-            input_schema: schema(json!({ "visuals": { "type": "array", "items": { "type": "string" } } }), &["visuals"]),
+            input_schema: schema(
+                json!({ "visuals": { "type": "array", "items": { "type": "string" } } }),
+                &["visuals"],
+            ),
         },
         ToolDef {
             name: "arrange_page",
             description: "Lays out every visual on a page: slicers across the top, then cards, then charts two or three to a row, then tables. order lists visuals (ids or titles) to place first within their band.",
-            input_schema: schema(json!({ "page": { "type": "string" }, "order": { "type": "array", "items": { "type": "string" } } }), &["page"]),
+            input_schema: schema(
+                json!({ "page": { "type": "string" }, "order": { "type": "array", "items": { "type": "string" } } }),
+                &["page"],
+            ),
         },
         ToolDef {
             name: "set_filter",
@@ -129,7 +137,9 @@ fn page(cx: &Cx, args: &Value) -> Res<Done> {
             Ok((p.id.clone(), p.settings.name.clone()))
         })?;
         if !cx.turn.confirm(&format!("Delete the page \"{name}\"")) {
-            return fail(format!("the user didn't allow deleting the page \"{name}\"; leave it"));
+            return fail(format!(
+                "the user didn't allow deleting the page \"{name}\"; leave it"
+            ));
         }
         return cx.change(|m, _| {
             if m.report.pages.len() <= 1 {
@@ -137,12 +147,18 @@ fn page(cx: &Cx, args: &Value) -> Res<Done> {
             }
             Ok((
                 vec![Change::RemovePage { page: id.clone() }],
-                Done { text: format!("Removed the page \"{name}\"."), step: Some(Step::new("Removed page \"%1\"", &[&name])) },
+                Done {
+                    text: format!("Removed the page \"{name}\"."),
+                    step: Some(Step::new("Removed page \"%1\"", &[&name])),
+                },
             ))
         });
     }
     cx.change(|m, _| {
-        let index = args.get("index").and_then(Value::as_u64).map(|i| i as usize);
+        let index = args
+            .get("index")
+            .and_then(Value::as_u64)
+            .map(|i| i as usize);
         match act {
             "add" => {
                 let name = unique_page_name(m, opt_str(args, "name").unwrap_or("Page"));
@@ -157,7 +173,11 @@ fn page(cx: &Cx, args: &Value) -> Res<Done> {
                 settings.hidden = opt_bool(args, "hidden").unwrap_or(false);
                 Ok((
                     vec![Change::AddPage {
-                        page: Page { id: id.clone(), settings, visuals: vec![] },
+                        page: Page {
+                            id: id.clone(),
+                            settings,
+                            visuals: vec![],
+                        },
                         index: index.map(|i| i.min(m.report.pages.len())),
                     }],
                     Done {
@@ -168,33 +188,71 @@ fn page(cx: &Cx, args: &Value) -> Res<Done> {
             }
             "duplicate" => {
                 let p = names::find_page(m, str_arg(args, "page")?)?;
-                let name = unique_page_name(m, opt_str(args, "name").unwrap_or(&format!("{} (copy)", p.settings.name)));
+                let name = unique_page_name(
+                    m,
+                    opt_str(args, "name").unwrap_or(&format!("{} (copy)", p.settings.name)),
+                );
                 let id = new_id();
                 let mut settings = p.settings.clone();
                 settings.name = name.clone();
-                let visuals = p.visuals.iter().map(|v| Visual { id: new_id(), ..v.clone() }).collect();
-                let at = m.report.pages.iter().position(|x| x.id == p.id).map(|i| i + 1);
+                let visuals = p
+                    .visuals
+                    .iter()
+                    .map(|v| Visual {
+                        id: new_id(),
+                        ..v.clone()
+                    })
+                    .collect();
+                let at = m
+                    .report
+                    .pages
+                    .iter()
+                    .position(|x| x.id == p.id)
+                    .map(|i| i + 1);
                 Ok((
-                    vec![Change::AddPage { page: Page { id: id.clone(), settings, visuals }, index: index.or(at) }],
+                    vec![Change::AddPage {
+                        page: Page {
+                            id: id.clone(),
+                            settings,
+                            visuals,
+                        },
+                        index: index.or(at),
+                    }],
                     Done {
-                        text: format!("Duplicated \"{}\" as \"{name}\" (id {id}).", p.settings.name),
+                        text: format!(
+                            "Duplicated \"{}\" as \"{name}\" (id {id}).",
+                            p.settings.name
+                        ),
                         step: Some(Step::new("Added page \"%1\"", &[&name]).page(&id)),
                     },
                 ))
             }
             "move" => {
                 let p = names::find_page(m, str_arg(args, "page")?)?;
-                let Some(i) = index else { return fail("move needs index") };
+                let Some(i) = index else {
+                    return fail("move needs index");
+                };
                 Ok((
-                    vec![Change::MovePage { page: p.id.clone(), index: i.min(m.report.pages.len() - 1) }],
-                    Done { text: format!("Moved \"{}\" to place {i}.", p.settings.name), step: Some(Step::new("Moved page \"%1\"", &[&p.settings.name])) },
+                    vec![Change::MovePage {
+                        page: p.id.clone(),
+                        index: i.min(m.report.pages.len() - 1),
+                    }],
+                    Done {
+                        text: format!("Moved \"{}\" to place {i}.", p.settings.name),
+                        step: Some(Step::new("Moved page \"%1\"", &[&p.settings.name])),
+                    },
                 ))
             }
             _ => {
                 let p = names::find_page(m, str_arg(args, "page")?)?;
                 let mut s = p.settings.clone();
                 if let Some(n) = opt_str(args, "name") {
-                    if !n.eq_ignore_ascii_case(&p.settings.name) && m.report.pages.iter().any(|x| x.settings.name.eq_ignore_ascii_case(n)) {
+                    if !n.eq_ignore_ascii_case(&p.settings.name)
+                        && m.report
+                            .pages
+                            .iter()
+                            .any(|x| x.settings.name.eq_ignore_ascii_case(n))
+                    {
                         return fail(format!("there's a page \"{n}\" already"));
                     }
                     s.name = n.trim().into();
@@ -210,8 +268,14 @@ fn page(cx: &Cx, args: &Value) -> Res<Done> {
                 }
                 let name = s.name.clone();
                 Ok((
-                    vec![Change::SetPage { page: p.id.clone(), settings: s }],
-                    Done { text: format!("Updated the page \"{name}\"."), step: Some(Step::new("Changed page \"%1\"", &[&name]).page(&p.id)) },
+                    vec![Change::SetPage {
+                        page: p.id.clone(),
+                        settings: s,
+                    }],
+                    Done {
+                        text: format!("Updated the page \"{name}\"."),
+                        step: Some(Step::new("Changed page \"%1\"", &[&name]).page(&p.id)),
+                    },
                 ))
             }
         }
@@ -224,11 +288,19 @@ fn default_settings(name: &str) -> PageSettings {
 
 fn unique_page_name(m: &Model, want: &str) -> String {
     let want = want.trim();
-    let taken = |n: &str| m.report.pages.iter().any(|p| p.settings.name.eq_ignore_ascii_case(n));
+    let taken = |n: &str| {
+        m.report
+            .pages
+            .iter()
+            .any(|p| p.settings.name.eq_ignore_ascii_case(n))
+    };
     if !taken(want) {
         return want.into();
     }
-    (2..).map(|i| format!("{want} {i}")).find(|n| !taken(n)).expect("a free name")
+    (2..)
+        .map(|i| format!("{want} {i}"))
+        .find(|n| !taken(n))
+        .expect("a free name")
 }
 
 /// One field given for a role, resolved, with the role's summarising rules (as the UI's
@@ -237,7 +309,9 @@ fn projection_for(m: &Model, def: &VisualDef, role: &str, given: &Value) -> Res<
     let (src, display) = match given {
         Value::String(s) => (s.as_str(), None),
         Value::Object(o) => (
-            o.get("field").and_then(Value::as_str).ok_or_else(|| Fail("a field object needs \"field\"".into()))?,
+            o.get("field")
+                .and_then(Value::as_str)
+                .ok_or_else(|| Fail("a field object needs \"field\"".into()))?,
             o.get("as").and_then(Value::as_str).map(str::to_string),
         ),
         _ => return fail("a field is text ('Table'[Column]) or {\"field\", \"as\"}"),
@@ -246,7 +320,11 @@ fn projection_for(m: &Model, def: &VisualDef, role: &str, given: &Value) -> Res<
         return fail(format!(
             "{} has no role \"{role}\"; its roles are {}",
             def.ty,
-            def.roles.iter().map(|r| r.name.as_str()).collect::<Vec<_>>().join(", ")
+            def.roles
+                .iter()
+                .map(|r| r.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     };
     let mut p = names::field(m, src)?;
@@ -259,7 +337,10 @@ fn projection_for(m: &Model, def: &VisualDef, role: &str, given: &Value) -> Res<
     match r.kind.as_str() {
         "grouping" => {
             if !matches!(p.field, FieldRef::Column { .. }) || p.aggregation.is_some() {
-                return fail(format!("{}'s {} role groups by columns; {src} is a value (use a value role)", def.ty, r.name));
+                return fail(format!(
+                    "{}'s {} role groups by columns; {src} is a value (use a value role)",
+                    def.ty, r.name
+                ));
             }
         }
         "value" => {
@@ -283,8 +364,12 @@ fn projection_for(m: &Model, def: &VisualDef, role: &str, given: &Value) -> Res<
 
 /// A field parameter's label or field column: it stands for the fields picked in it.
 fn is_parameter_field(m: &Model, f: &FieldRef) -> bool {
-    let FieldRef::Column { table, column } = f else { return false };
-    let Some(t) = m.table(table) else { return false };
+    let FieldRef::Column { table, column } = f else {
+        return false;
+    };
+    let Some(t) = m.table(table) else {
+        return false;
+    };
     matches!(
         t.column(column).map(|c| &c.kind),
         Some(charted_model::ColumnKind::Data { source_column }) if source_column == "Value1" || source_column == "Value2"
@@ -311,7 +396,13 @@ fn default_aggregation(c: &charted_model::Column) -> charted_model::Aggregation 
 }
 
 /// Puts `fields` (`{role: [field]}`) in `v`'s roles: replacing each role given, or adding.
-fn set_fields(m: &Model, def: &VisualDef, v: &mut Visual, fields: &Value, add: bool) -> Res<Vec<String>> {
+fn set_fields(
+    m: &Model,
+    def: &VisualDef,
+    v: &mut Visual,
+    fields: &Value,
+    add: bool,
+) -> Res<Vec<String>> {
     let Some(map) = fields.as_object() else {
         return fail(format!("fields is an object of roles. {FIELDS_DOC}"));
     };
@@ -321,7 +412,10 @@ fn set_fields(m: &Model, def: &VisualDef, v: &mut Visual, fields: &Value, add: b
             Value::Array(a) => a.clone(),
             other => vec![other.clone()],
         };
-        let r = def.role(role).map(|r| r.name.clone()).unwrap_or_else(|| role.clone());
+        let r = def
+            .role(role)
+            .map(|r| r.name.clone())
+            .unwrap_or_else(|| role.clone());
         let mut ps = Vec::new();
         for f in &list {
             ps.push(projection_for(m, def, role, f)?);
@@ -335,16 +429,28 @@ fn set_fields(m: &Model, def: &VisualDef, v: &mut Visual, fields: &Value, add: b
         if let Some(max) = def.role(&r).and_then(|d| d.max)
             && slot.len() > max
         {
-            return fail(format!("{}'s {r} role takes at most {max} field(s)", def.ty));
+            return fail(format!(
+                "{}'s {r} role takes at most {max} field(s)",
+                def.ty
+            ));
         }
-        shown.push(format!("{r}: {}", slot.iter().map(|p| format_projection(m, p)).collect::<Vec<_>>().join(", ")));
+        shown.push(format!(
+            "{r}: {}",
+            slot.iter()
+                .map(|p| format_projection(m, p))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
     }
     v.roles.retain(|_, ps| !ps.is_empty());
     Ok(shown)
 }
 
 fn set_title(v: &mut Visual, title: &str) {
-    let o = v.objects.entry("title").or_insert_with(|| Value::Object(Map::new()));
+    let o = v
+        .objects
+        .entry("title")
+        .or_insert_with(|| Value::Object(Map::new()));
     if let Some(o) = o.as_object_mut() {
         o.insert("text".into(), Value::String(title.into()));
         o.insert("show".into(), Value::Bool(true));
@@ -353,7 +459,10 @@ fn set_title(v: &mut Visual, title: &str) {
 
 fn merge_format(v: &mut Visual, def: &VisualDef, format: &Value) -> Res<()> {
     for (obj, props) in def.check_format(format)? {
-        let slot = v.objects.entry(obj).or_insert_with(|| Value::Object(Map::new()));
+        let slot = v
+            .objects
+            .entry(obj)
+            .or_insert_with(|| Value::Object(Map::new()));
         if let (Some(s), Value::Object(p)) = (slot.as_object_mut(), props) {
             s.extend(p);
         }
@@ -388,7 +497,7 @@ fn add_visual(cx: &Cx, args: &Value) -> Res<Done> {
         if let Some(f) = args.get("format").filter(|f| !f.is_null()) {
             merge_format(&mut v, def, f)?;
         }
-        let existing: Vec<Position> = p.visuals.iter().map(|v| v.position.clone()).collect();
+        let existing: Vec<Position> = p.visuals.iter().map(|v| v.position).collect();
         let z = existing.iter().map(|q| q.z).max().unwrap_or(0) + 1;
         let mut changes = vec![];
         if let Some((x, y, w, h)) = args.get("position").and_then(explicit_position) {
@@ -404,7 +513,7 @@ fn add_visual(cx: &Cx, args: &Value) -> Res<Done> {
         }
         let title = visualq::visual_title(m, &v);
         let id = v.id.clone();
-        let pos = v.position.clone();
+        let pos = v.position;
         changes.insert(0, Change::AddVisual { page: p.id.clone(), visual: v, index: None });
         Ok((
             changes,
@@ -430,11 +539,19 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
         let mut v = old.clone();
         if let Some(t) = opt_str(args, "type") {
             let Some(def) = catalog::visual(t) else {
-                return fail(format!("there's no visual type {t}; types: {}", catalog::types()));
+                return fail(format!(
+                    "there's no visual type {t}; types: {}",
+                    catalog::types()
+                ));
             };
             v.visual_type = def.ty.clone();
         }
-        let def = catalog::visual(&v.visual_type).ok_or_else(|| Fail(format!("{} visuals can't be changed by the agent", v.visual_type)))?;
+        let def = catalog::visual(&v.visual_type).ok_or_else(|| {
+            Fail(format!(
+                "{} visuals can't be changed by the agent",
+                v.visual_type
+            ))
+        })?;
         let mut shown = Vec::new();
         if let Some(f) = args.get("fields").filter(|f| !f.is_null()) {
             shown.extend(set_fields(m, def, &mut v, f, false)?);
@@ -462,35 +579,63 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
             merge_format(&mut v, def, f)?;
         }
         if let Some((x, y, w, h)) = args.get("position").and_then(explicit_position) {
-            v.position = Position { x, y, width: w, height: h, z: v.position.z };
+            v.position = Position {
+                x,
+                y,
+                width: w,
+                height: h,
+                z: v.position.z,
+            };
         }
         if let Some(h) = opt_bool(args, "hidden") {
             v.hidden = h;
         }
         if let Some(s) = args.get("sort").and_then(Value::as_object) {
-            let f = s.get("field").and_then(Value::as_str).ok_or_else(|| Fail("sort needs field".into()))?;
+            let f = s
+                .get("field")
+                .and_then(Value::as_str)
+                .ok_or_else(|| Fail("sort needs field".into()))?;
             let want = names::field(m, f)?;
             let at = v
                 .roles
                 .iter()
-                .find_map(|(r, ps)| ps.iter().position(|x| x.field == want.field).map(|i| (r.clone(), i)))
-                .ok_or_else(|| Fail(format!("{f} isn't on the visual; sort by one of its fields")))?;
+                .find_map(|(r, ps)| {
+                    ps.iter()
+                        .position(|x| x.field == want.field)
+                        .map(|i| (r.clone(), i))
+                })
+                .ok_or_else(|| {
+                    Fail(format!(
+                        "{f} isn't on the visual; sort by one of its fields"
+                    ))
+                })?;
             v.sort = Some(charted_model::VisualSort {
                 role: at.0,
                 index: at.1,
                 descending: s.get("descending").and_then(Value::as_bool).unwrap_or(true),
             });
         }
-        if v.sort.as_ref().is_some_and(|s| v.roles.get(&s.role).is_none_or(|ps| s.index >= ps.len())) {
+        if v.sort
+            .as_ref()
+            .is_some_and(|s| v.roles.get(&s.role).is_none_or(|ps| s.index >= ps.len()))
+        {
             v.sort = None;
         }
         let title = visualq::visual_title(m, &v);
         let id = v.id.clone();
         Ok((
-            vec![Change::UpdateVisual { page: p.id.clone(), visual: v }],
+            vec![Change::UpdateVisual {
+                page: p.id.clone(),
+                visual: v,
+            }],
             Done {
                 text: format!("Updated {} \"{title}\" (id {id}).", def.ty),
-                step: Some(Step::new("Changed %1 \"%2\"", &[&def.label.to_lowercase(), &title]).page(&p.id).visuals(vec![id]).detail(shown.join("\n"))),
+                step: Some(
+                    Step::new("Changed %1 \"%2\"", &[&def.label.to_lowercase(), &title])
+                        .page(&p.id)
+                        .visuals(vec![id])
+                        .detail(shown.join("\n")),
+                ),
             },
         ))
     })
@@ -507,14 +652,27 @@ fn remove_visual(cx: &Cx, args: &Value) -> Res<Done> {
         let mut page = None;
         for k in &keys {
             let (p, v) = names::find_visual(m, None, k)?;
-            changes.push(Change::RemoveVisual { page: p.id.clone(), visual: v.id.clone() });
+            changes.push(Change::RemoveVisual {
+                page: p.id.clone(),
+                visual: v.id.clone(),
+            });
             titles.push(visualq::visual_title(m, v));
             page = Some(p.id.clone());
         }
-        let list = titles.iter().map(|t| format!("\"{t}\"")).collect::<Vec<_>>().join(", ");
+        let list = titles
+            .iter()
+            .map(|t| format!("\"{t}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
         let mut step = Step::new("Removed %1", &[&list]);
         step.page = page;
-        Ok((changes, Done { text: format!("Removed {list}."), step: Some(step) }))
+        Ok((
+            changes,
+            Done {
+                text: format!("Removed {list}."),
+                step: Some(step),
+            },
+        ))
     })
 }
 
@@ -531,26 +689,47 @@ fn arrange_page(cx: &Cx, args: &Value) -> Res<Done> {
                 order.push(v);
             }
         }
-        let items: Vec<(String, &str)> = order.iter().map(|v| (v.id.clone(), v.visual_type.as_str())).collect();
-        let (placed, need) = layout::arrange(p.settings.width as f64, p.settings.height as f64, &items);
+        let items: Vec<(String, &str)> = order
+            .iter()
+            .map(|v| (v.id.clone(), v.visual_type.as_str()))
+            .collect();
+        let (placed, need) =
+            layout::arrange(p.settings.width as f64, p.settings.height as f64, &items);
         let mut changes: Vec<Change> = placed
             .into_iter()
             .filter_map(|(id, pos)| {
                 let v = p.visual(&id)?;
-                Some(Change::UpdateVisual { page: p.id.clone(), visual: Visual { position: pos, ..v.clone() } })
+                Some(Change::UpdateVisual {
+                    page: p.id.clone(),
+                    visual: Visual {
+                        position: pos,
+                        ..v.clone()
+                    },
+                })
             })
             .collect();
         if need > p.settings.height as f64 {
             let mut s = p.settings.clone();
             s.height = need.ceil() as u32;
-            changes.push(Change::SetPage { page: p.id.clone(), settings: s });
+            changes.push(Change::SetPage {
+                page: p.id.clone(),
+                settings: s,
+            });
         }
         let ids = p.visuals.iter().map(|v| v.id.clone()).collect();
         Ok((
             changes,
             Done {
-                text: format!("Arranged {} visuals on \"{}\".", items.len(), p.settings.name),
-                step: Some(Step::new("Arranged page \"%1\"", &[&p.settings.name]).page(&p.id).visuals(ids)),
+                text: format!(
+                    "Arranged {} visuals on \"{}\".",
+                    items.len(),
+                    p.settings.name
+                ),
+                step: Some(
+                    Step::new("Arranged page \"%1\"", &[&p.settings.name])
+                        .page(&p.id)
+                        .visuals(ids),
+                ),
             },
         ))
     })
@@ -569,7 +748,11 @@ fn filter_kind(m: &Model, f: &Value) -> Res<FilterKind> {
 fn upsert(list: &mut Vec<ReportFilter>, field: Projection, filter: Option<FilterKind>) {
     list.retain(|x| x.field.field != field.field);
     if let Some(filter) = filter {
-        list.push(ReportFilter { id: new_id(), field, filter });
+        list.push(ReportFilter {
+            id: new_id(),
+            field,
+            filter,
+        });
     }
 }
 
@@ -666,14 +849,25 @@ fn set_theme(cx: &Cx, args: &Value) -> Res<Done> {
     })
 }
 
-fn snapshot(m: &Model, p: &Page) -> (Vec<ReportFilter>, std::collections::BTreeMap<String, VisualState>) {
+fn snapshot(
+    m: &Model,
+    p: &Page,
+) -> (
+    Vec<ReportFilter>,
+    std::collections::BTreeMap<String, VisualState>,
+) {
     let visuals = p
         .visuals
         .iter()
         .map(|v| {
             (
                 v.id.clone(),
-                VisualState { filters: v.filters.clone(), selection: v.selection.clone(), sort: v.sort.clone(), drill: v.drill.clone() },
+                VisualState {
+                    filters: v.filters.clone(),
+                    selection: v.selection.clone(),
+                    sort: v.sort.clone(),
+                    drill: v.drill.clone(),
+                },
             )
         })
         .collect();
@@ -688,11 +882,20 @@ fn bookmark(cx: &Cx, args: &Value) -> Res<Done> {
         let mut list = m.report.bookmarks.clone();
         let at = list.iter().position(|b| b.name.eq_ignore_ascii_case(&name));
         let text = match (act, at) {
-            ("add", Some(_)) => return fail(format!("there's a bookmark \"{name}\" already; use update")),
+            ("add", Some(_)) => {
+                return fail(format!("there's a bookmark \"{name}\" already; use update"));
+            }
             ("add", None) => {
                 let p = names::find_page(m, str_arg(args, "page")?)?;
                 let (page_filters, visuals) = snapshot(m, p);
-                list.push(Bookmark { id: new_id(), name: name.clone(), page: p.id.clone(), report_filters: m.report.filters.clone(), page_filters, visuals });
+                list.push(Bookmark {
+                    id: new_id(),
+                    name: name.clone(),
+                    page: p.id.clone(),
+                    report_filters: m.report.filters.clone(),
+                    page_filters,
+                    visuals,
+                });
                 "Added bookmark \"%1\""
             }
             (_, None) => return fail(format!("there's no bookmark \"{name}\"")),
@@ -702,7 +905,13 @@ fn bookmark(cx: &Cx, args: &Value) -> Res<Done> {
                     None => names::find_page(m, &list[i].page)?,
                 };
                 let (page_filters, visuals) = snapshot(m, p);
-                list[i] = Bookmark { page: p.id.clone(), report_filters: m.report.filters.clone(), page_filters, visuals, ..list[i].clone() };
+                list[i] = Bookmark {
+                    page: p.id.clone(),
+                    report_filters: m.report.filters.clone(),
+                    page_filters,
+                    visuals,
+                    ..list[i].clone()
+                };
                 "Updated bookmark \"%1\""
             }
             ("rename", Some(i)) => {
@@ -715,6 +924,12 @@ fn bookmark(cx: &Cx, args: &Value) -> Res<Done> {
             }
         };
         let step = Step::new(text, &[&name]);
-        Ok((vec![Change::SetBookmarks { bookmarks: list }], Done { text: format!("{}.", step.text), step: Some(step) }))
+        Ok((
+            vec![Change::SetBookmarks { bookmarks: list }],
+            Done {
+                text: format!("{}.", step.text),
+                step: Some(step),
+            },
+        ))
     })
 }

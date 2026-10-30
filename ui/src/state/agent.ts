@@ -23,7 +23,7 @@ interface AgentStore {
   send(text: string, page: string | null, visuals: string[]): Promise<boolean>;
 }
 
-export const useAgent = create<AgentStore>()((set, get) => ({
+export const useAgent = create<AgentStore>()((set) => ({
   status: null,
   consent: null,
   touched: {},
@@ -78,6 +78,12 @@ function applyTurn(turn: TurnRecord) {
     }
   }
   useAgent.setState({ status: { ...s, turns, running: turn.status === "running" ? true : s.running }, touched });
+  // Drop the outlines once they've faded.
+  setTimeout(() => {
+    const now = Date.now();
+    const left = Object.fromEntries(Object.entries(useAgent.getState().touched).filter(([, t]) => t > now));
+    useAgent.setState({ touched: left });
+  }, 1700);
 }
 
 /** Subscribes to the agent's pushes (once, from App). */
@@ -87,7 +93,8 @@ export function initAgent(): () => void {
     else applyTurn(e.turn);
   });
   const offNav = useReport.subscribe((s, prev) => {
-    if (s.page !== prev.page && !navigating && useAgent.getState().status?.running) follow.moved = true;
+    // The view picking its first page isn't the user going somewhere.
+    if (prev.page && s.page !== prev.page && !navigating && useAgent.getState().status?.running) follow.moved = true;
   });
   return () => {
     off();

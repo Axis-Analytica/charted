@@ -26,7 +26,10 @@ pub struct ProjectSettings {
 }
 
 fn read<T: for<'a> Deserialize<'a> + Default>(path: &Path) -> T {
-    std::fs::read(path).ok().and_then(|b| serde_json::from_slice(&b).ok()).unwrap_or_default()
+    std::fs::read(path)
+        .ok()
+        .and_then(|b| serde_json::from_slice(&b).ok())
+        .unwrap_or_default()
 }
 
 fn write<T: Serialize>(path: &Path, v: &T) {

@@ -6,6 +6,8 @@ import { defineConfig } from "@playwright/test";
 const tmp = process.env.CHARTED_E2E_TMP ?? "/tmp/charted-e2e";
 const bin = process.env.CHARTED_BIN ?? `${process.env.CARGO_TARGET_DIR ?? "../target"}/debug/charted-headless`;
 const theme = `${tmp}/home/.local/state/omarchy/current/theme`;
+// The in-app agent's requests go to a scripted stand-in, never a real agent.
+const agent = `${process.cwd()}/e2e/fake-agent.mjs`;
 // Ports can be moved so that several checkouts run their tests at once.
 const core = Number(process.env.CHARTED_E2E_PORT ?? 7421);
 const web = Number(process.env.CHARTED_E2E_WEB_PORT ?? 1421);
@@ -25,7 +27,7 @@ export default defineConfig({
     {
       // HOME is a copy holding the desktop's Omarchy theme, so tests can switch it. The
       // desktop's Hyprland is hidden, so motion is on as on CI (Hyprland may turn it off).
-      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state ${theme} && (cp -L ${process.env.HOME}/.local/state/omarchy/current/theme/* ${theme}/ 2>/dev/null; cp -L ${process.env.HOME}/.local/state/omarchy/current/theme.name ${theme}/../ 2>/dev/null; true) && env -u HYPRLAND_INSTANCE_SIGNATURE HOME=${tmp}/home XDG_DOCUMENTS_DIR=${tmp}/docs ${bin} serve --port ${core} --state-dir ${tmp}/state`,
+      command: `rm -rf ${tmp} && mkdir -p ${tmp}/docs ${tmp}/state ${theme} && (cp -L ${process.env.HOME}/.local/state/omarchy/current/theme/* ${theme}/ 2>/dev/null; cp -L ${process.env.HOME}/.local/state/omarchy/current/theme.name ${theme}/../ 2>/dev/null; true) && mkdir -p ${tmp}/run && chmod 700 ${tmp}/run && env -u HYPRLAND_INSTANCE_SIGNATURE HOME=${tmp}/home XDG_DOCUMENTS_DIR=${tmp}/docs XDG_RUNTIME_DIR=${tmp}/run CHARTED_AGENT_CMD="node ${agent}" ${bin} serve --port ${core} --state-dir ${tmp}/state`,
       port: core,
       reuseExistingServer: false,
     },

@@ -173,7 +173,11 @@ impl History {
 
     /// Undoes `group`'s entries when they are the latest. Returns how many were undone, or
     /// `None` when they aren't (the caller explains).
-    pub fn undo_group(&mut self, model: &mut Model, group: &str) -> Result<Option<usize>, ChangeError> {
+    pub fn undo_group(
+        &mut self,
+        model: &mut Model,
+        group: &str,
+    ) -> Result<Option<usize>, ChangeError> {
         let GroupStatus::Latest(n) = self.group_status(group) else {
             return Ok(None);
         };
@@ -185,7 +189,9 @@ impl History {
 
     /// The latest applied entry's group.
     pub fn undo_group_id(&self) -> Option<&str> {
-        self.cursor.checked_sub(1).and_then(|i| self.entries[i].group.as_deref())
+        self.cursor
+            .checked_sub(1)
+            .and_then(|i| self.entries[i].group.as_deref())
     }
 
     pub fn undo_label(&self) -> Option<&str> {

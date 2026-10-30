@@ -146,9 +146,9 @@ pub enum SkillAction {
     Show,
 }
 
+mod devserver;
 #[cfg(feature = "dev-server")]
 mod mcp;
-mod devserver;
 
 pub const SKILL: &str = include_str!("../../../skill/SKILL.md");
 
@@ -199,7 +199,9 @@ pub fn run(command: Command) -> i32 {
         Command::Open { .. } => fail("`open` needs the desktop app"),
         Command::Mcp { socket } => match std::env::var("CHARTED_AGENT_TOKEN") {
             Ok(token) => mcp::serve(&socket, &token),
-            Err(_) => fail("charted mcp is started by charted's Agent pane, which gives it CHARTED_AGENT_TOKEN"),
+            Err(_) => fail(
+                "charted mcp is started by charted's Agent pane, which gives it CHARTED_AGENT_TOKEN",
+            ),
         },
         Command::Check { project, json } => {
             let report = charted_core::check::check(&project);

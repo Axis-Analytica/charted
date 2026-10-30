@@ -7,7 +7,7 @@ use charted_model::{ColumnKind, FieldRef, Model, Projection};
 use serde_json::{Value, json};
 use std::fmt::Write;
 
-use super::{Cx, Done, Fail, Res, fail, opt_str, schema, str_arg, str_list, ToolDef};
+use super::{Cx, Done, Fail, Res, ToolDef, fail, opt_str, schema, str_arg, str_list};
 use crate::catalog;
 use crate::names::{self, format_projection, quote_name, quote_table};
 
@@ -16,7 +16,10 @@ pub fn defs() -> Vec<ToolDef> {
         ToolDef {
             name: "describe_model",
             description: "The semantic model: tables (rows), columns (type, format, hidden, calculated expression), measures (DAX, format), hierarchies, relationships, roles, calculation groups and field parameters. Call it first. Pass table to see one table only.",
-            input_schema: schema(json!({ "table": { "type": "string", "description": "Only this table" } }), &[]),
+            input_schema: schema(
+                json!({ "table": { "type": "string", "description": "Only this table" } }),
+                &[],
+            ),
         },
         ToolDef {
             name: "describe_report",
@@ -26,7 +29,10 @@ pub fn defs() -> Vec<ToolDef> {
         ToolDef {
             name: "list_visual_types",
             description: "Visual types you can add, with their roles (where fields go: grouping roles take columns, value roles take measures or aggregated columns), sizes and, for one type, its formatting properties.",
-            input_schema: schema(json!({ "type": { "type": "string", "description": "One type, with its format properties" } }), &[]),
+            input_schema: schema(
+                json!({ "type": { "type": "string", "description": "One type, with its format properties" } }),
+                &[],
+            ),
         },
         ToolDef {
             name: "check_dax",
@@ -43,7 +49,10 @@ pub fn defs() -> Vec<ToolDef> {
         ToolDef {
             name: "query_visual",
             description: "The numbers a visual shows (by id or title), as rows named after its fields, to check your work. Without data access only visuals that aggregate (a measure or SUM/COUNT…) answer, up to 50 rows.",
-            input_schema: schema(json!({ "visual": { "type": "string" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }), &["visual"]),
+            input_schema: schema(
+                json!({ "visual": { "type": "string" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }),
+                &["visual"],
+            ),
         },
         ToolDef {
             name: "query_fields",
@@ -78,8 +87,12 @@ pub fn defs() -> Vec<ToolDef> {
 
 pub fn call(cx: &Cx, name: &str, args: &Value) -> Option<Res<Done>> {
     Some(match name {
-        "describe_model" => cx.with_model(|m, s| Done::read(describe_model(m, s, opt_str(args, "table"))?)),
-        "describe_report" => cx.with_model(|m, _| Done::read(describe_report(m, opt_str(args, "page"))?)),
+        "describe_model" => {
+            cx.with_model(|m, s| Done::read(describe_model(m, s, opt_str(args, "table"))?))
+        }
+        "describe_report" => {
+            cx.with_model(|m, _| Done::read(describe_report(m, opt_str(args, "page"))?))
+        }
         "list_visual_types" => list_visual_types(opt_str(args, "type")),
         "check_dax" => cx.with_model(|m, s| check_dax(m, s, args)),
         "query_visual" => query_visual(cx, args),
@@ -104,7 +117,11 @@ fn kind_text(c: &charted_model::Column) -> String {
     s
 }
 
-pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Option<&str>) -> Res<String> {
+pub fn describe_model(
+    m: &Model,
+    s: &charted_core::session::Session,
+    only: Option<&str>,
+) -> Res<String> {
     let mut out = String::new();
     let tables: Vec<_> = match only {
         Some(t) => vec![names::find_table(m, t)?],
@@ -113,7 +130,10 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
     for t in tables {
         let rows = if s.database().table_exists(&t.source).unwrap_or(false) {
             s.database()
-                .query_u64(&format!("SELECT count(*) FROM {}", charted_engine::sql::ident(&t.source)))
+                .query_u64(&format!(
+                    "SELECT count(*) FROM {}",
+                    charted_engine::sql::ident(&t.source)
+                ))
                 .unwrap_or(0)
         } else {
             0
@@ -126,8 +146,17 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
             head.push_str(" date table");
         }
         if let Some(g) = &t.calculation_group {
-            let items = g.items.iter().map(|i| format!("\"{}\" = {}", i.name, i.expression)).collect::<Vec<_>>().join("; ");
-            let _ = write!(head, " calculation group (precedence {}): {items}", g.precedence);
+            let items = g
+                .items
+                .iter()
+                .map(|i| format!("\"{}\" = {}", i.name, i.expression))
+                .collect::<Vec<_>>()
+                .join("; ");
+            let _ = write!(
+                head,
+                " calculation group (precedence {}): {items}",
+                g.precedence
+            );
         } else if let Some(c) = &t.calculated {
             if charted_core::fieldparams::items(m, t).is_some() {
                 head.push_str(" field parameter");
@@ -156,7 +185,11 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
             let _ = writeln!(out, "  columns: {}", cols.join(" | "));
         }
         for me in &t.measures {
-            let mut s = format!("  measure {} = {}", quote_name(&me.name), me.expression.replace('\n', " "));
+            let mut s = format!(
+                "  measure {} = {}",
+                quote_name(&me.name),
+                me.expression.replace('\n', " ")
+            );
             if let Some(f) = &me.format_string {
                 let _ = write!(s, "  fmt \"{f}\"");
             }
@@ -180,8 +213,22 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
     }
     if only.is_none() {
         for r in &m.relationships {
-            let field = |t: &str, c: &str| names::format_field(m, &FieldRef::Column { table: t.into(), column: c.into() });
-            let card = |c: charted_model::Cardinality| if c == charted_model::Cardinality::One { "1" } else { "*" };
+            let field = |t: &str, c: &str| {
+                names::format_field(
+                    m,
+                    &FieldRef::Column {
+                        table: t.into(),
+                        column: c.into(),
+                    },
+                )
+            };
+            let card = |c: charted_model::Cardinality| {
+                if c == charted_model::Cardinality::One {
+                    "1"
+                } else {
+                    "*"
+                }
+            };
             let _ = writeln!(
                 out,
                 "relationship {} {}→{} {}{}{}",
@@ -189,7 +236,11 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
                 card(r.from_cardinality),
                 card(r.to_cardinality),
                 field(&r.to_table, &r.to_column),
-                if r.cross_filter == charted_model::CrossFilter::Both { " both directions" } else { "" },
+                if r.cross_filter == charted_model::CrossFilter::Both {
+                    " both directions"
+                } else {
+                    ""
+                },
                 if r.active { "" } else { " inactive" }
             );
         }
@@ -197,7 +248,13 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
             let filters = r
                 .filters
                 .iter()
-                .map(|f| format!("{}: {}", m.table(&f.table).map_or(f.table.as_str(), |t| &t.name), f.expression))
+                .map(|f| {
+                    format!(
+                        "{}: {}",
+                        m.table(&f.table).map_or(f.table.as_str(), |t| &t.name),
+                        f.expression
+                    )
+                })
                 .collect::<Vec<_>>()
                 .join("; ");
             let _ = writeln!(out, "role \"{}\": {filters}", r.name);
@@ -207,7 +264,10 @@ pub fn describe_model(m: &Model, s: &charted_core::session::Session, only: Optio
 }
 
 fn projections(m: &Model, ps: &[Projection]) -> String {
-    ps.iter().map(|p| format_projection(m, p)).collect::<Vec<_>>().join(", ")
+    ps.iter()
+        .map(|p| format_projection(m, p))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn filter_text(m: &Model, f: &charted_model::ReportFilter) -> String {
@@ -236,7 +296,13 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
                 if s.tooltip { ", tooltip page" } else { "" }
             );
         }
-        let _ = writeln!(out, "theme: {}", r.theme.as_ref().map_or("follows the desktop (Omarchy)", |t| t.name.as_str()));
+        let _ = writeln!(
+            out,
+            "theme: {}",
+            r.theme
+                .as_ref()
+                .map_or("follows the desktop (Omarchy)", |t| t.name.as_str())
+        );
         for f in &r.filters {
             let _ = writeln!(out, "report filter: {}", filter_text(m, f));
         }
@@ -247,7 +313,11 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
     };
     let p = names::find_page(m, key)?;
     let s = &p.settings;
-    let _ = writeln!(out, "page \"{}\" id {} {}×{}", s.name, p.id, s.width, s.height);
+    let _ = writeln!(
+        out,
+        "page \"{}\" id {} {}×{}",
+        s.name, p.id, s.width, s.height
+    );
     for f in &s.filters {
         let _ = writeln!(out, "page filter: {}", filter_text(m, f));
     }
@@ -274,7 +344,17 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
             let _ = writeln!(out, "    filter: {}", filter_text(m, f));
         }
         if let Some(sort) = &v.sort {
-            let _ = writeln!(out, "    sort: {} {} {}", sort.role, sort.index, if sort.descending { "descending" } else { "ascending" });
+            let _ = writeln!(
+                out,
+                "    sort: {} {} {}",
+                sort.role,
+                sort.index,
+                if sort.descending {
+                    "descending"
+                } else {
+                    "ascending"
+                }
+            );
         }
         if !v.objects.is_empty() {
             let _ = writeln!(out, "    format: {}", Value::Object(v.objects.clone()));
@@ -286,7 +366,10 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
 fn list_visual_types(ty: Option<&str>) -> Res<Done> {
     if let Some(t) = ty {
         let Some(v) = catalog::visual(t) else {
-            return fail(format!("there's no visual type {t}; types: {}", catalog::types()));
+            return fail(format!(
+                "there's no visual type {t}; types: {}",
+                catalog::types()
+            ));
         };
         return Done::read(v.describe(true));
     }
@@ -309,21 +392,30 @@ fn list_visual_types(ty: Option<&str>) -> Res<Done> {
 fn check_dax(m: &Model, s: &charted_core::session::Session, args: &Value) -> Res<Done> {
     let src = str_arg(args, "expression")?;
     let kind = opt_str(args, "kind").unwrap_or("measure");
-    let table = || -> Res<&charted_model::Table> { names::find_table(m, str_arg(args, "table")?).map_err(Fail::from) };
+    let table = || -> Res<&charted_model::Table> {
+        names::find_table(m, str_arg(args, "table")?).map_err(Fail::from)
+    };
     let ds = match kind {
         "measure" => visualq::check_dax(m, s.schema(), src, None).diagnostics,
         "column" => charted_dax::check_in(m, src, Some(&table()?.id)).1,
         "table" => charted_dax::check_table(m, src).1,
         "role_filter" => charted_core::roles::check_filter(m, &table()?.id, src),
         "calc_item" => charted_dax::check_item(m, src),
-        k => return fail(format!("kind {k} isn't one of measure, column, table, role_filter, calc_item")),
+        k => {
+            return fail(format!(
+                "kind {k} isn't one of measure, column, table, role_filter, calc_item"
+            ));
+        }
     };
     Done::read(super::diagnostics(src, &ds).unwrap_or_else(|| "OK: no problems.".into()))
 }
 
 fn limit(args: &Value, data: bool) -> u64 {
     let max = if data { 100 } else { 50 };
-    args.get("limit").and_then(Value::as_u64).unwrap_or(max).clamp(1, max)
+    args.get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(max)
+        .clamp(1, max)
 }
 
 /// Rows as compact JSON lines, or a note when there are none.
@@ -370,7 +462,9 @@ fn query_visual(cx: &Cx, args: &Value) -> Res<Done> {
 }
 
 fn resolve_all(m: &Model, list: &[String]) -> Res<Vec<Projection>> {
-    list.iter().map(|f| names::field(m, f).map_err(Fail::from)).collect()
+    list.iter()
+        .map(|f| names::field(m, f).map_err(Fail::from))
+        .collect()
 }
 
 fn query_fields(cx: &Cx, args: &Value) -> Res<Done> {
@@ -409,11 +503,19 @@ fn query_fields(cx: &Cx, args: &Value) -> Res<Done> {
         Ok((s.database().clone(), c.sql, header))
     })?;
     let rows = db.json_rows(&sql, Some(limit))?;
-    Done::read(format!("columns g0…, v0… are: {}\n{}", header.join(", "), rows_text(rows, limit)))
+    Done::read(format!(
+        "columns g0…, v0… are: {}\n{}",
+        header.join(", "),
+        rows_text(rows, limit)
+    ))
 }
 
 fn sample_rows(cx: &Cx, args: &Value) -> Res<Done> {
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(20).clamp(1, 50);
+    let limit = args
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(20)
+        .clamp(1, 50);
     let (db, sql, header) = cx.with_model(|m, s| {
         let t = names::find_table(m, str_arg(args, "table")?)?;
         let wanted = str_list(args, "columns");
@@ -424,33 +526,67 @@ fn sample_rows(cx: &Cx, args: &Value) -> Res<Done> {
                 .iter()
                 .map(|n| {
                     let bare = n.trim().trim_start_matches('[').trim_end_matches(']');
-                    t.column_by_name(bare).ok_or_else(|| Fail(format!("{} has no column {}", quote_table(&t.name), quote_name(bare))))
+                    t.column_by_name(bare).ok_or_else(|| {
+                        Fail(format!(
+                            "{} has no column {}",
+                            quote_table(&t.name),
+                            quote_name(bare)
+                        ))
+                    })
                 })
                 .collect::<Res<_>>()?
         };
         let groups: Vec<Projection> = cols
             .iter()
             .map(|c| Projection {
-                field: FieldRef::Column { table: t.id.clone(), column: c.id.clone() },
+                field: FieldRef::Column {
+                    table: t.id.clone(),
+                    column: c.id.clone(),
+                },
                 aggregation: None,
                 display_name: None,
             })
             .collect();
-        let header = cols.iter().map(|c| quote_name(&c.name)).collect::<Vec<_>>().join(", ");
-        let q = VisualQuery { groups, limit: Some(limit as u32), ..Default::default() };
-        Ok((s.database().clone(), visualq::compile(m, s.schema(), &q)?.sql, header))
+        let header = cols
+            .iter()
+            .map(|c| quote_name(&c.name))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let q = VisualQuery {
+            groups,
+            limit: Some(limit as u32),
+            ..Default::default()
+        };
+        Ok((
+            s.database().clone(),
+            visualq::compile(m, s.schema(), &q)?.sql,
+            header,
+        ))
     })?;
-    Done::read(format!("g0… are {header}\n{}", rows_text(db.json_rows(&sql, Some(limit))?, limit)))
+    Done::read(format!(
+        "g0… are {header}\n{}",
+        rows_text(db.json_rows(&sql, Some(limit))?, limit)
+    ))
 }
 
 fn distinct_values(cx: &Cx, args: &Value) -> Res<Done> {
-    let limit = args.get("limit").and_then(Value::as_u64).unwrap_or(50).clamp(1, 100) as u32;
+    let limit = args
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(50)
+        .clamp(1, 100) as u32;
     let (db, sql) = cx.with_model(|m, s| {
         let p = names::field(m, str_arg(args, "field")?)?;
-        let sql = visualq::field_values_sql(m, s.schema(), &p, &[], &[], opt_str(args, "search"), limit)?;
+        let sql =
+            visualq::field_values_sql(m, s.schema(), &p, &[], &[], opt_str(args, "search"), limit)?;
         Ok((s.database().clone(), sql))
     })?;
     let v = visualq::run_field_values(&db, &sql)?;
-    let list = v.values.iter().map(|x| x.value.to_string()).collect::<Vec<_>>().join(", ");
+    let list = v
+        .values
+        .iter()
+        .map(|x| x.value.to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
     Done::read(format!("{} values in all; {list}", v.total))
 }

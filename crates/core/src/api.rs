@@ -635,8 +635,7 @@ impl App {
             Request::UndoGroup { group } => {
                 if !self.session_mut()?.undo_group(&group)? {
                     return Err(CoreError::Invalid(
-                        "the agent's changes aren't the latest any more; undo step by step"
-                            .into(),
+                        "the agent's changes aren't the latest any more; undo step by step".into(),
                     ));
                 }
             }

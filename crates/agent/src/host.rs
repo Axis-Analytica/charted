@@ -23,7 +23,12 @@ use crate::transcript::{Item, Transcript, TurnRecord, TurnStatus};
 /// The agent's refusals as API errors; `consent` asks the window for the user's consent.
 pub fn api_error(message: String) -> charted_core::ApiError {
     charted_core::ApiError {
-        code: if message == "consent" { "consent" } else { "agent" }.into(),
+        code: if message == "consent" {
+            "consent"
+        } else {
+            "agent"
+        }
+        .into(),
         message,
         detail: None,
     }
@@ -34,12 +39,16 @@ pub const MAX_TURNS: u32 = 40;
 
 /// What the host tells the window.
 pub enum Push {
-    State(AppState),
+    State(Box<AppState>),
     Agent(AgentEvent),
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
-#[serde(tag = "kind", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum AgentEvent {
     /// A request's record changed (a step, text, a question, the end).
@@ -81,7 +90,11 @@ pub struct AgentStatus {
 
 /// What the window asks of the agent.
 #[derive(Debug, Clone, Deserialize, TS)]
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 #[ts(export)]
 pub enum AgentRequest {
     Status,
@@ -95,13 +108,23 @@ pub enum AgentRequest {
     },
     Stop,
     /// An answer to a question (a delete).
-    Answer { id: String, allow: bool },
+    Answer {
+        id: String,
+        allow: bool,
+    },
     NewChat,
-    SetData { on: bool },
-    SetAgent { agent: String, model: String },
+    SetData {
+        on: bool,
+    },
+    SetAgent {
+        agent: String,
+        model: String,
+    },
     Consent,
     /// Opens the agent in a terminal with charted's tools (agents that can't run here).
-    OpenTerminal { text: String },
+    OpenTerminal {
+        text: String,
+    },
 }
 
 const AGENTS: &[(&str, &str, bool)] = &[
@@ -119,16 +142,17 @@ const AGENTS: &[(&str, &str, bool)] = &[
 ];
 
 fn on_path(cmd: &str) -> bool {
-    std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(cmd).is_file()))
+    std::env::var_os("PATH")
+        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(cmd).is_file()))
 }
 
-/// The agents installed. `CHARTED_AGENT_CMD` (the end-to-end tests' stand-in) counts as
-/// Claude Code.
+/// The agents installed. `CHARTED_AGENT_CMD` (the tests' stand-in) is Claude Code.
 pub fn installed() -> Vec<AgentInfo> {
+    // With the stand-in, nothing real is offered: a test never starts a real agent.
     let fake = std::env::var_os("CHARTED_AGENT_CMD").is_some();
     AGENTS
         .iter()
-        .filter(|(c, _, _)| on_path(c) || (fake && *c == "claude"))
+        .filter(|(c, _, _)| if fake { *c == "claude" } else { on_path(c) })
         .map(|(c, l, h)| AgentInfo {
             name: c.to_string(),
             label: l.to_string(),
@@ -192,11 +216,20 @@ impl Turn for TurnCtx {
         self.data
     }
     fn confirm(&self, what: &str) -> bool {
-        let Some(host) = self.host.upgrade() else { return false };
+        let Some(host) = self.host.upgrade() else {
+            return false;
+        };
         let id = uuid::Uuid::new_v4().to_string();
         let (tx, rx) = channel();
         host.lock().pending.insert(id.clone(), tx);
-        host.record(&self.turn, Item::Confirm { id: id.clone(), what: what.into(), answer: None });
+        host.record(
+            &self.turn,
+            Item::Confirm {
+                id: id.clone(),
+                what: what.into(),
+                answer: None,
+            },
+        );
         let allow = rx.recv().unwrap_or(false);
         host.update_turn(&self.turn, |t| {
             for item in &mut t.items {
@@ -211,7 +244,7 @@ impl Turn for TurnCtx {
     }
     fn changed(&self, state: &AppState) {
         if let Some(host) = self.host.upgrade() {
-            (host.emit)(Push::State(state.clone()));
+            (host.emit)(Push::State(Box::new(state.clone())));
         }
     }
 }
@@ -224,7 +257,11 @@ fn runtime_dir(state_dir: &Path) -> PathBuf {
 }
 
 fn token() -> String {
-    format!("{}{}", uuid::Uuid::new_v4().simple(), uuid::Uuid::new_v4().simple())
+    format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    )
 }
 
 fn alive(pid: i32) -> bool {
@@ -234,15 +271,28 @@ fn alive(pid: i32) -> bool {
 
 impl Host {
     /// Starts the control socket. `emit` passes what the host pushes to the window.
-    pub fn start(app: Arc<Mutex<App>>, emit: impl Fn(Push) + Send + Sync + 'static) -> std::io::Result<Arc<Host>> {
+    pub fn start(
+        app: Arc<Mutex<App>>,
+        emit: impl Fn(Push) + Send + Sync + 'static,
+    ) -> std::io::Result<Arc<Host>> {
         use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
-        let state_dir = app.lock().unwrap_or_else(|p| p.into_inner()).state_dir().to_path_buf();
+        let state_dir = app
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .state_dir()
+            .to_path_buf();
         let dir = runtime_dir(&state_dir);
-        std::fs::DirBuilder::new().recursive(true).mode(0o700).create(&dir)?;
+        std::fs::DirBuilder::new()
+            .recursive(true)
+            .mode(0o700)
+            .create(&dir)?;
         // Sockets of charted windows that have gone.
         for e in std::fs::read_dir(&dir)?.flatten() {
             let p = e.path();
-            if let Some(pid) = p.file_stem().and_then(|s| s.to_str()).and_then(|s| s.parse::<i32>().ok())
+            if let Some(pid) = p
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .and_then(|s| s.parse::<i32>().ok())
                 && p.extension().is_some_and(|x| x == "sock")
                 && !alive(pid)
             {
@@ -257,7 +307,12 @@ impl Host {
             app,
             emit: Box::new(emit),
             socket,
-            inner: Mutex::new(Inner { tokens: HashMap::new(), running: None, chat: None, pending: HashMap::new() }),
+            inner: Mutex::new(Inner {
+                tokens: HashMap::new(),
+                running: None,
+                chat: None,
+                pending: HashMap::new(),
+            }),
             me: me.clone(),
         });
         let weak = Arc::downgrade(&host);
@@ -335,11 +390,16 @@ impl Host {
             .filter(|a| agents.iter().any(|x| &x.name == a))
             .or_else(|| omarchy_default().filter(|a| agents.iter().any(|x| &x.name == a)))
             .or_else(|| agents.first().map(|a| a.name.clone()));
-        let data = self.project_dir().is_some_and(|d| ProjectSettings::load(&d).data);
+        let data = self
+            .project_dir()
+            .is_some_and(|d| ProjectSettings::load(&d).data);
         let running = self.lock().running.is_some();
         let turns = self.with_chat(|c| c.turns.clone()).unwrap_or_default();
         AgentStatus {
-            model: agent.as_ref().and_then(|a| user.models.get(a).cloned()).unwrap_or_default(),
+            model: agent
+                .as_ref()
+                .and_then(|a| user.models.get(a).cloned())
+                .unwrap_or_default(),
             consented: agent.as_ref().is_some_and(|a| user.consent.contains_key(a)),
             agent,
             agents,
@@ -359,7 +419,11 @@ impl Host {
     pub fn handle(&self, req: AgentRequest) -> Result<AgentStatus, String> {
         match req {
             AgentRequest::Status => {}
-            AgentRequest::Send { text, page, visuals } => self.send(&text, page.as_deref(), &visuals)?,
+            AgentRequest::Send {
+                text,
+                page,
+                visuals,
+            } => self.send(&text, page.as_deref(), &visuals)?,
             AgentRequest::Stop => self.stop(),
             AgentRequest::Answer { id, allow } => {
                 if let Some(tx) = self.lock().pending.remove(&id) {
@@ -391,7 +455,9 @@ impl Host {
                 let sd = self.state_dir();
                 let mut u = UserSettings::load(&sd);
                 let agent = self.status().agent.ok_or("no agent is installed")?;
-                let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs());
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| d.as_secs());
                 u.consent.insert(agent, now);
                 u.save(&sd);
             }
@@ -421,9 +487,19 @@ impl Host {
         let shown: Vec<String> = visuals
             .iter()
             .filter_map(|id| p.visual(id))
-            .map(|v| format!("\"{}\" ({}, id {})", charted_core::visualq::visual_title(m, v), v.visual_type, v.id))
+            .map(|v| {
+                format!(
+                    "\"{}\" ({}, id {})",
+                    charted_core::visualq::visual_title(m, v),
+                    v.visual_type,
+                    v.id
+                )
+            })
             .collect();
-        let mut agent = format!("The user is on the page \"{}\" (id {}).", p.settings.name, p.id);
+        let mut agent = format!(
+            "The user is on the page \"{}\" (id {}).",
+            p.settings.name, p.id
+        );
         if !shown.is_empty() {
             agent.push_str(&format!(" Selected: {}.", shown.join(", ")));
         }
@@ -449,13 +525,28 @@ impl Host {
         if !status.consented {
             return Err("consent".into());
         }
-        let info = status.agents.iter().find(|a| a.name == agent).ok_or("that agent isn't installed")?;
+        let info = status
+            .agents
+            .iter()
+            .find(|a| a.name == agent)
+            .ok_or("that agent isn't installed")?;
         if !info.headless {
-            return Err(format!("{} runs in a terminal; use Open in terminal", info.label));
+            return Err(format!(
+                "{} runs in a terminal; use Open in terminal",
+                info.label
+            ));
         }
         let first = text.lines().next().unwrap_or(text);
         let short: String = first.chars().take(48).collect();
-        let label = format!("Agent: {}{}", short, if first.chars().count() > 48 { "…" } else { "" });
+        let label = format!(
+            "Agent: {}{}",
+            short,
+            if first.chars().count() > 48 {
+                "…"
+            } else {
+                ""
+            }
+        );
         let turn_id = uuid::Uuid::new_v4().to_string();
         let ctx = self.context(page, visuals);
         let record = TurnRecord {
@@ -479,15 +570,23 @@ impl Host {
             None => text.to_string(),
         };
         let mut cmd = self.command(&agent, &status.model, session.flatten(), &tok, &dir)?;
-        cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped());
-        let mut child = cmd.spawn().map_err(|e| format!("couldn't start {agent}: {e}"))?;
+        cmd.stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        let mut child = cmd
+            .spawn()
+            .map_err(|e| format!("couldn't start {agent}: {e}"))?;
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(prompt.as_bytes());
         }
         let stdout = child.stdout.take().expect("piped");
         let stderr = child.stderr.take().expect("piped");
         let child = Arc::new(Mutex::new(child));
-        self.lock().running = Some(Running { turn: turn_id.clone(), child: child.clone(), stopped: false });
+        self.lock().running = Some(Running {
+            turn: turn_id.clone(),
+            child: child.clone(),
+            stopped: false,
+        });
         (self.emit)(Push::Agent(AgentEvent::Turn { turn: record }));
         let me = self.me.clone();
         let err_tail = Arc::new(Mutex::new(String::new()));
@@ -507,7 +606,11 @@ impl Host {
             });
         }
         std::thread::spawn(move || {
-            let parse = if agent == "codex" { stream::codex } else { stream::claude };
+            let parse = if agent == "codex" {
+                stream::codex
+            } else {
+                stream::claude
+            };
             let mut finished: Option<(bool, Option<String>)> = None;
             for line in BufReader::new(stdout).lines().map_while(Result::ok) {
                 let Some(h) = me.upgrade() else { return };
@@ -548,10 +651,17 @@ impl Host {
             let message = match (&finished, status) {
                 (Some((false, Some(m))), TurnStatus::Failed) => Some(m.clone()),
                 (None, TurnStatus::Failed) => {
-                    let tail = err_tail.lock().unwrap_or_else(|p| p.into_inner()).trim().to_string();
+                    let tail = err_tail
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner())
+                        .trim()
+                        .to_string();
                     Some(match tail.lines().last() {
                         Some(l) => format!("{agent} stopped: {l}"),
-                        None => format!("{agent} stopped ({})", code.map_or("no exit code".into(), |c| c.to_string())),
+                        None => format!(
+                            "{agent} stopped ({})",
+                            code.map_or("no exit code".into(), |c| c.to_string())
+                        ),
                     })
                 }
                 _ => None,
@@ -568,16 +678,29 @@ impl Host {
     }
 
     /// The command that runs `agent` for one request.
-    fn command(&self, agent: &str, model: &str, session: Option<String>, tok: &str, project: &Path) -> Result<Command, String> {
+    fn command(
+        &self,
+        agent: &str,
+        model: &str,
+        session: Option<String>,
+        tok: &str,
+        project: &Path,
+    ) -> Result<Command, String> {
         let work = crate::transcript::dir(project).join("work");
         std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
         let exe = std::env::var_os("CHARTED_AGENT_MCP")
             .map(PathBuf::from)
             .or_else(|| std::env::current_exe().ok())
             .ok_or("can't find charted's own program")?;
-        let mcp_args = vec!["mcp".to_string(), "--socket".to_string(), self.socket.display().to_string()];
+        let mcp_args = vec![
+            "mcp".to_string(),
+            "--socket".to_string(),
+            self.socket.display().to_string(),
+        ];
         let prompt = include_str!("prompt.md");
-        let fake = std::env::var("CHARTED_AGENT_CMD").ok().filter(|_| agent == "claude");
+        let fake = std::env::var("CHARTED_AGENT_CMD")
+            .ok()
+            .filter(|_| agent == "claude");
         let mut cmd = match (agent, fake) {
             ("claude", fake) => {
                 let config = json!({ "mcpServers": { "charted": { "command": exe, "args": mcp_args, "env": { "CHARTED_AGENT_TOKEN": tok } } } });
@@ -593,8 +716,19 @@ impl Host {
                 c.args(["-p", "--output-format", "stream-json", "--verbose"])
                     .arg("--mcp-config")
                     .arg(config.to_string())
-                    .args(["--strict-mcp-config", "--tools", "", "--allowedTools", "mcp__charted__*"])
-                    .args(["--permission-mode", "dontAsk", "--setting-sources", "project"])
+                    .args([
+                        "--strict-mcp-config",
+                        "--tools",
+                        "",
+                        "--allowedTools",
+                        "mcp__charted__*",
+                    ])
+                    .args([
+                        "--permission-mode",
+                        "dontAsk",
+                        "--setting-sources",
+                        "project",
+                    ])
                     .arg("--max-turns")
                     .arg(MAX_TURNS.to_string())
                     .arg("--append-system-prompt")
@@ -616,20 +750,40 @@ impl Host {
                 }
                 c.args(["--json", "--skip-git-repo-check", "-s", "read-only"]);
                 for f in [
-                    "shell_tool", "unified_exec", "view_image", "apps", "plugins", "browser_use", "browser_use_external",
-                    "computer_use", "image_generation", "multi_agent", "in_app_browser",
+                    "shell_tool",
+                    "unified_exec",
+                    "view_image",
+                    "apps",
+                    "plugins",
+                    "browser_use",
+                    "browser_use_external",
+                    "computer_use",
+                    "image_generation",
+                    "multi_agent",
+                    "in_app_browser",
                 ] {
                     c.args(["--disable", f]);
                 }
                 let toml = |v: &str| serde_json::to_string(v).expect("a string");
                 c.arg("-c").arg("approval_policy=\"never\"");
-                c.arg("-c").arg(format!("mcp_servers.charted.command={}", toml(&exe.display().to_string())));
+                c.arg("-c").arg(format!(
+                    "mcp_servers.charted.command={}",
+                    toml(&exe.display().to_string())
+                ));
                 c.arg("-c").arg(format!(
                     "mcp_servers.charted.args=[{}]",
-                    mcp_args.iter().map(|a| toml(a)).collect::<Vec<_>>().join(",")
+                    mcp_args
+                        .iter()
+                        .map(|a| toml(a))
+                        .collect::<Vec<_>>()
+                        .join(",")
                 ));
-                c.arg("-c").arg(format!("mcp_servers.charted.env={{CHARTED_AGENT_TOKEN={}}}", toml(tok)));
-                c.arg("-c").arg(format!("developer_instructions={}", toml(prompt)));
+                c.arg("-c").arg(format!(
+                    "mcp_servers.charted.env={{CHARTED_AGENT_TOKEN={}}}",
+                    toml(tok)
+                ));
+                c.arg("-c")
+                    .arg(format!("developer_instructions={}", toml(prompt)));
                 if !model.is_empty() {
                     c.args(["-m", model]);
                 }
@@ -642,14 +796,24 @@ impl Host {
         // A charted started from an agent's terminal mustn't pass that agent's session on.
         for (k, _) in std::env::vars_os() {
             let k = k.to_string_lossy().to_string();
-            if k == "CLAUDECODE" || k == "CLAUDE_PID" || k == "CLAUDE_EFFORT" || k.starts_with("CLAUDE_CODE_") {
+            if k == "CLAUDECODE"
+                || k == "CLAUDE_PID"
+                || k == "CLAUDE_EFFORT"
+                || k.starts_with("CLAUDE_CODE_")
+            {
                 cmd.env_remove(&k);
             }
         }
         // The account Omarchy has active for the agent.
-        let home_env = if agent == "codex" { "CODEX_HOME" } else { "CLAUDE_CONFIG_DIR" };
+        let home_env = if agent == "codex" {
+            "CODEX_HOME"
+        } else {
+            "CLAUDE_CONFIG_DIR"
+        };
         if std::env::var_os(home_env).is_none()
-            && let Ok(out) = Command::new("omarchy-agent-account-home").arg(agent).output()
+            && let Ok(out) = Command::new("omarchy-agent-account-home")
+                .arg(agent)
+                .output()
         {
             let home = String::from_utf8_lossy(&out.stdout).trim().to_string();
             if !home.is_empty() {
@@ -681,7 +845,9 @@ impl Host {
     pub fn stop(&self) {
         let child = {
             let mut inner = self.lock();
-            let Some(r) = inner.running.as_mut() else { return };
+            let Some(r) = inner.running.as_mut() else {
+                return;
+            };
             r.stopped = true;
             let turn = r.turn.clone();
             let child = r.child.clone();
@@ -718,15 +884,25 @@ impl Host {
         std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
         let server = json!({ "command": exe, "args": ["mcp", "--socket", self.socket], "env": { "CHARTED_AGENT_TOKEN": tok } });
         // Project-local MCP settings, in the forms the agents read.
-        let _ = std::fs::write(work.join(".mcp.json"), json!({ "mcpServers": { "charted": server } }).to_string());
+        let _ = std::fs::write(
+            work.join(".mcp.json"),
+            json!({ "mcpServers": { "charted": server } }).to_string(),
+        );
         let _ = std::fs::create_dir_all(work.join(".cursor"));
-        let _ = std::fs::write(work.join(".cursor/mcp.json"), json!({ "mcpServers": { "charted": server } }).to_string());
+        let _ = std::fs::write(
+            work.join(".cursor/mcp.json"),
+            json!({ "mcpServers": { "charted": server } }).to_string(),
+        );
         let _ = std::fs::write(
             work.join("opencode.json"),
             json!({ "mcp": { "charted": { "type": "local", "command": [exe, "mcp", "--socket", self.socket], "environment": { "CHARTED_AGENT_TOKEN": tok } } } }).to_string(),
         );
         let _ = std::fs::write(work.join("AGENTS.md"), include_str!("prompt.md"));
-        let prompt = if text.trim().is_empty() { "Use charted's tools to help me with my report.".to_string() } else { text.to_string() };
+        let prompt = if text.trim().is_empty() {
+            "Use charted's tools to help me with my report.".to_string()
+        } else {
+            text.to_string()
+        };
         Command::new("omarchy-agent-prompt")
             .arg(prompt)
             .current_dir(&work)
@@ -740,20 +916,32 @@ impl Host {
         let Ok(read) = conn.try_clone() else { return };
         let mut out = conn;
         let mut lines = BufReader::new(read).lines();
-        let Some(Ok(hello)) = lines.next() else { return };
-        let tok = serde_json::from_str::<Value>(&hello).ok().and_then(|v| v["hello"].as_str().map(str::to_string));
+        let Some(Ok(hello)) = lines.next() else {
+            return;
+        };
+        let tok = serde_json::from_str::<Value>(&hello)
+            .ok()
+            .and_then(|v| v["hello"].as_str().map(str::to_string));
         let ctx = tok.and_then(|t| self.lock().tokens.get(&t).cloned());
         let Some(ctx) = ctx else {
-            let _ = writeln!(out, "{}", json!({ "error": "charted didn't recognise this agent; start it from charted's Agent pane" }));
+            let _ = writeln!(
+                out,
+                "{}",
+                json!({ "error": "charted didn't recognise this agent; start it from charted's Agent pane" })
+            );
             return;
         };
         let _ = writeln!(out, "{}", json!({ "ok": true }));
         for line in lines.map_while(Result::ok) {
-            let Ok(req) = serde_json::from_str::<Value>(&line) else { continue };
+            let Ok(req) = serde_json::from_str::<Value>(&line) else {
+                continue;
+            };
             let id = req["id"].clone();
             let live = self.lock().tokens.values().any(|c| Arc::ptr_eq(c, &ctx));
             let result = match req["method"].as_str() {
-                _ if !live => json!({ "content": [{ "type": "text", "text": "The user stopped this request; stop working." }], "isError": true }),
+                _ if !live => {
+                    json!({ "content": [{ "type": "text", "text": "The user stopped this request; stop working." }], "isError": true })
+                }
                 Some("tools/list") => {
                     let list: Vec<Value> = tools::list()
                         .into_iter()
@@ -768,11 +956,21 @@ impl Host {
                     let args = if args.is_null() { json!({}) } else { args };
                     let o = tools::call(&self.app, &*ctx, name, &args);
                     if let Some(step) = o.step {
-                        self.record(&ctx.turn, Item::Step { step: Step { tool: name.into(), ..step } });
+                        self.record(
+                            &ctx.turn,
+                            Item::Step {
+                                step: Step {
+                                    tool: name.into(),
+                                    ..step
+                                },
+                            },
+                        );
                     }
                     json!({ "content": [{ "type": "text", "text": o.text }], "isError": o.is_error })
                 }
-                _ => json!({ "content": [{ "type": "text", "text": "unknown method" }], "isError": true }),
+                _ => {
+                    json!({ "content": [{ "type": "text", "text": "unknown method" }], "isError": true })
+                }
             };
             if writeln!(out, "{}", json!({ "id": id, "result": result })).is_err() {
                 break;

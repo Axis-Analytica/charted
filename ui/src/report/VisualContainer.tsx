@@ -29,6 +29,7 @@ import type { Projection } from "../bridge/generated/Projection";
 import type { Visual } from "../bridge/generated/Visual";
 import { msg, useLanguage, useT } from "../i18n";
 import { Spinner } from "../kit/misc";
+import { useAgent } from "../state/agent";
 import { useApp } from "../state/app";
 import { drillInto, drillNext, drillUp, expandDown, hierarchy, useDrillMode } from "../state/drill";
 import { drillTargets, drillThrough } from "../state/drillthrough";
@@ -130,6 +131,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const setReport = useReport((s) => s.set);
   const editingInteractions = useReport((s) => s.editInteractions);
   const chosenVisuals = useReport((s) => s.selected);
+  const touched = useAgent((s) => (s.touched[visual.id] ?? 0) > Date.now());
   const ref = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState(false);
   const [pointMenu, setPointMenu] = useState<PointMenu | null>(null);
@@ -274,7 +276,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
       aria-label={title || (def ? t(def.label) : visual.visualType)}
       aria-selected={standalone ? undefined : selected}
       tabIndex={-1}
-      className={`visual ${standalone ? "is-standalone" : ""} ${selected && !standalone ? "is-selected" : ""} ${bg ? "has-bg" : ""} ${bg && border ? "has-border" : ""}`}
+      className={`visual ${standalone ? "is-standalone" : ""} ${selected && !standalone ? "is-selected" : ""} ${bg ? "has-bg" : ""} ${bg && border ? "has-border" : ""} ${touched ? "is-agent-touched" : ""}`}
       style={style}
       onPointerDown={standalone ? undefined : onPointerDown}
     >

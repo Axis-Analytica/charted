@@ -3,12 +3,16 @@
 
 use charted_core::visualq;
 use charted_model::{
-    CalculationGroup, CalculationItem, Cardinality, Change, Column, ColumnKind, ColumnProperty, CrossFilter, DataType,
-    ExpressionLanguage, FieldRef, Hierarchy, Level, Measure, Model, Relationship, Role, RoleFilter, Summarize, Table,
+    CalculationGroup, CalculationItem, Cardinality, Change, Column, ColumnKind, ColumnProperty,
+    CrossFilter, DataType, ExpressionLanguage, FieldRef, Hierarchy, Level, Measure, Model,
+    Relationship, Role, RoleFilter, Summarize, Table,
 };
 use serde_json::{Value, json};
 
-use super::{Cx, Done, Fail, Res, Step, ToolDef, action, diagnostics, fail, opt_bool, opt_str, schema, str_arg, str_list};
+use super::{
+    Cx, Done, Fail, Res, Step, ToolDef, action, diagnostics, fail, opt_bool, opt_str, schema,
+    str_arg, str_list,
+};
 use crate::builders::{self, NumericParameter, new_id};
 use crate::names::{self, quote_name, quote_table};
 
@@ -140,15 +144,26 @@ fn uses(m: &Model, f: &FieldRef, name: &str) -> Vec<String> {
     let mut out = Vec::new();
     for p in &m.report.pages {
         for v in &p.visuals {
-            if v.roles.values().flatten().chain(v.filters.iter().map(|x| &x.field)).any(|x| &x.field == f) {
-                out.push(format!("visual \"{}\" on \"{}\"", visualq::visual_title(m, v), p.settings.name));
+            if v.roles
+                .values()
+                .flatten()
+                .chain(v.filters.iter().map(|x| &x.field))
+                .any(|x| &x.field == f)
+            {
+                out.push(format!(
+                    "visual \"{}\" on \"{}\"",
+                    visualq::visual_title(m, v),
+                    p.settings.name
+                ));
             }
         }
     }
     let needle = quote_name(name).to_lowercase();
     for t in &m.tables {
         for me in &t.measures {
-            if !matches!(f, FieldRef::Measure { measure, .. } if *measure == me.id) && me.expression.to_lowercase().contains(&needle) {
+            if !matches!(f, FieldRef::Measure { measure, .. } if *measure == me.id)
+                && me.expression.to_lowercase().contains(&needle)
+            {
                 out.push(format!("measure {}", quote_name(&me.name)));
             }
         }
@@ -157,7 +172,11 @@ fn uses(m: &Model, f: &FieldRef, name: &str) -> Vec<String> {
                 && !matches!(f, FieldRef::Column { column, .. } if *column == c.id)
                 && expression.to_lowercase().contains(&needle)
             {
-                out.push(format!("column {}{}", quote_table(&t.name), quote_name(&c.name)));
+                out.push(format!(
+                    "column {}{}",
+                    quote_table(&t.name),
+                    quote_name(&c.name)
+                ));
             }
         }
     }
@@ -168,7 +187,9 @@ fn confirm_or_fail(cx: &Cx, what: &str) -> Res<()> {
     if cx.turn.confirm(what) {
         Ok(())
     } else {
-        fail(format!("the user didn't allow this ({what}); leave it as it is"))
+        fail(format!(
+            "the user didn't allow this ({what}); leave it as it is"
+        ))
     }
 }
 
@@ -182,13 +203,24 @@ fn find_measure<'a>(m: &'a Model, args: &Value) -> Res<(&'a Table, &'a Measure)>
     match names::resolve(m, &spec)?.field {
         FieldRef::Measure { table, measure } => {
             let t = m.table(&table).expect("resolved");
-            Ok((t, t.measures.iter().find(|x| x.id == measure).expect("resolved")))
+            Ok((
+                t,
+                t.measures
+                    .iter()
+                    .find(|x| x.id == measure)
+                    .expect("resolved"),
+            ))
         }
         _ => fail(format!("{name} is a column, not a measure")),
     }
 }
 
-fn check_measure(m: &Model, s: &charted_core::session::Session, src: &str, id: Option<&str>) -> Res<()> {
+fn check_measure(
+    m: &Model,
+    s: &charted_core::session::Session,
+    src: &str,
+    id: Option<&str>,
+) -> Res<()> {
     match diagnostics(src, &visualq::check_dax(m, s.schema(), src, id).diagnostics) {
         Some(d) => fail(format!("the DAX doesn't check: {d}")),
         None => Ok(()),
@@ -196,8 +228,12 @@ fn check_measure(m: &Model, s: &charted_core::session::Session, src: &str, id: O
 }
 
 fn name_taken(t: &Table, name: &str, except: Option<&str>) -> bool {
-    t.columns.iter().any(|c| Some(c.id.as_str()) != except && c.name.eq_ignore_ascii_case(name))
-        || t.measures.iter().any(|x| Some(x.id.as_str()) != except && x.name.eq_ignore_ascii_case(name))
+    t.columns
+        .iter()
+        .any(|c| Some(c.id.as_str()) != except && c.name.eq_ignore_ascii_case(name))
+        || t.measures
+            .iter()
+            .any(|x| Some(x.id.as_str()) != except && x.name.eq_ignore_ascii_case(name))
 }
 
 fn measure(cx: &Cx, args: &Value) -> Res<Done> {
@@ -205,25 +241,59 @@ fn measure(cx: &Cx, args: &Value) -> Res<Done> {
     if act == "remove" {
         let (t, id, name, used) = cx.with_model(|m, _| {
             let (t, me) = find_measure(m, args)?;
-            let f = FieldRef::Measure { table: t.id.clone(), measure: me.id.clone() };
-            Ok((t.id.clone(), me.id.clone(), me.name.clone(), uses(m, &f, &me.name)))
+            let f = FieldRef::Measure {
+                table: t.id.clone(),
+                measure: me.id.clone(),
+            };
+            Ok((
+                t.id.clone(),
+                me.id.clone(),
+                me.name.clone(),
+                uses(m, &f, &me.name),
+            ))
         })?;
         if !used.is_empty() {
-            confirm_or_fail(cx, &format!("Delete the measure {} (used by {})", quote_name(&name), used.join(", ")))?;
+            confirm_or_fail(
+                cx,
+                &format!(
+                    "Delete the measure {} (used by {})",
+                    quote_name(&name),
+                    used.join(", ")
+                ),
+            )?;
         }
         return cx.change(|_, _| {
             Ok((
-                vec![Change::RemoveMeasure { table: t.clone(), measure: id.clone() }],
-                Done { text: format!("Removed the measure {}.", quote_name(&name)), step: Some(Step::new("Removed measure %1", &[&quote_name(&name)])) },
+                vec![Change::RemoveMeasure {
+                    table: t.clone(),
+                    measure: id.clone(),
+                }],
+                Done {
+                    text: format!("Removed the measure {}.", quote_name(&name)),
+                    step: Some(Step::new("Removed measure %1", &[&quote_name(&name)])),
+                },
             ))
         });
     }
     cx.change(|m, s| match act {
         "add" => {
             let t = names::find_table(m, str_arg(args, "table")?)?;
-            let name = str_arg(args, "name")?.trim().trim_start_matches('[').trim_end_matches(']').to_string();
-            if name_taken(t, &name, None) || m.tables.iter().any(|x| x.measures.iter().any(|me| me.name.eq_ignore_ascii_case(&name))) {
-                return fail(format!("there's a measure or column {} already; update it or pick another name", quote_name(&name)));
+            let name = str_arg(args, "name")?
+                .trim()
+                .trim_start_matches('[')
+                .trim_end_matches(']')
+                .to_string();
+            if name_taken(t, &name, None)
+                || m.tables.iter().any(|x| {
+                    x.measures
+                        .iter()
+                        .any(|me| me.name.eq_ignore_ascii_case(&name))
+                })
+            {
+                return fail(format!(
+                    "there's a measure or column {} already; update it or pick another name",
+                    quote_name(&name)
+                ));
             }
             let expr = str_arg(args, "expression")?.trim().to_string();
             check_measure(m, s, &expr, None)?;
@@ -239,9 +309,17 @@ fn measure(cx: &Cx, args: &Value) -> Res<Done> {
                 extras: Default::default(),
             };
             Ok((
-                vec![Change::AddMeasure { table: t.id.clone(), measure: me, index: None }],
+                vec![Change::AddMeasure {
+                    table: t.id.clone(),
+                    measure: me,
+                    index: None,
+                }],
                 Done {
-                    text: format!("Added the measure {} to {}.", quote_name(&name), quote_table(&t.name)),
+                    text: format!(
+                        "Added the measure {} to {}.",
+                        quote_name(&name),
+                        quote_table(&t.name)
+                    ),
                     step: Some(Step::new("Added measure %1", &[&quote_name(&name)]).detail(expr)),
                 },
             ))
@@ -250,7 +328,11 @@ fn measure(cx: &Cx, args: &Value) -> Res<Done> {
             let (t, old) = find_measure(m, args)?;
             let mut me = old.clone();
             if act == "rename" {
-                let n = str_arg(args, "new_name")?.trim().trim_start_matches('[').trim_end_matches(']').to_string();
+                let n = str_arg(args, "new_name")?
+                    .trim()
+                    .trim_start_matches('[')
+                    .trim_end_matches(']')
+                    .to_string();
                 if name_taken(t, &n, Some(&me.id)) {
                     return fail(format!("{} is taken", quote_name(&n)));
                 }
@@ -276,8 +358,14 @@ fn measure(cx: &Cx, args: &Value) -> Res<Done> {
             let shown = quote_name(&me.name);
             let detail = me.expression.clone();
             Ok((
-                vec![Change::UpdateMeasure { table: t.id.clone(), measure: me }],
-                Done { text: format!("Updated the measure {shown}."), step: Some(Step::new("Changed measure %1", &[&shown]).detail(detail)) },
+                vec![Change::UpdateMeasure {
+                    table: t.id.clone(),
+                    measure: me,
+                }],
+                Done {
+                    text: format!("Updated the measure {shown}."),
+                    step: Some(Step::new("Changed measure %1", &[&shown]).detail(detail)),
+                },
             ))
         }
     })
@@ -315,12 +403,21 @@ fn column(cx: &Cx, args: &Value) -> Res<Done> {
             Ok((t.id.clone(), c.id.clone(), format!("{}{}", quote_table(&t.name), quote_name(&c.name)), uses(m, &f, &c.name)))
         })?;
         if !used.is_empty() {
-            confirm_or_fail(cx, &format!("Delete the column {name} (used by {})", used.join(", ")))?;
+            confirm_or_fail(
+                cx,
+                &format!("Delete the column {name} (used by {})", used.join(", ")),
+            )?;
         }
         return cx.change(|_, _| {
             Ok((
-                vec![Change::RemoveColumn { table: t.clone(), column: c.clone() }],
-                Done { text: format!("Removed the column {name}."), step: Some(Step::new("Removed column %1", &[&name])) },
+                vec![Change::RemoveColumn {
+                    table: t.clone(),
+                    column: c.clone(),
+                }],
+                Done {
+                    text: format!("Removed the column {name}."),
+                    step: Some(Step::new("Removed column %1", &[&name])),
+                },
             ))
         });
     }
@@ -427,7 +524,10 @@ fn table(cx: &Cx, args: &Value) -> Res<Done> {
         return cx.change(|_, _| {
             Ok((
                 vec![Change::RemoveTable { table: id.clone() }],
-                Done { text: format!("Removed the table {}.", quote_table(&name)), step: Some(Step::new("Removed table %1", &[&quote_table(&name)])) },
+                Done {
+                    text: format!("Removed the table {}.", quote_table(&name)),
+                    step: Some(Step::new("Removed table %1", &[&quote_table(&name)])),
+                },
             ))
         });
     }
@@ -497,11 +597,18 @@ fn column_ref<'a>(m: &'a Model, src: &str) -> Res<(&'a Table, &'a Column)> {
     }
 }
 
-fn find_relationship<'a>(m: &'a Model, from: (&Table, &Column), to: (&Table, &Column)) -> Option<&'a Relationship> {
-    m.relationships.iter().find(|r| {
-        (r.from_column == from.1.id && r.to_column == to.1.id) || (r.from_column == to.1.id && r.to_column == from.1.id)
-    })
-    .filter(|_| from.0.id != to.0.id || true)
+fn find_relationship<'a>(
+    m: &'a Model,
+    from: (&Table, &Column),
+    to: (&Table, &Column),
+) -> Option<&'a Relationship> {
+    m.relationships
+        .iter()
+        .find(|r| {
+            (r.from_column == from.1.id && r.to_column == to.1.id)
+                || (r.from_column == to.1.id && r.to_column == from.1.id)
+        })
+        .filter(|_| from.0.id != to.0.id || true)
 }
 
 fn relationship(cx: &Cx, args: &Value) -> Res<Done> {
@@ -509,26 +616,50 @@ fn relationship(cx: &Cx, args: &Value) -> Res<Done> {
     let label = |m: &Model, r: &Relationship| {
         format!(
             "{} → {}",
-            names::format_field(m, &FieldRef::Column { table: r.from_table.clone(), column: r.from_column.clone() }),
-            names::format_field(m, &FieldRef::Column { table: r.to_table.clone(), column: r.to_column.clone() })
+            names::format_field(
+                m,
+                &FieldRef::Column {
+                    table: r.from_table.clone(),
+                    column: r.from_column.clone()
+                }
+            ),
+            names::format_field(
+                m,
+                &FieldRef::Column {
+                    table: r.to_table.clone(),
+                    column: r.to_column.clone()
+                }
+            )
         )
     };
     if act == "remove" {
         let (id, shown) = cx.with_model(|m, _| {
-            let (from, to) = (column_ref(m, str_arg(args, "from")?)?, column_ref(m, str_arg(args, "to")?)?);
-            let r = find_relationship(m, from, to).ok_or_else(|| Fail("there's no relationship between those columns".into()))?;
+            let (from, to) = (
+                column_ref(m, str_arg(args, "from")?)?,
+                column_ref(m, str_arg(args, "to")?)?,
+            );
+            let r = find_relationship(m, from, to)
+                .ok_or_else(|| Fail("there's no relationship between those columns".into()))?;
             Ok((r.id.clone(), label(m, r)))
         })?;
         confirm_or_fail(cx, &format!("Delete the relationship {shown}"))?;
         return cx.change(|_, _| {
             Ok((
-                vec![Change::RemoveRelationship { relationship: id.clone() }],
-                Done { text: format!("Removed the relationship {shown}."), step: Some(Step::new("Removed relationship %1", &[&shown])) },
+                vec![Change::RemoveRelationship {
+                    relationship: id.clone(),
+                }],
+                Done {
+                    text: format!("Removed the relationship {shown}."),
+                    step: Some(Step::new("Removed relationship %1", &[&shown])),
+                },
             ))
         });
     }
     cx.change(|m, _| {
-        let (from, to) = (column_ref(m, str_arg(args, "from")?)?, column_ref(m, str_arg(args, "to")?)?);
+        let (from, to) = (
+            column_ref(m, str_arg(args, "from")?)?,
+            column_ref(m, str_arg(args, "to")?)?,
+        );
         let existing = find_relationship(m, from, to);
         let mut r = match (act, existing) {
             ("add", Some(_)) => return fail("those columns are related already; use update"),
@@ -544,7 +675,8 @@ fn relationship(cx: &Cx, args: &Value) -> Res<Done> {
                 // Another active path between the tables makes this one inactive.
                 active: !m.relationships.iter().any(|x| {
                     x.active
-                        && ((x.from_table == from.0.id && x.to_table == to.0.id) || (x.from_table == to.0.id && x.to_table == from.0.id))
+                        && ((x.from_table == from.0.id && x.to_table == to.0.id)
+                            || (x.from_table == to.0.id && x.to_table == from.0.id))
                 }),
                 extras: Default::default(),
             },
@@ -552,10 +684,20 @@ fn relationship(cx: &Cx, args: &Value) -> Res<Done> {
             (_, None) => return fail("there's no relationship between those columns; use add"),
         };
         match opt_str(args, "cardinality") {
-            Some("one_to_one") => (r.from_cardinality, r.to_cardinality) = (Cardinality::One, Cardinality::One),
-            Some("many_to_many") => (r.from_cardinality, r.to_cardinality) = (Cardinality::Many, Cardinality::Many),
-            Some("many_to_one") => (r.from_cardinality, r.to_cardinality) = (Cardinality::Many, Cardinality::One),
-            Some(c) => return fail(format!("cardinality {c} isn't many_to_one, one_to_one or many_to_many")),
+            Some("one_to_one") => {
+                (r.from_cardinality, r.to_cardinality) = (Cardinality::One, Cardinality::One)
+            }
+            Some("many_to_many") => {
+                (r.from_cardinality, r.to_cardinality) = (Cardinality::Many, Cardinality::Many)
+            }
+            Some("many_to_one") => {
+                (r.from_cardinality, r.to_cardinality) = (Cardinality::Many, Cardinality::One)
+            }
+            Some(c) => {
+                return fail(format!(
+                    "cardinality {c} isn't many_to_one, one_to_one or many_to_many"
+                ));
+            }
             None => {}
         }
         match opt_str(args, "direction") {
@@ -568,13 +710,32 @@ fn relationship(cx: &Cx, args: &Value) -> Res<Done> {
             r.active = a;
         }
         let shown = label(m, &r);
-        let note = if r.active { "" } else { " It is inactive (another path joins those tables); USERELATIONSHIP uses it." };
-        let (change, op) = if act == "add" {
-            (Change::AddRelationship { relationship: r, index: None }, "Added relationship %1")
+        let note = if r.active {
+            ""
         } else {
-            (Change::UpdateRelationship { relationship: r }, "Changed relationship %1")
+            " It is inactive (another path joins those tables); USERELATIONSHIP uses it."
         };
-        Ok((vec![change], Done { text: format!("{}.{note}", op.replace("%1", &shown)), step: Some(Step::new(op, &[&shown])) }))
+        let (change, op) = if act == "add" {
+            (
+                Change::AddRelationship {
+                    relationship: r,
+                    index: None,
+                },
+                "Added relationship %1",
+            )
+        } else {
+            (
+                Change::UpdateRelationship { relationship: r },
+                "Changed relationship %1",
+            )
+        };
+        Ok((
+            vec![change],
+            Done {
+                text: format!("{}.{note}", op.replace("%1", &shown)),
+                step: Some(Step::new(op, &[&shown])),
+            },
+        ))
     })
 }
 
@@ -583,13 +744,22 @@ fn hierarchy(cx: &Cx, args: &Value) -> Res<Done> {
     cx.change(|m, _| {
         let t = names::find_table(m, str_arg(args, "table")?)?;
         let name = str_arg(args, "name")?.trim().to_string();
-        let existing = t.hierarchies.iter().find(|h| h.name.eq_ignore_ascii_case(&name));
+        let existing = t
+            .hierarchies
+            .iter()
+            .find(|h| h.name.eq_ignore_ascii_case(&name));
         let shown = format!("{}{}", quote_table(&t.name), quote_name(&name));
         if act == "remove" {
             let h = existing.ok_or_else(|| Fail(format!("there's no hierarchy {shown}")))?;
             return Ok((
-                vec![Change::RemoveHierarchy { table: t.id.clone(), hierarchy: h.id.clone() }],
-                Done { text: format!("Removed the hierarchy {shown}."), step: Some(Step::new("Removed hierarchy %1", &[&shown])) },
+                vec![Change::RemoveHierarchy {
+                    table: t.id.clone(),
+                    hierarchy: h.id.clone(),
+                }],
+                Done {
+                    text: format!("Removed the hierarchy {shown}."),
+                    step: Some(Step::new("Removed hierarchy %1", &[&shown])),
+                },
             ));
         }
         let levels = str_list(args, "levels")
@@ -598,28 +768,66 @@ fn hierarchy(cx: &Cx, args: &Value) -> Res<Done> {
                 let bare = l.trim().trim_start_matches('[').trim_end_matches(']');
                 let bare = bare.rsplit('[').next().unwrap_or(bare);
                 t.column_by_name(bare)
-                    .map(|c| Level { name: c.name.clone(), column: c.id.clone() })
-                    .ok_or_else(|| Fail(format!("{} has no column {}", quote_table(&t.name), quote_name(bare))))
+                    .map(|c| Level {
+                        name: c.name.clone(),
+                        column: c.id.clone(),
+                    })
+                    .ok_or_else(|| {
+                        Fail(format!(
+                            "{} has no column {}",
+                            quote_table(&t.name),
+                            quote_name(bare)
+                        ))
+                    })
             })
             .collect::<Res<Vec<_>>>()?;
         if levels.is_empty() {
             return fail("levels lists the table's columns, top first");
         }
-        let detail = levels.iter().map(|l| quote_name(&l.name)).collect::<Vec<_>>().join(" > ");
+        let detail = levels
+            .iter()
+            .map(|l| quote_name(&l.name))
+            .collect::<Vec<_>>()
+            .join(" > ");
         let (change, op) = match (act, existing) {
-            ("add", Some(_)) => return fail(format!("there's a hierarchy {shown} already; use update")),
+            ("add", Some(_)) => {
+                return fail(format!("there's a hierarchy {shown} already; use update"));
+            }
             ("add", None) => (
                 Change::AddHierarchy {
                     table: t.id.clone(),
-                    hierarchy: Hierarchy { id: new_id(), name, description: None, levels, hidden: false, display_folder: None, extras: Default::default() },
+                    hierarchy: Hierarchy {
+                        id: new_id(),
+                        name,
+                        description: None,
+                        levels,
+                        hidden: false,
+                        display_folder: None,
+                        extras: Default::default(),
+                    },
                     index: None,
                 },
                 "Added hierarchy %1",
             ),
-            (_, Some(h)) => (Change::UpdateHierarchy { table: t.id.clone(), hierarchy: Hierarchy { levels, ..h.clone() } }, "Changed hierarchy %1"),
+            (_, Some(h)) => (
+                Change::UpdateHierarchy {
+                    table: t.id.clone(),
+                    hierarchy: Hierarchy {
+                        levels,
+                        ..h.clone()
+                    },
+                },
+                "Changed hierarchy %1",
+            ),
             (_, None) => return fail(format!("there's no hierarchy {shown}; use add")),
         };
-        Ok((vec![change], Done { text: format!("{}: {detail}.", op.replace("%1", &shown)), step: Some(Step::new(op, &[&shown]).detail(detail)) }))
+        Ok((
+            vec![change],
+            Done {
+                text: format!("{}: {detail}.", op.replace("%1", &shown)),
+                step: Some(Step::new(op, &[&shown]).detail(detail)),
+            },
+        ))
     })
 }
 
@@ -628,12 +836,22 @@ fn role(cx: &Cx, args: &Value) -> Res<Done> {
     if act == "remove" {
         let (id, name) = cx.with_model(|m, _| {
             let n = str_arg(args, "name")?;
-            let r = m.roles.iter().find(|r| r.name.eq_ignore_ascii_case(n)).ok_or_else(|| Fail(format!("there's no role \"{n}\"")))?;
+            let r = m
+                .roles
+                .iter()
+                .find(|r| r.name.eq_ignore_ascii_case(n))
+                .ok_or_else(|| Fail(format!("there's no role \"{n}\"")))?;
             Ok((r.id.clone(), r.name.clone()))
         })?;
         confirm_or_fail(cx, &format!("Delete the role \"{name}\""))?;
         return cx.change(|_, _| {
-            Ok((vec![Change::RemoveRole { role: id.clone() }], Done { text: format!("Removed the role \"{name}\"."), step: Some(Step::new("Removed role \"%1\"", &[&name])) }))
+            Ok((
+                vec![Change::RemoveRole { role: id.clone() }],
+                Done {
+                    text: format!("Removed the role \"{name}\"."),
+                    step: Some(Step::new("Removed role \"%1\"", &[&name])),
+                },
+            ))
         });
     }
     cx.change(|m, _| {
@@ -644,34 +862,71 @@ fn role(cx: &Cx, args: &Value) -> Res<Done> {
             filters.clear();
             for (tn, e) in map {
                 let t = names::find_table(m, tn)?;
-                let e = e.as_str().ok_or_else(|| Fail("each filter is DAX text".into()))?;
+                let e = e
+                    .as_str()
+                    .ok_or_else(|| Fail("each filter is DAX text".into()))?;
                 if let Some(d) = diagnostics(e, &charted_core::roles::check_filter(m, &t.id, e)) {
-                    return fail(format!("the filter on {} doesn't check: {d}", quote_table(&t.name)));
+                    return fail(format!(
+                        "the filter on {} doesn't check: {d}",
+                        quote_table(&t.name)
+                    ));
                 }
-                filters.push(RoleFilter { table: t.id.clone(), expression: e.trim().into() });
+                filters.push(RoleFilter {
+                    table: t.id.clone(),
+                    expression: e.trim().into(),
+                });
             }
         }
         let detail = filters
             .iter()
-            .map(|f| format!("{}: {}", m.table(&f.table).map_or("?", |t| t.name.as_str()), f.expression))
+            .map(|f| {
+                format!(
+                    "{}: {}",
+                    m.table(&f.table).map_or("?", |t| t.name.as_str()),
+                    f.expression
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
         let (change, op) = match (act, existing) {
-            ("add", Some(_)) => return fail(format!("there's a role \"{name}\" already; use update")),
+            ("add", Some(_)) => {
+                return fail(format!("there's a role \"{name}\" already; use update"));
+            }
             ("add", None) => (
                 Change::AddRole {
-                    role: Role { id: new_id(), name: name.clone(), description: opt_str(args, "description").map(str::to_string), filters, members: vec![], extras: Default::default() },
+                    role: Role {
+                        id: new_id(),
+                        name: name.clone(),
+                        description: opt_str(args, "description").map(str::to_string),
+                        filters,
+                        members: vec![],
+                        extras: Default::default(),
+                    },
                     index: None,
                 },
                 "Added role \"%1\"",
             ),
             (_, Some(r)) => (
-                Change::UpdateRole { role: Role { filters, description: opt_str(args, "description").map(str::to_string).or(r.description.clone()), ..r.clone() } },
+                Change::UpdateRole {
+                    role: Role {
+                        filters,
+                        description: opt_str(args, "description")
+                            .map(str::to_string)
+                            .or(r.description.clone()),
+                        ..r.clone()
+                    },
+                },
                 "Changed role \"%1\"",
             ),
             (_, None) => return fail(format!("there's no role \"{name}\"; use add")),
         };
-        Ok((vec![change], Done { text: format!("{}.", op.replace("%1", &name)), step: Some(Step::new(op, &[&name]).detail(detail)) }))
+        Ok((
+            vec![change],
+            Done {
+                text: format!("{}.", op.replace("%1", &name)),
+                step: Some(Step::new(op, &[&name]).detail(detail)),
+            },
+        ))
     })
 }
 
@@ -681,13 +936,25 @@ fn calculation_group(cx: &Cx, args: &Value) -> Res<Done> {
         let (id, name) = cx.with_model(|m, _| {
             let t = names::find_table(m, str_arg(args, "name")?)?;
             if t.calculation_group.is_none() {
-                return fail(format!("{} isn't a calculation group", quote_table(&t.name)));
+                return fail(format!(
+                    "{} isn't a calculation group",
+                    quote_table(&t.name)
+                ));
             }
             Ok((t.id.clone(), t.name.clone()))
         })?;
-        confirm_or_fail(cx, &format!("Delete the calculation group {}", quote_table(&name)))?;
+        confirm_or_fail(
+            cx,
+            &format!("Delete the calculation group {}", quote_table(&name)),
+        )?;
         return cx.change(|_, _| {
-            Ok((vec![Change::RemoveTable { table: id.clone() }], Done { text: format!("Removed {}.", quote_table(&name)), step: Some(Step::new("Removed table %1", &[&quote_table(&name)])) }))
+            Ok((
+                vec![Change::RemoveTable { table: id.clone() }],
+                Done {
+                    text: format!("Removed {}.", quote_table(&name)),
+                    step: Some(Step::new("Removed table %1", &[&quote_table(&name)])),
+                },
+            ))
         });
     }
     cx.change(|m, _| {
@@ -766,26 +1033,49 @@ fn parameter(cx: &Cx, args: &Value) -> Res<Done> {
                     let (tn, fname) = match &p.field {
                         FieldRef::Column { table, column } => {
                             let t = m.table(table).expect("resolved");
-                            (t.name.clone(), t.column(column).expect("resolved").name.clone())
+                            (
+                                t.name.clone(),
+                                t.column(column).expect("resolved").name.clone(),
+                            )
                         }
                         FieldRef::Measure { table, measure } => {
                             let t = m.table(table).expect("resolved");
-                            (t.name.clone(), t.measures.iter().find(|x| &x.id == measure).expect("resolved").name.clone())
+                            (
+                                t.name.clone(),
+                                t.measures
+                                    .iter()
+                                    .find(|x| &x.id == measure)
+                                    .expect("resolved")
+                                    .name
+                                    .clone(),
+                            )
                         }
                     };
                     let label = labels.get(i).cloned().unwrap_or_else(|| fname.clone());
                     rows.push((label, tn, fname));
                 }
-                let detail = rows.iter().map(|r| r.0.clone()).collect::<Vec<_>>().join(", ");
+                let detail = rows
+                    .iter()
+                    .map(|r| r.0.clone())
+                    .collect::<Vec<_>>()
+                    .join(", ");
                 (
                     builders::field_parameter_table(&name, &rows),
                     "Added field parameter %1",
                     detail,
-                    format!("Put {}{} in a visual's role and a slicer of it on the page.", quote_table(&name), quote_name(&name)),
+                    format!(
+                        "Put {}{} in a visual's role and a slicer of it on the page.",
+                        quote_table(&name),
+                        quote_name(&name)
+                    ),
                 )
             }
             "numeric" => {
-                let n = |k: &str| args.get(k).and_then(Value::as_f64).ok_or_else(|| Fail(format!("{k} is required (a number)")));
+                let n = |k: &str| {
+                    args.get(k)
+                        .and_then(Value::as_f64)
+                        .ok_or_else(|| Fail(format!("{k} is required (a number)")))
+                };
                 let p = NumericParameter {
                     name: name.clone(),
                     decimal: opt_bool(args, "decimal").unwrap_or(false),
@@ -801,15 +1091,25 @@ fn parameter(cx: &Cx, args: &Value) -> Res<Done> {
                     p.table(),
                     "Added parameter %1",
                     format!("{} to {} by {}", p.min, p.max, p.step),
-                    format!("Use [{name} Value] in measures and a slicer of {}{}.", quote_table(&name), quote_name(&name)),
+                    format!(
+                        "Use [{name} Value] in measures and a slicer of {}{}.",
+                        quote_table(&name),
+                        quote_name(&name)
+                    ),
                 )
             }
             k => return fail(format!("kind {k} isn't field or numeric")),
         };
         let shown = quote_table(&name);
         Ok((
-            vec![Change::AddTable { table: t, index: None }],
-            Done { text: format!("Added the parameter {shown}. {note}"), step: Some(Step::new(op, &[&shown]).detail(detail)) },
+            vec![Change::AddTable {
+                table: t,
+                index: None,
+            }],
+            Done {
+                text: format!("Added the parameter {shown}. {note}"),
+                step: Some(Step::new(op, &[&shown]).detail(detail)),
+            },
         ))
     })
 }

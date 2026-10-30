@@ -4,9 +4,9 @@
 //! with `{id, ok}` or `{id, err}`; data replies are binary frames carrying an 8-byte
 //! little-endian request id followed by Arrow IPC bytes.
 
+use charted_agent::host::{AgentRequest, Push};
 use charted_core::env::EnvSnapshot;
 use charted_core::env::watch::EnvPaths;
-use charted_agent::host::{AgentRequest, Push};
 use charted_core::{ApiError, App};
 use serde_json::{Value, json};
 use std::net::TcpListener;
@@ -76,7 +76,10 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                 .get_ref()
                 .set_read_timeout(Some(std::time::Duration::from_millis(20)));
             let (tx, rx) = std::sync::mpsc::channel::<Message>();
-            windows.lock().unwrap_or_else(|p| p.into_inner()).push(tx.clone());
+            windows
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .push(tx.clone());
             let mut env_seen = serde_json::to_value(EnvSnapshot::read(&paths)).unwrap();
             let mut env_checked = std::time::Instant::now();
             'conn: loop {
@@ -189,4 +192,3 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
     }
     Ok(())
 }
-

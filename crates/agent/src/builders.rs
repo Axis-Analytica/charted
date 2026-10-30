@@ -3,7 +3,8 @@
 //! (`fieldParameterTable`) and calculation groups (calcgroups.ts).
 
 use charted_model::{
-    CalculatedTable, CalculationGroup, Column, ColumnKind, DataType, ExpressionLanguage, Measure, Summarize, Table,
+    CalculatedTable, CalculationGroup, Column, ColumnKind, DataType, ExpressionLanguage, Measure,
+    Summarize, Table,
 };
 
 use crate::names::{quote_name, quote_table};
@@ -14,9 +15,16 @@ pub fn new_id() -> String {
 
 /// `Table` as DAX writes it in a parameter's expressions: bare when it can be.
 fn table_ref(name: &str) -> String {
-    let bare = name.chars().next().is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+    let bare = name
+        .chars()
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
         && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
-    if bare { name.to_string() } else { quote_table(name) }
+    if bare {
+        name.to_string()
+    } else {
+        quote_table(name)
+    }
 }
 
 fn data_column(id: String, name: &str, source: &str, data_type: DataType, hidden: bool) -> Column {
@@ -121,7 +129,11 @@ impl NumericParameter {
             new_id(),
             &self.name,
             "Value",
-            if self.decimal { DataType::Decimal } else { DataType::Int64 },
+            if self.decimal {
+                DataType::Decimal
+            } else {
+                DataType::Int64
+            },
             false,
         );
         column.format_string = Some(format.clone());
@@ -141,7 +153,12 @@ impl NumericParameter {
             &self.name,
             vec![column],
             vec![measure],
-            format!("GENERATESERIES ( {}, {}, {} )", num(self.min), num(self.max), num(self.step)),
+            format!(
+                "GENERATESERIES ( {}, {}, {} )",
+                num(self.min),
+                num(self.max),
+                num(self.step)
+            ),
         )
     }
 }
@@ -153,16 +170,40 @@ fn text(s: &str) -> String {
 /// A field parameter: rows of `( label, NAMEOF ( field ), order )`. `fields` are
 /// (label, table name, field name).
 pub fn field_parameter_table(name: &str, fields: &[(String, String, String)]) -> Table {
-    let order = data_column(new_id(), &format!("{name} Order"), "Value3", DataType::Int64, true);
+    let order = data_column(
+        new_id(),
+        &format!("{name} Order"),
+        "Value3",
+        DataType::Int64,
+        true,
+    );
     let mut label = data_column(new_id(), name, "Value1", DataType::String, false);
     label.sort_by = Some(order.id.clone());
-    let names = data_column(new_id(), &format!("{name} Fields"), "Value2", DataType::String, true);
+    let names = data_column(
+        new_id(),
+        &format!("{name} Fields"),
+        "Value2",
+        DataType::String,
+        true,
+    );
     let rows: Vec<String> = fields
         .iter()
         .enumerate()
-        .map(|(i, (l, t, f))| format!("    ( {}, NAMEOF ( {}{} ), {i} )", text(l), quote_table(t), quote_name(f)))
+        .map(|(i, (l, t, f))| {
+            format!(
+                "    ( {}, NAMEOF ( {}{} ), {i} )",
+                text(l),
+                quote_table(t),
+                quote_name(f)
+            )
+        })
         .collect();
-    table(name, vec![label, names, order], vec![], format!("{{\n{}\n}}", rows.join(",\n")))
+    table(
+        name,
+        vec![label, names, order],
+        vec![],
+        format!("{{\n{}\n}}", rows.join(",\n")),
+    )
 }
 
 /// A calculation group's table; the core gives it its Name and Ordinal columns.
@@ -190,12 +231,28 @@ mod tests {
         };
         assert_eq!(p.problem(), None);
         let t = p.table();
-        assert_eq!(t.calculated.unwrap().expression, "GENERATESERIES ( 0, 0.5, 0.05 )");
+        assert_eq!(
+            t.calculated.unwrap().expression,
+            "GENERATESERIES ( 0, 0.5, 0.05 )"
+        );
         assert_eq!(t.measures[0].name, "Discount % Value");
-        assert_eq!(t.measures[0].expression, "SELECTEDVALUE ( 'Discount %'[Discount %], 0.1 )");
+        assert_eq!(
+            t.measures[0].expression,
+            "SELECTEDVALUE ( 'Discount %'[Discount %], 0.1 )"
+        );
         assert_eq!(t.columns[0].format_string.as_deref(), Some("0.00"));
-        let whole = NumericParameter { name: "N".into(), decimal: false, min: 1.0, max: 10.0, step: 1.0, default: 5.0 };
-        assert_eq!(whole.table().measures[0].expression, "SELECTEDVALUE ( N[N], 5 )");
+        let whole = NumericParameter {
+            name: "N".into(),
+            decimal: false,
+            min: 1.0,
+            max: 10.0,
+            step: 1.0,
+            default: 5.0,
+        };
+        assert_eq!(
+            whole.table().measures[0].expression,
+            "SELECTEDVALUE ( N[N], 5 )"
+        );
         assert!(NumericParameter { step: 0.0, ..whole }.problem().is_some());
     }
 
@@ -212,7 +269,10 @@ mod tests {
             t.calculated.unwrap().expression,
             "{\n    ( \"Sales\", NAMEOF ( 'Sales'[Total Sales] ), 0 ),\n    ( \"Units\", NAMEOF ( 'Sales'[Units] ), 1 )\n}"
         );
-        assert_eq!(t.columns[0].sort_by.as_deref(), Some(t.columns[2].id.as_str()));
+        assert_eq!(
+            t.columns[0].sort_by.as_deref(),
+            Some(t.columns[2].id.as_str())
+        );
         assert!(t.columns[1].hidden && t.columns[2].hidden);
     }
 }

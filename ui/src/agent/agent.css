@@ -1,0 +1,50 @@
+/* The Agent pane */
+.pane.agent-pane { width: 340px; }
+.agent-head-tools { display: flex; gap: 2px; text-transform: none; letter-spacing: 0; }
+.agent-head-tools .icon-btn { width: 26px; height: 26px; }
+.agent-head-tools .icon-btn[aria-pressed="true"] { color: var(--accent-text); background: var(--accent-soft); }
+.agent-picker { padding: 0 10px 6px; flex: none; }
+.agent-picker .menu-trigger { gap: 6px; max-width: 100%; color: var(--fg-muted); }
+.agent-picker .menu-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agent-transcript { display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+.agent-examples { display: grid; gap: 6px; }
+.agent-example { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--fg-muted); text-align: start; line-height: 1.4; }
+.agent-example:hover { border-color: var(--accent); color: var(--fg); }
+.agent-turn { display: flex; flex-direction: column; gap: 6px; }
+.agent-request { align-self: flex-end; max-width: 92%; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.agent-request p { margin: 0; padding: 7px 10px; border-radius: var(--radius-md, 8px); background: var(--accent-soft); color: var(--fg-strong); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; }
+.agent-chip { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: 20px; padding-inline: 7px; border-radius: 10px; background: var(--bg-sunken); color: var(--fg-faint); font-size: var(--text-xs); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.agent-chip button { display: grid; place-items: center; width: 14px; height: 14px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: inherit; }
+.agent-chip button:hover { background: var(--bg-hover); color: var(--fg); }
+.agent-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.agent-text { margin: 4px 0; color: var(--fg); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-step-row { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.agent-step-icon { flex: none; color: var(--success, var(--accent-text)); }
+.agent-step.is-failed .agent-step-icon, .agent-step.is-failed .agent-step-text { color: var(--danger); }
+.agent-step-text { flex: 1; min-width: 0; padding: 1px 2px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); text-align: start; overflow-wrap: anywhere; }
+.agent-step-text:enabled:hover { background: var(--bg-hover); color: var(--fg); }
+.agent-step-more.icon-btn { width: 20px; height: 20px; }
+.agent-step-detail { margin: 2px 0 4px 19px; padding: 6px 8px; border-radius: var(--radius-sm); background: var(--bg-sunken); color: var(--fg-muted); font: var(--text-xs) / 1.45 var(--omarchy-mono, monospace); white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-confirm { margin: 4px 0; padding: 8px 10px; border: 1px solid var(--warning, var(--border)); border-radius: var(--radius-sm); background: var(--bg); }
+.agent-confirm p { margin: 0 0 6px; }
+.agent-confirm-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.agent-answer { color: var(--fg-faint); font-size: var(--text-xs); }
+.agent-turn-foot { display: flex; align-items: center; gap: 8px; min-height: 26px; color: var(--fg-faint); font-size: var(--text-xs); }
+.agent-working { display: inline-flex; align-items: center; gap: 6px; }
+.agent-failed { color: var(--danger); }
+.agent-note { margin: 0; color: var(--fg-faint); font-size: var(--text-xs); }
+.agent-composer { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 10px; border-top: 1px solid var(--border); }
+.agent-composer > .agent-chip { align-self: flex-start; }
+.agent-input { width: 100%; min-height: 64px; max-height: 200px; resize: vertical; line-height: 1.4; }
+.agent-composer-actions { display: flex; align-items: center; gap: 6px; }
+.agent-consent ul { margin: 6px 0 10px; padding-inline-start: 20px; line-height: 1.5; }
+.agent-consent p { margin: 0 0 8px; line-height: 1.5; }
+
+/* Visuals the agent just added or changed. */
+.visual.is-agent-touched { box-shadow: 0 0 0 2px var(--accent); }
+:root[data-motion="on"] .visual.is-agent-touched { animation: agent-touched 1.6s ease-out forwards; }
+@keyframes agent-touched {
+  0% { box-shadow: 0 0 0 3px var(--accent); }
+  70% { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 2px transparent; }
+}

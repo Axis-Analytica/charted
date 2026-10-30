@@ -68,7 +68,9 @@ pub fn parse_field(src: &str) -> Result<FieldSpec, NameError> {
         let func = s[..open].trim().to_ascii_uppercase();
         let Some((_, agg)) = AGGREGATIONS.iter().find(|(n, _)| *n == func) else {
             return Err(err(
-                format!("{src}: only SUM, AVERAGE, MIN, MAX, COUNT and DISTINCTCOUNT can wrap a field here; write other expressions as a measure."),
+                format!(
+                    "{src}: only SUM, AVERAGE, MIN, MAX, COUNT and DISTINCTCOUNT can wrap a field here; write other expressions as a measure."
+                ),
                 vec![],
             ));
         };
@@ -98,12 +100,22 @@ pub fn parse_field(src: &str) -> Result<FieldSpec, NameError> {
             }
         }
         let Some(end) = end else {
-            return Err(err(format!("{src}: the table name's quote isn't closed."), vec![]));
+            return Err(err(
+                format!("{src}: the table name's quote isn't closed."),
+                vec![],
+            ));
         };
         (Some(name), after[end..].trim_start())
     } else if let Some(i) = s.find('[') {
         let t = s[..i].trim();
-        (if t.is_empty() { None } else { Some(t.to_string()) }, &s[i..])
+        (
+            if t.is_empty() {
+                None
+            } else {
+                Some(t.to_string())
+            },
+            &s[i..],
+        )
     } else {
         return Err(err(
             format!("{src}: write a field as 'Table'[Column] or [Measure]."),
@@ -111,13 +123,19 @@ pub fn parse_field(src: &str) -> Result<FieldSpec, NameError> {
         ));
     };
     let Some(body) = rest.strip_prefix('[') else {
-        return Err(err(format!("{src}: expected [Name] after the table."), vec![]));
+        return Err(err(
+            format!("{src}: expected [Name] after the table."),
+            vec![],
+        ));
     };
     let Some(close) = closing_bracket(body) else {
         return Err(err(format!("{src}: the [ isn't closed."), vec![]));
     };
     if !body[close + 1..].trim().is_empty() {
-        return Err(err(format!("{src}: unexpected text after the field."), vec![]));
+        return Err(err(
+            format!("{src}: unexpected text after the field."),
+            vec![],
+        ));
     }
     Ok(FieldSpec {
         table,
@@ -175,14 +193,22 @@ pub fn resolve(model: &Model, spec: &FieldSpec) -> Result<Projection, NameError>
                     table: t.id.clone(),
                     column: c.id.clone(),
                 }
-            } else if let Some(m) = t.measures.iter().find(|m| m.name.eq_ignore_ascii_case(&spec.name)) {
+            } else if let Some(m) = t
+                .measures
+                .iter()
+                .find(|m| m.name.eq_ignore_ascii_case(&spec.name))
+            {
                 FieldRef::Measure {
                     table: t.id.clone(),
                     measure: m.id.clone(),
                 }
             } else {
                 return Err(err(
-                    format!("{} has no column or measure {}.", quote_table(&t.name), quote_name(&spec.name)),
+                    format!(
+                        "{} has no column or measure {}.",
+                        quote_table(&t.name),
+                        quote_name(&spec.name)
+                    ),
                     closest(
                         &spec.name,
                         t.columns
@@ -215,7 +241,9 @@ pub fn resolve(model: &Model, spec: &FieldSpec) -> Result<Projection, NameError>
                         .collect();
                     let names = |v: &[(&Table, &charted_model::Column)]| {
                         v.iter()
-                            .map(|(t, c)| format!("{}{}", quote_table(&t.name), quote_name(&c.name)))
+                            .map(|(t, c)| {
+                                format!("{}{}", quote_table(&t.name), quote_name(&c.name))
+                            })
                             .collect::<Vec<_>>()
                     };
                     if !cols.is_empty() {
@@ -228,24 +256,36 @@ pub fn resolve(model: &Model, spec: &FieldSpec) -> Result<Projection, NameError>
                         format!("There's no measure {}.", quote_name(&spec.name)),
                         closest(
                             &spec.name,
-                            model.tables.iter().flat_map(|t| t.measures.iter().map(|m| quote_name(&m.name))),
+                            model
+                                .tables
+                                .iter()
+                                .flat_map(|t| t.measures.iter().map(|m| quote_name(&m.name))),
                         ),
                     ));
                 }
                 many => {
                     return Err(err(
-                        format!("Several tables have a measure {}; name its table.", quote_name(&spec.name)),
+                        format!(
+                            "Several tables have a measure {}; name its table.",
+                            quote_name(&spec.name)
+                        ),
                         many.iter()
-                            .map(|(t, m)| format!("{}{}", quote_table(&t.name), quote_name(&m.name)))
+                            .map(|(t, m)| {
+                                format!("{}{}", quote_table(&t.name), quote_name(&m.name))
+                            })
                             .collect(),
                     ));
                 }
             }
         }
     };
-    if spec.aggregation.is_some() && matches!(field, FieldRef::Measure { .. }) {
+    if let (Some(agg), FieldRef::Measure { .. }) = (spec.aggregation, &field) {
         return Err(err(
-            format!("{} is a measure: it is aggregated already; drop the {}.", quote_name(&spec.name), aggregation_name(spec.aggregation.unwrap())),
+            format!(
+                "{} is a measure: it is aggregated already; drop the {}.",
+                quote_name(&spec.name),
+                aggregation_name(agg)
+            ),
             vec![],
         ));
     }
@@ -267,7 +307,9 @@ pub fn format_field(model: &Model, f: &FieldRef) -> String {
         FieldRef::Column { table, column } => {
             let t = model.table(table);
             let tn = t.map_or(table.as_str(), |t| t.name.as_str());
-            let cn = t.and_then(|t| t.column(column)).map_or(column.as_str(), |c| c.name.as_str());
+            let cn = t
+                .and_then(|t| t.column(column))
+                .map_or(column.as_str(), |c| c.name.as_str());
             format!("{}{}", quote_table(tn), quote_name(cn))
         }
         FieldRef::Measure { table, measure } => {
@@ -299,17 +341,28 @@ pub fn find_page<'a>(model: &'a Model, key: &str) -> Result<&'a Page, NameError>
     pages
         .iter()
         .find(|p| p.id == key)
-        .or_else(|| pages.iter().find(|p| p.settings.name.eq_ignore_ascii_case(key.trim())))
+        .or_else(|| {
+            pages
+                .iter()
+                .find(|p| p.settings.name.eq_ignore_ascii_case(key.trim()))
+        })
         .ok_or_else(|| {
             err(
                 format!("There's no page \"{key}\"."),
-                closest(key, pages.iter().map(|p| format!("\"{}\"", p.settings.name))),
+                closest(
+                    key,
+                    pages.iter().map(|p| format!("\"{}\"", p.settings.name)),
+                ),
             )
         })
 }
 
 /// A visual by id, or by title (on `page` when given, else anywhere).
-pub fn find_visual<'a>(model: &'a Model, page: Option<&Page>, key: &str) -> Result<(&'a Page, &'a Visual), NameError> {
+pub fn find_visual<'a>(
+    model: &'a Model,
+    page: Option<&Page>,
+    key: &str,
+) -> Result<(&'a Page, &'a Visual), NameError> {
     if let Some(found) = model.report.visual(key) {
         return Ok(found);
     }
@@ -322,13 +375,19 @@ pub fn find_visual<'a>(model: &'a Model, page: Option<&Page>, key: &str) -> Resu
         .collect();
     let titled: Vec<_> = all
         .iter()
-        .filter(|(_, v)| charted_core::visualq::visual_title(model, v).eq_ignore_ascii_case(key.trim()))
+        .filter(|(_, v)| {
+            charted_core::visualq::visual_title(model, v).eq_ignore_ascii_case(key.trim())
+        })
         .collect();
     match titled.as_slice() {
         [one] => Ok(**one),
         [] => Err(err(
             format!("There's no visual \"{key}\"; give its id or title."),
-            closest(key, all.iter().map(|(_, v)| format!("\"{}\"", charted_core::visualq::visual_title(model, v)))),
+            closest(
+                key,
+                all.iter()
+                    .map(|(_, v)| format!("\"{}\"", charted_core::visualq::visual_title(model, v))),
+            ),
         )),
         _ => Err(err(
             format!("Several visuals are titled \"{key}\"; give its id."),
@@ -371,7 +430,11 @@ fn distance(a: &str, b: &str) -> usize {
     for (i, ca) in a.iter().enumerate() {
         let mut cur = vec![i + 1];
         for (j, cb) in b.iter().enumerate() {
-            cur.push((prev[j] + usize::from(ca != cb)).min(prev[j + 1] + 1).min(cur[j] + 1));
+            cur.push(
+                (prev[j] + usize::from(ca != cb))
+                    .min(prev[j + 1] + 1)
+                    .min(cur[j] + 1),
+            );
         }
         prev = cur;
     }
@@ -389,10 +452,22 @@ mod tests {
             name: n.into(),
             aggregation: a,
         };
-        assert_eq!(parse_field("'Sales'[Amount]").unwrap(), f(Some("Sales"), "Amount", None));
-        assert_eq!(parse_field("Sales[Amount]").unwrap(), f(Some("Sales"), "Amount", None));
-        assert_eq!(parse_field(" [Total Sales] ").unwrap(), f(None, "Total Sales", None));
-        assert_eq!(parse_field("'Bob''s'[a]]b]").unwrap(), f(Some("Bob's"), "a]b", None));
+        assert_eq!(
+            parse_field("'Sales'[Amount]").unwrap(),
+            f(Some("Sales"), "Amount", None)
+        );
+        assert_eq!(
+            parse_field("Sales[Amount]").unwrap(),
+            f(Some("Sales"), "Amount", None)
+        );
+        assert_eq!(
+            parse_field(" [Total Sales] ").unwrap(),
+            f(None, "Total Sales", None)
+        );
+        assert_eq!(
+            parse_field("'Bob''s'[a]]b]").unwrap(),
+            f(Some("Bob's"), "a]b", None)
+        );
         assert_eq!(
             parse_field("sum( 'Sales'[Amount] )").unwrap(),
             f(Some("Sales"), "Amount", Some(Aggregation::Sum))
@@ -407,6 +482,9 @@ mod tests {
     fn near_names_are_suggested() {
         let names = ["'Sales'", "'Store'", "'Date'", "'Product'"].map(String::from);
         assert_eq!(closest("sales", names.clone().into_iter())[0], "'Sales'");
-        assert_eq!(closest("Prodct", names.into_iter()), vec!["'Product'".to_string()]);
+        assert_eq!(
+            closest("Prodct", names.into_iter()),
+            vec!["'Product'".to_string()]
+        );
     }
 }

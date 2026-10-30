@@ -324,7 +324,17 @@ impl Session {
             dirty: self.history.is_dirty(),
             undo_label: self.history.undo_label().map(str::to_string),
             redo_label: self.history.redo_label().map(str::to_string),
-            undo_group: self.history.undo_group_id().map(str::to_string),
+            // Only while the request's entries are the latest can it undo as one.
+            undo_group: self
+                .history
+                .undo_group_id()
+                .filter(|g| {
+                    matches!(
+                        self.history.group_status(g),
+                        charted_model::GroupStatus::Latest(_)
+                    )
+                })
+                .map(str::to_string),
             tables,
             queries: self
                 .project
@@ -383,7 +393,10 @@ impl Session {
 
     /// Undoes an agent request's entries when they are the latest; false when they aren't.
     pub fn undo_group(&mut self, group: &str) -> Result<bool, CoreError> {
-        let done = self.history.undo_group(&mut self.project.model, group)?.is_some();
+        let done = self
+            .history
+            .undo_group(&mut self.project.model, group)?
+            .is_some();
         if done {
             self.refresh_calculated();
             self.write_recovery();

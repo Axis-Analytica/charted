@@ -58,10 +58,21 @@ async fn data(state: tauri::State<'_, Shared>, request: DataRequest) -> Result<R
 }
 
 #[tauri::command]
-async fn agent(state: tauri::State<'_, Shared>, request: AgentRequest) -> Result<AgentStatus, ApiError> {
-    let host = state.agent.lock().unwrap_or_else(|p| p.into_inner()).clone();
+async fn agent(
+    state: tauri::State<'_, Shared>,
+    request: AgentRequest,
+) -> Result<AgentStatus, ApiError> {
+    let host = state
+        .agent
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone();
     let Some(host) = host else {
-        return Err(ApiError { code: "agent".into(), message: "the agent couldn't start".into(), detail: None });
+        return Err(ApiError {
+            code: "agent".into(),
+            message: "the agent couldn't start".into(),
+            detail: None,
+        });
     };
     blocking(move || host.handle(request).map_err(charted_agent::host::api_error)).await
 }
@@ -193,7 +204,13 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
                     Push::Agent(a) => handle.emit("agent-event", a),
                 };
             }) {
-                Ok(host) => *tauri_app.state::<Shared>().agent.lock().unwrap_or_else(|p| p.into_inner()) = Some(host),
+                Ok(host) => {
+                    *tauri_app
+                        .state::<Shared>()
+                        .agent
+                        .lock()
+                        .unwrap_or_else(|p| p.into_inner()) = Some(host)
+                }
                 Err(e) => eprintln!("charted: the agent's socket couldn't start: {e}"),
             }
             if let Some(file) = screenshot.clone() {
@@ -218,7 +235,13 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
             // Let queries still running on other threads finish (or stop) before the
             // process exits and DuckDB's static data goes away.
             if let tauri::RunEvent::Exit = event {
-                if let Some(host) = app_handle.state::<Shared>().agent.lock().unwrap_or_else(|p| p.into_inner()).take() {
+                if let Some(host) = app_handle
+                    .state::<Shared>()
+                    .agent
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner())
+                    .take()
+                {
                     host.shutdown();
                 }
                 charted_core::api::shutdown(std::time::Duration::from_secs(3));

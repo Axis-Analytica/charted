@@ -32,7 +32,7 @@ pub trait Turn: Sync {
 /// is the same as a message the UI translates (ui/src/agent/stepText.ts).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
-#[ts(export)]
+#[ts(export, rename = "AgentStep")]
 pub struct Step {
     pub tool: String,
     pub ok: bool,
@@ -155,19 +155,31 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
         Ok(Done { text, step }) => Outcome {
             text,
             is_error: false,
-            step: step.map(|s| Step { tool: name.into(), ..s }),
+            step: step.map(|s| Step {
+                tool: name.into(),
+                ..s
+            }),
         },
         Err(Fail(msg)) => Outcome {
             step: Some(Step {
                 tool: name.into(),
                 ok: false,
-                detail: Some(msg.clone()),
-                ..Step::new("%1 failed", &[name])
+                ..Step::new("Not done: %1", &[&short(&msg)])
             }),
             text: msg,
             is_error: true,
         },
     }
+}
+
+/// The first sentence of a message, for a step's line.
+fn short(msg: &str) -> String {
+    let first = msg.split("; ").next().unwrap_or(msg);
+    let mut s: String = first.chars().take(140).collect();
+    if first.chars().count() > 140 {
+        s.push('…');
+    }
+    s
 }
 
 /// A tool's answer: text for the agent and, for a change, a step.
@@ -197,9 +209,14 @@ impl Cx<'_> {
     }
 
     /// Reads the open project's model.
-    pub fn with_model<T>(&self, f: impl FnOnce(&Model, &charted_core::session::Session) -> Res<T>) -> Res<T> {
+    pub fn with_model<T>(
+        &self,
+        f: impl FnOnce(&Model, &charted_core::session::Session) -> Res<T>,
+    ) -> Res<T> {
         let app = self.lock();
-        let s = app.session().ok_or_else(|| Fail("no project is open".into()))?;
+        let s = app
+            .session()
+            .ok_or_else(|| Fail("no project is open".into()))?;
         f(&s.project.model, s)
     }
 
@@ -211,7 +228,9 @@ impl Cx<'_> {
     ) -> Res<Done> {
         let state = {
             let mut app = self.lock();
-            let s = app.session().ok_or_else(|| Fail("no project is open".into()))?;
+            let s = app
+                .session()
+                .ok_or_else(|| Fail("no project is open".into()))?;
             let (changes, done) = build(&s.project.model, s)?;
             if changes.is_empty() {
                 return Ok(done);
@@ -235,7 +254,9 @@ pub fn str_arg<'a>(args: &'a Value, key: &str) -> Res<&'a str> {
 }
 
 pub fn opt_str<'a>(args: &'a Value, key: &str) -> Option<&'a str> {
-    args.get(key).and_then(Value::as_str).filter(|s| !s.trim().is_empty())
+    args.get(key)
+        .and_then(Value::as_str)
+        .filter(|s| !s.trim().is_empty())
 }
 
 pub fn opt_bool(args: &Value, key: &str) -> Option<bool> {
@@ -244,7 +265,10 @@ pub fn opt_bool(args: &Value, key: &str) -> Option<bool> {
 
 pub fn str_list(args: &Value, key: &str) -> Vec<String> {
     match args.get(key) {
-        Some(Value::Array(a)) => a.iter().filter_map(|v| v.as_str().map(str::to_string)).collect(),
+        Some(Value::Array(a)) => a
+            .iter()
+            .filter_map(|v| v.as_str().map(str::to_string))
+            .collect(),
         Some(Value::String(s)) => vec![s.clone()],
         _ => vec![],
     }
@@ -273,7 +297,11 @@ pub fn diagnostics(src: &str, ds: &[charted_dax::Diagnostic]) -> Option<String> 
         ds.iter()
             .map(|d| {
                 let at = src.get(d.span.start..d.span.end).unwrap_or("");
-                if at.is_empty() { d.message.clone() } else { format!("{} (at \"{at}\")", d.message) }
+                if at.is_empty() {
+                    d.message.clone()
+                } else {
+                    format!("{} (at \"{at}\")", d.message)
+                }
             })
             .collect::<Vec<_>>()
             .join("; "),
