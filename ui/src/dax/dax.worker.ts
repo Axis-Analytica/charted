@@ -1,7 +1,7 @@
 // Runs the DAX language service (Rust compiled to WebAssembly) off the main thread.
 import init, * as dax from "./pkg/charted_wasm.js";
 
-type Method = "setModel" | "diagnostics" | "table_diagnostics" | "complete" | "signature" | "hover" | "format" | "functions";
+type Method = "setModel" | "diagnostics" | "table_diagnostics" | "item_diagnostics" | "complete" | "signature" | "hover" | "format" | "functions";
 type Call = { id: number; method: Method; args: unknown[] };
 
 const ready = init();

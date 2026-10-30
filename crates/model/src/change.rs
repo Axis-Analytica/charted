@@ -38,6 +38,11 @@ pub enum Change {
         table: Id,
         expression: String,
     },
+    /// A calculation group's items and precedence (its table's rows follow them).
+    SetCalculationGroup {
+        table: Id,
+        group: CalculationGroup,
+    },
     RenameColumn {
         table: Id,
         column: Id,
@@ -232,6 +237,32 @@ fn validate_name(name: &str) -> Result<()> {
     Ok(())
 }
 
+/// At least one item, each named (uniquely) and with an expression.
+fn validate_calculation_group(g: &CalculationGroup) -> Result<()> {
+    if g.items.is_empty() {
+        return Err(ChangeError::Invalid {
+            message: "a calculation group needs at least one item".into(),
+        });
+    }
+    for (i, it) in g.items.iter().enumerate() {
+        validate_name(&it.name)?;
+        if g.items[..i]
+            .iter()
+            .any(|o| o.name.eq_ignore_ascii_case(&it.name))
+        {
+            return Err(ChangeError::NameTaken {
+                name: it.name.clone(),
+            });
+        }
+        if it.expression.trim().is_empty() {
+            return Err(ChangeError::Invalid {
+                message: format!("the calculation item \"{}\" needs an expression", it.name),
+            });
+        }
+    }
+    Ok(())
+}
+
 fn table_mut<'a>(model: &'a mut Model, id: &str) -> Result<&'a mut Table> {
     model
         .table_mut(id)
@@ -401,8 +432,16 @@ fn validate_relationship(model: &Model, r: &Relationship) -> Result<()> {
 /// order they must be applied. On error the model is left untouched.
 pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
     match change {
-        Change::AddTable { table, index } => {
+        Change::AddTable { mut table, index } => {
             validate_name(&table.name)?;
+            if let Some(g) = &table.calculation_group {
+                validate_calculation_group(g)?;
+                // Its rows are its items.
+                table.calculated = Some(CalculatedTable {
+                    expression: calculation_group_expression(g),
+                    language: ExpressionLanguage::Dax,
+                });
+            }
             if model.table_by_name(&table.name).is_some() {
                 return Err(ChangeError::NameTaken { name: table.name });
             }
@@ -498,6 +537,19 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
                 table,
                 expression: old,
             }])
+        }
+        Change::SetCalculationGroup { table, group } => {
+            validate_calculation_group(&group)?;
+            let t = table_mut(model, &table)?;
+            let (Some(old), Some(calc)) = (t.calculation_group.as_mut(), t.calculated.as_mut())
+            else {
+                return Err(ChangeError::Invalid {
+                    message: format!("\"{}\" is not a calculation group", t.name),
+                });
+            };
+            calc.expression = calculation_group_expression(&group);
+            let old = std::mem::replace(old, group);
+            Ok(vec![Change::SetCalculationGroup { table, group: old }])
         }
         Change::RenameColumn {
             table,

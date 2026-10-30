@@ -66,6 +66,8 @@ export const dax = {
   diagnostics: (text: string, home: string | null) => call<DaxDiagnostic[]>("diagnostics", text, home ?? undefined),
   /** Problems in a table expression (a calculated table). */
   tableDiagnostics: (text: string) => call<DaxDiagnostic[]>("table_diagnostics", text),
+  /** Problems in a calculation item's expression (SELECTEDMEASURE () is allowed). */
+  itemDiagnostics: (text: string) => call<DaxDiagnostic[]>("item_diagnostics", text),
   complete: (text: string, offset: number, home: string | null) => call<DaxCompletion[]>("complete", text, offset, home ?? undefined),
   signature: (text: string, offset: number) => call<DaxSignature | null>("signature", text, offset),
   hover: (text: string, offset: number, home: string | null) => call<DaxHover | null>("hover", text, offset, home ?? undefined),

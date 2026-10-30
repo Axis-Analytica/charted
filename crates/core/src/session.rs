@@ -408,7 +408,16 @@ impl Session {
                         column.data_type = charted_compiler::visual::value_type_to_data_type(ty);
                     }
                 }
-                Change::AddTable { table, .. } if table.calculated.is_some() => {
+                Change::AddTable { table, .. }
+                    if table.calculated.is_some() || table.calculation_group.is_some() =>
+                {
+                    if let Some(g) = &table.calculation_group {
+                        check_items(&scratch, g)?;
+                        table.calculated = Some(charted_model::CalculatedTable {
+                            expression: charted_model::calculation_group_expression(g),
+                            language: Default::default(),
+                        });
+                    }
                     table.source = charted_model::calculated_table_source(&table.id);
                     let has_data = table
                         .columns
@@ -430,8 +439,22 @@ impl Session {
                             }
                             table.columns.push(col);
                         }
+                        // A calculation group's items are its Name column, in the order
+                        // of its hidden Ordinal column (as Power BI names them).
+                        if table.calculation_group.is_some()
+                            && let [name, ordinal] = &mut table.columns[..]
+                        {
+                            name.name = "Name".into();
+                            ordinal.name = "Ordinal".into();
+                            ordinal.data_type = charted_model::DataType::Int64;
+                            ordinal.hidden = true;
+                            name.sort_by = Some(ordinal.id.clone());
+                        }
                         table.columns.extend(calc);
                     }
+                }
+                Change::SetCalculationGroup { group, .. } => {
+                    check_items(&scratch, group)?;
                 }
                 Change::SetTableExpression { table, expression } => {
                     let t = scratch
@@ -932,6 +955,7 @@ impl Session {
                             hidden: false,
                             hierarchies: Vec::new(),
                             is_date_table: false,
+                            calculation_group: None,
                             calculated: None,
                             extras: Default::default(),
                         },
@@ -1361,6 +1385,16 @@ fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
         filters: to.report.filters.clone(),
     });
     changes
+}
+
+/// A calculation group's items' expressions bind (with SELECTEDMEASURE () allowed).
+fn check_items(model: &Model, g: &charted_model::CalculationGroup) -> Result<(), CoreError> {
+    for it in &g.items {
+        if let Some(d) = charted_dax::check_item(model, &it.expression).first() {
+            return Err(CoreError::Invalid(format!("{}: {}", it.name, d.message)));
+        }
+    }
+    Ok(())
 }
 
 /// A data column as charted adds it for a loaded or computed column.

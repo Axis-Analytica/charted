@@ -292,6 +292,7 @@ fn fixture() -> Fixture {
             hidden: false,
             hierarchies: Vec::new(),
             is_date_table: name == "Date",
+            calculation_group: None,
             calculated: None,
             extras: Default::default(),
         });
@@ -679,6 +680,16 @@ const MEASURES: &[(&str, &str)] = &[
     (
         "Field Names",
         "CONCATENATEX ( { ( \"Q\", NAMEOF ( [Quantity] ), 0 ), ( \"C\", NAMEOF ( Product[Category] ), 1 ) }, [Value2], \", \", [Value3] )",
+    ),
+    // Calculation items as charted applies them (calcgroups.rs): a SWITCH on the item
+    // picked, each branch the item with SELECTEDMEASURE () replaced by the measure.
+    (
+        "Calc Item Switch",
+        "SWITCH ( SELECTEDVALUE ( Product[Category] ), \"Apparel\", CALCULATE ( ( 'Sales'[Quantity] ), SAMEPERIODLASTYEAR ( Date[Date] ) ), \"Camping\", ( 'Sales'[Quantity] ) * 2, 'Sales'[Quantity] )",
+    ),
+    (
+        "Calc Items Nested",
+        "SWITCH ( SELECTEDVALUE ( Date[Year] ), 2025, ( SWITCH ( SELECTEDVALUE ( Product[Category] ), \"Apparel\", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) ) + 1, SWITCH ( SELECTEDVALUE ( Product[Category] ), \"Apparel\", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) )",
     ),
     // Several filters on one column are ANDed.
     (

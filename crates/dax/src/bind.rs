@@ -581,6 +581,7 @@ pub const SUPPORTED: &[&str] = &[
     "ISBLANK",
     "ISFILTERED",
     "ISINSCOPE",
+    "ISSELECTEDMEASURE",
     "KEEPFILTERS",
     "LASTDATE",
     "LEFT",
@@ -616,6 +617,9 @@ pub const SUPPORTED: &[&str] = &[
     "ROUND",
     "SAMEPERIODLASTYEAR",
     "SELECTCOLUMNS",
+    "SELECTEDMEASURE",
+    "SELECTEDMEASUREFORMATSTRING",
+    "SELECTEDMEASURENAME",
     "SELECTEDVALUE",
     "SUBSTITUTE",
     "SUM",
@@ -651,6 +655,7 @@ pub fn bind_table(model: &Model, expr: &Expr) -> (Option<TableExpr>, Vec<Diagnos
         depth: 0,
         exts: Vec::new(),
         carried: Vec::new(),
+        item: false,
     };
     let bound = b.table_expr(expr, &[]);
     let ok = b.diags.is_empty();
@@ -670,9 +675,27 @@ pub fn bind_in(
         depth: 0,
         exts: Vec::new(),
         carried: Vec::new(),
+        item: false,
     };
     let rows: Vec<&Table> = row_table.and_then(|t| model.table(t)).into_iter().collect();
     let bound = b.expr(expr, &rows);
+    let ok = b.diags.is_empty();
+    (bound.filter(|_| ok), b.diags)
+}
+
+/// Binds a calculation item's expression, where SELECTEDMEASURE () and its kin stand
+/// for the measure the item is applied to.
+pub fn bind_item(model: &Model, expr: &Expr) -> (Option<Bound>, Vec<Diagnostic>) {
+    let mut b = Binder {
+        model,
+        diags: Vec::new(),
+        vars: Vec::new(),
+        depth: 0,
+        exts: Vec::new(),
+        carried: Vec::new(),
+        item: true,
+    };
+    let bound = b.expr(expr, &[]);
     let ok = b.diags.is_empty();
     (bound.filter(|_| ok), b.diags)
 }
@@ -689,6 +712,8 @@ struct Binder<'a> {
     exts: Vec<String>,
     /// Other tables' columns the rows being iterated carry (SUMMARIZE's groups).
     carried: Vec<Id>,
+    /// Binding a calculation item's expression (SELECTEDMEASURE () is allowed).
+    item: bool,
 }
 
 /// A variable in scope: its definition, and the context depth it was defined at (its
@@ -1999,6 +2024,35 @@ impl<'a> Binder<'a> {
                     };
                 }
                 Some(out)
+            }
+            "SELECTEDMEASURE" | "SELECTEDMEASURENAME" | "SELECTEDMEASUREFORMATSTRING"
+            | "ISSELECTEDMEASURE" => {
+                if !self.item {
+                    return self.err(
+                        span,
+                        format!("{upper} only works in a calculation item's expression"),
+                    );
+                }
+                if upper == "ISSELECTEDMEASURE" {
+                    if !self.arity(&upper, args, span, 1, usize::MAX) {
+                        return None;
+                    }
+                    for a in args {
+                        if !matches!(self.expr(a, rows)?, Bound::Measure { .. }) {
+                            return self.err(a.span, "ISSELECTEDMEASURE takes measures");
+                        }
+                    }
+                    return Some(Bound::Bool(false));
+                }
+                if !self.arity(&upper, args, span, 0, 0) {
+                    return None;
+                }
+                // Stand-ins: the item is applied to a measure by rewriting it
+                // (calcitem::apply) before it is compiled.
+                Some(match upper.as_str() {
+                    "SELECTEDMEASURE" => Bound::Blank,
+                    _ => Bound::Text(String::new()),
+                })
             }
             "SELECTEDVALUE" | "HASONEVALUE" | "ISINSCOPE" | "ISFILTERED" => {
                 let (min, max) = if upper == "SELECTEDVALUE" { (1, 2) } else { (1, 1) };

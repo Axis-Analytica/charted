@@ -82,6 +82,7 @@ ISBLANK|Value|Information|TRUE when the value is blank.
 ISERROR|Value|Information|TRUE when the value is an error.
 ISFILTERED|TableOrColumn|Information|TRUE when the column (or any column of the table) is filtered directly.
 ISINSCOPE|Column|Information|TRUE when the column is a grouping level of the current row in the visual.
+ISSELECTEDMEASURE|Measure; [Measure]…|Information|In a calculation item, TRUE when the item is applied to one of these measures.
 KEEPFILTERS|Filter|Filter|Applies a CALCULATE filter on top of existing filters instead of replacing them.
 LASTDATE|Dates|Time intelligence|The last date in context.
 LASTNONBLANK|Column; Expression|Filter|The last value of a column for which the expression is not blank.
@@ -134,6 +135,9 @@ ROUNDUP|Number; NumberOfDigits|Math|Rounds away from zero.
 SAMEPERIODLASTYEAR|Dates|Time intelligence|The dates shifted back one year.
 SEARCH|FindText; WithinText; [StartPosition]; [NotFoundValue]|Text|The position of text within text (not case-sensitive).
 SELECTCOLUMNS|Table; Name; Expression; [Name; Expression]…|Table|A table with the given columns.
+SELECTEDMEASURE||Information|In a calculation item, the measure the item is applied to.
+SELECTEDMEASUREFORMATSTRING||Information|In a calculation item, the format string of the measure the item is applied to.
+SELECTEDMEASURENAME||Information|In a calculation item, the name of the measure the item is applied to.
 SELECTEDVALUE|Column; [AlternateResult]|Information|The column's value when the filter context leaves exactly one, otherwise the alternate result.
 SIGN|Number|Math|1, 0 or -1 for the sign of a number.
 SQRT|Number|Math|The square root.
@@ -269,6 +273,9 @@ pub fn support_markdown() -> String {
          - **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( \"a\", 1 ), ( \"b\", 2 ) }` \
            (`Value1`, `Value2`…) can be iterated and used as calculated tables; **NAMEOF** gives \
            a column's or measure's name as `'Table'[Name]`. Together they make field parameters.\n\
+         - **SELECTEDMEASURE, SELECTEDMEASURENAME, SELECTEDMEASUREFORMATSTRING and \
+           ISSELECTEDMEASURE** work in calculation items, which apply to the measures a visual \
+           shows (not to measures those measures use).\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

@@ -43,6 +43,7 @@ fn calc_table(id: &str, name: &str, expression: &str) -> Table {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: Some(CalculatedTable {
             expression: expression.into(),
             language: ExpressionLanguage::Dax,

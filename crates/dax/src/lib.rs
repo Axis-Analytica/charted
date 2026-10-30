@@ -3,6 +3,7 @@
 //! language service).
 
 pub mod bind;
+pub mod calcitem;
 pub mod catalog;
 pub mod format;
 pub mod ide;
@@ -72,6 +73,15 @@ pub fn check_table(
         return (None, parsed.diagnostics);
     }
     bind::bind_table(model, &parsed.expr)
+}
+
+/// Parses and binds a calculation item's expression.
+pub fn check_item(model: &charted_model::Model, src: &str) -> Vec<Diagnostic> {
+    let parsed = parse(src);
+    if !parsed.diagnostics.is_empty() {
+        return parsed.diagnostics;
+    }
+    bind::bind_item(model, &parsed.expr).1
 }
 
 /// Parses and binds a formula evaluated per row of `row_table` (a calculated column).

@@ -153,6 +153,28 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
     if t.hidden {
         let _ = writeln!(out, "\tisHidden");
     }
+    if let Some(g) = &t.calculation_group {
+        out.push('\n');
+        let _ = writeln!(out, "\tcalculationGroup");
+        if g.precedence != 0 {
+            prop(&mut out, 2, "precedence", g.precedence);
+        }
+        for (i, it) in g.items.iter().enumerate() {
+            out.push('\n');
+            if let Some(d) = &it.description {
+                for l in d.lines() {
+                    let _ = writeln!(out, "\t\t/// {l}");
+                }
+            }
+            let _ = write!(out, "\t\tcalculationItem {} =", name(&it.name));
+            expression(&mut out, &it.expression, 2);
+            prop(&mut out, 3, "ordinal", i);
+            if let Some(f) = &it.format_string {
+                let _ = write!(out, "\t\t\tformatStringDefinition =");
+                expression(&mut out, f, 3);
+            }
+        }
+    }
     for m in &t.measures {
         out.push('\n');
         if let Some(d) = &m.description {
@@ -213,6 +235,15 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             prop(&mut out, 2, "summarizeBy", s);
         }
         match &c.kind {
+            // A calculation group's columns are its items' Name and Ordinal.
+            ColumnKind::Data { source_column } if t.calculation_group.is_some() => {
+                let source = if source_column == "Value2" {
+                    "Ordinal"
+                } else {
+                    "Name"
+                };
+                prop(&mut out, 2, "sourceColumn", source);
+            }
             // A calculated table's column names its result column.
             ColumnKind::Data { source_column } if t.calculated.is_some() => {
                 if c.name == *source_column {
@@ -238,7 +269,9 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         out.push('\n');
         // Power BI knows its parameters by this property: a field parameter's label
         // column (rows of NAMEOF), and a what-if parameter's values (GENERATESERIES).
-        if let (Some(calc), ColumnKind::Data { source_column }) = (&t.calculated, &c.kind) {
+        if let (Some(calc), ColumnKind::Data { source_column }, None) =
+            (&t.calculated, &c.kind, &t.calculation_group)
+        {
             let e = calc.expression.to_ascii_uppercase();
             let meta = if source_column == "Value1" && e.contains("NAMEOF") {
                 Some("{\n\t\t\t\t  \"version\": 3,\n\t\t\t\t  \"kind\": 2\n\t\t\t\t}")
@@ -309,7 +342,11 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             prop(&mut out, 3, "column", name(&c.name));
         }
     }
-    if let Some(calc) = &t.calculated {
+    if t.calculation_group.is_some() {
+        out.push('\n');
+        let _ = writeln!(out, "\tpartition {} = calculationGroup", name(&t.name));
+        prop(&mut out, 2, "mode", "import");
+    } else if let Some(calc) = &t.calculated {
         out.push('\n');
         let _ = writeln!(out, "\tpartition {} = calculated", name(&t.name));
         prop(&mut out, 2, "mode", "import");
@@ -455,8 +492,14 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     ));
 
     let mut model_tmdl = String::from(
-        "model Model\n\tculture: en-US\n\tdefaultPowerBIDataSourceVersion: powerBI_V3\n\tsourceQueryCulture: en-US\n\tdataAccessOptions\n\t\tlegacyRedirects\n\t\treturnErrorValuesAsNull\n\n",
+        "model Model\n\tculture: en-US\n\tdefaultPowerBIDataSourceVersion: powerBI_V3\n\tsourceQueryCulture: en-US\n",
     );
+    // Power BI requires it of models with calculation groups.
+    if model.tables.iter().any(|t| t.calculation_group.is_some()) {
+        model_tmdl.push_str("\tdiscourageImplicitMeasures\n");
+    }
+    model_tmdl
+        .push_str("\tdataAccessOptions\n\t\tlegacyRedirects\n\t\treturnErrorValuesAsNull\n\n");
     // charted has no automatic date tables; Desktop shouldn't add them on opening.
     model_tmdl.push_str("annotation __PBI_TimeIntelligenceEnabled = 0\n\n");
     // Calculated tables have no query.

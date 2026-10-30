@@ -41,7 +41,6 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         .map(|s| format!("{} {}", s.kind, s.name))
         .collect();
     for expected in [
-        "table Time Calculations",
         "table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4",
         "query Targets",
         "role Regional managers: Orders",
@@ -53,11 +52,11 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
             "{expected} not in {skipped:#?}"
         );
     }
-    // The calendar and the field parameter are calculated tables now.
+    // The calendar, the field parameter and the calculation group come in.
     assert!(
-        !skipped
-            .iter()
-            .any(|s| s == "table Date" || s == "table Metric Choice"),
+        !skipped.iter().any(|s| {
+            s == "table Date" || s == "table Metric Choice" || s == "table Time Calculations"
+        }),
         "{skipped:#?}"
     );
     // RANKX is evaluated now.
@@ -71,7 +70,7 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     );
     assert_eq!(
         (report.tables, report.loaded, report.relationships),
-        (5, 2, 2)
+        (6, 2, 2)
     );
     // The KPI (v1.2) comes across; the map doesn't.
     assert!(!skipped.iter().any(|s| s.contains("kpi")), "{skipped:#?}");
@@ -105,6 +104,17 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         date.column_by_name("Date").unwrap().data_type,
         DataType::Date
     );
+    // The calculation group has its two items.
+    let group = m.table_by_name("Time Calculations").unwrap();
+    let items: Vec<&str> = group
+        .calculation_group
+        .as_ref()
+        .unwrap()
+        .items
+        .iter()
+        .map(|i| i.name.as_str())
+        .collect();
+    assert_eq!(items, ["Current", "YTD"]);
     // The field parameter has its two choices.
     let metric = m.table_by_name("Metric Choice").unwrap();
     assert_eq!(

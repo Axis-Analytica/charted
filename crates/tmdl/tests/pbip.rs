@@ -45,6 +45,7 @@ fn top_table() -> Table {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: Some(CalculatedTable {
             expression: "TOPN (\n\t3,\n\tVALUES ( Sales[Day] ),\n\t[Total]\n)".into(),
             language: ExpressionLanguage::Dax,
@@ -89,6 +90,7 @@ fn writes_a_power_bi_project() {
                 hierarchies: Vec::new(),
                 hidden: false,
                 is_date_table: false,
+                calculation_group: None,
                 calculated: None,
                 extras: Default::default(),
             },
@@ -119,6 +121,7 @@ fn writes_a_power_bi_project() {
                     extras: Default::default(),
                 }],
                 is_date_table: true,
+                calculation_group: None,
                 calculated: None,
                 extras: Default::default(),
             },
@@ -254,6 +257,7 @@ fn reported() -> Model {
             }],
             hidden: false,
             is_date_table: false,
+            calculation_group: None,
             calculated: None,
             extras: Default::default(),
         }],
@@ -877,6 +881,7 @@ fn power_query_sources_come_back_from_their_m() {
         measures: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: None,
         hierarchies: Vec::new(),
         extras: Default::default(),
@@ -1134,6 +1139,7 @@ fn parameters_round_trip_with_their_metadata() {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: Some(CalculatedTable {
             expression: expression.into(),
             language: ExpressionLanguage::Dax,
@@ -1215,4 +1221,179 @@ fn parameters_round_trip_with_their_metadata() {
         };
         assert_eq!(cols(b), cols(t));
     }
+}
+
+#[test]
+fn calculation_groups_come_in_and_round_trip() {
+    // As Power BI Desktop writes one.
+    let tmdl = "table 'Time Intelligence'\n\
+        \tlineageTag: t-ti\n\
+        \n\
+        \tcalculationGroup\n\
+        \t\tprecedence: 5\n\
+        \n\
+        \t\tcalculationItem YTD =\n\
+        \t\t\t\tCALCULATE (\n\
+        \t\t\t\t    SELECTEDMEASURE (),\n\
+        \t\t\t\t    DATESYTD ( 'Date'[Date] )\n\
+        \t\t\t\t)\n\
+        \t\t\tordinal: 1\n\
+        \n\
+        \t\t/// The measure as it is\n\
+        \t\tcalculationItem Current = SELECTEDMEASURE()\n\
+        \t\t\tordinal: 0\n\
+        \t\t\tformatStringDefinition = \"0.0\"\n\
+        \n\
+        \tcolumn 'Time Calculation'\n\
+        \t\tdataType: string\n\
+        \t\tlineageTag: c-name\n\
+        \t\tsummarizeBy: none\n\
+        \t\tsourceColumn: Name\n\
+        \t\tsortByColumn: Ordinal\n\
+        \n\
+        \tcolumn Ordinal\n\
+        \t\tdataType: int64\n\
+        \t\tisHidden\n\
+        \t\tlineageTag: c-ord\n\
+        \t\tsourceColumn: Ordinal\n\
+        \n\
+        \tpartition 'Time Intelligence' = calculationGroup\n\
+        \t\tmode: import\n";
+    let def: std::collections::BTreeMap<String, String> = [(
+        "tables/Time Intelligence.tmdl".to_string(),
+        tmdl.to_string(),
+    )]
+    .into();
+    let im = charted_tmdl::read::from_tmdl(&def, "Shop");
+    assert!(im.skipped.is_empty(), "{:?}", im.skipped);
+    let t = im.model.table("t-ti").unwrap();
+    let g = t.calculation_group.as_ref().unwrap();
+    assert_eq!(g.precedence, 5);
+    let names: Vec<&str> = g.items.iter().map(|i| i.name.as_str()).collect();
+    assert_eq!(names, ["Current", "YTD"]);
+    assert_eq!(g.items[0].format_string.as_deref(), Some("\"0.0\""));
+    assert_eq!(
+        g.items[0].description.as_deref(),
+        Some("The measure as it is")
+    );
+    assert!(
+        g.items[1].expression.contains("DATESYTD"),
+        "{}",
+        g.items[1].expression
+    );
+    assert_eq!(
+        t.calculated.as_ref().unwrap().expression,
+        "{ ( \"Current\", 0 ), ( \"YTD\", 1 ) }"
+    );
+    assert_eq!(t.source, calculated_table_source("t-ti"));
+    let sources: Vec<(String, ColumnKind)> = t
+        .columns
+        .iter()
+        .map(|c| (c.name.clone(), c.kind.clone()))
+        .collect();
+    assert_eq!(
+        sources,
+        [
+            (
+                "Time Calculation".into(),
+                ColumnKind::Data {
+                    source_column: "Value1".into()
+                }
+            ),
+            (
+                "Ordinal".into(),
+                ColumnKind::Data {
+                    source_column: "Value2".into()
+                }
+            ),
+        ]
+    );
+    assert_eq!(t.columns[0].sort_by.as_deref(), Some("c-ord"));
+
+    // Written back as Power BI has it, and read again the same.
+    let files = charted_tmdl::pbip("Shop", &im.model, &[], "/data");
+    let text = |suffix: &str| {
+        files
+            .iter()
+            .find(|(p, _)| p.ends_with(suffix))
+            .map(|(_, t)| t.clone())
+            .unwrap()
+    };
+    let out = text("tables/Time Intelligence.tmdl");
+    for want in [
+        "\tcalculationGroup\n\t\tprecedence: 5\n",
+        "\t\tcalculationItem Current = SELECTEDMEASURE()\n\t\t\tordinal: 0\n\t\t\tformatStringDefinition = \"0.0\"\n",
+        "\t\tsourceColumn: Name\n",
+        "\t\tsourceColumn: Ordinal\n",
+        "\tpartition 'Time Intelligence' = calculationGroup\n",
+    ] {
+        assert!(out.contains(want), "{want:?} in\n{out}");
+    }
+    assert!(!out.contains("ParameterMetadata"), "{out}");
+    assert!(text("definition/model.tmdl").contains("\tdiscourageImplicitMeasures\n"));
+    let def: std::collections::BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(p, t)| {
+            Some((
+                p.strip_prefix("Shop.SemanticModel/definition/")?
+                    .to_string(),
+                t.clone(),
+            ))
+        })
+        .collect();
+    let back = charted_tmdl::read::from_tmdl(&def, "Shop");
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
+    let b = back.model.table("t-ti").unwrap();
+    let words = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    let bg = b.calculation_group.as_ref().unwrap();
+    assert_eq!(bg.precedence, g.precedence);
+    for (x, y) in bg.items.iter().zip(&g.items) {
+        assert_eq!(
+            (&x.name, words(&x.expression)),
+            (&y.name, words(&y.expression))
+        );
+        assert_eq!(x.format_string, y.format_string);
+        assert_eq!(x.description, y.description);
+    }
+    assert_eq!(b.columns, t.columns);
+
+    // model.bim has the same in TMSL.
+    let bim = serde_json::json!({
+        "name": "Shop",
+        "model": {
+            "tables": [{
+                "name": "Scenario",
+                "lineageTag": "t-s",
+                "calculationGroup": {
+                    "precedence": 2,
+                    "calculationItems": [
+                        {"name": "Double", "ordinal": 1, "expression": ["SELECTEDMEASURE ()", "    * 2"]},
+                        {"name": "Base", "ordinal": 0, "expression": "SELECTEDMEASURE ()",
+                         "formatStringDefinition": {"expression": "\"#,0\""}}
+                    ]
+                },
+                "columns": [
+                    {"name": "Scenario", "dataType": "string", "sourceColumn": "Name", "sortByColumn": "Ordinal"},
+                    {"name": "Ordinal", "dataType": "int64", "sourceColumn": "Ordinal", "isHidden": true}
+                ],
+                "partitions": [{"name": "Scenario", "mode": "import", "source": {"type": "calculationGroup"}}]
+            }]
+        }
+    });
+    let im = charted_tmdl::read::from_bim(&bim.to_string(), "Shop").unwrap();
+    assert!(im.skipped.is_empty(), "{:?}", im.skipped);
+    let g = im
+        .model
+        .table("t-s")
+        .unwrap()
+        .calculation_group
+        .clone()
+        .unwrap();
+    assert_eq!(g.precedence, 2);
+    assert_eq!(
+        g.items.iter().map(|i| i.name.as_str()).collect::<Vec<_>>(),
+        ["Base", "Double"]
+    );
+    assert_eq!(g.items[1].expression, "SELECTEDMEASURE ()\n    * 2");
+    assert_eq!(g.items[0].format_string.as_deref(), Some("\"#,0\""));
 }

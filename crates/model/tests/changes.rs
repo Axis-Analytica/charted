@@ -46,6 +46,7 @@ fn fixture() -> Model {
         hierarchies: vec![hierarchy("h-1", "Keys", &["c-s-date", "c-s-prod"])],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: None,
         extras: Default::default(),
     };
@@ -62,6 +63,7 @@ fn fixture() -> Model {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: None,
         extras: Default::default(),
     };
@@ -75,6 +77,7 @@ fn fixture() -> Model {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculation_group: None,
         calculated: Some(CalculatedTable {
             expression: "VALUES ( Product[Category] )".into(),
             language: ExpressionLanguage::Dax,
@@ -320,6 +323,7 @@ fn arb_change() -> impl Strategy<Value = Change> {
                 hierarchies: vec![],
                 hidden: false,
                 is_date_table: false,
+                calculation_group: None,
                 calculated: Some(CalculatedTable {
                     expression: "Product".into(),
                     language: ExpressionLanguage::Dax,

@@ -46,6 +46,7 @@ fn table(id: &str, name: &str, columns: Vec<Column>) -> Table {
         hidden: false,
         hierarchies: Vec::new(),
         is_date_table: false,
+        calculation_group: None,
         calculated: None,
         extras: Default::default(),
     }
@@ -208,10 +209,53 @@ fn sample_model() -> Model {
         expression: "TOPN ( 5, VALUES ( Product[Product] ), [Total Sales] )".into(),
         language: ExpressionLanguage::Dax,
     });
+    let data = |id: &str, name: &str, source: &str, ty: DataType| Column {
+        kind: ColumnKind::Data {
+            source_column: source.into(),
+        },
+        ..col(id, name, ty)
+    };
+    let mut scenario = table(
+        "t-scenario",
+        "Scenario",
+        vec![
+            Column {
+                sort_by: Some("c-s-ord".into()),
+                ..data("c-s-name", "Scenario", "Value1", DataType::String)
+            },
+            Column {
+                hidden: true,
+                ..data("c-s-ord", "Ordinal", "Value2", DataType::Int64)
+            },
+        ],
+    );
+    let group = CalculationGroup {
+        precedence: 3,
+        items: vec![
+            CalculationItem {
+                name: "Base".into(),
+                expression: "SELECTEDMEASURE ()".into(),
+                format_string: None,
+                description: Some("As it is".into()),
+            },
+            CalculationItem {
+                name: "Share".into(),
+                expression: "DIVIDE ( SELECTEDMEASURE (), CALCULATE ( SELECTEDMEASURE (), ALL ( Product ) ) )".into(),
+                format_string: Some("\"0.0%\"".into()),
+                description: None,
+            },
+        ],
+    };
+    scenario.source = calculated_table_source("t-scenario");
+    scenario.calculated = Some(CalculatedTable {
+        expression: calculation_group_expression(&group),
+        language: ExpressionLanguage::Dax,
+    });
+    scenario.calculation_group = Some(group);
     Model {
         name: "Harbor & Pine".into(),
         description: Some("Retail sales sample".into()),
-        tables: vec![sales, product, date, top],
+        tables: vec![sales, product, date, top, scenario],
         relationships: vec![
             rel(
                 "r-order",

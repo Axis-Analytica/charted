@@ -438,6 +438,8 @@ pub fn report_visual_sql(
             .chain(&q.values)
             .map(|p| projection_name(model, p))
             .collect();
+        let applied = crate::calcgroups::apply(model, &mut q);
+        let model = applied.as_ref().unwrap_or(model);
         let c = compile(model, schema, &q)?;
         return Ok(select_as(
             &c.sql,
@@ -449,6 +451,9 @@ pub fn report_visual_sql(
         q.values.push(p);
         names.push(name);
     }
+    // Calculation items picked for the visual apply to its measures.
+    let applied = crate::calcgroups::apply(model, &mut q);
+    let model = applied.as_ref().unwrap_or(model);
     if v.visual_type == "matrix" && !o.totals {
         let value_names = names[q.groups.len()..].to_vec();
         return matrix_sql(model, schema, v, q, &value_names);

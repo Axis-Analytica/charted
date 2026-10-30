@@ -356,7 +356,32 @@ fn write_table(model: &Model, t: &Table, generated: &GeneratedDialects) -> doc::
     if t.is_date_table {
         pb.insert("dataCategory".into(), "Time".into());
     }
-    if let Some(calc) = &t.calculated {
+    if let Some(g) = &t.calculation_group {
+        // As TMSL describes a calculation group (its rows are its items).
+        let items: Vec<Value> = g
+            .items
+            .iter()
+            .enumerate()
+            .map(|(i, it)| {
+                let mut o = json!({ "name": it.name, "expression": it.expression, "ordinal": i });
+                if let Some(f) = &it.format_string {
+                    o["formatStringDefinition"] = json!({ "expression": f });
+                }
+                if let Some(d) = &it.description {
+                    o["description"] = d.clone().into();
+                }
+                o
+            })
+            .collect();
+        pb.insert(
+            "calculationGroup".into(),
+            json!({ "precedence": g.precedence, "calculationItems": items }),
+        );
+        pb.insert(
+            "partitions".into(),
+            json!([{ "name": t.name, "mode": "import", "source": { "type": "calculationGroup" } }]),
+        );
+    } else if let Some(calc) = &t.calculated {
         // As TMSL describes the table, which the converter keeps in the dataset's
         // `POWER_BI` blob (it reads calculated tables by their partition's source type).
         let language = match calc.language {
@@ -860,6 +885,51 @@ fn read_calculated(pb: &mut Map<String, Value>) -> Option<CalculatedTable> {
     })
 }
 
+/// A calculation group, as TMSL describes it (taken out of the blob with its partition).
+fn read_calculation_group(pb: &mut Map<String, Value>) -> Option<CalculationGroup> {
+    let g = pb.remove("calculationGroup")?;
+    pb.remove("partitions");
+    let text = |v: Option<&Value>| match v {
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Array(lines)) => lines
+            .iter()
+            .filter_map(Value::as_str)
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => String::new(),
+    };
+    let mut items: Vec<(i64, CalculationItem)> = g
+        .get("calculationItems")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .map(|(i, it)| {
+            (
+                it.get("ordinal")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(i as i64),
+                CalculationItem {
+                    name: text(it.get("name")),
+                    expression: text(it.get("expression")),
+                    format_string: it
+                        .get("formatStringDefinition")
+                        .map(|f| text(f.get("expression"))),
+                    description: it
+                        .get("description")
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                },
+            )
+        })
+        .collect();
+    items.sort_by_key(|(o, _)| *o);
+    Some(CalculationGroup {
+        precedence: g.get("precedence").and_then(Value::as_i64).unwrap_or(0) as i32,
+        items: items.into_iter().map(|(_, it)| it).collect(),
+    })
+}
+
 pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
     if d.version != SPEC_VERSION {
         return Err(MapError::Version(d.version.clone()));
@@ -886,7 +956,14 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             }
             None => false,
         };
-        let calculated = read_calculated(&mut pb);
+        let calculation_group = read_calculation_group(&mut pb);
+        let calculated = match &calculation_group {
+            Some(g) => Some(CalculatedTable {
+                expression: calculation_group_expression(g),
+                language: ExpressionLanguage::Dax,
+            }),
+            None => read_calculated(&mut pb),
+        };
         let source = if calculated.is_some() {
             calculated_table_source(&id)
         } else {
@@ -902,6 +979,7 @@ pub fn from_document(d: &Document) -> Result<(Model, Vec<Warning>), MapError> {
             hierarchies: Vec::new(),
             hidden,
             is_date_table,
+            calculation_group,
             calculated,
             extras: Extras::new(),
         };

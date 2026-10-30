@@ -8,6 +8,7 @@ pub mod api;
 mod atomic;
 pub mod bundle;
 pub mod calcgraph;
+pub mod calcgroups;
 pub mod check;
 pub mod crash;
 pub mod dataview;

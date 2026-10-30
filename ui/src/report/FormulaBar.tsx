@@ -60,7 +60,8 @@ function TableFormulaBar({ model, formula }: { model: Model; formula: string }) 
   const set = useReport((s) => s.set);
   const ref = useRef<DaxEditorHandle>(null);
   const id = formula.slice("table:".length);
-  const table = id === "new" ? undefined : model.tables.find((tb) => tb.id === id && tb.calculated);
+  // A calculation group's rows follow its items (edited in its dialog).
+  const table = id === "new" ? undefined : model.tables.find((tb) => tb.id === id && tb.calculated && !tb.calculationGroup);
   const fallback = useMemo(() => uniqueTableName(model, t("Table")), [model, t]);
   const initial = table ? `${table.name} = ${table.calculated!.expression}` : `${fallback} = `;
   const [text, setText] = useState(initial);

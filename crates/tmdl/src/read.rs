@@ -1,9 +1,9 @@
 //! Reads a Power BI semantic model — TMDL (a PBIP's `definition/` folder) or TMSL
 //! (`model.bim`) — into a charted model and its queries. What charted can't use is
 //! listed in the import report instead of being dropped silently:
-//! calculation groups, perspectives, translations and M queries it doesn't understand
-//! (their tables come in without data). Calculated tables, field parameters and what-if
-//! parameters come in as calculated tables.
+//! perspectives, translations and M queries it doesn't understand (their tables come in
+//! without data). Calculated tables, field parameters, what-if parameters and
+//! calculation groups come in as calculated tables.
 //!
 //! charted's own exports carry each table's query as an annotation (`chartedQuery`),
 //! and the exact type of date columns (`chartedDataType`), so they come back exactly.
@@ -98,7 +98,7 @@ struct ImTable {
     measures: Vec<ImMeasure>,
     partitions: Vec<ImPartition>,
     hierarchies: Vec<ImHierarchy>,
-    calculation_group: bool,
+    calculation_group: Option<CalculationGroup>,
     annotations: BTreeMap<String, String>,
 }
 
@@ -385,7 +385,7 @@ fn tmdl_table(n: &Node, name: String) -> ImTable {
     };
     for c in n.children.iter().filter(|c| c.depth == n.depth + 1) {
         if c.text.starts_with("calculationGroup") {
-            t.calculation_group = true;
+            t.calculation_group = Some(tmdl_calculation_group(c));
             continue;
         }
         let Some((kw, name, expr)) = object(&c.text) else {
@@ -471,11 +471,92 @@ fn tmdl_table(n: &Node, name: String) -> ImTable {
                     name,
                 })
             }
-            "calculationGroup" => t.calculation_group = true,
             _ => {}
         }
     }
     t
+}
+
+/// A `calculationGroup` and its `calculationItem`s, in ordinal order.
+fn tmdl_calculation_group(n: &Node) -> CalculationGroup {
+    let p = props(n);
+    let mut items: Vec<(i64, CalculationItem)> = Vec::new();
+    for (i, c) in n
+        .children
+        .iter()
+        .filter(|c| c.depth == n.depth + 1)
+        .enumerate()
+    {
+        let Some((kw, name, expr)) = object(&c.text) else {
+            continue;
+        };
+        if kw != "calculationItem" {
+            continue;
+        }
+        let cp = props(c);
+        let format_string = c
+            .children
+            .iter()
+            .filter(|x| x.depth == c.depth + 1)
+            .find_map(|x| {
+                let (k, v) = x.text.split_once('=')?;
+                (k.trim() == "formatStringDefinition")
+                    .then(|| expression_of(x, Some(v.trim().to_string())))
+            });
+        let ordinal = cp
+            .get("ordinal")
+            .and_then(|o| o.parse().ok())
+            .unwrap_or(i as i64);
+        items.push((
+            ordinal,
+            CalculationItem {
+                name,
+                expression: expression_of(c, expr),
+                format_string,
+                description: doc(c),
+            },
+        ));
+    }
+    items.sort_by_key(|(o, _)| *o);
+    CalculationGroup {
+        precedence: p
+            .get("precedence")
+            .and_then(|x| x.parse().ok())
+            .unwrap_or(0),
+        items: items.into_iter().map(|(_, it)| it).collect(),
+    }
+}
+
+/// A model.bim `calculationGroup`.
+fn bim_calculation_group(g: &serde_json::Value) -> CalculationGroup {
+    let mut items: Vec<(i64, CalculationItem)> = g
+        .get("calculationItems")
+        .and_then(|a| a.as_array())
+        .into_iter()
+        .flatten()
+        .enumerate()
+        .map(|(i, it)| {
+            let text = |k: &str| it.get(k).and_then(|v| v.as_str()).map(str::to_string);
+            (
+                it.get("ordinal")
+                    .and_then(|o| o.as_i64())
+                    .unwrap_or(i as i64),
+                CalculationItem {
+                    name: text("name").unwrap_or_default(),
+                    expression: lines_or_text(it.get("expression")),
+                    format_string: it
+                        .get("formatStringDefinition")
+                        .map(|f| lines_or_text(f.get("expression"))),
+                    description: text("description"),
+                },
+            )
+        })
+        .collect();
+    items.sort_by_key(|(o, _)| *o);
+    CalculationGroup {
+        precedence: g.get("precedence").and_then(|p| p.as_i64()).unwrap_or(0) as i32,
+        items: items.into_iter().map(|(_, it)| it).collect(),
+    }
 }
 
 fn tmdl_relationship(n: &Node, name: String) -> ImRelationship {
@@ -641,7 +722,7 @@ fn read_bim(text: &str) -> Result<Sm, String> {
             hidden: b(&t, "isHidden"),
             date_table: s(&t, "dataCategory").is_some_and(|c| c == "Time"),
             annotations: bim_annotations(&t),
-            calculation_group: t.get("calculationGroup").is_some(),
+            calculation_group: t.get("calculationGroup").map(bim_calculation_group),
             hierarchies: arr(&t, "hierarchies")
                 .iter()
                 .map(|h| ImHierarchy {
@@ -895,14 +976,6 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             );
             continue;
         }
-        if t.calculation_group {
-            skip(
-                "table",
-                t.name.clone(),
-                "calculation groups aren't supported yet",
-            );
-            continue;
-        }
         let id = t.lineage.clone().unwrap_or_else(&new_id);
         // The query: charted's own (annotation), or one understood from M.
         let partition = t.partitions.first();
@@ -912,6 +985,15 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             .and_then(|j| serde_json::from_str(j).ok());
         let mut calculated = None;
         let query = match (own, partition) {
+            // A calculation group's rows are its items.
+            _ if t.calculation_group.is_some() => {
+                let g = t.calculation_group.as_ref().expect("a calculation group");
+                calculated = Some(CalculatedTable {
+                    expression: calculation_group_expression(g),
+                    language: ExpressionLanguage::Dax,
+                });
+                None
+            }
             (Some(q), _) => Some(q),
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("m") => {
                 match mquery::to_query(&p.source, &params) {
@@ -988,6 +1070,15 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                     Some(e) => ColumnKind::Calculated {
                         expression: e.clone(),
                         language: ExpressionLanguage::Dax,
+                    },
+                    // A calculation group's Name and Ordinal are its rows' Value1 and
+                    // Value2.
+                    None if t.calculation_group.is_some() => ColumnKind::Data {
+                        source_column: match c.source_column.as_deref() {
+                            Some("Ordinal") => "Value2",
+                            _ => "Value1",
+                        }
+                        .into(),
                     },
                     // A calculated table's columns name their result column, as
                     // `[Name]` or `Table[Name]`.
@@ -1096,6 +1187,7 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             hierarchies,
             hidden: t.hidden,
             is_date_table: t.date_table,
+            calculation_group: t.calculation_group.clone(),
             calculated,
             extras: Default::default(),
         });

@@ -223,6 +223,14 @@
 .formula-tools .select { height: 28px; max-width: 150px; }
 .quick-measure { display: grid; gap: 12px; }
 .quick-measure .select { width: 100%; }
+.calc-group { display: grid; gap: 12px; }
+.calc-group-head { display: grid; grid-template-columns: 1fr 120px; gap: 12px; }
+.calc-group-body { display: grid; grid-template-columns: 200px 1fr; gap: 12px; align-items: start; }
+.calc-group-items, .calc-group-item { display: grid; gap: 6px; min-width: 0; }
+.calc-group-tools { display: flex; gap: 2px; }
+.calc-group-pick { width: 100%; border: 0; border-radius: var(--radius-sm); padding: 3px 6px; background: transparent; color: var(--fg); text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.calc-group-pick:hover { background: var(--bg-hover); }
+.calc-group-pick[aria-pressed="true"] { background: var(--accent-soft); color: var(--fg-strong); }
 .quick-dax { margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-sunken); white-space: pre-wrap; font-size: 12px; color: var(--fg-strong); }
 
 /* Narrow windows: one column of panes, switched by tabs. */

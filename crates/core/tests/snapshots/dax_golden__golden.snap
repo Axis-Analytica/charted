@@ -938,6 +938,24 @@ expression: golden
 "Camping" | "'Sales'[Quantity], 'Product'[Category]"
 "Footwear" | "'Sales'[Quantity], 'Product'[Category]"
 
+## Calc Item Switch — card
+269
+
+## Calc Item Switch — by category
+∅ | 3
+"Apparel" | 38
+"Camping" | 164
+"Footwear" | 73
+
+## Calc Items Nested — card
+23413
+
+## Calc Items Nested — by category
+∅ | 81
+"Apparel" | 0.2851
+"Camping" | 10138
+"Footwear" | 6519
+
 ## Neither Apparel Nor Camping — card
 76
 

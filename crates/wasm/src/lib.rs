@@ -98,6 +98,23 @@ pub fn table_diagnostics(text: &str) -> String {
     })
 }
 
+/// Problems in a calculation item's expression (SELECTEDMEASURE () is allowed).
+#[wasm_bindgen]
+pub fn item_diagnostics(text: &str) -> String {
+    MODEL.with(|cell| {
+        let model = cell.borrow();
+        let out: Vec<Diag> = charted_dax::check_item(&model, text)
+            .into_iter()
+            .map(|d| Diag {
+                start: to_utf16(text, d.span.start),
+                end: to_utf16(text, d.span.end.max(d.span.start)),
+                message: d.message,
+            })
+            .collect();
+        json(&out)
+    })
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct CompletionOut {

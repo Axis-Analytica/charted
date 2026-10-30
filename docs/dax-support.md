@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (100 functions)
+## Evaluated (104 functions)
 
 ### Aggregation
 
@@ -62,8 +62,12 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ISBLANK ( Value )` | TRUE when the value is blank. |
 | `ISFILTERED ( TableOrColumn )` | TRUE when the column (or any column of the table) is filtered directly. |
 | `ISINSCOPE ( Column )` | TRUE when the column is a grouping level of the current row in the visual. |
+| `ISSELECTEDMEASURE ( Measure, [Measure]… )` | In a calculation item, TRUE when the item is applied to one of these measures. |
 | `LOOKUPVALUE ( ResultColumn, SearchColumn, SearchValue, [SearchColumn, SearchValue]…, [AlternateResult] )` | The value of a column in the row matching the search values. |
 | `NAMEOF ( Value )` | The name of a column or measure, as 'Table'[Name] (field parameters use it). |
+| `SELECTEDMEASURE (  )` | In a calculation item, the measure the item is applied to. |
+| `SELECTEDMEASUREFORMATSTRING (  )` | In a calculation item, the format string of the measure the item is applied to. |
+| `SELECTEDMEASURENAME (  )` | In a calculation item, the name of the measure the item is applied to. |
 | `SELECTEDVALUE ( Column, [AlternateResult] )` | The column's value when the filter context leaves exactly one, otherwise the alternate result. |
 
 ### Logical
@@ -175,6 +179,7 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and used as calculated tables; their new columns are named `[Name]` in expressions over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each group's filter context; SUMMARIZECOLUMNS crosses the visible values of each table's group columns and leaves out rows whose new columns are all blank. **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.
 - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted and used as CALCULATE filters in the context where they're defined.
 - **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( "a", 1 ), ( "b", 2 ) }` (`Value1`, `Value2`…) can be iterated and used as calculated tables; **NAMEOF** gives a column's or measure's name as `'Table'[Name]`. Together they make field parameters.
+- **SELECTEDMEASURE, SELECTEDMEASURENAME, SELECTEDMEASUREFORMATSTRING and ISSELECTEDMEASURE** work in calculation items, which apply to the measures a visual shows (not to measures those measures use).
 - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).

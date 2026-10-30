@@ -1,7 +1,9 @@
 // v1.4 parameters. What-if: New parameter… makes a table of values, a measure of the one
 // picked and a slicer; picking a value in the slicer changes what the measure returns.
 // Fields: a field parameter in a chart shows the measures picked in its slicer, or all
-// of them. The tables are deleted again at the end.
+// of them. Calculation groups: a table of a group's items shows each applied to a
+// measure, with the measure itself in the total row. The tables are deleted again at
+// the end.
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
@@ -128,4 +130,63 @@ test("a field parameter: a chart shows the measures picked in its slicer", async
   await fieldsPane(page).locator(".field-table-btn", { hasText: /^Metric$/ }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete table", exact: true }).click();
   await expect(fieldsPane(page).locator(".field-table-btn", { hasText: /^Metric$/ })).toHaveCount(0);
+});
+
+test("a calculation group: each item applied to a measure", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Scenarios");
+
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Sales$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "New calculation group…" }).click();
+  const dialog = page.getByRole("dialog", { name: "New calculation group" });
+  await dialog.getByLabel("Name", { exact: true }).fill("Scenario");
+  await dialog.getByLabel("Item name").fill("Base");
+  await dialog.getByRole("button", { name: "Add item" }).click();
+  await dialog.getByLabel("Item name").fill("Double");
+  const editor = dialog.locator(".dax-editor");
+  await expect(dialog.locator(".monaco-editor .view-lines")).toContainText("SELECTEDMEASURE");
+  await editor.click();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Delete");
+  // SELECTEDMEASURE works here; a misspelt function is underlined.
+  await page.keyboard.type("SELECTEDMEASURES ( ) * 2");
+  await expect(dialog.locator(".squiggly-error")).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Delete");
+  await page.keyboard.type("SELECTEDMEASURE ( ) * 2");
+  await expect(dialog.locator(".squiggly-error")).toHaveCount(0, { timeout: 15_000 });
+  await dialog.getByRole("button", { name: "OK" }).click();
+  await expect(dialog).toBeHidden();
+  const group = fieldsPane(page).locator("li[role=treeitem]", { has: page.locator(".field-table-btn", { hasText: /^Scenario$/ }) });
+  await expect(group.locator(".table-icon-group")).toHaveCount(1);
+
+  // A table of the items and Units: Double is twice Base, the total is Units itself.
+  await addVisual(page, "Table", { x: 400, y: 300 });
+  await tick(page, "Scenario", "Name");
+  await tick(page, "Sales", "Units");
+  const table = visuals(page).filter({ has: page.locator(".table-visual") });
+  const rows = table.locator("tbody tr");
+  await expect(rows).toHaveCount(2, { timeout: 15_000 });
+  await expect(rows.locator("td:first-child")).toHaveText(["Base", "Double"]);
+  const num = async (cell: Locator) => Number((await cell.textContent())!.replace(/[^\d.-]/g, ""));
+  const base = await num(rows.nth(0).locator("td").nth(1));
+  expect(base).toBeGreaterThan(0);
+  expect(await num(rows.nth(1).locator("td").nth(1))).toBe(base * 2);
+  expect(await num(table.locator("tfoot td").nth(1))).toBe(base);
+  if (shots) await page.screenshot({ path: `${shots}/v14-06-calculation-group.png` });
+
+  // Its items are edited in the same dialog.
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Scenario$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Edit calculation group…" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit calculation group" });
+  await edit.getByRole("button", { name: "Double" }).click();
+  await edit.getByLabel("Item name").fill("Twice");
+  await edit.getByRole("button", { name: "OK" }).click();
+  await expect(edit).toBeHidden();
+  await expect(rows.locator("td:first-child")).toHaveText(["Base", "Twice"]);
+
+  // Leave the shared sample as other specs expect it.
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Scenario$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Delete table", exact: true }).click();
+  await expect(fieldsPane(page).locator(".field-table-btn", { hasText: /^Scenario$/ })).toHaveCount(0);
 });

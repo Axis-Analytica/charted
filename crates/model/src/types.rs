@@ -69,9 +69,52 @@ pub struct Table {
     /// columns are the expression's result columns.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub calculated: Option<CalculatedTable>,
+    /// Set on a calculation group. It is also a calculated table, of its items' names
+    /// and places ([`calculation_group_expression`]), so its column (`Value1`) can be
+    /// sliced, filtered and put on an axis like any other.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calculation_group: Option<CalculationGroup>,
     #[serde(default, skip_serializing_if = "Extras::is_empty")]
     #[ts(type = "Record<string, unknown>")]
     pub extras: Extras,
+}
+
+/// A calculation group: items that replace the measures of a visual when picked
+/// (`CALCULATE ( SELECTEDMEASURE (), DATESYTD ( 'Date'[Date] ) )`).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CalculationGroup {
+    /// With several groups picked, the higher precedence applies outermost.
+    #[serde(default)]
+    pub precedence: i32,
+    /// In order (their ordinal is their place).
+    pub items: Vec<CalculationItem>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CalculationItem {
+    pub name: String,
+    /// DAX, with SELECTEDMEASURE () standing for the measure it's applied to.
+    pub expression: String,
+    /// A DAX expression giving the format string (Power BI's formatStringDefinition).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format_string: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+/// The table a calculation group's rows come from: `{ ( "name", ordinal ), … }`.
+pub fn calculation_group_expression(g: &CalculationGroup) -> String {
+    let rows: Vec<String> = g
+        .items
+        .iter()
+        .enumerate()
+        .map(|(i, it)| format!("( \"{}\", {i} )", it.name.replace('"', "\"\"")))
+        .collect();
+    format!("{{ {} }}", rows.join(", "))
 }
 
 /// A calculated table's definition.

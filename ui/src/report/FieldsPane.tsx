@@ -5,8 +5,9 @@
 // creates one), and Enter does the same from the keyboard. Hovering shows a field's
 // description. Right-click (or Shift+F10) on a table, a field or the space around them
 // opens a menu to add measures, columns, hierarchies and groups, rename (F2), hide, edit
-// properties and delete. "New table" opens the formula bar for a calculated table, and
-// "New parameter…" makes a what-if parameter.
+// properties and delete. "New table" opens the formula bar for a calculated table,
+// "New parameter…" makes a what-if or field parameter, and "New calculation group…"
+// opens the calculation group dialog.
 import {
   CalendarDays,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
   Folder,
   FolderOpen,
   Group,
+  Layers,
   ListTree,
   Network,
   Pencil,
@@ -49,6 +51,7 @@ import { useApp } from "../state/app";
 import { useDataView } from "../state/dataview";
 import { editVisual, fieldKey, newId, newVisual, sameField, useReport, withField, withFields, withoutField } from "../state/report";
 import { ColumnIcon, MeasureIcon, TableIcon } from "../views/icons";
+import { CalculationGroupDialog } from "./CalculationGroupDialog";
 import { FIELD_MIME } from "./Canvas";
 import { FieldProperties, type PropsTarget } from "./FieldProperties";
 import { type FolderNode, folderString, folderTree, hierarchyFields, newHierarchy, withLevel } from "./fieldTree";
@@ -103,6 +106,8 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const [props, setProps] = useState<PropsTarget | null>(null);
   const [group, setGroup] = useState<GroupTarget | null>(null);
   const [parameter, setParameter] = useState(false);
+  /** The calculation group being edited ("new" for a new one). */
+  const [calcGroup, setCalcGroup] = useState<string | null>(null);
   /** The folder a drag is over. */
   const [dropAt, setDropAt] = useState<string | null>(null);
   const visual = selected.length === 1 ? page.visuals.find((v) => v.id === selected[0]) : undefined;
@@ -165,6 +170,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const paneItems = (): MenuEntry[] => [
     { id: "new-table", label: t("New table"), icon: <TableProperties size={13} />, run: () => set({ formula: "table:new" }) },
     { id: "new-parameter", label: t("New parameter…"), icon: <SlidersHorizontal size={13} />, run: () => setParameter(true) },
+    { id: "new-calc-group", label: t("New calculation group…"), icon: <Layers size={13} />, run: () => setCalcGroup("new") },
     { id: "expand", label: t("Expand all"), icon: <ChevronsUpDown size={13} />, run: () => setAll(true) },
     { id: "collapse", label: t("Collapse all"), icon: <ChevronsDownUp size={13} />, run: () => setAll(false) },
     { id: "hidden", label: showHidden ? t("Don't show hidden fields") : t("View hidden fields"), icon: showHidden ? <EyeOff size={13} /> : <Eye size={13} />, run: () => setShowHidden((x) => !x) },
@@ -193,7 +199,9 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
         null,
         ...(tb.calculated
           ? [
-              { id: "edit-table", label: t("Edit formula"), icon: <SquareFunction size={13} />, run: () => set({ formula: `table:${tb.id}` }) },
+              tb.calculationGroup
+                ? { id: "edit-group", label: t("Edit calculation group…"), icon: <Layers size={13} />, run: () => setCalcGroup(tb.id) }
+                : { id: "edit-table", label: t("Edit formula"), icon: <SquareFunction size={13} />, run: () => set({ formula: `table:${tb.id}` }) },
               {
                 id: "delete-table",
                 label: t("Delete table"),
@@ -630,6 +638,14 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
       {props && <FieldProperties model={model} target={props} onClose={() => setProps(null)} />}
       {group && <GroupDialog model={model} target={group} onClose={() => setGroup(null)} />}
       {parameter && <ParameterDialog model={model} page={page} onClose={() => setParameter(false)} />}
+      {calcGroup && (
+        <CalculationGroupDialog
+          model={model}
+          table={model.tables.find((tb) => tb.id === calcGroup && tb.calculationGroup)}
+          onClose={() => setCalcGroup(null)}
+          onSaved={(id) => setOpen((o) => new Set(o).add(id))}
+        />
+      )}
     </section>
   );
 }

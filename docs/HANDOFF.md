@@ -25,24 +25,27 @@ release below.
   - Track B (v1.2 visuals) and Track C (v1.3 report building).
   - Track D: hierarchies, groups and bins, display folders, Power Query references
     and *Enter data*.
-  - Track E (v1.4), except calculation groups: roles with DAX row filters, *Manage
-    roles*, *View as* (every report query carries the role filters), the theme editor,
-    what-if parameters and field parameters (*New parameter…* in the Fields pane;
+  - Track E (v1.4): roles with DAX row filters, *Manage roles*, *View as* (every
+    report query carries the role filters), the theme editor, what-if parameters and
+    field parameters (*New parameter…* in the Fields pane;
     `crates/core/src/fieldparams.rs` expands a visual's roles to the fields picked, and
-    the snapshot's `expandedRoles` carries them to the UI). DAX table constructors
-    `{ ( … ) }` and NAMEOF came with them. Demo script: `docs/demos/v1.4.md`.
+    the snapshot's `expandedRoles` carries them to the UI), and calculation groups
+    (*New calculation group…*; `Table.calculationGroup` beside a derived calculated
+    table of Name/Ordinal rows; `crates/core/src/calcgroups.rs` rewrites a visual's
+    measures to `SWITCH ( SELECTEDVALUE ( group[Name] ), item, … )` when the group is on
+    an axis or one item is filtered; `charted_dax::calcitem` substitutes
+    SELECTEDMEASURE and its kin). DAX table constructors `{ ( … ) }` and NAMEOF came
+    with them. Demo script: `docs/demos/v1.4.md`.
 - **Open, in order:**
-  1. v1.4 calculation groups: model type, import/export, SELECTEDMEASURE in the
-     compiler, golden tests.
-  2. Step 12: correlation rewrites for speed, with the 10M bench.
-  3. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
+  1. Step 12: correlation rewrites for speed, with the 10M bench.
+  2. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
      AurumJet 65/96; `bin/corpus && bin/heavy cargo test -p charted-core --test corpus
      -- --ignored --nocapture`), checkpoints and demo notes per release, the 3000-case DAX
      golden run (`CHARTED_DAX_CASES=3000 bin/heavy cargo test -p charted-core --test
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  4. Still open from v1.0: the Power BI Desktop check in the VM
+  3. Still open from v1.0: the Power BI Desktop check in the VM
      (`~/Work/charted-checkpoints/pbi-roundtrip/`), then tag/AUR/omarchy-pkgs on the
      go-ahead.
 - **Worktrees:** `.claude/worktrees/agent-*` (a035c, a0df, a8147) are all merged into
@@ -605,9 +608,11 @@ Power BI.
   drill-through; drill-through filters are view state.
 - Bookmarks keep data state only (no visibility/spotlight, selection or "current page"
   options); showing one is an undoable edit.
-- Import: calculation groups, roles, perspectives, translations,
-  calculated tables, field parameters, dynamic format strings and M beyond the file
-  shapes in mquery.rs are reported, not imported. Visual formatting from Power BI is
+- Import: perspectives, translations, measures' dynamic format strings and M beyond
+  the file shapes in mquery.rs are reported, not imported. Calculation items apply to
+  the measures a visual shows, not to measures those use (Power BI applies them to
+  every measure reference); an item's format string applies only when it is the one
+  item picked for the visual. Visual formatting from Power BI is
   limited to titles and text boxes; PBIR export writes `themeCollection: {}` unless the
   report has a custom theme. Power BI Desktop itself: the round-trip folder is ready
   (`~/Work/charted-checkpoints/pbi-roundtrip/`), awaiting the user's VM check.

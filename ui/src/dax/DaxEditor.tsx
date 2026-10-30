@@ -29,6 +29,8 @@ interface Props {
   home?: string | null;
   /** The text is a table expression (a calculated table). */
   table?: boolean;
+  /** The text is a calculation item's expression. */
+  item?: boolean;
   label: string;
   /** Problems found elsewhere (the server's compile check), shown with the editor's own. */
   extra?: ExtraProblem | null;
@@ -39,7 +41,7 @@ interface Props {
 
 const LINE = 20;
 
-export function DaxEditor({ value, onChange, onCommit, onCancel, model, home = null, table = false, label, extra, maxLines = 8, autoFocus, ref }: Props) {
+export function DaxEditor({ value, onChange, onCommit, onCancel, model, home = null, table = false, item = false, label, extra, maxLines = 8, autoFocus, ref }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   // Callbacks change every render; the editor's commands read the latest.
@@ -137,7 +139,7 @@ export function DaxEditor({ value, onChange, onCommit, onCancel, model, home = n
       const b = m.getPositionAt(exprStart + Math.max(p.end, p.start + 1));
       return { severity: monaco.MarkerSeverity.Error, message: p.message, startLineNumber: a.lineNumber, startColumn: a.column, endLineNumber: b.lineNumber, endColumn: b.column };
     };
-    (table ? dax.tableDiagnostics(expr) : dax.diagnostics(expr, home)).then((ds) => {
+    (table ? dax.tableDiagnostics(expr) : item ? dax.itemDiagnostics(expr) : dax.diagnostics(expr, home)).then((ds) => {
       if (!live) return;
       const all = ds.map(mark);
       if (extra && !ds.length) all.push(mark(extra));
@@ -146,7 +148,7 @@ export function DaxEditor({ value, onChange, onCommit, onCancel, model, home = n
     return () => {
       live = false;
     };
-  }, [value, model, home, table, extra]);
+  }, [value, model, home, table, item, extra]);
 
   return <div ref={host} className="dax-editor" />;
 }

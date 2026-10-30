@@ -172,6 +172,24 @@ impl Sample {
         )
     }
 
+    /// A table's total row.
+    fn totals(&self, id: &str) -> Row {
+        let r = rows(
+            self.app
+                .data(DataRequest::ReportVisual {
+                    visual: id.into(),
+                    totals: true,
+                    filters: vec![],
+                    highlight: vec![],
+                    tag: None,
+                    search: None,
+                    roles: self.viewing.clone(),
+                })
+                .unwrap_or_else(|e| panic!("{}", e.message)),
+        );
+        r.into_iter().next().expect("a total row")
+    }
+
     fn total(&self, filters: Vec<QueryFilter>) -> f64 {
         let r = rows(
             self.app
@@ -731,6 +749,7 @@ fn field_parameters_show_the_fields_picked_in_their_slicer() {
             hierarchies: vec![],
             hidden: false,
             is_date_table: false,
+            calculation_group: None,
             calculated: Some(CalculatedTable {
                 expression: "{ ( \"Cost\", NAMEOF ( Sales[Total Cost] ), 1 ), ( \"Units\", NAMEOF ( [Units] ), 0 ) }".into(),
                 language: ExpressionLanguage::Dax,
@@ -791,4 +810,180 @@ fn field_parameters_show_the_fields_picked_in_their_slicer() {
         snapshot.expanded_roles.keys().collect::<Vec<_>>(),
         ["chart"]
     );
+}
+
+fn calculation_group(id: &str, name: &str, precedence: i32, items: &[(&str, &str)]) -> Change {
+    Change::AddTable {
+        table: Table {
+            id: id.into(),
+            name: name.into(),
+            description: None,
+            source: String::new(),
+            columns: vec![],
+            measures: vec![],
+            hierarchies: vec![],
+            hidden: false,
+            is_date_table: false,
+            calculation_group: Some(CalculationGroup {
+                precedence,
+                items: items
+                    .iter()
+                    .map(|(n, e)| CalculationItem {
+                        name: n.to_string(),
+                        expression: e.to_string(),
+                        format_string: None,
+                        description: None,
+                    })
+                    .collect(),
+            }),
+            calculated: None,
+            extras: Default::default(),
+        },
+        index: None,
+    }
+}
+
+#[test]
+fn calculation_groups_apply_the_items_picked_to_a_visuals_measures() {
+    let mut s = Sample::new();
+    let category = s.col("Product", "Category");
+    let units = s.measure("Units");
+    s.commit(vec![
+        calculation_group(
+            "scale",
+            "Scale",
+            0,
+            &[
+                ("Current", "SELECTEDMEASURE ()"),
+                ("Double", "SELECTEDMEASURE () * 2"),
+                (
+                    "Units x10",
+                    "IF ( ISSELECTEDMEASURE ( [Units] ), SELECTEDMEASURE () * 10, SELECTEDMEASURE () )",
+                ),
+                (
+                    "Footwear",
+                    "CALCULATE ( SELECTEDMEASURE (), 'Product'[Category] = \"Footwear\" )",
+                ),
+                ("PY", "CALCULATE ( SELECTEDMEASURE (), SAMEPERIODLASTYEAR ( 'Date'[Date] ) )"),
+            ],
+        ),
+        calculation_group("plus", "Plus", 10, &[("Plus one", "SELECTEDMEASURE () + 1")]),
+    ]);
+    let item = s.col("Scale", "Name");
+    let plus = s.col("Plus", "Name");
+    s.add(
+        "chart",
+        "columnChart",
+        vec![
+            ("category", vec![category.clone()]),
+            ("values", vec![units.clone()]),
+        ],
+    );
+    s.add("pick", "slicer", vec![("field", vec![item.clone()])]);
+    let by_category = |s: &Sample| -> HashMap<String, f64> {
+        s.data("chart", vec![], vec![])
+            .iter()
+            .map(|r| (r["key:category:0"].clone(), num(r, "values:0")))
+            .collect()
+    };
+    let base = by_category(&s);
+    assert!(base.len() > 1, "{base:?}");
+
+    // The slicer lists the items in order; picking Double doubles every value.
+    let listed: Vec<String> = s
+        .data("pick", vec![], vec![])
+        .iter()
+        .map(|r| r["key:field:0"].clone())
+        .collect();
+    assert_eq!(listed, ["Current", "Double", "Units x10", "Footwear", "PY"]);
+    let pick = |s: &mut Sample, id: &str, values: &[&str]| {
+        let values = values.iter().map(|v| Some(v.to_string())).collect();
+        s.update(id, |v| {
+            v.selection = Some(FilterKind::Basic {
+                values,
+                exclude: false,
+            })
+        });
+    };
+    pick(&mut s, "pick", &["Double"]);
+    let doubled = by_category(&s);
+    for (k, v) in &base {
+        assert_eq!(doubled[k], v * 2.0, "{k}");
+    }
+    pick(&mut s, "pick", &["Units x10"]);
+    for (k, v) in by_category(&s) {
+        assert_eq!(v, base[&k] * 10.0, "{k}");
+    }
+    pick(&mut s, "pick", &["Footwear"]);
+    for (_, v) in by_category(&s) {
+        assert_eq!(v, base["Footwear"]);
+    }
+    // Last year's units, by year: each year shows the year before's.
+    let year = s.col("Date", "Year");
+    s.add(
+        "years",
+        "columnChart",
+        vec![
+            ("category", vec![year.clone()]),
+            ("values", vec![units.clone()]),
+        ],
+    );
+    let by_year = |s: &Sample| -> std::collections::BTreeMap<i64, f64> {
+        s.data("years", vec![], vec![])
+            .iter()
+            .map(|r| (r["key:category:0"].parse().unwrap(), num(r, "values:0")))
+            .collect()
+    };
+    pick(&mut s, "pick", &["PY"]);
+    let py = by_year(&s);
+    s.update("pick", |v| v.selection = None);
+    let now = by_year(&s);
+    assert!(now.len() > 1, "{now:?}");
+    for (y, v) in &now {
+        if let Some(prev) = py.get(&(y + 1)) {
+            assert_eq!(prev, v, "{y}");
+        }
+    }
+    s.commit(vec![Change::RemoveVisual {
+        page: s.page.clone(),
+        visual: "years".into(),
+    }]);
+    // Two items picked and the column not on an axis: no item applies.
+    pick(&mut s, "pick", &["Double", "Units x10"]);
+    assert_eq!(by_category(&s), base);
+
+    // With the higher precedence group also picked, its item applies outermost.
+    pick(&mut s, "pick", &["Double"]);
+    s.add("pick2", "slicer", vec![("field", vec![plus.clone()])]);
+    pick(&mut s, "pick2", &["Plus one"]);
+    for (k, v) in by_category(&s) {
+        assert_eq!(v, base[&k] * 2.0 + 1.0, "{k}");
+    }
+
+    // On a table's rows, each row shows its item; the total row shows the measure.
+    s.update("pick", |v| v.selection = None);
+    s.update("pick2", |v| v.selection = None);
+    s.add(
+        "grid",
+        "table",
+        vec![(
+            "values",
+            vec![item.clone(), category.clone(), units.clone()],
+        )],
+    );
+    let rows = s.data("grid", vec![], vec![]);
+    let total: f64 = base.values().sum();
+    for r in &rows {
+        let k = &r["key:values:1"];
+        let want = match r["key:values:0"].as_str() {
+            "Double" => base[k] * 2.0,
+            "Units x10" => base[k] * 10.0,
+            "Footwear" => base["Footwear"],
+            "PY" => continue,
+            _ => base[k],
+        };
+        assert_eq!(num(r, "values:2"), want, "{r:?}");
+    }
+    assert!(rows.len() >= base.len() * 4, "{}", rows.len());
+    assert_eq!(num(&s.totals("grid"), "values:2"), total);
 }

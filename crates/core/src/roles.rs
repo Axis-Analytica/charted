@@ -137,6 +137,7 @@ mod tests {
             hierarchies: vec![],
             hidden: false,
             is_date_table: false,
+            calculation_group: None,
             calculated: None,
             extras: Default::default(),
         };

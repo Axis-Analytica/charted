@@ -164,6 +164,30 @@ datasets:
   custom_extensions:
   - vendor_name: POWER_BI
     data: '{"_v": 2, "lineageTag": "t-top", "partitions": [{"mode": "import", "name": "Top products", "source": {"expression": "TOPN ( 5, VALUES ( Product[Product] ), [Total Sales] )", "type": "calculated"}}]}'
+- name: Scenario
+  source: __calc_table_t-scenario
+  fields:
+  - name: Scenario
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Value1
+    datatype: String
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "lineageTag": "c-s-name", "sortByColumn": "Ordinal", "sourceColumn": "Value1"}'
+  - name: Ordinal
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: Value2
+    datatype: Integer
+    custom_extensions:
+    - vendor_name: POWER_BI
+      data: '{"_v": 2, "isHidden": true, "lineageTag": "c-s-ord", "sourceColumn": "Value2"}'
+  custom_extensions:
+  - vendor_name: POWER_BI
+    data: '{"_v": 2, "calculationGroup": {"calculationItems": [{"description": "As it is", "expression": "SELECTEDMEASURE ()", "name": "Base", "ordinal": 0}, {"expression": "DIVIDE ( SELECTEDMEASURE (), CALCULATE ( SELECTEDMEASURE (), ALL ( Product ) ) )", "formatStringDefinition": {"expression": "\"0.0%\""}, "name": "Share", "ordinal": 1}], "precedence": 3}, "lineageTag": "t-scenario", "partitions": [{"mode": "import", "name": "Scenario", "source": {"type": "calculationGroup"}}]}'
 relationships:
 - name: Sales_OrderDateKey_to_Date_DateKey
   from: Sales

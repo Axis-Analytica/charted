@@ -52,6 +52,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculation_group: None,
                 calculated: None,
                 extras: Default::default(),
             },
@@ -65,6 +66,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculation_group: None,
                 calculated: None,
                 extras: Default::default(),
             },
@@ -81,6 +83,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: true,
+                calculation_group: None,
                 calculated: None,
                 extras: Default::default(),
             },
@@ -352,5 +355,54 @@ fn table_constructors_and_nameof() {
     assert!(err("NAMEOF ( [Nope] )").contains("no measure named"));
     assert!(
         matches!(ok("NAMEOF ( Product[Category] )"), Bound::Text(t) if t == "'Product'[Category]")
+    );
+}
+
+#[test]
+fn calculation_items() {
+    use charted_dax::calcitem::{Selected, apply};
+    // SELECTEDMEASURE and its kin only bind in a calculation item.
+    assert!(err("SELECTEDMEASURE ()").contains("calculation item"));
+    let item = |src: &str| charted_dax::check_item(&model(), src);
+    assert!(item("CALCULATE ( SELECTEDMEASURE (), Product[Category] = \"Bikes\" )").is_empty());
+    assert!(item("IF ( ISSELECTEDMEASURE ( [Total] ), SELECTEDMEASURENAME (), \"\" )").is_empty());
+    assert!(
+        item("SELECTEDMEASURE ( 1 )")[0]
+            .message
+            .contains("SELECTEDMEASURE")
+    );
+    assert!(
+        item("ISSELECTEDMEASURE ( 1 )")[0]
+            .message
+            .contains("measures")
+    );
+
+    // Applied to a measure, they become its reference, name and format string.
+    let m = Selected {
+        reference: "'Sales'[Total]",
+        name: "Total",
+        format_string: Some("#,0"),
+    };
+    assert_eq!(
+        apply(
+            "CALCULATE ( SELECTEDMEASURE ( ), x ) + selectedmeasure()",
+            &m
+        ),
+        "CALCULATE ( 'Sales'[Total], x ) + 'Sales'[Total]"
+    );
+    assert_eq!(
+        apply(
+            "IF ( ISSELECTEDMEASURE ( [Total], 'Sales'[Other] ), SELECTEDMEASURENAME () )",
+            &m
+        ),
+        "IF ( TRUE ( ), \"Total\" )"
+    );
+    assert_eq!(apply("ISSELECTEDMEASURE ( [Other] )", &m), "FALSE ( )");
+    assert_eq!(
+        apply(
+            "SELECTEDMEASUREFORMATSTRING () & \"\"\"SELECTEDMEASURE ()\"",
+            &m
+        ),
+        "\"#,0\" & \"\"\"SELECTEDMEASURE ()\""
     );
 }
