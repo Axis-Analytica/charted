@@ -52,6 +52,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -64,6 +65,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -79,6 +81,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: true,
+                calculated: None,
                 extras: Default::default(),
             },
         ],

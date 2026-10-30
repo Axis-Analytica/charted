@@ -123,6 +123,7 @@ pub fn create(dir: &Path, scale: Scale) -> Result<Project, CoreError> {
             hidden: false,
             hierarchies: Vec::new(),
             is_date_table: false,
+            calculated: None,
             extras: Default::default(),
         });
     }

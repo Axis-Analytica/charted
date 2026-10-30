@@ -21,6 +21,38 @@ fn col(id: &str, name: &str, ty: DataType) -> Column {
     }
 }
 
+/// A calculated table with a calculated column of its own.
+fn top_table() -> Table {
+    Table {
+        id: "t-top".into(),
+        name: "Top Days".into(),
+        description: None,
+        source: calculated_table_source("t-top"),
+        columns: vec![
+            Column {
+                description: Some("Best days".into()),
+                ..col("c-top-day", "Day", DataType::Date)
+            },
+            Column {
+                kind: ColumnKind::Calculated {
+                    expression: "YEAR ( 'Top Days'[Day] )".into(),
+                    language: ExpressionLanguage::Dax,
+                },
+                ..col("c-top-year", "Top Year", DataType::Double)
+            },
+        ],
+        measures: vec![],
+        hierarchies: vec![],
+        hidden: false,
+        is_date_table: false,
+        calculated: Some(CalculatedTable {
+            expression: "TOPN (\n\t3,\n\tVALUES ( Sales[Day] ),\n\t[Total]\n)".into(),
+            language: ExpressionLanguage::Dax,
+        }),
+        extras: Default::default(),
+    }
+}
+
 #[test]
 fn writes_a_power_bi_project() {
     let mut amount = col("c-amount", "Sales Amount", DataType::Decimal);
@@ -57,6 +89,7 @@ fn writes_a_power_bi_project() {
                 hierarchies: Vec::new(),
                 hidden: false,
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -86,6 +119,7 @@ fn writes_a_power_bi_project() {
                     extras: Default::default(),
                 }],
                 is_date_table: true,
+                calculated: None,
                 extras: Default::default(),
             },
         ],
@@ -103,6 +137,8 @@ fn writes_a_power_bi_project() {
         }],
         ..Default::default()
     };
+    let mut model = model;
+    model.tables.push(top_table());
     let queries = vec![
         Query {
             id: "q1".into(),
@@ -201,10 +237,12 @@ fn reported() -> Model {
             }],
             hidden: false,
             is_date_table: false,
+            calculated: None,
             extras: Default::default(),
         }],
         ..Default::default()
     };
+    model.tables.push(top_table());
     let c = |id: &str| Projection {
         field: FieldRef::Column {
             table: "t-sales".into(),
@@ -710,6 +748,7 @@ fn power_query_sources_come_back_from_their_m() {
         measures: vec![],
         hidden: false,
         is_date_table: false,
+        calculated: None,
         hierarchies: Vec::new(),
         extras: Default::default(),
     };
@@ -851,4 +890,74 @@ fn power_query_sources_come_back_from_their_m() {
             assert_eq!(got.steps, want.steps, "{}", want.name);
         }
     }
+}
+
+/// A model.bim with a calculated table and a field parameter: the first comes in as a
+/// calculated table, the second is reported.
+#[test]
+fn model_bim_calculated_tables_come_in_and_field_parameters_are_reported() {
+    let bim = serde_json::json!({
+        "name": "Shop",
+        "model": {
+            "tables": [
+                {
+                    "name": "Top Products",
+                    "lineageTag": "t-top",
+                    "columns": [
+                        {"name": "Product", "dataType": "string", "type": "calculatedTableColumn",
+                         "isNameInferred": true, "sourceColumn": "Product[Product]", "lineageTag": "c-p"},
+                        {"name": "Sales", "dataType": "double", "type": "calculatedTableColumn",
+                         "isNameInferred": true, "sourceColumn": "[Sales]", "lineageTag": "c-s"}
+                    ],
+                    "partitions": [{"name": "Top Products", "mode": "import", "source": {
+                        "type": "calculated",
+                        "expression": ["ADDCOLUMNS (", "    TOPN ( 5, VALUES ( Product[Product] ), [Total] ),", "    \"Sales\", [Total]", ")"]
+                    }}]
+                },
+                {
+                    "name": "Metric",
+                    "columns": [
+                        {"name": "Metric", "dataType": "string", "sourceColumn": "[Value1]",
+                         "extendedProperties": [{"type": "json", "name": "ParameterMetadata", "value": {"version": 3, "kind": 2}}]}
+                    ],
+                    "partitions": [{"name": "Metric", "mode": "import", "source": {
+                        "type": "calculated",
+                        "expression": "{ (\"Total\", NAMEOF ( [Total] ), 0) }"
+                    }}]
+                }
+            ]
+        }
+    });
+    let im = charted_tmdl::read::from_bim(&bim.to_string(), "Shop").unwrap();
+    let skipped: Vec<String> = im
+        .skipped
+        .iter()
+        .map(|s| format!("{} {}", s.kind, s.name))
+        .collect();
+    assert_eq!(skipped, ["table Metric"]);
+    let top = im.model.table("t-top").unwrap();
+    assert_eq!(top.source, calculated_table_source("t-top"));
+    let calc = top.calculated.as_ref().unwrap();
+    assert!(
+        calc.expression.starts_with("ADDCOLUMNS (\n    TOPN"),
+        "{}",
+        calc.expression
+    );
+    let sources: Vec<String> = top
+        .columns
+        .iter()
+        .map(|c| match &c.kind {
+            ColumnKind::Data { source_column } => source_column.clone(),
+            _ => String::new(),
+        })
+        .collect();
+    assert_eq!(sources, ["Product", "Sales"]);
+    // The field parameter's table is still there, without data.
+    assert!(
+        im.model
+            .table_by_name("Metric")
+            .unwrap()
+            .calculated
+            .is_none()
+    );
 }

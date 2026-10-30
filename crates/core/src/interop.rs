@@ -150,7 +150,14 @@ fn changed_props(a: &serde_json::Value, b: &serde_json::Value, skip: &[&str]) ->
 }
 
 fn diff_table(out: &mut Vec<String>, a: &Table, b: &Table) {
-    let changed = changed_props(&json(a), &json(b), &["columns", "measures", "hierarchies"]);
+    let mut changed = changed_props(&json(a), &json(b), &["columns", "measures", "hierarchies"]);
+    // A calculated table's definition reads as its expression.
+    for p in changed.iter_mut().filter(|p| *p == "calculated") {
+        *p = match (&a.calculated, &b.calculated) {
+            (Some(_), Some(_)) => "expression".into(),
+            _ => "calculated table".into(),
+        };
+    }
     if !changed.is_empty() {
         out.push(format!("{}: {} changed", a.name, changed.join(", ")));
     }

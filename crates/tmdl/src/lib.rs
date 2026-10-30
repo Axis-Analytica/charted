@@ -211,8 +211,21 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         if let Some(s) = summarize(c) {
             prop(&mut out, 2, "summarizeBy", s);
         }
-        if let ColumnKind::Data { source_column } = &c.kind {
-            prop(&mut out, 2, "sourceColumn", source_column);
+        match &c.kind {
+            // A calculated table's column names its result column.
+            ColumnKind::Data { source_column } if t.calculated.is_some() => {
+                let _ = writeln!(out, "\t\tisNameInferred");
+                prop(
+                    &mut out,
+                    2,
+                    "sourceColumn",
+                    format!("[{}]", source_column.replace(']', "]]")),
+                );
+            }
+            ColumnKind::Data { source_column } => {
+                prop(&mut out, 2, "sourceColumn", source_column);
+            }
+            ColumnKind::Calculated { .. } => {}
         }
         if let Some(by) = &c.sort_by
             && let Some(s) = t.column(by)
@@ -275,7 +288,13 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             prop(&mut out, 3, "column", name(&c.name));
         }
     }
-    if let Some(q) = query {
+    if let Some(calc) = &t.calculated {
+        out.push('\n');
+        let _ = writeln!(out, "\tpartition {} = calculated", name(&t.name));
+        prop(&mut out, 2, "mode", "import");
+        let _ = write!(out, "\t\tsource =");
+        expression(&mut out, &calc.expression, 2);
+    } else if let Some(q) = query {
         out.push('\n');
         // charted's own query, so importing this file brings it back exactly.
         let _ = writeln!(
@@ -387,7 +406,13 @@ pub fn pbip(project: &str, model: &Model, queries: &[Query], source_folder: &str
     );
     // charted has no automatic date tables; Desktop shouldn't add them on opening.
     model_tmdl.push_str("annotation __PBI_TimeIntelligenceEnabled = 0\n\n");
-    let order: Vec<String> = model.tables.iter().map(|t| t.name.clone()).collect();
+    // Calculated tables have no query.
+    let order: Vec<String> = model
+        .tables
+        .iter()
+        .filter(|t| t.calculated.is_none())
+        .map(|t| t.name.clone())
+        .collect();
     let _ = writeln!(
         model_tmdl,
         "annotation PBI_QueryOrder = {}\n",

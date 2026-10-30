@@ -61,9 +61,29 @@ pub struct Table {
     /// Marked as the model's date table (required by time intelligence).
     #[serde(default)]
     pub is_date_table: bool,
+    /// Set on a calculated table: its rows come from a DAX table expression, which
+    /// charted materialises into `source` (see [`calculated_table_source`]). Its data
+    /// columns are the expression's result columns.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub calculated: Option<CalculatedTable>,
     #[serde(default, skip_serializing_if = "Extras::is_empty")]
     #[ts(type = "Record<string, unknown>")]
     pub extras: Extras,
+}
+
+/// A calculated table's definition.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct CalculatedTable {
+    pub expression: String,
+    #[serde(default)]
+    pub language: ExpressionLanguage,
+}
+
+/// The DuckDB table a calculated table's rows are materialised into.
+pub fn calculated_table_source(table_id: &str) -> String {
+    format!("__calc_table_{table_id}")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, TS)]
