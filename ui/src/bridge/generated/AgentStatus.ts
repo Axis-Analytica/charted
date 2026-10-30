@@ -18,4 +18,8 @@ consented: boolean,
 /**
  * The agent may see rows and values in this project.
  */
-data: boolean, running: boolean, turns: Array<TurnRecord>, };
+data: boolean, running: boolean, turns: Array<TurnRecord>, 
+/**
+ * Queries the agent has drafted changes to, waiting for the user to apply them.
+ */
+draft: Array<string>, };

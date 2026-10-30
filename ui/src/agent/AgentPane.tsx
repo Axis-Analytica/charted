@@ -2,7 +2,7 @@
 // report and model, and watch it work. Its changes land live and each request undoes in
 // one step; its steps are listed as it goes, and Stop ends it. What it may see is set
 // here too (Let the agent see data), and asked once per agent (AgentConsent).
-import { Check, ChevronDown, ChevronRight, Database, MessageSquarePlus, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Database, FileCog, MessageSquarePlus, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentInfo } from "../bridge/generated/AgentInfo";
 import type { Item } from "../bridge/generated/Item";
@@ -12,6 +12,7 @@ import type { AgentStep as Step } from "../bridge/generated/AgentStep";
 import type { TurnRecord } from "../bridge/generated/TurnRecord";
 import { formatNumber, useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
+import { ConfirmDialog } from "../kit/Dialog";
 import { Menu } from "../kit/Menu";
 import { Banner, EmptyState, Spinner } from "../kit/misc";
 import { useAgent } from "../state/agent";
@@ -70,6 +71,7 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
             {turns.length === 0 ? <Examples /> : turns.map((turn) => <TurnView key={turn.id} turn={turn} model={model} />)}
             <div ref={end} />
           </div>
+          {!!status?.draft.length && <DraftCard queries={status.draft} running={status.running} />}
           <Composer model={model} page={page} agent={agent} running={!!status?.running} />
         </>
       )}
@@ -254,6 +256,39 @@ function StepLine({ step, model }: { step: Step; model: Model }) {
       </span>
       {open && step.detail && <pre className="agent-step-detail">{step.detail}</pre>}
     </li>
+  );
+}
+
+/** Query changes the agent drafted: applying them reloads the data, so it's the user's call. */
+function DraftCard({ queries, running }: { queries: string[]; running: boolean }) {
+  const { t, tn } = useT();
+  const [ask, setAsk] = useState(false);
+  const request = useAgent((s) => s.request);
+  return (
+    <div className="agent-draft" role="region" aria-label={t("Query changes")}>
+      <FileCog size={15} />
+      <span className="agent-draft-text">{tn("Changes to %n queries (%1) are ready to apply.", queries.length, "Changes to the query %1 are ready to apply.", queries.join(", "))}</span>
+      <Button size="sm" variant="ghost" onPress={() => void request({ type: "discardDraft" })}>
+        {t("Discard")}
+      </Button>
+      <Button size="sm" variant="primary" isDisabled={running} onPress={() => setAsk(true)}>
+        {t("Apply")}
+      </Button>
+      <ConfirmDialog
+        open={ask}
+        title={t("Apply the agent's query changes?")}
+        message={t("The changed queries reload their data. Undo can't go back past this point (as with Close & Apply).")}
+        confirm={t("Apply")}
+        cancel={t("Cancel")}
+        onCancel={() => setAsk(false)}
+        onConfirm={async () => {
+          setAsk(false);
+          useApp.setState({ busy: t("Loading…") });
+          await request({ type: "applyDraft" });
+          useApp.setState({ busy: null });
+        }}
+      />
+    </div>
   );
 }
 

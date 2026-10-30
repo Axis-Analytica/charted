@@ -136,3 +136,27 @@ test("the agent sees values only with data access, and asks before deleting a pa
   await pane(page).getByRole("button", { name: "New chat" }).click();
   await expect(turns(page)).toHaveCount(0);
 });
+
+test("query changes are drafted, and applied only when the user says", async ({ page }) => {
+  await openSample(page);
+  await openPane(page);
+  await newChat(page);
+  const card = pane(page).getByRole("region", { name: "Query changes" });
+  let turn = await ask(page, "draft a sort");
+  await done(turn);
+  await expect(card).toContainText("Store");
+  await card.getByRole("button", { name: "Discard" }).click();
+  await expect(card).toHaveCount(0);
+  turn = await ask(page, "draft a sort");
+  await done(turn);
+  await card.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await expect(card).toHaveCount(0);
+  // Applying starts undo afresh.
+  await expect(page.getByRole("button", { name: "Undo", exact: true })).toBeDisabled();
+  turn = await ask(page, "undraft it");
+  await done(turn);
+  await card.getByRole("button", { name: "Apply" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
+  await expect(card).toHaveCount(0);
+});

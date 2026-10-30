@@ -86,6 +86,8 @@ pub struct AgentStatus {
     pub data: bool,
     pub running: bool,
     pub turns: Vec<TurnRecord>,
+    /// Queries the agent has drafted changes to, waiting for the user to apply them.
+    pub draft: Vec<String>,
 }
 
 /// What the window asks of the agent.
@@ -125,6 +127,9 @@ pub enum AgentRequest {
     OpenTerminal {
         text: String,
     },
+    /// Applies the agent's query draft: the data reloads, and undo starts afresh.
+    ApplyDraft,
+    DiscardDraft,
 }
 
 const AGENTS: &[(&str, &str, bool)] = &[
@@ -186,6 +191,8 @@ struct Inner {
     chat: Option<(PathBuf, Transcript)>,
     /// Questions waiting for the user.
     pending: HashMap<String, Sender<bool>>,
+    /// The agent's drafted queries, for the project they're for.
+    draft: Option<(PathBuf, Vec<charted_compiler::steps::Query>)>,
 }
 
 pub struct Host {
@@ -246,6 +253,23 @@ impl Turn for TurnCtx {
         if let Some(host) = self.host.upgrade() {
             (host.emit)(Push::State(Box::new(state.clone())));
         }
+    }
+    fn draft(&self) -> Option<Vec<charted_compiler::steps::Query>> {
+        let host = self.host.upgrade()?;
+        let dir = host.project_dir()?;
+        host.lock()
+            .draft
+            .as_ref()
+            .filter(|(d, _)| *d == dir)
+            .map(|(_, q)| q.clone())
+    }
+    fn set_draft(&self, queries: Option<Vec<charted_compiler::steps::Query>>) {
+        let Some(host) = self.host.upgrade() else {
+            return;
+        };
+        let dir = host.project_dir();
+        host.lock().draft = dir.zip(queries);
+        host.push_status();
     }
 }
 
@@ -312,6 +336,7 @@ impl Host {
                 running: None,
                 chat: None,
                 pending: HashMap::new(),
+                draft: None,
             }),
             me: me.clone(),
         });
@@ -394,6 +419,7 @@ impl Host {
             .project_dir()
             .is_some_and(|d| ProjectSettings::load(&d).data);
         let running = self.lock().running.is_some();
+        let draft = self.drafted();
         let turns = self.with_chat(|c| c.turns.clone()).unwrap_or_default();
         AgentStatus {
             model: agent
@@ -406,7 +432,28 @@ impl Host {
             data,
             running,
             turns,
+            draft,
         }
+    }
+
+    /// The names of the queries the draft changes.
+    fn drafted(&self) -> Vec<String> {
+        let Some(dir) = self.project_dir() else {
+            return vec![];
+        };
+        let draft = match &self.lock().draft {
+            Some((d, q)) if *d == dir => q.clone(),
+            _ => return vec![],
+        };
+        let app = self.app();
+        let Some(s) = app.session() else {
+            return vec![];
+        };
+        draft
+            .iter()
+            .filter(|q| s.project.queries.iter().find(|o| o.id == q.id) != Some(*q))
+            .map(|q| q.name.clone())
+            .collect()
     }
 
     fn push_status(&self) -> AgentStatus {
@@ -462,6 +509,22 @@ impl Host {
                 u.save(&sd);
             }
             AgentRequest::OpenTerminal { text } => self.open_terminal(&text)?,
+            AgentRequest::ApplyDraft => {
+                if self.lock().running.is_some() {
+                    return Err("wait for the agent to finish".into());
+                }
+                let dir = self.project_dir().ok_or("no project is open")?;
+                let queries = match self.lock().draft.take() {
+                    Some((d, q)) if d == dir => q,
+                    _ => return Err("there's no draft to apply".into()),
+                };
+                let state = self
+                    .app()
+                    .handle(charted_core::Request::ApplyQueries { queries })
+                    .map_err(|e| e.message)?;
+                (self.emit)(Push::State(Box::new(state)));
+            }
+            AgentRequest::DiscardDraft => self.lock().draft = None,
         }
         Ok(self.push_status())
     }

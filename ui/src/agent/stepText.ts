@@ -44,6 +44,10 @@ export const STEP_MESSAGES = [
   msg("Changed calculation group %1"),
   msg("Added field parameter %1"),
   msg("Added parameter %1"),
+  msg("Drafted a step in query \"%1\""),
+  msg("Drafted a change to query \"%1\""),
+  msg("Drafted removing a step from query \"%1\""),
+  msg("Discarded the query draft"),
 ];
 
 /** Agent undo labels ("Agent: build me a page") as shown: the request stays as typed. */

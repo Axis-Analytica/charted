@@ -4,6 +4,7 @@
 //! own process, so what the agent may see (`Turn::data`) can't be got round.
 
 mod model;
+mod query;
 mod read;
 mod report;
 
@@ -26,6 +27,9 @@ pub trait Turn: Sync {
     fn confirm(&self, what: &str) -> bool;
     /// A change landed: the window shows it.
     fn changed(&self, state: &AppState);
+    /// The queries as the agent has drafted them, if it has.
+    fn draft(&self) -> Option<Vec<charted_compiler::steps::Query>>;
+    fn set_draft(&self, queries: Option<Vec<charted_compiler::steps::Query>>);
 }
 
 /// One thing the agent did, for the Agent pane: `text` is English, and `op` with `args`
@@ -125,6 +129,7 @@ pub fn list() -> Vec<ToolDef> {
     let mut v = read::defs();
     v.extend(report::defs());
     v.extend(model::defs());
+    v.extend(query::defs());
     v
 }
 
@@ -150,6 +155,7 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
     let result = read::call(&cx, name, args)
         .or_else(|| report::call(&cx, name, args))
         .or_else(|| model::call(&cx, name, args))
+        .or_else(|| query::call(&cx, name, args))
         .unwrap_or_else(|| fail(format!("there's no tool {name}")));
     match result {
         Ok(Done { text, step }) => Outcome {

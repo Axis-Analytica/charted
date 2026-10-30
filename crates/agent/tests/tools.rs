@@ -12,6 +12,7 @@ struct Fake {
     allow: bool,
     asked: Mutex<Vec<String>>,
     changes: AtomicUsize,
+    draft: Mutex<Option<Vec<charted_compiler::steps::Query>>>,
 }
 
 impl Fake {
@@ -22,6 +23,7 @@ impl Fake {
             allow: true,
             asked: Mutex::new(vec![]),
             changes: AtomicUsize::new(0),
+            draft: Mutex::new(None),
         }
     }
 }
@@ -42,6 +44,12 @@ impl Turn for Fake {
     }
     fn changed(&self, _: &AppState) {
         self.changes.fetch_add(1, Ordering::Relaxed);
+    }
+    fn draft(&self) -> Option<Vec<charted_compiler::steps::Query>> {
+        self.draft.lock().unwrap().clone()
+    }
+    fn set_draft(&self, q: Option<Vec<charted_compiler::steps::Query>>) {
+        *self.draft.lock().unwrap() = q;
     }
 }
 
@@ -361,4 +369,62 @@ fn the_model_changes_and_undoes() {
     let mut a = app.lock().unwrap();
     a.handle(Request::UndoGroup { group: "m".into() }).unwrap();
     assert_eq!(a.session().unwrap().project.model, before);
+}
+
+#[test]
+fn query_changes_are_drafted_and_checked() {
+    let (_d, app) = sample();
+    let turn = Fake::new("q");
+    let before = app
+        .lock()
+        .unwrap()
+        .session()
+        .unwrap()
+        .project
+        .queries
+        .clone();
+    let list = ok(&app, &turn, "describe_queries", json!({})).text;
+    assert!(list.contains("query \"Store\""), "{list}");
+    let one = ok(&app, &turn, "describe_queries", json!({ "query": "Store" })).text;
+    assert!(one.contains("columns:") && one.contains("Region"), "{one}");
+    let o = ok(
+        &app,
+        &turn,
+        "draft_query",
+        json!({ "action": "add_step", "query": "Store", "step": { "op": "renameColumns", "renames": [["Region", "Area"]] } }),
+    );
+    assert!(o.text.contains("Area"), "{}", o.text);
+    // A step that doesn't fit is refused, and the draft keeps what came before.
+    err(
+        &app,
+        &turn,
+        "draft_query",
+        json!({ "action": "add_step", "query": "Store", "step": { "op": "removeColumns", "columns": ["Nope"] } }),
+    );
+    assert_eq!(
+        turn.draft()
+            .unwrap()
+            .iter()
+            .find(|q| q.name == "Store")
+            .unwrap()
+            .steps
+            .len(),
+        before
+            .iter()
+            .find(|q| q.name == "Store")
+            .unwrap()
+            .steps
+            .len()
+            + 1
+    );
+    assert!(
+        ok(&app, &turn, "describe_queries", json!({}))
+            .text
+            .contains("draft")
+    );
+    // Nothing changes until the user applies it.
+    assert_eq!(
+        app.lock().unwrap().session().unwrap().project.queries,
+        before
+    );
 }

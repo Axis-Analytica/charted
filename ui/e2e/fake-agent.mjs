@@ -5,6 +5,8 @@
 //   slow   — adds two cards a second apart (to edit or stop mid-request)
 //   peek   — lists a column's values (needs data access)
 //   delete — removes the page "Agent e2e" (asks the user)
+//   draft  — drafts sorting the Store query (a step that changes nothing else)
+//   undraft — drafts taking that step out again
 //   fail   — exits with an error
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -70,6 +72,14 @@ if (/\bbuild\b/i.test(prompt)) {
 } else if (/\bpeek\b/i.test(prompt)) {
   const r = await tool("distinct_values", { field: "'Store'[Region]" });
   said = r.error ? "I can't see the values." : `The regions are ${r.text}`;
+} else if (/\bundraft\b/i.test(prompt)) {
+  const steps = (await tool("describe_queries", { query: "Store" })).text.split("\n").filter((l) => /^ {2}\d+\. .*"sortRows"/.test(l));
+  const index = Number(/^ {2}(\d+)\./.exec(steps.at(-1) ?? "")?.[1]);
+  await tool("draft_query", { action: "remove_step", query: "Store", index });
+  said = "Drafted taking the sort out; press Apply.";
+} else if (/\bdraft\b/i.test(prompt)) {
+  await tool("draft_query", { action: "add_step", query: "Store", step: { op: "sortRows", columns: [["Region", false]] } });
+  said = "Drafted sorting Store by region; press Apply in the Agent pane.";
 } else if (/\bdelete\b/i.test(prompt)) {
   const r = await tool("page", { action: "remove", page: "Agent e2e" });
   said = r.error ? "I left the page." : "Removed the page.";
