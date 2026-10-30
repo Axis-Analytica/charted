@@ -885,6 +885,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "charted-agent"
+version = "1.4.0"
+dependencies = [
+ "charted-compiler",
+ "charted-core",
+ "charted-dax",
+ "charted-engine",
+ "charted-model",
+ "insta",
+ "libc",
+ "proptest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "ts-rs",
+ "uuid",
+]
+
+[[package]]
 name = "charted-cli"
 version = "1.4.0"
 dependencies = [

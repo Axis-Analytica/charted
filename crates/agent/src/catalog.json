@@ -1,0 +1,3994 @@
+{
+ "visuals": [
+  {
+   "type": "card",
+   "label": "Card",
+   "roles": [
+    {
+     "name": "values",
+     "label": "Fields",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 240,
+    "height": 140
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "callout",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 36,
+       "min": 12,
+       "max": 96
+      },
+      {
+       "name": "displayUnits",
+       "type": "select",
+       "default": "auto",
+       "options": [
+        "auto",
+        "none",
+        "K",
+        "M",
+        "B"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "label",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "multiRowCard",
+   "label": "Multi-row card",
+   "roles": [
+    {
+     "name": "values",
+     "label": "Fields",
+     "kind": "value",
+     "max": null
+    }
+   ],
+   "size": {
+    "width": 420,
+    "height": 140
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "callout",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 24,
+       "min": 10,
+       "max": 96
+      },
+      {
+       "name": "displayUnits",
+       "type": "select",
+       "default": "auto",
+       "options": [
+        "auto",
+        "none",
+        "K",
+        "M",
+        "B"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "layout",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 0,
+       "min": 0,
+       "max": 8
+      },
+      {
+       "name": "accent",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "label",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "columnChart",
+   "label": "Clustered column chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "barChart",
+   "label": "Clustered bar chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "Y-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "lineChart",
+   "label": "Line chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 560,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "lines",
+     "props": [
+      {
+       "name": "width",
+       "type": "number",
+       "default": 2,
+       "min": 1,
+       "max": 8
+      },
+      {
+       "name": "markers",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "smooth",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "lineClusteredColumnComboChart",
+   "label": "Line and clustered column chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Column y-axis",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "lineValues",
+     "label": "Line y-axis",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Column legend",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 560,
+    "height": 320
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "secondaryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "lines",
+     "props": [
+      {
+       "name": "width",
+       "type": "number",
+       "default": 2,
+       "min": 1,
+       "max": 8
+      },
+      {
+       "name": "markers",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "smooth",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "lineStackedColumnComboChart",
+   "label": "Line and stacked column chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Column y-axis",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "lineValues",
+     "label": "Line y-axis",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Column legend",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 560,
+    "height": 320
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "secondaryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "lines",
+     "props": [
+      {
+       "name": "width",
+       "type": "number",
+       "default": 2,
+       "min": 1,
+       "max": 8
+      },
+      {
+       "name": "markers",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "smooth",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "stackedColumnChart",
+   "label": "Stacked column chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "stackedBarChart",
+   "label": "Stacked bar chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "Y-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "analytics",
+     "props": [
+      {
+       "name": "constant",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "constantValue",
+       "type": "number",
+       "default": 0
+      },
+      {
+       "name": "average",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "min",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "max",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "trend",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "labels",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "hundredPercentStackedColumnChart",
+   "label": "100% stacked column chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "X-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "hundredPercentStackedBarChart",
+   "label": "100% stacked bar chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "Y-axis",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "series",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    },
+    {
+     "name": "smallMultiples",
+     "label": "Small multiples",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "smallMultiples",
+     "props": [
+      {
+       "name": "columns",
+       "type": "number",
+       "default": 3,
+       "min": 1,
+       "max": 6
+      },
+      {
+       "name": "sharedY",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "pieChart",
+   "label": "Pie chart",
+   "roles": [
+    {
+     "name": "legend",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 360,
+    "height": 280
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "right",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "content",
+       "type": "select",
+       "default": "category",
+       "options": [
+        "category",
+        "percent",
+        "value",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "donutChart",
+   "label": "Donut chart",
+   "roles": [
+    {
+     "name": "legend",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 360,
+    "height": 280
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "right",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "content",
+       "type": "select",
+       "default": "category",
+       "options": [
+        "category",
+        "percent",
+        "value",
+        "none"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "scatterChart",
+   "label": "Scatter chart",
+   "roles": [
+    {
+     "name": "details",
+     "label": "Values",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "legend",
+     "label": "Legend",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "x",
+     "label": "X-axis",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "y",
+     "label": "Y-axis",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "size",
+     "label": "Size",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 320
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "axes",
+     "props": [
+      {
+       "name": "titles",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "markers",
+     "props": [
+      {
+       "name": "size",
+       "type": "number",
+       "default": 10,
+       "min": 4,
+       "max": 40
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "waterfallChart",
+   "label": "Waterfall chart",
+   "roles": [
+    {
+     "name": "category",
+     "label": "Category",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "breakdown",
+     "label": "Breakdown",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Y-axis",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 520,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "legend",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "position",
+       "type": "select",
+       "default": "top",
+       "options": [
+        "top",
+        "bottom",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "categoryAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "valueAxis",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "title",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "gridlines",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "sentimentColors",
+     "props": [
+      {
+       "name": "increase",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "decrease",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "total",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "breakdown",
+     "props": [
+      {
+       "name": "max",
+       "type": "number",
+       "default": 5,
+       "min": 1,
+       "max": 20
+      },
+      {
+       "name": "total",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 11,
+       "min": 8,
+       "max": 24
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "funnel",
+   "label": "Funnel",
+   "roles": [
+    {
+     "name": "category",
+     "label": "Category",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 420,
+    "height": 300
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "percent",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "treemap",
+   "label": "Treemap",
+   "roles": [
+    {
+     "name": "group",
+     "label": "Category",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "details",
+     "label": "Details",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 320
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "dataLabels",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "values",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "gauge",
+   "label": "Gauge",
+   "roles": [
+    {
+     "name": "values",
+     "label": "Value",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "minValue",
+     "label": "Minimum value",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "maxValue",
+     "label": "Maximum value",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "targetValue",
+     "label": "Target value",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 320,
+    "height": 240
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "gaugeAxis",
+     "props": [
+      {
+       "name": "min",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "max",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "target",
+       "type": "text",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "colors",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "target",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "callout",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 28,
+       "min": 10,
+       "max": 96
+      },
+      {
+       "name": "displayUnits",
+       "type": "select",
+       "default": "auto",
+       "options": [
+        "auto",
+        "none",
+        "K",
+        "M",
+        "B"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "kpi",
+   "label": "KPI",
+   "roles": [
+    {
+     "name": "indicator",
+     "label": "Value",
+     "kind": "value",
+     "max": 1
+    },
+    {
+     "name": "trend",
+     "label": "Trend axis",
+     "kind": "grouping",
+     "max": 1
+    },
+    {
+     "name": "goal",
+     "label": "Target",
+     "kind": "value",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 280,
+    "height": 200
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "callout",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 36,
+       "min": 10,
+       "max": 96
+      },
+      {
+       "name": "displayUnits",
+       "type": "select",
+       "default": "auto",
+       "options": [
+        "auto",
+        "none",
+        "K",
+        "M",
+        "B"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "trendline",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "goals",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "distance",
+       "type": "select",
+       "default": "percent",
+       "options": [
+        "percent",
+        "value",
+        "both"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "status",
+     "props": [
+      {
+       "name": "direction",
+       "type": "select",
+       "default": "high",
+       "options": [
+        "high",
+        "low"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "table",
+   "label": "Table",
+   "roles": [
+    {
+     "name": "columns",
+     "label": "Columns",
+     "kind": "any",
+     "max": null
+    }
+   ],
+   "size": {
+    "width": 480,
+    "height": 320
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "grid",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 12,
+       "min": 8,
+       "max": 24
+      },
+      {
+       "name": "rowLines",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "banded",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "totals",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "matrix",
+   "label": "Matrix",
+   "roles": [
+    {
+     "name": "rows",
+     "label": "Rows",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "columns",
+     "label": "Columns",
+     "kind": "grouping",
+     "max": null
+    },
+    {
+     "name": "values",
+     "label": "Values",
+     "kind": "value",
+     "max": null
+    }
+   ],
+   "size": {
+    "width": 520,
+    "height": 340
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "grid",
+     "props": [
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 12,
+       "min": 8,
+       "max": 24
+      },
+      {
+       "name": "banded",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    },
+    {
+     "name": "totals",
+     "props": [
+      {
+       "name": "rows",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "columns",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "subtotals",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "slicer",
+   "label": "Slicer",
+   "roles": [
+    {
+     "name": "field",
+     "label": "Field",
+     "kind": "grouping",
+     "max": 1
+    }
+   ],
+   "size": {
+    "width": 200,
+    "height": 240
+   },
+   "decor": false,
+   "objects": [
+    {
+     "name": "slicer",
+     "props": [
+      {
+       "name": "style",
+       "type": "select",
+       "default": "list",
+       "options": [
+        "list",
+        "dropdown",
+        "between",
+        "relative"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "selection",
+     "props": [
+      {
+       "name": "multi",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "selectAll",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "search",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "header",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "title",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "textbox",
+   "label": "Text box",
+   "roles": [],
+   "size": {
+    "width": 320,
+    "height": 64
+   },
+   "decor": true,
+   "objects": [
+    {
+     "name": "text",
+     "props": [
+      {
+       "name": "content",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 16,
+       "min": 8,
+       "max": 96
+      },
+      {
+       "name": "bold",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "align",
+       "type": "select",
+       "default": "left",
+       "options": [
+        "left",
+        "center",
+        "right"
+       ]
+      },
+      {
+       "name": "color",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "image",
+   "label": "Image",
+   "roles": [],
+   "size": {
+    "width": 240,
+    "height": 160
+   },
+   "decor": true,
+   "objects": [
+    {
+     "name": "image",
+     "props": [
+      {
+       "name": "fit",
+       "type": "select",
+       "default": "contain",
+       "options": [
+        "contain",
+        "cover",
+        "fill"
+       ]
+      },
+      {
+       "name": "alt",
+       "type": "text",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "background",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": false
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "shape",
+   "label": "Shape",
+   "roles": [],
+   "size": {
+    "width": 200,
+    "height": 120
+   },
+   "decor": true,
+   "objects": [
+    {
+     "name": "shape",
+     "props": [
+      {
+       "name": "kind",
+       "type": "select",
+       "default": "roundedRectangle",
+       "options": [
+        "rectangle",
+        "roundedRectangle",
+        "ellipse",
+        "line",
+        "arrow"
+       ]
+      },
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "outline",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "weight",
+       "type": "number",
+       "default": 2,
+       "min": 0,
+       "max": 20
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "actionButton",
+   "label": "Button",
+   "roles": [],
+   "size": {
+    "width": 160,
+    "height": 48
+   },
+   "decor": true,
+   "objects": [
+    {
+     "name": "button",
+     "props": [
+      {
+       "name": "kind",
+       "type": "select",
+       "default": "blank",
+       "options": [
+        "blank",
+        "back",
+        "bookmark",
+        "pageNavigation",
+        "drillthrough",
+        "information"
+       ]
+      },
+      {
+       "name": "text",
+       "type": "text",
+       "default": ""
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 14,
+       "min": 8,
+       "max": 60
+      },
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "color",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "border",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "rounded",
+       "type": "bool",
+       "default": true
+      }
+     ]
+    },
+    {
+     "name": "hover",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "color",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "pressed",
+     "props": [
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "color",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    },
+    {
+     "name": "action",
+     "props": [
+      {
+       "name": "show",
+       "type": "bool",
+       "default": true
+      },
+      {
+       "name": "type",
+       "type": "select",
+       "default": "auto",
+       "options": [
+        "auto",
+        "back",
+        "bookmark",
+        "pageNavigation",
+        "drillthrough",
+        "none"
+       ]
+      },
+      {
+       "name": "bookmark",
+       "type": "bookmark",
+       "default": ""
+      },
+      {
+       "name": "page",
+       "type": "page",
+       "default": ""
+      },
+      {
+       "name": "tooltip",
+       "type": "text",
+       "default": ""
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "pageNavigator",
+   "label": "Page navigator",
+   "roles": [],
+   "size": {
+    "width": 560,
+    "height": 44
+   },
+   "decor": true,
+   "objects": [
+    {
+     "name": "navigator",
+     "props": [
+      {
+       "name": "orientation",
+       "type": "select",
+       "default": "horizontal",
+       "options": [
+        "horizontal",
+        "vertical"
+       ]
+      },
+      {
+       "name": "showHidden",
+       "type": "bool",
+       "default": false
+      },
+      {
+       "name": "fontSize",
+       "type": "number",
+       "default": 13,
+       "min": 8,
+       "max": 40
+      },
+      {
+       "name": "fill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "selectedFill",
+       "type": "color",
+       "default": ""
+      },
+      {
+       "name": "color",
+       "type": "color",
+       "default": ""
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "themes": [
+  {
+   "name": "Classic",
+   "dataColors": [
+    "#118DFF",
+    "#12239E",
+    "#E66C37",
+    "#6B007B",
+    "#E044A7",
+    "#744EC2",
+    "#D9B300",
+    "#D64550"
+   ],
+   "background": "#FFFFFF",
+   "foreground": "#252423",
+   "tableAccent": "#118DFF"
+  },
+  {
+   "name": "Daylight",
+   "dataColors": [
+    "#2a78d6",
+    "#eb6834",
+    "#1baf7a",
+    "#eda100",
+    "#e87ba4",
+    "#008300",
+    "#6250d6",
+    "#e34948"
+   ],
+   "background": "#fcfcfb",
+   "foreground": "#0b0b0b",
+   "tableAccent": "#2a78d6"
+  },
+  {
+   "name": "Nightfall",
+   "dataColors": [
+    "#3987e5",
+    "#d95926",
+    "#199e70",
+    "#c98500",
+    "#d55181",
+    "#008300",
+    "#9085e9",
+    "#e66767"
+   ],
+   "background": "#1a1a19",
+   "foreground": "#f0efec",
+   "tableAccent": "#3987e5"
+  }
+ ]
+}
