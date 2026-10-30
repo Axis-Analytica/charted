@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Workspace } from "../bridge/generated/Workspace";
-import { activeLayout, paneOf, togglePane, withHidden, withPane } from "./layout";
+import { activeLayout, paneOf, togglePane, withHidden, withPane } from "./layoutModel";
 
 const ws: Workspace = {
   active: "b",

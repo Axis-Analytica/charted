@@ -7,6 +7,7 @@ mod model;
 mod query;
 mod read;
 mod report;
+mod workspace;
 
 use charted_core::api::{App, AppState};
 use charted_model::{Change, Model};
@@ -130,6 +131,7 @@ pub fn list() -> Vec<ToolDef> {
     v.extend(report::defs());
     v.extend(model::defs());
     v.extend(query::defs());
+    v.extend(workspace::defs());
     v
 }
 
@@ -156,6 +158,7 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
         .or_else(|| report::call(&cx, name, args))
         .or_else(|| model::call(&cx, name, args))
         .or_else(|| query::call(&cx, name, args))
+        .or_else(|| workspace::call(&cx, name, args))
         .unwrap_or_else(|| fail(format!("there's no tool {name}")));
     match result {
         Ok(Done { text, step }) => Outcome {

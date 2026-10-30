@@ -428,3 +428,85 @@ fn query_changes_are_drafted_and_checked() {
         before
     );
 }
+
+#[test]
+fn the_agent_reshapes_the_layout_and_it_undoes_as_one() {
+    let (_d, app) = sample();
+    let turn = Fake::new("l");
+    let before = app
+        .lock()
+        .unwrap()
+        .layouts()
+        .workspace
+        .active()
+        .layout
+        .clone();
+    ok(
+        &app,
+        &turn,
+        "set_pane",
+        json!({ "pane": "fields", "place": "float", "x": 40, "y": 60 }),
+    );
+    ok(&app, &turn, "split_view", json!({ "view": "model" }));
+    // Buttons are known once the window lists them.
+    assert!(
+        ok(&app, &turn, "list_commands", json!({}))
+            .text
+            .contains("hasn't listed")
+    );
+    app.lock()
+        .unwrap()
+        .handle(Request::SetCommands {
+            commands: vec![charted_core::workspace::CommandInfo {
+                id: "align-left".into(),
+                label: "Align left".into(),
+                place: "report toolbar".into(),
+                uses: 0,
+            }],
+        })
+        .unwrap();
+    assert!(
+        ok(&app, &turn, "list_commands", json!({}))
+            .text
+            .contains("align-left \"Align left\" in the report toolbar: used 0 times")
+    );
+    let no = Fake {
+        allow: false,
+        ..Fake::new("l")
+    };
+    err(&app, &no, "hide_commands", json!({ "ids": ["align-left"] }));
+    ok(
+        &app,
+        &turn,
+        "hide_commands",
+        json!({ "ids": ["align-left"] }),
+    );
+    let described = ok(&app, &turn, "describe_workspace", json!({})).text;
+    assert!(
+        described.contains("pane fields: float")
+            && described.contains("second view: model")
+            && described.contains("hidden buttons: align-left"),
+        "{described}"
+    );
+    // The request's layout changes undo in one step.
+    let mut a = app.lock().unwrap();
+    a.handle(Request::UndoLayout).unwrap();
+    assert_eq!(a.layouts().workspace.active().layout, before);
+    drop(a);
+    ok(
+        &app,
+        &turn,
+        "profile",
+        json!({ "action": "switch", "name": "Two report pages" }),
+    );
+    ok(
+        &app,
+        &turn,
+        "profile",
+        json!({ "action": "create", "name": "Mine" }),
+    );
+    assert_eq!(
+        app.lock().unwrap().layouts().workspace.active().name,
+        "Mine"
+    );
+}

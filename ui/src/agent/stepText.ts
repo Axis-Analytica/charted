@@ -48,5 +48,18 @@ export const STEP_MESSAGES = [
   msg("Drafted a change to query \"%1\""),
   msg("Drafted removing a step from query \"%1\""),
   msg("Discarded the query draft"),
+  msg("Hid the %1 pane"),
+  msg("Floated the %1 pane"),
+  msg("Docked the %1 pane on the left"),
+  msg("Docked the %1 pane on the right"),
+  msg("Back to one view"),
+  msg("Put the %1 view beside the first"),
+  msg("Hid %1"),
+  msg("Showed %1"),
+  msg("Made the layout profile \"%1\""),
+  msg("Switched to the layout \"%1\""),
+  msg("Renamed the layout \"%1\""),
+  msg("Deleted the layout \"%1\""),
+  msg("Reset the layout \"%1\""),
 ];
 

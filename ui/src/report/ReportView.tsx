@@ -33,7 +33,7 @@ import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Visual } from "../bridge/generated/Visual";
 import { type Shortcut, useShortcut } from "../app/shortcuts";
-import { useT } from "../i18n";
+import { msg, useT } from "../i18n";
 import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
 import { currentPage, newId, newVisual, pageSettings, updateVisual, useReport } from "../state/report";
@@ -450,7 +450,8 @@ export function ReportView({ model }: { model: Model }) {
   const align = (how: Align | "distributeH" | "distributeV") => apply(how.startsWith("distribute") ? "Distribute visuals" : "Align visuals", arrange(chosen, how));
   const togglePane = (k: PaneId) => void setLayout((l) => togglePaneIn(l, k));
   const placeOf = (k: PaneId) => paneOf(layout, k).place;
-  const docked = (k: PaneId) => placeOf(k) === "left" || placeOf(k) === "right";
+  // The Agent pane is a conversation: it stays in view rather than behind a tab.
+  const docked = (k: PaneId) => k !== "agent" && (placeOf(k) === "left" || placeOf(k) === "right");
   const shown = (k: PaneId) => placeOf(k) !== "hidden";
   const hidden = new Set(layout.hidden);
   const paneLabel = (k: PaneId) =>
@@ -484,7 +485,7 @@ export function ReportView({ model }: { model: Model }) {
     { id: "send-back", label: "Send to back", icon: <SendToBack size={15} />, disabled: !chosen.length, run: () => zOrder(false) },
     {
       id: "format-painter",
-      label: painter.sticky ? "Format painter (stays on; Esc turns it off)" : "Format painter",
+      label: painter.sticky ? msg("Format painter (stays on; Esc turns it off)") : "Format painter",
       shortcut: "Ctrl+Alt+C",
       icon: <Paintbrush size={15} />,
       pressed: painter.armed,
@@ -565,7 +566,7 @@ export function ReportView({ model }: { model: Model }) {
         ref={body}
         onPointerDownCapture={() => focused !== slot && useReport.getState().set({ slot })}
       >
-        {!reading && slot === 0 && !compact && PANES.filter((k) => placeOf(k) === "left").map(host)}
+        {!reading && slot === 0 && PANES.filter((k) => placeOf(k) === "left" && (!compact || k === "agent")).map(host)}
         <div className="report-center">
           <ViewAsBanner model={model} />
           <DrillBar model={model} page={page} />
@@ -574,10 +575,11 @@ export function ReportView({ model }: { model: Model }) {
           <PageTabs model={model} page={page} reading={reading} />
         </div>
         {reading || slot === 1 ? null : compact ? (
-          PANES.some((k) => placeOf(k) === "left" || placeOf(k) === "right") && (
+          <>
+          {PANES.some(docked) && (
             <div className="pane-stack">
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
-                {PANES.filter((k) => placeOf(k) === "left" || placeOf(k) === "right").map((k) => (
+                {PANES.filter(docked).map((k) => (
                   <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!docked(paneTab) && k === PANES.find(docked))} onClick={() => setPaneTab(k)}>
                     {paneLabel(k)}
                   </button>
@@ -585,7 +587,9 @@ export function ReportView({ model }: { model: Model }) {
               </div>
               {renderPane(docked(paneTab) ? paneTab : PANES.find(docked)!)}
             </div>
-          )
+          )}
+          {placeOf("agent") === "right" && host("agent")}
+          </>
         ) : (
           PANES.filter((k) => placeOf(k) === "right").map(host)
         )}

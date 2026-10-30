@@ -7,6 +7,7 @@
 //   delete — removes the page "Agent e2e" (asks the user)
 //   draft  — drafts sorting the Store query (a step that changes nothing else)
 //   undraft — drafts taking that step out again
+//   layout — floats the Fields pane, puts the model beside the report, hides Align left
 //   fail   — exits with an error
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -74,6 +75,13 @@ if (/\bbuild\b/i.test(prompt)) {
 } else if (/\bpeek\b/i.test(prompt)) {
   const r = await tool("distinct_values", { field: "'Store'[Region]" });
   said = r.error ? "I can't see the values." : `The regions are ${r.text}`;
+} else if (/\blayout\b/i.test(prompt)) {
+  await tool("describe_workspace", {});
+  await tool("set_pane", { pane: "fields", place: "float", x: 60, y: 80 });
+  await tool("split_view", { view: "model" });
+  await tool("list_commands", {});
+  await tool("hide_commands", { ids: ["align-left"] });
+  said = "Floated the fields pane, put the model beside the report and hid Align left.";
 } else if (/\bundraft\b/i.test(prompt)) {
   const steps = (await tool("describe_queries", { query: "Store" })).text.split("\n").filter((l) => /^ {2}\d+\. .*"sortRows"/.test(l));
   const index = Number(/^ {2}(\d+)\./.exec(steps.at(-1) ?? "")?.[1]);

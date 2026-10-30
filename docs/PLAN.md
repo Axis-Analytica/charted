@@ -59,6 +59,21 @@ people can tell us what they love and hate. These make that true.
 
 ## M8: reshape the tool (the post's "Where it's headed")
 
+**Done (2026-10-31):** M8.1 to M8.3; the demo is in docs/demos/m8.md.
+- `crates/core/src/workspace.rs`: profiles, layout, layout undo.
+- `ui/src/app/layout.ts` and `layoutModel.ts`; `report/PaneHost.tsx`;
+  `app/LayoutMenu.tsx`.
+- The split view in `views/ProjectView.tsx`.
+- `crates/agent/src/tools/workspace.rs`.
+
+Simplified from the plan below:
+- Floating panes stay inside the report area.
+- The split is one second view (the left side is the rail's view).
+- Hideable commands are the report toolbar's for now. File menu items and other views'
+  toolbars are next.
+- Export and import of profiles as files, and keyboard focus between split views, are
+  still open (M8.4).
+
 **Goal.** The user, or their agent, can change how charted itself is laid out:
 - floating or docked panes;
 - buttons and commands hidden;

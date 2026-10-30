@@ -106,6 +106,29 @@ release below.
   - Possibly: agent-made screenshots of a page (vision) for layout checks.
   - Possibly: a `charted mcp --project DIR` mode for agents run outside the app.
 
+## M8: reshape the tool (done 2026-10-31)
+
+- **Layout in the core.** `crates/core/src/workspace.rs` keeps the user's layout
+  profiles in `<state dir>/workspace.json`. `AppState.workspace` carries them to the UI,
+  `layoutUndo`/`layoutRedo` report whether layout undo or redo is possible, and they are
+  changed through the `SetLayout`, `UndoLayout`, `RedoLayout` and
+  `Switch/Add/Rename/Delete/ResetProfile` requests.
+- **Persistence is per server.** The layout persists across reloads and tests, so specs
+  that open panes close them in `afterEach` (m6, v13, m7agent). m8layout resets the
+  Standard profile after each test.
+- **UI.**
+  - Pane places come from the layout (`app/layout.ts`), not `useReport`.
+  - `report/PaneHost.tsx` docks or floats each pane.
+  - The second report view is `ReportSlot` 1 (`report/slot.ts`). It keeps its own page
+    (`useReport.page2`), registers no shortcuts, and `useReport.slot` says which report
+    the panes act on.
+  - Toolbar buttons are `Tool`s with ids (`report/toolbar.ts`), each wrapped in
+    `[data-command]`, which is what lets them be hidden and their clicks counted
+    (localStorage).
+  - The UI sends the list of hideable commands (`SetCommands`) before each agent request.
+- **Disk.** `target/` grows past 60 GB, and `/mnt/mac` (the Mac's disk) ran out once,
+  which broke linking. `rm -rf target/debug/incremental` frees about 20 GB safely.
+
 ## Decisions already made (do not re-litigate)
 
 - Name `charted`, Apache-2.0, repo `github.com/Axis-Analytica/charted` (public, `main`).
