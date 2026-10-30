@@ -276,7 +276,9 @@ test("import a Power BI project, see what didn't come across, export and import 
   await fileMenu(page, "Import Power BI project…");
   const again = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
   await expect(again).toBeVisible({ timeout: 30_000 });
-  await expect(again).not.toContainText("Not imported");
+  // Only the role's dynamic filter is noted again (it comes in, but View as can't apply it).
+  await expect(again).toContainText("Not imported, or only partly (1)");
+  await expect(again).toContainText("Regional managers: Orders");
   await again.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("tab", { name: "Trend" })).toBeVisible();
 
