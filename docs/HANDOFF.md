@@ -47,7 +47,7 @@ release below.
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  2. M7 is done on branch `m7-agent` (see below); merge and release it. Later: the
+  2. M7 is done and released in v1.5.0 (see below). Next: docs/PLAN.md (M8 and on). Later: the
      Power BI Desktop check in the VM (`~/Work/charted-checkpoints/pbi-roundtrip/`),
      AUR and omarchy-pkgs on the go-ahead.
 - **Step 12 (v1.5 speed) measured, rewrites not needed yet:** `calcbench` on the 10M
@@ -60,7 +60,7 @@ release below.
   or later specs must avoid what it touches: v11pq renames North America to Americas
   in Store, so v14roles filters Asia Pacific.
 
-## M7: the in-app agent (done 2026-10-31, branch `m7-agent`)
+## M7: the in-app agent (done 2026-10-31, released in v1.5.0)
 
 - **Code:** `crates/agent` (`charted-agent`):
   - `names.rs`: `'Table'[Column]` / `[Measure]` / `SUM(…)` parsing, resolution and
@@ -101,7 +101,6 @@ release below.
     --ignored --nocapture`. On 2026-10-31 it built the roadmap page in 17 s for $0.07
     with sonnet, and the follow-up worked.
 - **Next:**
-  - Merge `m7-agent` into `main`, then decide the release (v1.5.0 with M7?).
   - Test the terminal fallback with OpenCode, which isn't installed here.
   - Run the Codex checkpoint once it is signed in.
   - Possibly: agent-made screenshots of a page (vision) for layout checks.
