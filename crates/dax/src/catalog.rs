@@ -263,6 +263,8 @@ pub fn support_markdown() -> String {
            group's filter context; SUMMARIZECOLUMNS crosses the visible values of each \
            table's group columns and leaves out rows whose new columns are all blank. \
            **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.\n\
+         - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted \
+           and used as CALCULATE filters in the context where they're defined.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

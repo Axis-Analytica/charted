@@ -770,6 +770,26 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
             )
         }
         ScalarFunc::Today => ("current_date".into(), ValueType::Date),
+        ScalarFunc::Mod => {
+            let (x, d) = (
+                format!("coalesce(CAST({} AS DOUBLE), 0)", a[0].0),
+                format!("coalesce(CAST({} AS DOUBLE), 0)", a[1].0),
+            );
+            (
+                format!("(CASE WHEN {d} = 0 THEN NULL ELSE {x} - {d} * floor({x} / {d}) END)"),
+                num,
+            )
+        }
+        ScalarFunc::Weekday => {
+            let d = date_sql(&a[0]);
+            let kind = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());
+            (
+                format!(
+                    "(CASE {kind} WHEN 2 THEN isodow({d}) WHEN 3 THEN isodow({d}) - 1 ELSE dayofweek({d}) + 1 END)"
+                ),
+                num,
+            )
+        }
         ScalarFunc::EoMonth => (
             format!(
                 "last_day(CAST(date_trunc('month', {}) + to_months(CAST({} AS INTEGER)) AS DATE))",

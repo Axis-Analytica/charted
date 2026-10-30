@@ -638,6 +638,29 @@ const MEASURES: &[(&str, &str)] = &[
         "Best Category Units",
         "MAXX ( SUMMARIZE ( Sales, Product[Category], \"q\", SUM ( Sales[Qty] ) ), [q] )",
     ),
+    // Table variables, MOD, WEEKDAY
+    (
+        "Last 3 Months Via Var",
+        "VAR p = DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ) RETURN CALCULATE ( [Quantity], p )",
+    ),
+    (
+        "Var Table Twice",
+        "VAR t = ADDCOLUMNS ( VALUES ( Product[Category] ), \"q\", [Quantity] ) RETURN MAXX ( t, [q] ) + COUNTROWS ( t )",
+    ),
+    (
+        "Average 12M Via Vars",
+        "VAR d = MAX ( Date[Date] ) VAR p = DATESINPERIOD ( Date[Date], d, -12, MONTH ) RETURN CALCULATE ( AVERAGEX ( VALUES ( Date[Date] ), [Quantity] ), p )",
+    ),
+    ("Qty Mod 7", "MOD ( [Quantity], 7 )"),
+    ("Negative Mod", "MOD ( -[Quantity], 4 )"),
+    (
+        "Latest Weekday",
+        "MAXX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date], 2 ) )",
+    ),
+    (
+        "Weekday Sum",
+        "SUMX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date] ) + WEEKDAY ( Date[Date], 3 ) )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",

@@ -1572,6 +1572,28 @@ fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
         },
         ScalarFunc::Date => date(cal::date(whole(&a[0]), whole(&a[1]), whole(&a[2]))),
         ScalarFunc::Today => date(today()),
+        ScalarFunc::Mod => {
+            let x = a[0].num().unwrap_or(0.0);
+            let d = a[1].num().unwrap_or(0.0);
+            if d == 0.0 {
+                Value::Blank
+            } else {
+                Value::Num(x - d * (x / d).floor())
+            }
+        }
+        ScalarFunc::Weekday => match day(&a[0]) {
+            // 1970-01-01 was a Thursday.
+            Some(z) => {
+                let sunday0 = (z + 4).rem_euclid(7);
+                let monday1 = (z + 3).rem_euclid(7) + 1;
+                Value::Num(match a.get(1).map(whole).unwrap_or(1) {
+                    2 => monday1,
+                    3 => monday1 - 1,
+                    _ => sunday0 + 1,
+                } as f64)
+            }
+            None => Value::Blank,
+        },
         ScalarFunc::EoMonth => match day(&a[0]) {
             Some(z) => date(cal::last_day(cal::add(
                 cal::trunc(z, Period::Month),

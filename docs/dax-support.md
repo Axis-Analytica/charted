@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (97 functions)
+## Evaluated (99 functions)
 
 ### Aggregation
 
@@ -36,6 +36,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `MONTH ( Date )` | The month, 1 to 12. |
 | `QUARTER ( Date )` | The quarter, 1 to 4. |
 | `TODAY (  )` | The current date. |
+| `WEEKDAY ( Date, [ReturnType] )` | The day of the week. |
 | `YEAR ( Date )` | The year of a date. |
 
 ### Filter
@@ -84,6 +85,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ABS ( Number )` | The absolute value of a number. |
 | `DIVIDE ( Numerator, Denominator, [AlternateResult] )` | Divides, returning the alternate result (blank by default) when the denominator is zero. |
 | `INT ( Number )` | Rounds down to an integer. |
+| `MOD ( Number, Divisor )` | The remainder after division. |
 | `PI (  )` | The number π, 3.14159265358979. |
 | `ROUND ( Number, NumberOfDigits )` | Rounds a number to the given number of digits. |
 
@@ -170,12 +172,13 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **TOPN** keeps the rows tied at the cut (so it can return more than N), orders descending by default with blank as zero, and works as a CALCULATE filter or an iterated table. **CONCATENATEX** takes its delimiter as text and orders by its order expression, then by the text.
 - **LOOKUPVALUE** filters the search columns to the values (evaluated where it is called) in the current filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
 - **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and used as calculated tables; their new columns are named `[Name]` in expressions over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each group's filter context; SUMMARIZECOLUMNS crosses the visible values of each table's group columns and leaves out rows whose new columns are all blank. **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.
+- **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted and used as CALCULATE filters in the context where they're defined.
 - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (41)
+## Recognised, not yet evaluated (39)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`
+`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKNUM`, `YEARFRAC`

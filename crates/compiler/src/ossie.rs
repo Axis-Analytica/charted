@@ -111,6 +111,8 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 | ScalarFunc::Date
                 | ScalarFunc::EoMonth
                 | ScalarFunc::Today
+                | ScalarFunc::Mod
+                | ScalarFunc::Weekday
                 | ScalarFunc::EDate
                 | ScalarFunc::DateDiff(_) => return None,
             }

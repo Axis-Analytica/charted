@@ -831,6 +831,68 @@ expression: golden
 "Camping" | 82
 "Footwear" | 73
 
+## Last 3 Months Via Var — card
+18
+
+## Last 3 Months Via Var — by category
+"Apparel" | 10
+"Camping" | 4
+"Footwear" | 4
+
+## Var Table Twice — card
+115
+
+## Var Table Twice — by category
+∅ | 4
+"Apparel" | 112
+"Camping" | 83
+"Footwear" | 74
+
+## Average 12M Via Vars — card
+18.7
+
+## Average 12M Via Vars — by category
+∅ | 3
+"Apparel" | 9.125
+"Camping" | 7.4286
+"Footwear" | 6.5556
+
+## Qty Mod 7 — card
+3
+
+## Qty Mod 7 — by category
+∅ | 3
+"Apparel" | 6
+"Camping" | 5
+"Footwear" | 3
+
+## Negative Mod — card
+3
+
+## Negative Mod — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 2
+"Footwear" | 3
+
+## Latest Weekday — card
+7
+
+## Latest Weekday — by category
+∅ | 7
+"Apparel" | 7
+"Camping" | 7
+"Footwear" | 7
+
+## Weekday Sum — card
+170
+
+## Weekday Sum — by category
+∅ | 170
+"Apparel" | 170
+"Camping" | 170
+"Footwear" | 170
+
 ## Neither Apparel Nor Camping — card
 76
 

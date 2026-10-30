@@ -61,6 +61,10 @@ pub enum ScalarFunc {
     EoMonth,
     /// TODAY: the current date.
     Today,
+    /// MOD: the remainder, with the divisor's sign.
+    Mod,
+    /// WEEKDAY: the day of the week (return type 1: Sunday 1…, 2: Monday 1…, 3: Monday 0…).
+    Weekday,
     /// EDATE ( date, months ): the same day `months` away (clamped to the month's end).
     EDate,
     /// DATEDIFF ( date1, date2, unit ): the unit boundaries crossed from date1 to date2.
@@ -504,7 +508,6 @@ pub const KNOWN: &[&str] = &[
     "MEDIANX",
     "MINA",
     "MINUTE",
-    "MOD",
     "NOW",
     "PERCENTILE.INC",
     "POWER",
@@ -521,7 +524,6 @@ pub const KNOWN: &[&str] = &[
     "TREATAS",
     "TRUNC",
     "VALUE",
-    "WEEKDAY",
     "WEEKNUM",
     "YEARFRAC",
 ];
@@ -585,6 +587,7 @@ pub const SUPPORTED: &[&str] = &[
     "MID",
     "MIN",
     "MINX",
+    "MOD",
     "MONTH",
     "NEXTDAY",
     "NEXTMONTH",
@@ -624,6 +627,7 @@ pub const SUPPORTED: &[&str] = &[
     "UPPER",
     "USERELATIONSHIP",
     "VALUES",
+    "WEEKDAY",
     "YEAR",
 ];
 
@@ -687,7 +691,43 @@ struct Var {
     name: String,
     value: Expr,
     depth: usize,
+    /// A table (`VAR period = DATESINPERIOD ( … )`): bound where it's used as one.
+    table: bool,
 }
+
+/// Functions that return tables (for telling a table variable from a scalar one).
+const TABLE_FUNCTIONS: &[&str] = &[
+    "VALUES",
+    "DISTINCT",
+    "ALL",
+    "ALLSELECTED",
+    "FILTER",
+    "TOPN",
+    "CALCULATETABLE",
+    "RELATEDTABLE",
+    "ADDCOLUMNS",
+    "SELECTCOLUMNS",
+    "SUMMARIZE",
+    "SUMMARIZECOLUMNS",
+    "CALENDAR",
+    "GENERATESERIES",
+    "SAMEPERIODLASTYEAR",
+    "DATEADD",
+    "PARALLELPERIOD",
+    "DATESYTD",
+    "DATESQTD",
+    "DATESMTD",
+    "DATESINPERIOD",
+    "DATESBETWEEN",
+    "PREVIOUSDAY",
+    "PREVIOUSMONTH",
+    "PREVIOUSQUARTER",
+    "PREVIOUSYEAR",
+    "NEXTDAY",
+    "NEXTMONTH",
+    "NEXTQUARTER",
+    "NEXTYEAR",
+];
 
 /// Tables whose rows are being iterated, innermost last.
 type Rows<'a, 'b> = &'b [&'a Table];
@@ -829,6 +869,13 @@ impl<'a> Binder<'a> {
                     .rev()
                     .find(|v| v.name.eq_ignore_ascii_case(name))
                 {
+                    if v.table {
+                        let n = v.name.clone();
+                        return self.err(
+                            e.span,
+                            format!("{n} is a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
+                        );
+                    }
                     return Some(Bound::Var(v.name.clone()));
                 }
                 self.table(name, e.span)?;
@@ -842,11 +889,25 @@ impl<'a> Binder<'a> {
             ExprKind::Var {
                 name, value, body, ..
             } => {
+                // A table variable is bound where it's used (checked here once).
+                if self.is_table(value) {
+                    self.table_expr(value, rows)?;
+                    self.vars.push(Var {
+                        name: name.clone(),
+                        value: (**value).clone(),
+                        depth: self.depth,
+                        table: true,
+                    });
+                    let b = self.expr(body, rows);
+                    self.vars.pop();
+                    return b;
+                }
                 let v = self.expr(value, rows);
                 self.vars.push(Var {
                     name: name.clone(),
                     value: (**value).clone(),
                     depth: self.depth,
+                    table: false,
                 });
                 let b = self.expr(body, rows);
                 self.vars.pop();
@@ -1231,7 +1292,62 @@ impl<'a> Binder<'a> {
     }
 
     /// A table expression: a table name, VALUES, DISTINCT, ALL, FILTER or a list.
+    /// Whether an expression is a table (a table function, a table, a table variable).
+    fn is_table(&self, e: &Expr) -> bool {
+        match &e.kind {
+            ExprKind::Call { name, .. } => {
+                TABLE_FUNCTIONS.contains(&name.to_ascii_uppercase().as_str())
+            }
+            ExprKind::Table(name) | ExprKind::Ref { table: None, name } => {
+                match self
+                    .vars
+                    .iter()
+                    .rev()
+                    .find(|v| v.name.eq_ignore_ascii_case(name))
+                {
+                    Some(v) => v.table,
+                    None => {
+                        matches!(e.kind, ExprKind::Table(_))
+                            && self.model.table_by_name(name).is_some()
+                    }
+                }
+            }
+            _ => false,
+        }
+    }
+
+    /// A table variable used as a table: its definition, bound here (with the variables
+    /// it could see), when this is the context it was defined in.
+    fn table_var(
+        &mut self,
+        name: &str,
+        span: Span,
+        rows: Rows<'a, '_>,
+    ) -> Option<Option<TableExpr>> {
+        let i = self
+            .vars
+            .iter()
+            .rposition(|v| v.name.eq_ignore_ascii_case(name))?;
+        if !self.vars[i].table {
+            return None;
+        }
+        if self.vars[i].depth != self.depth {
+            self.err(span, format!("charted can only use the table variable {name} where it's defined, not inside another CALCULATE or iterator"));
+            return Some(None);
+        }
+        let value = self.vars[i].value.clone();
+        let later = self.vars.split_off(i);
+        let t = self.table_expr(&value, rows);
+        self.vars.extend(later);
+        Some(t)
+    }
+
     fn table_expr(&mut self, e: &Expr, rows: Rows<'a, '_>) -> Option<TableExpr> {
+        if let ExprKind::Table(name) | ExprKind::Ref { table: None, name } = &e.kind
+            && let Some(t) = self.table_var(name, e.span, rows)
+        {
+            return t;
+        }
         match &e.kind {
             ExprKind::Table(name) => Some(TableExpr::Table(self.table(name, e.span)?.id.clone())),
             ExprKind::List(items) => {
@@ -1451,6 +1567,11 @@ impl<'a> Binder<'a> {
 
     /// A CALCULATE filter argument.
     fn filter_arg(&mut self, e: &Expr, rows: Rows<'a, '_>) -> Option<FilterArg> {
+        if let ExprKind::Table(name) | ExprKind::Ref { table: None, name } = &e.kind
+            && let Some(t) = self.table_var(name, e.span, rows)
+        {
+            return Some(FilterArg::Table(t?));
+        }
         if let ExprKind::Call { name, args } = &e.kind {
             let upper = name.to_ascii_uppercase();
             match upper.as_str() {
@@ -1985,6 +2106,8 @@ impl<'a> Binder<'a> {
                     "DATE" => (ScalarFunc::Date, 3, 3),
                     "EOMONTH" => (ScalarFunc::EoMonth, 2, 2),
                     "TODAY" => (ScalarFunc::Today, 0, 0),
+                    "MOD" => (ScalarFunc::Mod, 2, 2),
+                    "WEEKDAY" => (ScalarFunc::Weekday, 1, 2),
                     "EDATE" => (ScalarFunc::EDate, 2, 2),
                     _ if KNOWN.contains(&upper.as_str()) => {
                         return self.err(span, format!("{upper} isn't supported by charted yet (see docs/dax-support.md)"));
