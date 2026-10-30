@@ -6,59 +6,51 @@ release below.
 
 ## Where things stand
 
-- **Code:** M0–M6 and the pre-release batch are on `main`, pushed at `332c6bb`.
-  - The pre-release batch: visual and slicer search, the Fields pane menu, quick
-    measures, the Axis-orange icon, awkward files and web files, export as Desktop
-    writes PBIP, about 20 more DAX functions, the public PBIP corpus, README
-    screenshots and the roadmap.
-  - **Nothing is tagged.** No `v1.0.0`, no AUR packages, no omarchy-pkgs PR yet.
-- **CI on `332c6bb`:** Rust passed on x86_64 and arm64. In the UI job,
-  `e2e/m6.spec.ts` "a Trends page…" failed once: the click that drills into 2024 didn't
-  register, so the axis still showed the years. It passes locally every time, and a
-  rerun of the failed job was started.
-  - **Check first:** `gh run list -R Axis-Analytica/charted`.
-  - If it fails again, make the test wait for drill mode (the ↓ button
-    `aria-pressed`) and for the chart to redraw before clicking the bar.
-- **The user is reinstalling** (`bin/install`) to look at the build. They may come
-  back with feedback; take that before new work.
-- **Still open for v1.0:**
-  - The Power BI Desktop check in the user's Windows VM, using
-    `~/Work/charted-checkpoints/pbi-roundtrip/` (three exports plus CHECKLIST.md).
-  - **Then, only with the user's explicit go-ahead** (each is outward-facing): tag
-    `v1.0.0` (the release workflow makes a draft release), fill the checksums into
-    `pkgbuild/PKGBUILD-bin`, publish the AUR packages and open the omarchy-pkgs PR.
+*Updated 2026-10-30.*
 
-## Next session: kick off v1.1–v1.5
-
-The user wants all five planned and started. Scope is in docs/ROADMAP.md:
-
-| Release | Theme |
-|---|---|
-| v1.1 | Modelling and DAX: running totals (`FILTER(ALLSELECTED(col), col <= MAX(col))`), RANKX/TOPN, LOOKUPVALUE, CONCATENATEX, ADDCOLUMNS/SUMMARIZECOLUMNS/CALCULATETABLE, iterated date sets, reference queries and *Enter data* tables, hierarchies, display folders, sort by column from the Fields pane, groups and bins, calculated tables |
-| v1.2 | Visuals: combo, waterfall, treemap, gauge, KPI, funnel, 100% stacked, new card; Top N filter; conditional formatting; tooltip pages; small multiples; analytics lines |
-| v1.3 | Report building: format painter across visuals, selection pane, copy/paste visuals between pages, sync slicers, buttons and page navigator, export to PDF |
-| v1.4 | Interop depth: field parameters, calculation groups, roles and *View as*, what-if parameters, a theme editor, Excel/Folder M checked in Desktop |
-| v1.5 | Aggregations in calculated columns: CALCULATE with context transition, SUMX/COUNTROWS over RELATEDTABLE, grand totals and ALLEXCEPT shares, EARLIER, measures in columns; all set-based SQL, checked against the interpreter |
-
-**Suggested way in:**
-
-1. Write a plan file per release, or one with phases.
-2. Check feasibility before committing to an order. Running totals, v1.5's context
-   transition in columns and calculated tables all lean on the same compiler
-   machinery, so do them together. That machinery is `calculate_ctx`, `date_set`,
-   `value_set` and `table_filter` in `crates/compiler/src/visual.rs`, with matching
-   changes in `crates/compiler/src/interp.rs`.
-3. Work on independent tracks in parallel. A subagent in a git worktree worked well
-   for the DAX batch: give it a self-contained brief, then cherry-pick its commit.
-   Visuals (v1.2) and report building (v1.3) are mostly UI, separate from v1.1/v1.5,
-   which are compiler and core.
-4. Every DAX feature goes into `crates/core/tests/dax_golden.rs`: fixed cases plus the
-   random generator, with SQL checked against the interpreter. Regenerate
-   `docs/dax-support.md` with `CHARTED_UPDATE_DOCS=1 cargo test -p charted-dax`.
-5. Rerun the corpus after each release to measure progress on real projects:
-   `bin/corpus && cargo test -p charted-core --test corpus -- --ignored --nocapture`.
-   - Last result: Contoso 7/7 visuals, sales-sample 32/33, AurumJet 65/96. The pbip-demo
-     reports are limited by iterated DATESINPERIOD and M (List.Dates, random demo data).
+- **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
+  `main` has about 50 local commits, **not pushed**, carrying most of v1.1–v1.5. The
+  plan is `~/.claude/plans/sparkling-scribbling-canyon.md` (Tracks A–E).
+  - **Nothing is tagged.** No `v1.0.0`, AUR packages or omarchy-pkgs PR. Each needs the
+    user's explicit go-ahead, as does pushing.
+  - `bin/test` is green on `main` with everything merged (2026-10-30).
+- **Done:**
+  - Track A (DAX), steps 0–11: RowSet, ALLSELECTED, running totals, iterated date
+    sets, RANKX, TOPN, CONCATENATEX, CALCULATETABLE, RELATEDTABLE, LOOKUPVALUE,
+    ADDCOLUMNS/SELECTCOLUMNS/SUMMARIZE/SUMMARIZECOLUMNS, CALENDAR/GENERATESERIES,
+    WEEKDAY, MOD, table variables, the calculated-item dependency graph
+    (`crates/core/src/calcgraph.rs`), and calculated tables. Calculated tables work in
+    the model, Ossie, TMDL/model.bim and the UI (*New table* in the Fields pane opens
+    the formula bar). v1.5 aggregating calculated columns are also done.
+  - Track B (v1.2 visuals) and Track C (v1.3 report building).
+  - Track D: hierarchies, groups and bins, display folders, Power Query references
+    and *Enter data*.
+  - Track E (v1.4), part: roles with DAX row filters, *Manage roles*, *View as* (every
+    report query carries the role filters), and the theme editor. The CSV culture
+    round trip was already done. Demo script: `docs/demos/v1.4.md`.
+- **Open, in order:**
+  1. v1.4 what-if parameters: a dialog making a GENERATESERIES calculated table, a
+     SELECTEDVALUE measure and a slicer.
+  2. v1.4 field parameters. Import currently brings *Metric Choice* in as a table
+     without data.
+  3. v1.4 calculation groups: model type, import/export, SELECTEDMEASURE in the
+     compiler, golden tests.
+  4. Step 12: correlation rewrites for speed, with the 10M bench.
+  5. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
+     AurumJet 65/96; `bin/corpus && bin/heavy cargo test -p charted-core --test corpus
+     -- --ignored --nocapture`), checkpoints and demo notes per release, the 3000-case DAX
+     golden run (`CHARTED_DAX_CASES=3000 bin/heavy cargo test -p charted-core --test
+     dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
+     DAX feature gets golden cases; regenerate `docs/dax-support.md` with
+     `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
+  6. Still open from v1.0: the Power BI Desktop check in the VM
+     (`~/Work/charted-checkpoints/pbi-roundtrip/`), then tag/AUR/omarchy-pkgs on the
+     go-ahead.
+- **Worktrees:** `.claude/worktrees/agent-*` (a035c, a0df, a8147) are all merged into
+  `main`. They can be removed (`git worktree remove`); each holds its own `target/`.
+- **e2e specs share one sample project.** A spec that changes it must undo the change,
+  or later specs must avoid what it touches: v11pq renames North America to Americas
+  in Store, so v14roles filters Asia Pacific.
 
 ## Session after: plan M7 and beyond
 
