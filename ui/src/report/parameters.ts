@@ -70,3 +70,55 @@ export function parameterTable(p: ParameterSpec, newId: () => string): Table {
   };
   return table;
 }
+
+/** A field a field parameter offers: its label and its `'Table'[Name]` reference. */
+export interface ParameterField {
+  label: string;
+  table: string;
+  name: string;
+}
+
+/** A DAX string literal. */
+const text = (s: string) => `"${s.replace(/"/g, '""')}"`;
+
+/** `'Table'[Name]`, as NAMEOF returns it. */
+export const fieldName = (table: string, name: string) => `'${table.replace(/'/g, "''")}'[${name.replace(/]/g, "]]")}]`;
+
+/**
+ * A field parameter's table, as Power BI writes one: rows of
+ * `( label, NAMEOF ( field ), order )`, a label column named after the parameter and
+ * sorted by the (hidden) order, and the hidden field names.
+ */
+export function fieldParameterTable(name: string, fields: ParameterField[], newId: () => string): Table {
+  const column = (id: string, columnName: string, source: string, dataType: Column["dataType"], hidden: boolean, sortBy: string | null = null): Column => ({
+    id,
+    name: columnName,
+    dataType,
+    kind: { kind: "data", sourceColumn: source },
+    description: null,
+    formatString: null,
+    summarizeBy: "None",
+    dataCategory: null,
+    sortBy,
+    displayFolder: null,
+    hidden,
+    isKey: false,
+    extras: {},
+  });
+  const order = column(newId(), `${name} Order`, "Value3", "Int64", true);
+  const label = column(newId(), name, "Value1", "String", false, order.id);
+  const names = column(newId(), `${name} Fields`, "Value2", "String", true);
+  const rows = fields.map((f, i) => `    ( ${text(f.label)}, NAMEOF ( ${fieldName(f.table, f.name)} ), ${i} )`);
+  return {
+    id: newId(),
+    name,
+    description: null,
+    source: "",
+    columns: [label, names, order],
+    measures: [],
+    hierarchies: [],
+    hidden: false,
+    isDateTable: false,
+    calculated: { expression: `{\n${rows.join(",\n")}\n}`, language: "Dax" },
+  };
+}

@@ -1,6 +1,6 @@
 // The what-if parameter dialog's checks and the model changes it commits.
 import { describe, expect, it } from "vitest";
-import { type ParameterSpec, parameterProblem, parameterTable } from "./parameters";
+import { fieldParameterTable, type ParameterSpec, parameterProblem, parameterTable } from "./parameters";
 
 const spec = (p: Partial<ParameterSpec> = {}): ParameterSpec => ({ name: "Discount", decimal: false, min: 0, max: 50, step: 5, default: 10, ...p });
 let n = 0;
@@ -30,5 +30,22 @@ describe("what-if parameters", () => {
     const table = parameterTable(spec({ name: "Growth % [est]", decimal: true, min: 0, max: 0.3, step: 0.05, default: 0.1 }), newId);
     expect(table.measures[0]!.expression).toBe("SELECTEDVALUE ( 'Growth % [est]'[Growth % [est]]], 0.1 )");
     expect(table.columns[0]).toMatchObject({ dataType: "Decimal", formatString: "0.00" });
+  });
+});
+
+const field = (label: string, table: string, name: string) => ({ label, table, name });
+
+describe("field parameters", () => {
+  it("write rows of NAMEOF, with a label sorted by a hidden order", () => {
+    const table = fieldParameterTable(
+      "Metric",
+      [field("Sales", "Sales", "Total Sales"), field('Say "hi"', "O'Neil", "A]b")],
+      newId,
+    );
+    expect(table.calculated?.expression).toBe(`{\n    ( "Sales", NAMEOF ( 'Sales'[Total Sales] ), 0 ),\n    ( "Say ""hi""", NAMEOF ( 'O''Neil'[A]]b] ), 1 )\n}`);
+    const [label, names, order] = table.columns;
+    expect(label).toMatchObject({ name: "Metric", kind: { sourceColumn: "Value1" }, hidden: false, sortBy: order!.id });
+    expect(names).toMatchObject({ name: "Metric Fields", kind: { sourceColumn: "Value2" }, hidden: true });
+    expect(order).toMatchObject({ name: "Metric Order", kind: { sourceColumn: "Value3" }, dataType: "Int64", hidden: true });
   });
 });

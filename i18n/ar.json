@@ -1208,5 +1208,10 @@
   "The default must be between the minimum and the maximum.": "يجب أن تكون القيمة الافتراضية بين الحد الأدنى والحد الأقصى.",
   "The increment must be more than 0.": "يجب أن تكون الزيادة أكبر من 0.",
   "The maximum must be at least the minimum.": "يجب ألا يقل الحد الأقصى عن الحد الأدنى.",
-  "What-if parameter": "معلمة ماذا لو"
+  "Fields to offer": "الحقول المعروضة",
+  "Fields, in the order picked": "الحقول، بترتيب اختيارها",
+  "Kind": "النوع",
+  "New parameter": "معلمة جديدة",
+  "Numeric range": "نطاق رقمي",
+  "Put %1 in a visual: it shows the fields picked in the slicer, or all of them.": "ضع %1 في مرئي: يعرض الحقول المختارة في أداة التقسيم، أو جميعها."
 }

@@ -1172,5 +1172,10 @@
   "The default must be between the minimum and the maximum.": "Standard skal ligge mellem minimum og maksimum.",
   "The increment must be more than 0.": "Trinnet skal være større end 0.",
   "The maximum must be at least the minimum.": "Maksimum skal være mindst lig med minimum.",
-  "What-if parameter": "Hvad-hvis-parameter"
+  "Fields to offer": "Felter at tilbyde",
+  "Fields, in the order picked": "Felter, i den valgte rækkefølge",
+  "Kind": "Type",
+  "New parameter": "Ny parameter",
+  "Numeric range": "Numerisk interval",
+  "Put %1 in a visual: it shows the fields picked in the slicer, or all of them.": "Placer %1 i en visualisering: den viser de felter, der er valgt i udsnittet, eller dem alle."
 }

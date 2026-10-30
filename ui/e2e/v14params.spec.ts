@@ -1,6 +1,7 @@
-// v1.4, what-if parameters: New parameter… makes a table of values, a measure of the one
+// v1.4 parameters. What-if: New parameter… makes a table of values, a measure of the one
 // picked and a slicer; picking a value in the slicer changes what the measure returns.
-// The table is deleted again at the end.
+// Fields: a field parameter in a chart shows the measures picked in its slicer, or all
+// of them. The tables are deleted again at the end.
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
@@ -50,6 +51,10 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
   return visuals(page).nth(before);
 }
 
+type ChartOption = { series: { name?: string }[] };
+const seriesNames = (visual: Locator) =>
+  visual.locator(".cartesian").evaluate((el) => ((el as unknown as { chart: { getOption(): ChartOption } }).chart.getOption().series ?? []).map((x) => x.name ?? ""));
+
 test.setTimeout(180_000);
 test.use({ actionTimeout: 15_000 });
 
@@ -59,7 +64,7 @@ test("a what-if parameter: its slicer sets a measure's value", async ({ page }) 
 
   await fieldsPane(page).locator(".field-table-btn", { hasText: /^Sales$/ }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "New parameter…" }).click();
-  const dialog = page.getByRole("dialog", { name: "What-if parameter" });
+  const dialog = page.getByRole("dialog", { name: "New parameter" });
   await dialog.getByLabel("Name", { exact: true }).fill("Discount");
   await dialog.getByLabel("Maximum").fill("-5");
   await expect(dialog.getByRole("alert")).toContainText("maximum must be at least the minimum");
@@ -86,4 +91,41 @@ test("a what-if parameter: its slicer sets a measure's value", async ({ page }) 
   await fieldsPane(page).locator(".field-table-btn", { hasText: /^Discount$/ }).click({ button: "right" });
   await page.getByRole("menuitem", { name: "Delete table", exact: true }).click();
   await expect(fieldsPane(page).locator(".field-table-btn", { hasText: /^Discount$/ })).toHaveCount(0);
+});
+
+test("a field parameter: a chart shows the measures picked in its slicer", async ({ page }) => {
+  await openSample(page);
+  await newPage(page, "Fields");
+
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Sales$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "New parameter…" }).click();
+  const dialog = page.getByRole("dialog", { name: "New parameter" });
+  await dialog.getByLabel("Kind").selectOption({ label: "Fields" });
+  await dialog.getByLabel("Name", { exact: true }).fill("Metric");
+  await expect(dialog.getByRole("button", { name: "OK" })).toBeDisabled();
+  const offer = (name: string) => dialog.locator(".group-values li", { hasText: new RegExp(`^${name} Sales`) }).getByRole("checkbox");
+  await offer("Units").check();
+  await offer("Total Sales").check();
+  await dialog.getByRole("button", { name: "OK" }).click();
+  await expect(dialog).toBeHidden();
+
+  // The slicer lists the labels in the order picked; the chart shows both measures.
+  const slicer = visuals(page).first();
+  await expect(slicer.locator(".slicer-item")).toHaveText(["Select all", "Units", "Total Sales"], { timeout: 15_000 });
+  const chart = await addVisual(page, "Clustered column chart", { x: 800, y: 300 });
+  await tick(page, "Product", "Category");
+  await tick(page, "Metric", "Metric");
+  await expect.poll(() => seriesNames(chart)).toEqual(["Units", "Total Sales"]);
+  // Its well keeps the parameter.
+  await expect(page.locator('.well[data-role="values"] .chip-name')).toHaveText(["Metric"]);
+
+  // Picking one in the slicer leaves that one.
+  await slicer.locator(".slicer-item", { hasText: /^Total Sales$/ }).click();
+  await expect.poll(() => seriesNames(chart)).toEqual(["Total Sales"]);
+  if (shots) await page.screenshot({ path: `${shots}/v14-05-field-parameter.png` });
+
+  // Leave the shared sample as other specs expect it.
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Metric$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Delete table", exact: true }).click();
+  await expect(fieldsPane(page).locator(".field-table-btn", { hasText: /^Metric$/ })).toHaveCount(0);
 });

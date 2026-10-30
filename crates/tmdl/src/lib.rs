@@ -215,7 +215,9 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         match &c.kind {
             // A calculated table's column names its result column.
             ColumnKind::Data { source_column } if t.calculated.is_some() => {
-                let _ = writeln!(out, "\t\tisNameInferred");
+                if c.name == *source_column {
+                    let _ = writeln!(out, "\t\tisNameInferred");
+                }
                 prop(
                     &mut out,
                     2,
@@ -234,6 +236,24 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             prop(&mut out, 2, "sortByColumn", name(&s.name));
         }
         out.push('\n');
+        // Power BI knows its parameters by this property: a field parameter's label
+        // column (rows of NAMEOF), and a what-if parameter's values (GENERATESERIES).
+        if let (Some(calc), ColumnKind::Data { source_column }) = (&t.calculated, &c.kind) {
+            let e = calc.expression.to_ascii_uppercase();
+            let meta = if source_column == "Value1" && e.contains("NAMEOF") {
+                Some("{\n\t\t\t\t  \"version\": 3,\n\t\t\t\t  \"kind\": 2\n\t\t\t\t}")
+            } else if source_column == "Value" && e.trim_start().starts_with("GENERATESERIES") {
+                Some("{\n\t\t\t\t  \"version\": 0\n\t\t\t\t}")
+            } else {
+                None
+            };
+            if let Some(m) = meta {
+                let _ = writeln!(
+                    out,
+                    "\t\textendedProperty ParameterMetadata =\n\t\t\t\t{m}\n"
+                );
+            }
+        }
         let _ = writeln!(out, "\t\tannotation SummarizationSetBy = Automatic");
         // Power BI has one date/time type: keep charted's exact one.
         if c.data_type.is_temporal() {

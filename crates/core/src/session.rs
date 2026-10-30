@@ -116,6 +116,13 @@ pub struct ProjectSnapshot {
     /// Why calculated tables and columns could not be computed, by table or column id.
     #[serde(default)]
     pub calc_errors: std::collections::BTreeMap<String, String>,
+    /// The roles of visuals that use field parameters, with the fields picked in them
+    /// (see [`crate::fieldparams`]), by visual id.
+    #[serde(default)]
+    pub expanded_roles: std::collections::BTreeMap<
+        String,
+        std::collections::BTreeMap<String, Vec<charted_model::Projection>>,
+    >,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -338,6 +345,7 @@ impl Session {
             recovery: self.recovery.clone(),
             import_report: self.import_report.clone(),
             calc_errors: self.calc_errors.clone(),
+            expanded_roles: crate::fieldparams::expanded(&self.project.model),
         })
     }
 

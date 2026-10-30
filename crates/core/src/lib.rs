@@ -12,6 +12,7 @@ pub mod check;
 pub mod crash;
 pub mod dataview;
 pub mod env;
+pub mod fieldparams;
 pub mod ids;
 pub mod interop;
 pub mod pbimport;

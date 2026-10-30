@@ -137,7 +137,19 @@ export function defaultAggregation(c: Column): Aggregation {
 }
 
 /** The projection a field makes in a role: values summarise columns, groupings don't. */
+/**
+ * A field parameter's label or field column (a calculated table of NAMEOF rows): it
+ * stands for the fields picked in it, which the core puts in its place.
+ */
+export function isFieldParameter(model: Model, field: FieldRef): boolean {
+  if (field.kind !== "column") return false;
+  const tb = model.tables.find((x) => x.id === field.table);
+  const col = tb?.columns.find((c) => c.id === field.column);
+  return !!tb?.calculated && /\bNAMEOF\b/i.test(tb.calculated.expression) && col?.kind.kind === "data" && ["Value1", "Value2"].includes(col.kind.sourceColumn);
+}
+
 export function projectionFor(model: Model, field: FieldRef, role: RoleDef): Projection {
+  if (isFieldParameter(model, field)) return { field, aggregation: null, displayName: null };
   const col = columnOf(model, field);
   const numeric = col && (col.dataType === "Int64" || col.dataType === "Double" || col.dataType === "Decimal");
   const summarise = col && (role.kind === "value" || (role.kind === "any" && numeric && col.summarizeBy !== "None" && !col.isKey && !col.sortBy));
@@ -150,7 +162,8 @@ export function roleFor(model: Model, v: Visual, field: FieldRef): RoleDef | und
   if (!def) return undefined;
   const limit = (r: RoleDef) => r.autoMax ?? r.max;
   const free = (r: RoleDef) => limit(r) === undefined || (v.roles[r.name]?.length ?? 0) < limit(r)!;
-  const isMeasure = field.kind === "measure";
+  // A field parameter usually offers measures: it goes where values go.
+  const isMeasure = field.kind === "measure" || isFieldParameter(model, field);
   const col = columnOf(model, field);
   const numeric = col && (col.dataType === "Int64" || col.dataType === "Double" || col.dataType === "Decimal") && col.summarizeBy !== "None" && !col.isKey;
   const prefer = isMeasure || numeric ? ["value", "any"] : ["grouping", "any"];

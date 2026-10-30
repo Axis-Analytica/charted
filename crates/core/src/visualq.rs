@@ -258,7 +258,9 @@ pub fn report_visual_query(
             });
         }
     }
-    for (role, ps) in &v.roles {
+    // Field parameters show the fields picked in them.
+    let expanded = crate::fieldparams::expand(model, page, v);
+    for (role, ps) in expanded.as_ref().unwrap_or(&v.roles) {
         for (i, p) in ps.iter().enumerate() {
             let is_group = matches!(p.field, FieldRef::Column { .. }) && p.aggregation.is_none();
             if is_group && !shown(role, i) {
@@ -416,6 +418,16 @@ pub fn report_visual_sql(
         .ok_or_else(|| CoreError::Invalid(format!("there is no visual with id {visual}")))?;
     let (mut q, mut names) = report_visual_query(model, visual, o.totals, o.filters)?;
     q.security = o.security.to_vec();
+    // With its field parameters' picked fields, as the query has them.
+    let (page, _) = model.report.visual(visual).expect("found above");
+    let shown;
+    let v = match crate::fieldparams::expand(model, page, v) {
+        Some(roles) => {
+            shown = charted_model::Visual { roles, ..v.clone() };
+            &shown
+        }
+        None => v,
+    };
     if v.is_slicer() {
         return slicer_sql(model, schema, v, q, o.search);
     }

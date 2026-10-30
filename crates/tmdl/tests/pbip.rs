@@ -1021,11 +1021,10 @@ fn power_query_sources_come_back_from_their_m() {
     }
 }
 
-/// A model.bim with a calculated table, a what-if parameter and a field parameter: the
-/// first two come in as calculated tables (both columns carry `ParameterMetadata`, but
-/// only field parameters are NAMEOF lists), the third is reported.
+/// A model.bim with a calculated table, a what-if parameter and a field parameter: all
+/// three come in as calculated tables.
 #[test]
-fn model_bim_calculated_tables_and_what_if_parameters_come_in_and_field_parameters_are_reported() {
+fn model_bim_calculated_tables_and_parameters_come_in() {
     let bim = serde_json::json!({
         "name": "Shop",
         "model": {
@@ -1076,7 +1075,7 @@ fn model_bim_calculated_tables_and_what_if_parameters_come_in_and_field_paramete
         .iter()
         .map(|s| format!("{} {}", s.kind, s.name))
         .collect();
-    assert_eq!(skipped, ["table Metric"]);
+    assert!(skipped.is_empty(), "{skipped:?}");
     let top = im.model.table("t-top").unwrap();
     assert_eq!(top.source, calculated_table_source("t-top"));
     let calc = top.calculated.as_ref().unwrap();
@@ -1104,12 +1103,116 @@ fn model_bim_calculated_tables_and_what_if_parameters_come_in_and_field_paramete
         ColumnKind::Data { source_column } if source_column == "Value"
     ));
     assert_eq!(discount.measures[0].name, "Discount Value");
-    // The field parameter's table is still there, without data.
-    assert!(
-        im.model
-            .table_by_name("Metric")
-            .unwrap()
-            .calculated
-            .is_none()
+    let metric = im.model.table_by_name("Metric").unwrap();
+    assert_eq!(
+        metric.calculated.as_ref().unwrap().expression,
+        "{ (\"Total\", NAMEOF ( [Total] ), 0) }"
     );
+    assert!(matches!(
+        &metric.columns[0].kind,
+        ColumnKind::Data { source_column } if source_column == "Value1"
+    ));
+}
+
+/// Field and what-if parameters are written as Power BI writes them (`ParameterMetadata`
+/// on the label or value column, names not inferred) and read back as they were.
+#[test]
+fn parameters_round_trip_with_their_metadata() {
+    let data = |id: &str, name: &str, source: &str, ty: DataType| Column {
+        kind: ColumnKind::Data {
+            source_column: source.into(),
+        },
+        ..col(id, name, ty)
+    };
+    let calc = |id: &str, name: &str, expression: &str, columns: Vec<Column>| Table {
+        id: id.into(),
+        name: name.into(),
+        description: None,
+        source: calculated_table_source(id),
+        columns,
+        measures: vec![],
+        hierarchies: vec![],
+        hidden: false,
+        is_date_table: false,
+        calculated: Some(CalculatedTable {
+            expression: expression.into(),
+            language: ExpressionLanguage::Dax,
+        }),
+        extras: Default::default(),
+    };
+    let mut label = data("c-label", "Metric", "Value1", DataType::String);
+    label.sort_by = Some("c-order".into());
+    let model = Model {
+        name: "Shop".into(),
+        tables: vec![
+            calc(
+                "t-metric",
+                "Metric",
+                "{\n    ( \"Sales\", NAMEOF ( 'Sales'[Total] ), 0 )\n}",
+                vec![
+                    label,
+                    data("c-fields", "Metric Fields", "Value2", DataType::String),
+                    data("c-order", "Metric Order", "Value3", DataType::Int64),
+                ],
+            ),
+            calc(
+                "t-discount",
+                "Discount",
+                "GENERATESERIES ( 0, 50, 5 )",
+                vec![data("c-discount", "Discount", "Value", DataType::Int64)],
+            ),
+        ],
+        ..Default::default()
+    };
+    let files = charted_tmdl::pbip("Shop", &model, &[], "/data");
+    let text = |name: &str| {
+        files
+            .iter()
+            .find(|(p, _)| p.ends_with(&format!("tables/{name}.tmdl")))
+            .map(|(_, t)| t.clone())
+            .unwrap()
+    };
+    let metric = text("Metric");
+    assert!(
+        metric.contains("\"version\": 3,\n\t\t\t\t  \"kind\": 2"),
+        "{metric}"
+    );
+    assert_eq!(
+        metric.matches("extendedProperty ParameterMetadata").count(),
+        1
+    );
+    assert!(!metric.contains("isNameInferred"), "{metric}");
+    assert!(text("Discount").contains("\"version\": 0"));
+    let def: std::collections::BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(p, t)| {
+            Some((
+                p.strip_prefix("Shop.SemanticModel/definition/")?
+                    .to_string(),
+                t.clone(),
+            ))
+        })
+        .collect();
+    let back = charted_tmdl::read::from_tmdl(&def, "Shop");
+    assert!(back.skipped.is_empty(), "{:?}", back.skipped);
+    // Indentation inside expressions comes back as tabs; the DAX is the same.
+    let words = |t: &Table| {
+        t.calculated.as_ref().map(|c| {
+            c.expression
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+        })
+    };
+    for t in &model.tables {
+        let b = back.model.table(&t.id).unwrap();
+        assert_eq!(words(b), words(t));
+        let cols = |t: &Table| {
+            t.columns
+                .iter()
+                .map(|c| (c.name.clone(), c.kind.clone()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(cols(b), cols(t));
+    }
 }

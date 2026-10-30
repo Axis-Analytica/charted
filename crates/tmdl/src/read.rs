@@ -1,9 +1,9 @@
 //! Reads a Power BI semantic model — TMDL (a PBIP's `definition/` folder) or TMSL
 //! (`model.bim`) — into a charted model and its queries. What charted can't use is
 //! listed in the import report instead of being dropped silently:
-//! calculation groups, perspectives, translations, field parameters and M queries it
-//! doesn't understand (their tables come in without data). Calculated tables come in as
-//! calculated tables.
+//! calculation groups, perspectives, translations and M queries it doesn't understand
+//! (their tables come in without data). Calculated tables, field parameters and what-if
+//! parameters come in as calculated tables.
 //!
 //! charted's own exports carry each table's query as an annotation (`chartedQuery`),
 //! and the exact type of date columns (`chartedDataType`), so they come back exactly.
@@ -941,21 +941,12 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 }
             }
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("calculated") => {
-                // Field parameters are calculated tables of NAMEOF references. What-if
-                // parameters (GENERATESERIES) also mark their column with
-                // `ParameterMetadata`, and are ordinary calculated tables.
-                if p.source.to_ascii_uppercase().contains("NAMEOF") {
-                    skip(
-                        "table",
-                        t.name.clone(),
-                        "field parameters aren't supported yet; it comes in without data",
-                    );
-                } else {
-                    calculated = Some(CalculatedTable {
-                        expression: p.source.trim().to_string(),
-                        language: ExpressionLanguage::Dax,
-                    });
-                }
+                // Field parameters (rows of NAMEOF) and what-if parameters
+                // (GENERATESERIES) are calculated tables too.
+                calculated = Some(CalculatedTable {
+                    expression: p.source.trim().to_string(),
+                    language: ExpressionLanguage::Dax,
+                });
                 None
             }
             (None, Some(p)) => {

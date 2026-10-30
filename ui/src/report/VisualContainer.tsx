@@ -136,8 +136,12 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
   const def = visualDef(visual.visualType);
   const isTable = visual.visualType === "table";
   const decor = !!def?.decor;
-  const { data, error, loading } = useVisualData(visual, page, model, signature, isTable);
-  const interact = useInteract(visual, page, model, setPointMenu, standalone);
+  // With its field parameters' picked fields (the core works them out): what the query
+  // returns and what is drawn. Wells, sorting and the title keep the visual as built.
+  const expanded = useApp((s) => s.state?.project?.expandedRoles?.[visual.id]);
+  const shown = useMemo(() => (expanded ? { ...visual, roles: expanded } : visual), [visual, expanded]);
+  const { data, error, loading } = useVisualData(shown, page, model, signature, isTable);
+  const interact = useInteract(shown, page, model, setPointMenu, standalone);
   const hasFields = Object.values(visual.roles).some((r) => r && r.length > 0);
   const o = visual.objects;
   const showTitle = prop<boolean>(o, def, "title", "show");
@@ -192,15 +196,15 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
     if (!def) return <div className="visual-message">{t("Unknown visual type \"%1\"", visual.visualType)}</div>;
     switch (visual.visualType) {
       case "textbox":
-        return <TextBox visual={visual} page={page} />;
+        return <TextBox visual={shown} page={page} />;
       case "image":
-        return <ImageVisual visual={visual} page={page} />;
+        return <ImageVisual visual={shown} page={page} />;
       case "shape":
-        return <Shape visual={visual} />;
+        return <Shape visual={shown} />;
       case "actionButton":
-        return <ActionButton visual={visual} page={page} model={model} />;
+        return <ActionButton visual={shown} page={page} model={model} />;
       case "pageNavigator":
-        return <PageNavigator visual={visual} page={page} model={model} />;
+        return <PageNavigator visual={shown} page={page} model={model} />;
     }
     if (!hasFields)
       return (
@@ -216,16 +220,16 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
           <span className="visual-error-detail">{error}</span>
         </div>
       );
-    if (visual.visualType === "slicer") return <Slicer visual={visual} page={page} model={model} data={data} />;
+    if (visual.visualType === "slicer") return <Slicer visual={shown} page={page} model={model} data={data} />;
     if (!data) return null;
     if (data.rows === 0 && !SINGLE.includes(visual.visualType)) return <div className="visual-message">{t("No data")}</div>;
     switch (visual.visualType) {
       case "card":
-        return <Card visual={visual} model={model} data={data} />;
+        return <Card visual={shown} model={model} data={data} />;
       case "table":
         return (
           <TableVisual
-            visual={visual}
+            visual={shown}
             model={model}
             data={data}
             interact={interact}
@@ -233,26 +237,26 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
           />
         );
       case "matrix":
-        return <Matrix visual={visual} model={model} data={data} interact={interact} />;
+        return <Matrix visual={shown} model={model} data={data} interact={interact} />;
       case "pieChart":
       case "donutChart":
-        return <Scaled render={(k) => <Pie key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+        return <Scaled render={(k) => <Pie key={k} visual={shown} model={model} data={data} interact={interact} />} />;
       case "scatterChart":
-        return <Scaled render={(k) => <Scatter key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+        return <Scaled render={(k) => <Scatter key={k} visual={shown} model={model} data={data} interact={interact} />} />;
       case "multiRowCard":
-        return <MultiRowCard visual={visual} model={model} data={data} />;
+        return <MultiRowCard visual={shown} model={model} data={data} />;
       case "waterfallChart":
-        return <Scaled render={(k) => <Waterfall key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+        return <Scaled render={(k) => <Waterfall key={k} visual={shown} model={model} data={data} interact={interact} />} />;
       case "funnel":
-        return <Scaled render={(k) => <Funnel key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+        return <Scaled render={(k) => <Funnel key={k} visual={shown} model={model} data={data} interact={interact} />} />;
       case "treemap":
-        return <Scaled render={(k) => <Treemap key={k} visual={visual} model={model} data={data} interact={interact} />} />;
+        return <Scaled render={(k) => <Treemap key={k} visual={shown} model={model} data={data} interact={interact} />} />;
       case "gauge":
-        return <Scaled render={(k) => <Gauge key={k} visual={visual} model={model} data={data} />} />;
+        return <Scaled render={(k) => <Gauge key={k} visual={shown} model={model} data={data} />} />;
       case "kpi":
-        return <Scaled render={(k) => <Kpi key={k} visual={visual} model={model} data={data} />} />;
+        return <Scaled render={(k) => <Kpi key={k} visual={shown} model={model} data={data} />} />;
       default:
-        return CARTESIAN.includes(visual.visualType) ? <Scaled render={(k) => <Cartesian key={k} visual={visual} model={model} data={data} interact={interact} />} /> : null;
+        return CARTESIAN.includes(visual.visualType) ? <Scaled render={(k) => <Cartesian key={k} visual={shown} model={model} data={data} interact={interact} />} /> : null;
     }
   };
 

@@ -712,3 +712,83 @@ fn viewing_as_roles_restricts_every_report_query() {
         err.message
     );
 }
+
+/// Field parameters: a visual using the parameter's column shows the fields picked in
+/// it by a slicer (all of them, in order, when nothing is picked), and the snapshot
+/// carries the expanded roles the UI renders.
+#[test]
+fn field_parameters_show_the_fields_picked_in_their_slicer() {
+    let mut s = Sample::new();
+    let category = s.col("Product", "Category");
+    s.commit(vec![Change::AddTable {
+        table: Table {
+            id: "metric".into(),
+            name: "Metric".into(),
+            description: None,
+            source: String::new(),
+            columns: vec![],
+            measures: vec![],
+            hierarchies: vec![],
+            hidden: false,
+            is_date_table: false,
+            calculated: Some(CalculatedTable {
+                expression: "{ ( \"Cost\", NAMEOF ( Sales[Total Cost] ), 1 ), ( \"Units\", NAMEOF ( [Units] ), 0 ) }".into(),
+                language: ExpressionLanguage::Dax,
+            }),
+            extras: Default::default(),
+        },
+        index: None,
+    }]);
+    let label = s.col("Metric", "Value1");
+    s.add(
+        "chart",
+        "columnChart",
+        vec![
+            ("category", vec![category.clone()]),
+            ("values", vec![label.clone()]),
+        ],
+    );
+    s.add("pick", "slicer", vec![("field", vec![label.clone()])]);
+
+    // Nothing picked: both measures, in their order (Units first).
+    let names = |s: &Sample| -> Vec<String> {
+        let (page, v) = s.model().report.visual("chart").unwrap();
+        charted_core::fieldparams::expand(s.model(), page, v).unwrap()["values"]
+            .iter()
+            .map(|p| charted_core::visualq::projection_name(s.model(), p))
+            .collect()
+    };
+    assert_eq!(names(&s), ["Units", "Total Cost"]);
+    let rows = s.data("chart", vec![], vec![]);
+    assert!(rows.len() > 1);
+    assert!(
+        rows.iter()
+            .all(|r| r.contains_key("values:0") && r.contains_key("values:1"))
+    );
+
+    // The slicer lists the labels; picking Cost leaves one value, the cost.
+    let listed: Vec<String> = s
+        .data("pick", vec![], vec![])
+        .iter()
+        .map(|r| r["key:field:0"].clone())
+        .collect();
+    assert_eq!(listed.len(), 2, "{listed:?}");
+    s.update("pick", |v| {
+        v.selection = Some(FilterKind::Basic {
+            values: vec![Some("Cost".into())],
+            exclude: false,
+        })
+    });
+    assert_eq!(names(&s), ["Total Cost"]);
+    let rows = s.data("chart", vec![], vec![]);
+    assert!(rows.iter().all(|r| !r.contains_key("values:1")));
+    let cost: f64 = rows.iter().map(|r| num(r, "values:0")).sum();
+    assert!(cost > 0.0);
+
+    // The snapshot has the expanded roles, for the chart but not the slicer.
+    let snapshot = s.app.session().unwrap().snapshot().unwrap();
+    assert_eq!(
+        snapshot.expanded_roles.keys().collect::<Vec<_>>(),
+        ["chart"]
+    );
+}
