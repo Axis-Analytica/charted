@@ -11,8 +11,11 @@ release below.
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
   `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The
   plan is `~/.claude/plans/sparkling-scribbling-canyon.md` (Tracks A–E).
-  - **Nothing is tagged.** No `v1.0.0`, AUR packages or omarchy-pkgs PR. Each needs the
-    user's explicit go-ahead, as does pushing.
+  - **v1.4.0 is released** (2026-10-30; the first public release, tag `v1.4.0`,
+    https://github.com/Axis-Analytica/charted/releases/tag/v1.4.0), with x86_64 and
+    aarch64 tarballs; install with `pkgbuild/PKGBUILD-bin` (see README). The user
+    skipped the VM checks for it. Not done: AUR (no AUR key on this machine) and the
+    omarchy-pkgs PR; each needs the user's go-ahead, as does pushing. CI is green.
   - `bin/test` is green on `main` with everything merged (2026-10-30).
 - **Done:**
   - Track A (DAX), steps 0–11: RowSet, ALLSELECTED, running totals, iterated date
@@ -44,9 +47,9 @@ release below.
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  2. Still open from v1.0: the Power BI Desktop check in the VM
-     (`~/Work/charted-checkpoints/pbi-roundtrip/`), then tag/AUR/omarchy-pkgs on the
-     go-ahead.
+  2. Next milestone: M7, the in-app agent (design in docs/ROADMAP.md). Later: the
+     Power BI Desktop check in the VM (`~/Work/charted-checkpoints/pbi-roundtrip/`),
+     AUR and omarchy-pkgs on the go-ahead.
 - **Step 12 (v1.5 speed) measured, rewrites not needed yet:** `calcbench` on the 10M
   sample puts a 20,000-row EARLIER rank at 564 ms (budget: 10,000 rows in 2 s); see
   docs/perf.md. Window-function rewrites for inequalities are the follow-up if tables of
