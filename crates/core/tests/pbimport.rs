@@ -43,7 +43,6 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
     for expected in [
         "table Time Calculations",
         "table LocalDateTable_2b7e1d3c-62a1-4c55-9f0e-71b8c3a5f2a4",
-        "table Metric Choice",
         "query Targets",
         "role Regional managers: Orders",
         "measure Orders[Avg Order]",
@@ -54,8 +53,13 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
             "{expected} not in {skipped:#?}"
         );
     }
-    // The calendar is a calculated table now; only the field parameter is reported.
-    assert!(!skipped.iter().any(|s| s == "table Date"), "{skipped:#?}");
+    // The calendar and the field parameter are calculated tables now.
+    assert!(
+        !skipped
+            .iter()
+            .any(|s| s == "table Date" || s == "table Metric Choice"),
+        "{skipped:#?}"
+    );
     // RANKX is evaluated now.
     assert!(!skipped.iter().any(|s| s == "measure Orders[Sales Rank]"));
     // Time intelligence, DIVIDE, the calculated column and hierarchies are fine.
@@ -101,6 +105,15 @@ fn imports_contoso_with_a_report_of_what_it_skipped() {
         date.column_by_name("Date").unwrap().data_type,
         DataType::Date
     );
+    // The field parameter has its two choices.
+    let metric = m.table_by_name("Metric Choice").unwrap();
+    assert_eq!(
+        snap.tables.iter().find(|t| t.id == metric.id).unwrap().rows,
+        2
+    );
+    let items = charted_core::fieldparams::items(&m, metric).unwrap();
+    let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+    assert_eq!(labels, ["Total Sales", "Sales LY"]);
     let orders = m.table_by_name("Orders").unwrap();
     assert_eq!(
         orders.column_by_name("OrderDate").unwrap().data_type,
