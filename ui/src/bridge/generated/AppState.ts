@@ -2,6 +2,7 @@
 import type { CrashInfo } from "./CrashInfo";
 import type { ProjectSnapshot } from "./ProjectSnapshot";
 import type { RecentProject } from "./RecentProject";
+import type { Workspace } from "./Workspace";
 
 export type AppState = { project: ProjectSnapshot | null, recent: Array<RecentProject>, version: string, 
 /**
@@ -16,4 +17,8 @@ crash?: CrashInfo | null,
  * Counts the changes made; a state pushed by the agent and a reply to the UI's own
  * request can arrive in either order, and the UI keeps the newer.
  */
-revision: number, };
+revision: number, 
+/**
+ * How charted is laid out: the user's profiles and the active one.
+ */
+workspace: Workspace, layoutUndo: boolean, layoutRedo: boolean, };

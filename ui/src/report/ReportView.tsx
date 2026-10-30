@@ -27,12 +27,12 @@ import {
   SendToBack,
   Shapes,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { Change } from "../bridge/generated/Change";
 import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { Visual } from "../bridge/generated/Visual";
-import { useShortcut } from "../app/shortcuts";
+import { type Shortcut, useShortcut } from "../app/shortcuts";
 import { useT } from "../i18n";
 import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
@@ -65,6 +65,11 @@ import { VISUALS } from "./registry";
 import { VisualizationsPane } from "./VisualizationsPane";
 import "./report.css";
 import { AgentPane } from "../agent/AgentPane";
+import { PANE_IDS, type PaneId, paneOf, setLayout, togglePane as togglePaneIn, useLayout, withHidden } from "../app/layout";
+import { ContextMenu, type ContextMenuState } from "../kit/ContextMenu";
+import { PaneHost } from "./PaneHost";
+import { ReportSlot } from "./slot";
+import { TOOLBAR_COMMANDS } from "./toolbar";
 
 type Align = "left" | "center" | "right" | "top" | "middle" | "bottom";
 
@@ -103,7 +108,9 @@ function arrange(visuals: Visual[], how: Align | "distributeH" | "distributeV"):
 function PageTabs({ model, page, reading }: { model: Model; page: Page; reading: boolean }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
-  const set = useReport((s) => s.set);
+  const slot = useContext(ReportSlot);
+  const setReport = useReport((s) => s.set);
+  const set = ({ page: id, selected }: { page: string; selected: string[] }) => setReport(slot ? { page2: id, selected, slot } : { page: id, selected, slot });
   const [renaming, setRenaming] = useState<string | null>(null);
   const settings = pageSettings;
   const addPage = async () => {
@@ -230,8 +237,14 @@ function ThemeMenu({ model }: { model: Model }) {
 export function ReportView({ model }: { model: Model }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
-  const { page: pageId, selected, panes, formula, set, select, editInteractions, focus, reading } = useReport();
+  const slot = useContext(ReportSlot);
+  const { page: page1, page2, slot: focused, selected, formula, set, select, editInteractions, focus, reading } = useReport();
+  const pageId = slot ? page2 : page1;
   const page = currentPage(model, pageId);
+  const layout = useLayout();
+  const split = layout.split?.view === "report";
+  // The panes act on the report view last used.
+  const panePage = (split && focused === 1 ? currentPage(model, page2) : currentPage(model, page1)) ?? page;
   const signature = useMemo(() => modelSignature(model), [model]);
   // Sets the theme's format defaults before the canvas and the format pane read them.
   usePageTheme(model);
@@ -241,6 +254,22 @@ export function ReportView({ model }: { model: Model }) {
   const body = useRef<HTMLDivElement>(null);
   const [compact, setCompact] = useState(false);
   const [paneTab, setPaneTab] = useState<(typeof PANES)[number]>("visualizations");
+  const [toolMenu, setToolMenu] = useState<ContextMenuState | null>(null);
+  // The toolbar's commands in the command palette (built below; read when one runs).
+  const toolsRef = useRef<Tool[]>([]);
+  useShortcut(
+    ...(slot ? [] : TOOLBAR_COMMANDS).map(({ id, label }) => ({
+      id: `toolbar-${id}`,
+      keys: "",
+      label,
+      group: "View" as const,
+      run: () => toolsRef.current.find((x) => x.id === id)?.run?.(),
+      enabled: () => {
+        const x = toolsRef.current.find((y) => y.id === id);
+        return !!x?.run && !x.disabled && slot === 0;
+      },
+    })),
+  );
   useEffect(() => {
     const el = body.current;
     if (!el) return;
@@ -250,8 +279,8 @@ export function ReportView({ model }: { model: Model }) {
   }, []);
 
   useEffect(() => {
-    if (page && page.id !== pageId) set({ page: page.id });
-  }, [page, pageId, set]);
+    if (page && page.id !== pageId) set(slot ? { page2: page.id } : { page: page.id });
+  }, [page, pageId, set, slot]);
   // Focus mode ends when its visual goes away (undo, another page).
   const focusVisual = focus ? page?.visuals.find((v) => v.id === focus.visual) : undefined;
   useEffect(() => {
@@ -332,18 +361,19 @@ export function ReportView({ model }: { model: Model }) {
   const canPaste = () => useReport.getState().view === "report" && !useReport.getState().reading && canvasFocused() && !window.getSelection()?.toString();
 
   useBookmarkShortcuts(model);
-  useShortcut(
+  // Only the main report view takes the keyboard (a second one beside it shares it).
+  useShortcut(...(slot ? [] : ([
     {
       id: "agent-pane",
       keys: "Ctrl+I",
       label: "Agent pane",
       group: "View",
       run: () => {
-        const r = useReport.getState();
-        r.set({ panes: { ...r.panes, agent: !r.panes.agent } });
-        if (!r.panes.agent) {
+        const opening = paneOf(layout, "agent").place === "hidden";
+        void setLayout((l) => togglePaneIn(l, "agent"));
+        if (opening) {
           setPaneTab("agent");
-          requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".agent-input")?.focus());
+          requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".agent-input")?.focus()));
         }
       },
       enabled: () => useReport.getState().view === "report" && !useReport.getState().reading,
@@ -414,11 +444,68 @@ export function ReportView({ model }: { model: Model }) {
       },
       enabled: () => useReport.getState().view === "report" && !!page,
     })),
-  );
+  ] as Shortcut[])));
 
   if (!page) return <div className="main-empty">{t("This report has no pages.")}</div>;
   const align = (how: Align | "distributeH" | "distributeV") => apply(how.startsWith("distribute") ? "Distribute visuals" : "Align visuals", arrange(chosen, how));
-  const togglePane = (k: keyof typeof panes) => set({ panes: { ...panes, [k]: !panes[k] } });
+  const togglePane = (k: PaneId) => void setLayout((l) => togglePaneIn(l, k));
+  const placeOf = (k: PaneId) => paneOf(layout, k).place;
+  const docked = (k: PaneId) => placeOf(k) === "left" || placeOf(k) === "right";
+  const shown = (k: PaneId) => placeOf(k) !== "hidden";
+  const hidden = new Set(layout.hidden);
+  const paneLabel = (k: PaneId) =>
+    k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "sync" ? t("Sync slicers") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : k === "agent" ? t("Agent") : t("Fields");
+  const renderPane = (k: PaneId) => {
+    const pg = panePage!;
+    if (k === "bookmarks") return <BookmarksPane model={model} page={pg} />;
+    if (k === "selection") return <SelectionPane model={model} page={pg} />;
+    if (k === "sync") return <SyncSlicersPane model={model} page={pg} />;
+    if (k === "filters") return <FiltersPane model={model} page={pg} />;
+    if (k === "visualizations") return <VisualizationsPane model={model} page={pg} />;
+    if (k === "agent") return <AgentPane model={model} page={pg} />;
+    return <FieldsPane model={model} page={pg} />;
+  };
+  const host = (k: PaneId) => (
+    <PaneHost key={k} id={k} label={paneLabel(k)} pane={paneOf(layout, k)}>
+      {renderPane(k)}
+    </PaneHost>
+  );
+  // The toolbar's commands: each can be hidden (layout), and all are in the command palette.
+  const tools: Tool[] = [
+    { id: "align-left", label: "Align left", icon: <AlignStartVertical size={15} />, disabled: chosen.length < 2, run: () => align("left") },
+    { id: "align-center", label: "Align center", icon: <AlignCenterVertical size={15} />, disabled: chosen.length < 2, run: () => align("center") },
+    { id: "align-right", label: "Align right", icon: <AlignEndVertical size={15} />, disabled: chosen.length < 2, run: () => align("right") },
+    { id: "align-top", label: "Align top", icon: <AlignStartHorizontal size={15} />, disabled: chosen.length < 2, run: () => align("top") },
+    { id: "align-middle", label: "Align middle", icon: <AlignCenterHorizontal size={15} />, disabled: chosen.length < 2, run: () => align("middle") },
+    { id: "align-bottom", label: "Align bottom", icon: <AlignEndHorizontal size={15} />, disabled: chosen.length < 2, run: () => align("bottom") },
+    { id: "distribute-h", label: "Distribute horizontally", icon: <AlignHorizontalDistributeCenter size={15} />, disabled: chosen.length < 3, run: () => align("distributeH") },
+    { id: "distribute-v", label: "Distribute vertically", icon: <AlignVerticalDistributeCenter size={15} />, disabled: chosen.length < 3, run: () => align("distributeV"), sep: true },
+    { id: "bring-front", label: "Bring to front", icon: <BringToFront size={15} />, disabled: !chosen.length, run: () => zOrder(true) },
+    { id: "send-back", label: "Send to back", icon: <SendToBack size={15} />, disabled: !chosen.length, run: () => zOrder(false) },
+    {
+      id: "format-painter",
+      label: painter.sticky ? "Format painter (stays on; Esc turns it off)" : "Format painter",
+      shortcut: "Ctrl+Alt+C",
+      icon: <Paintbrush size={15} />,
+      pressed: painter.armed,
+      disabled: !painter.armed && chosen.length !== 1,
+      run: pressPainter,
+      sep: true,
+    },
+    { id: "edit-interactions", label: "Edit interactions", icon: <MousePointerClick size={15} />, pressed: editInteractions, run: () => set({ editInteractions: !editInteractions }) },
+    { id: "theme", label: "Theme", node: <ThemeMenu model={model} /> },
+    { id: "security", label: "Security", node: <RolesMenu model={model} /> },
+    { id: "reading-view", label: "Reading view", icon: <BookOpen size={15} />, run: () => set({ reading: true, selected: [], editInteractions: false }), fill: true },
+    { id: "pane-bookmarks", label: "Bookmarks pane", icon: <BookmarkIcon size={15} />, pressed: shown("bookmarks"), run: () => togglePane("bookmarks") },
+    { id: "pane-selection", label: "Selection pane", icon: <Layers size={15} />, pressed: shown("selection"), run: () => togglePane("selection") },
+    { id: "pane-sync", label: "Sync slicers pane", icon: <RefreshCw size={15} />, pressed: shown("sync"), run: () => togglePane("sync") },
+    { id: "pane-filters", label: "Filters pane", icon: <Filter size={15} />, pressed: shown("filters"), run: () => togglePane("filters") },
+    { id: "pane-visualizations", label: "Visualizations pane", icon: <Shapes size={15} />, pressed: shown("visualizations"), run: () => togglePane("visualizations") },
+    { id: "pane-fields", label: "Fields pane", icon: <ListTree size={15} />, pressed: shown("fields"), run: () => togglePane("fields") },
+    { id: "pane-agent", label: "Agent pane", shortcut: "Ctrl+I", icon: <Sparkles size={15} />, pressed: shown("agent"), run: () => togglePane("agent") },
+  ];
+  toolsRef.current = tools;
+
 
   return (
     <div className={`report-view ${reading ? "is-reading" : ""}`}>
@@ -437,43 +524,48 @@ export function ReportView({ model }: { model: Model }) {
           </Button>
         </div>
       ) : (
-      <div className="report-toolbar" role="toolbar" aria-label={t("Arrange")}>
+      <div
+        className="report-toolbar"
+        role="toolbar"
+        aria-label={t("Arrange")}
+        onContextMenu={(e) => {
+          const el = (e.target as HTMLElement).closest<HTMLElement>("[data-command]");
+          if (!el) return;
+          e.preventDefault();
+          const id = el.dataset.command!;
+          const tool = tools.find((x) => x.id === id);
+          setToolMenu({
+            x: e.clientX,
+            y: e.clientY,
+            label: t("Toolbar"),
+            items: [{ id: "hide", label: t("Hide %1 from the toolbar", t(tool?.label ?? id)), run: () => void setLayout((l) => withHidden(l, [id], true)) }],
+          });
+        }}
+      >
         <span className="report-toolbar-label">{chosen.length > 1 ? t("%1 visuals selected", chosen.length) : chosen.length === 1 ? t("1 visual selected") : t("Arrange")}</span>
-        <IconButton label={t("Align left")} icon={<AlignStartVertical size={15} />} isDisabled={chosen.length < 2} onPress={() => align("left")} />
-        <IconButton label={t("Align center")} icon={<AlignCenterVertical size={15} />} isDisabled={chosen.length < 2} onPress={() => align("center")} />
-        <IconButton label={t("Align right")} icon={<AlignEndVertical size={15} />} isDisabled={chosen.length < 2} onPress={() => align("right")} />
-        <IconButton label={t("Align top")} icon={<AlignStartHorizontal size={15} />} isDisabled={chosen.length < 2} onPress={() => align("top")} />
-        <IconButton label={t("Align middle")} icon={<AlignCenterHorizontal size={15} />} isDisabled={chosen.length < 2} onPress={() => align("middle")} />
-        <IconButton label={t("Align bottom")} icon={<AlignEndHorizontal size={15} />} isDisabled={chosen.length < 2} onPress={() => align("bottom")} />
-        <IconButton label={t("Distribute horizontally")} icon={<AlignHorizontalDistributeCenter size={15} />} isDisabled={chosen.length < 3} onPress={() => align("distributeH")} />
-        <IconButton label={t("Distribute vertically")} icon={<AlignVerticalDistributeCenter size={15} />} isDisabled={chosen.length < 3} onPress={() => align("distributeV")} />
-        <span className="topbar-sep" />
-        <IconButton label={t("Bring to front")} icon={<BringToFront size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(true)} />
-        <IconButton label={t("Send to back")} icon={<SendToBack size={15} />} isDisabled={!chosen.length} onPress={() => zOrder(false)} />
-        <IconButton
-          label={painter.sticky ? t("Format painter (stays on; Esc turns it off)") : t("Format painter")}
-          shortcut="Ctrl+Alt+C"
-          icon={<Paintbrush size={15} />}
-          pressed={painter.armed}
-          isDisabled={!painter.armed && chosen.length !== 1}
-          onPress={pressPainter}
-        />
-        <span className="topbar-sep" />
-        <IconButton label={t("Edit interactions")} icon={<MousePointerClick size={15} />} pressed={editInteractions} onPress={() => set({ editInteractions: !editInteractions })} />
-        <ThemeMenu model={model} />
-        <RolesMenu model={model} />
-        <IconButton label={t("Reading view")} icon={<BookOpen size={15} />} onPress={() => set({ reading: true, selected: [], editInteractions: false })} />
-        <span className="status-fill" />
-        <IconButton label={t("Bookmarks pane")} icon={<BookmarkIcon size={15} />} pressed={panes.bookmarks} onPress={() => togglePane("bookmarks")} />
-        <IconButton label={t("Selection pane")} icon={<Layers size={15} />} pressed={panes.selection} onPress={() => togglePane("selection")} />
-        <IconButton label={t("Sync slicers pane")} icon={<RefreshCw size={15} />} pressed={panes.sync} onPress={() => togglePane("sync")} />
-        <IconButton label={t("Filters pane")} icon={<Filter size={15} />} pressed={panes.filters} onPress={() => togglePane("filters")} />
-        <IconButton label={t("Visualizations pane")} icon={<Shapes size={15} />} pressed={panes.visualizations} onPress={() => togglePane("visualizations")} />
-        <IconButton label={t("Fields pane")} icon={<ListTree size={15} />} pressed={panes.fields} onPress={() => togglePane("fields")} />
-        <IconButton label={t("Agent pane")} shortcut="Ctrl+I" icon={<Sparkles size={15} />} pressed={panes.agent} onPress={() => togglePane("agent")} />
+        {tools.map((x, i) => {
+          const sep = x.sep && tools.slice(i + 1).some((y) => !hidden.has(y.id));
+          // The second report view has no panes of its own.
+          if (hidden.has(x.id) || (slot === 1 && x.id.startsWith("pane-"))) return x.fill ? <span key={x.id} className="status-fill" /> : null;
+          return (
+            <Fragment key={x.id}>
+              <span className="toolbar-command" data-command={x.id}>
+                {x.node ?? <IconButton label={t(x.label)} shortcut={x.shortcut} icon={x.icon} pressed={x.pressed} isDisabled={x.disabled} onPress={x.run} />}
+              </span>
+              {sep && <span className="topbar-sep" />}
+              {x.fill && <span className="status-fill" />}
+            </Fragment>
+          );
+        })}
+        {toolMenu && <ContextMenu menu={toolMenu} onClose={() => setToolMenu(null)} />}
       </div>
       )}
-      <div className={`report-body ${compact ? "is-compact" : ""}`} ref={body}>
+      <div
+        className={`report-body ${compact ? "is-compact" : ""}`}
+        ref={body}
+        onPointerDownCapture={() => focused !== slot && useReport.getState().set({ slot })}
+      >
+        {!reading && slot === 0 && !compact && PANES.filter((k) => placeOf(k) === "left").map(host)}
         <div className="report-center">
           <ViewAsBanner model={model} />
           <DrillBar model={model} page={page} />
@@ -481,45 +573,47 @@ export function ReportView({ model }: { model: Model }) {
           {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}
           <PageTabs model={model} page={page} reading={reading} />
         </div>
-        {reading ? null : compact ? (
-          PANES.some((k) => panes[k]) && (
+        {reading || slot === 1 ? null : compact ? (
+          PANES.some((k) => placeOf(k) === "left" || placeOf(k) === "right") && (
             <div className="pane-stack">
               <div className="pane-switch" role="tablist" aria-label={t("Panes")}>
-                {PANES.filter((k) => panes[k]).map((k) => (
-                  <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!panes[paneTab] && k === PANES.find((x) => panes[x]))} onClick={() => setPaneTab(k)}>
-                    {k === "bookmarks" ? t("Bookmarks") : k === "selection" ? t("Selection") : k === "sync" ? t("Sync slicers") : k === "filters" ? t("Filters") : k === "visualizations" ? t("Visualizations") : k === "agent" ? t("Agent") : t("Fields")}
+                {PANES.filter((k) => placeOf(k) === "left" || placeOf(k) === "right").map((k) => (
+                  <button key={k} type="button" role="tab" aria-selected={paneTab === k || (!docked(paneTab) && k === PANES.find(docked))} onClick={() => setPaneTab(k)}>
+                    {paneLabel(k)}
                   </button>
                 ))}
               </div>
-              {(() => {
-                const shown = panes[paneTab] ? paneTab : PANES.find((x) => panes[x]);
-                if (shown === "bookmarks") return <BookmarksPane model={model} page={page} />;
-                if (shown === "selection") return <SelectionPane model={model} page={page} />;
-                if (shown === "sync") return <SyncSlicersPane model={model} page={page} />;
-                if (shown === "filters") return <FiltersPane model={model} page={page} />;
-                if (shown === "visualizations") return <VisualizationsPane model={model} page={page} />;
-                if (shown === "agent") return <AgentPane model={model} page={page} />;
-                return <FieldsPane model={model} page={page} />;
-              })()}
+              {renderPane(docked(paneTab) ? paneTab : PANES.find(docked)!)}
             </div>
           )
         ) : (
-          <>
-            {panes.bookmarks && <BookmarksPane model={model} page={page} />}
-            {panes.selection && <SelectionPane model={model} page={page} />}
-            {panes.sync && <SyncSlicersPane model={model} page={page} />}
-            {panes.filters && <FiltersPane model={model} page={page} />}
-            {panes.visualizations && <VisualizationsPane model={model} page={page} />}
-            {panes.fields && <FieldsPane model={model} page={page} />}
-            {panes.agent && <AgentPane model={model} page={page} />}
-          </>
+          PANES.filter((k) => placeOf(k) === "right").map(host)
         )}
+        {!reading && slot === 0 && PANES.filter((k) => placeOf(k) === "float").map(host)}
       </div>
     </div>
   );
 }
 
-const PANES = ["bookmarks", "selection", "sync", "filters", "visualizations", "fields", "agent"] as const;
+const PANES = PANE_IDS;
+
+
+
+interface Tool {
+  id: string;
+  /** English; translated when shown. */
+  label: string;
+  icon?: ReactNode;
+  shortcut?: string;
+  pressed?: boolean;
+  disabled?: boolean;
+  run?: () => void;
+  /** A control of its own (a menu) instead of a button. */
+  node?: ReactNode;
+  /** A separator after it, and the space that pushes the rest to the end. */
+  sep?: boolean;
+  fill?: boolean;
+}
 
 /** On a page drilled through to: what it shows, and the way back. Leaving the page
  * ends the drill through. */

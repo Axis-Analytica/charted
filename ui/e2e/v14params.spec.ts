@@ -55,7 +55,7 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
 
 type ChartOption = { series: { name?: string }[] };
 const seriesNames = (visual: Locator) =>
-  visual.locator(".cartesian").evaluate((el) => ((el as unknown as { chart: { getOption(): ChartOption } }).chart.getOption().series ?? []).map((x) => x.name ?? ""));
+  visual.locator(".cartesian").evaluate((el) => ((el as unknown as { chart?: { getOption(): ChartOption } }).chart?.getOption().series ?? []).map((x) => x.name ?? ""));
 
 test.setTimeout(180_000);
 test.use({ actionTimeout: 15_000 });

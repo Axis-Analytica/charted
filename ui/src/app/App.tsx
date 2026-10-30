@@ -8,6 +8,7 @@ import { ConfirmDialog } from "../kit/Dialog";
 import { Spinner } from "../kit/misc";
 import { Toasts } from "../kit/Toasts";
 import { initAgent } from "../state/agent";
+import { installUseCounter } from "./layout";
 import { applyState, useApp } from "../state/app";
 import { FrameHud } from "./FrameMeter";
 import { KitGallery } from "./KitGallery";
@@ -31,6 +32,7 @@ function useEnvironment() {
   }, [setEnv]);
   useEffect(() => transport.onState(applyState), []);
   useEffect(() => initAgent(), []);
+  useEffect(() => installUseCounter(), []);
 }
 
 export function App() {

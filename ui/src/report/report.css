@@ -376,3 +376,18 @@
 .theme-text-row { display: grid; grid-template-columns: 110px 1fr 96px 30px; align-items: center; gap: 8px; }
 .theme-text-name { font-size: var(--text-sm); color: var(--fg); }
 .theme-size { width: 96px; }
+
+/* Pane hosts: docked left or right (resizable), or floating over the report. */
+.report-body { position: relative; }
+.pane-host { position: relative; display: flex; flex: none; min-height: 0; }
+.pane-host.has-width > .pane { width: var(--pane-w); }
+.pane-host.is-left > .pane { border-inline-start: 0; border-inline-end: 1px solid var(--border); }
+.pane-resize { position: absolute; top: 0; bottom: 0; width: 6px; z-index: 2; cursor: col-resize; }
+.pane-host.is-right > .pane-resize { inset-inline-start: -3px; }
+.pane-host.is-left > .pane-resize { inset-inline-end: -3px; }
+.pane-resize:hover { background: var(--accent-soft); }
+.pane-host.is-float { position: absolute; z-index: 30; border: 1px solid var(--border); border-radius: var(--radius-md, 8px); background: var(--bg-panel); box-shadow: 0 10px 32px rgb(0 0 0 / 0.28); overflow: hidden; }
+.pane-host.is-float > .pane { width: 100%; border: 0; }
+.pane-host.is-float .pane-head { cursor: move; }
+.pane-host.is-float > .pane-resize.is-corner { top: auto; bottom: 0; left: auto; right: 0; inset-inline-start: auto; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--border) 50%); }
+.toolbar-command { display: contents; }

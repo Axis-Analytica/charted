@@ -83,7 +83,7 @@ type ChartOption = {
   grid: unknown[];
   series: { id?: string; type?: string; yAxisIndex?: number; data: Item[]; markLine?: { data: ({ type?: string; name?: string } | { name?: string }[])[] } }[];
 };
-const option = (visual: Locator) => visual.locator(".cartesian").first().evaluate((el) => (el as unknown as { chart: { getOption(): unknown } }).chart.getOption() as ChartOption);
+const option = (visual: Locator) => visual.locator(".cartesian").first().evaluate((el) => ((el as unknown as { chart?: { getOption(): unknown } }).chart?.getOption() ?? { xAxis: [], yAxis: [], grid: [], series: [] }) as ChartOption);
 const num = (d: Item | undefined) => (d && typeof d === "object" && !Array.isArray(d) ? d.value : (d as number | null));
 const values = async (visual: Locator, series: number) => ((await option(visual)).series[series]?.data ?? []).map(num);
 const categories = async (visual: Locator) => {

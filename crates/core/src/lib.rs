@@ -29,6 +29,7 @@ pub mod session;
 pub mod sources;
 mod types;
 pub mod visualq;
+pub mod workspace;
 
 pub use api::{ApiError, App, AppState, DataRequest, Request};
 pub use session::{CoreError, ProjectSnapshot, Session};

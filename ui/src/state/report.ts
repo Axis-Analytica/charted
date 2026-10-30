@@ -22,8 +22,10 @@ interface ReportStore {
   view: View;
   page: string | null;
   selected: string[];
-  /** Right-hand panes. */
-  panes: { bookmarks: boolean; selection: boolean; sync: boolean; filters: boolean; visualizations: boolean; fields: boolean; agent: boolean };
+  /** The second report view's page (a layout showing two reports side by side). */
+  page2: string | null;
+  /** The report view the panes act on: the one last used. */
+  slot: 0 | 1;
   vizTab: "build" | "format";
   /** Last pointer position on the page, in page units. */
   pointer: { x: number; y: number } | null;
@@ -47,7 +49,8 @@ export const useReport = create<ReportStore>()((set) => ({
   view: "report",
   page: null,
   selected: [],
-  panes: { bookmarks: false, selection: false, sync: false, filters: true, visualizations: true, fields: true, agent: false },
+  page2: null,
+  slot: 0,
   vizTab: "build",
   pointer: null,
   formula: null,

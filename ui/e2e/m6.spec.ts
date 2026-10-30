@@ -3,6 +3,14 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
 
+// Pane layout is kept by the core across tests: close the panes a test opened.
+test.afterEach(async ({ page }) => {
+  for (const name of ["Bookmarks pane", "Selection pane", "Sync slicers pane", "Agent pane"]) {
+    const b = page.getByRole("button", { name, exact: true });
+    if ((await b.count()) && (await b.first().getAttribute("aria-pressed")) === "true") await b.first().click();
+  }
+});
+
 async function openSample(page: Page) {
   await page.goto("/");
   const explore = page.getByRole("button", { name: "Explore the sample" });
@@ -77,7 +85,7 @@ async function newMeasure(page: Page, formula: string, name: string) {
 }
 
 type ChartOption = { xAxis: { data?: string[] }[]; yAxis: { data?: string[] }[]; series: { data: ({ value: number | null } | number | null)[] }[] };
-const option = (visual: Locator) => visual.locator(".cartesian").evaluate((el) => (el as unknown as { chart: { getOption(): unknown } }).chart.getOption() as ChartOption);
+const option = (visual: Locator) => visual.locator(".cartesian").evaluate((el) => ((el as unknown as { chart?: { getOption(): unknown } }).chart?.getOption() ?? { xAxis: [], yAxis: [], grid: [], series: [] }) as ChartOption);
 const categories = async (visual: Locator) => {
   const o = await option(visual);
   return o.xAxis[0]?.data ?? o.yAxis[0]?.data ?? [];

@@ -5,6 +5,14 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
 
+// Pane layout is kept by the core across tests: close the panes a test opened.
+test.afterEach(async ({ page }) => {
+  for (const name of ["Bookmarks pane", "Selection pane", "Sync slicers pane", "Agent pane"]) {
+    const b = page.getByRole("button", { name, exact: true });
+    if ((await b.count()) && (await b.first().getAttribute("aria-pressed")) === "true") await b.first().click();
+  }
+});
+
 async function openSample(page: Page) {
   await page.goto("/");
   const explore = page.getByRole("button", { name: "Explore the sample" });

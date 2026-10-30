@@ -74,7 +74,7 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
 }
 
 type ChartOption = { xAxis: { data?: string[] }[]; yAxis: { data?: string[] }[]; series: { data: ({ value: number | null } | number | null)[] }[] };
-const option = (visual: Locator) => visual.locator(".cartesian").evaluate((el) => (el as unknown as { chart: { getOption(): unknown } }).chart.getOption() as ChartOption);
+const option = (visual: Locator) => visual.locator(".cartesian").evaluate((el) => ((el as unknown as { chart?: { getOption(): unknown } }).chart?.getOption() ?? { xAxis: [], yAxis: [], grid: [], series: [] }) as ChartOption);
 const categories = async (visual: Locator) => {
   const o = await option(visual);
   return o.xAxis[0]?.data ?? o.yAxis[0]?.data ?? [];

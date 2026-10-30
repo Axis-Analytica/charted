@@ -51,6 +51,36 @@ pub enum Request {
     UndoGroup {
         group: String,
     },
+    /// Lays charted out differently (the active profile's layout); undoable on its own.
+    SetLayout {
+        layout: crate::workspace::Layout,
+    },
+    UndoLayout,
+    RedoLayout,
+    SwitchProfile {
+        profile: String,
+    },
+    /// A new profile, a copy of `from` (else the active one), made active.
+    AddProfile {
+        name: String,
+        #[serde(default)]
+        from: Option<String>,
+    },
+    RenameProfile {
+        profile: String,
+        name: String,
+    },
+    DeleteProfile {
+        profile: String,
+    },
+    /// Puts a built-in profile back as it ships.
+    ResetProfile {
+        profile: String,
+    },
+    /// The commands the UI can hide, and how often each was used (for the agent).
+    SetCommands {
+        commands: Vec<crate::workspace::CommandInfo>,
+    },
     Save,
     RestoreRecovery,
     DiscardRecovery,
@@ -155,6 +185,10 @@ pub struct AppState {
     /// request can arrive in either order, and the UI keeps the newer.
     #[ts(type = "number")]
     pub revision: u64,
+    /// How charted is laid out: the user's profiles and the active one.
+    pub workspace: crate::workspace::Workspace,
+    pub layout_undo: bool,
+    pub layout_redo: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -491,6 +525,8 @@ pub struct App {
     state_dir: PathBuf,
     running: Running,
     revision: u64,
+    layouts: crate::workspace::Layouts,
+    commands: Vec<crate::workspace::CommandInfo>,
 }
 
 type RunningMap = HashMap<String, (u64, Arc<charted_engine::InterruptHandle>)>;
@@ -511,11 +547,14 @@ impl Running {
 impl App {
     /// `state_dir` holds per-user state such as the recent-projects list.
     pub fn new(state_dir: PathBuf) -> Self {
+        let layouts = crate::workspace::Layouts::read(&state_dir);
         Self {
             session: None,
             state_dir,
             running: RUNNING.clone(),
             revision: 0,
+            layouts,
+            commands: Vec::new(),
         }
     }
 
@@ -563,6 +602,9 @@ impl App {
             crash: crate::crash::pending(&self.state_dir),
             projects_dir: projects_dir().display().to_string(),
             revision: self.revision,
+            workspace: self.layouts.workspace.clone(),
+            layout_undo: self.layouts.can_undo(),
+            layout_redo: self.layouts.can_redo(),
         })
     }
 
@@ -589,6 +631,37 @@ impl App {
         self.session_mut()?
             .commit_grouped(label, changes, Some(group))?;
         Ok(self.state()?)
+    }
+
+    /// Changes the layout for an agent request (its changes undo as one).
+    pub fn set_layout_grouped(
+        &mut self,
+        layout: crate::workspace::Layout,
+        group: &str,
+    ) -> Result<AppState, ApiError> {
+        self.revision += 1;
+        self.layouts.set(layout, Some(group));
+        self.layouts.workspace.write(&self.state_dir);
+        Ok(self.state()?)
+    }
+
+    pub fn layouts(&self) -> &crate::workspace::Layouts {
+        &self.layouts
+    }
+
+    /// Runs a profile change for the agent (as the matching requests do).
+    pub fn layouts_mut(&mut self) -> &mut crate::workspace::Layouts {
+        self.revision += 1;
+        &mut self.layouts
+    }
+
+    pub fn save_workspace(&self) {
+        self.layouts.workspace.write(&self.state_dir);
+    }
+
+    /// The commands the UI said it can hide.
+    pub fn commands(&self) -> &[crate::workspace::CommandInfo] {
+        &self.commands
     }
 
     /// Marks a change made outside `handle` (see `commit_grouped`).
@@ -632,6 +705,28 @@ impl App {
             Request::Commit { label, changes } => self.session_mut()?.commit(&label, changes)?,
             Request::Undo => self.session_mut()?.undo()?,
             Request::Redo => self.session_mut()?.redo()?,
+            Request::SetLayout { layout } => {
+                self.layouts.set(layout, None);
+                self.layouts.workspace.write(&self.state_dir);
+            }
+            Request::UndoLayout => {
+                self.layouts.undo();
+                self.layouts.workspace.write(&self.state_dir);
+            }
+            Request::RedoLayout => {
+                self.layouts.redo();
+                self.layouts.workspace.write(&self.state_dir);
+            }
+            Request::SwitchProfile { profile } => self.profile(|l| l.switch(&profile))?,
+            Request::AddProfile { name, from } => {
+                self.profile(|l| l.add(&name, from.as_deref()).map(|_| ()))?
+            }
+            Request::RenameProfile { profile, name } => {
+                self.profile(|l| l.rename(&profile, &name))?
+            }
+            Request::DeleteProfile { profile } => self.profile(|l| l.delete(&profile))?,
+            Request::ResetProfile { profile } => self.profile(|l| l.reset(&profile))?,
+            Request::SetCommands { commands } => self.commands = commands,
             Request::UndoGroup { group } => {
                 if !self.session_mut()?.undo_group(&group)? {
                     return Err(CoreError::Invalid(
@@ -743,6 +838,15 @@ impl App {
                 })?;
             }
         }
+        Ok(())
+    }
+
+    fn profile(
+        &mut self,
+        f: impl FnOnce(&mut crate::workspace::Layouts) -> Result<(), String>,
+    ) -> Result<(), CoreError> {
+        f(&mut self.layouts).map_err(CoreError::Invalid)?;
+        self.layouts.workspace.write(&self.state_dir);
         Ok(())
     }
 

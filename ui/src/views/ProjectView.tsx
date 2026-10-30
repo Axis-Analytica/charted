@@ -1,5 +1,5 @@
 import { ChartColumnBig, ChartPie, Command, Keyboard, Network, Redo2, Save, Sheet, Undo2, Workflow, X } from "lucide-react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import { useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
@@ -15,6 +15,9 @@ const DataView = lazy(() => import("./data/DataView").then((m) => ({ default: m.
 import { useDataView } from "../state/dataview";
 import { type View, useReport } from "../state/report";
 import { ReportView } from "../report/ReportView";
+import { ReportSlot } from "../report/slot";
+import { setLayout, useLayout } from "../app/layout";
+import { LayoutMenu } from "../app/LayoutMenu";
 import { TablesPanel } from "./TablesPanel";
 import { FileMenu } from "../app/FileMenu";
 import { ImportReportDialog } from "../app/ImportReport";
@@ -66,6 +69,30 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   );
 
   const table = project.model.tables.find((x) => x.id === selected) ?? null;
+  const split = useLayout().split;
+  // A second view of the same kind only makes sense for reports (two pages).
+  const second = split && (split.view !== view || view === "report") ? split.view : null;
+  const views = useRef<HTMLDivElement>(null);
+  const dragDivider = (e: React.PointerEvent) => {
+    const box = views.current?.getBoundingClientRect();
+    if (!box || !split) return;
+    e.preventDefault();
+    const rtl = document.documentElement.dir === "rtl";
+    let ratio = split.ratio;
+    const move = (m: PointerEvent) => {
+      ratio = Math.max(0.2, Math.min(0.8, ((rtl ? box.right - m.clientX : m.clientX - box.left) / box.width)));
+      const slots = views.current?.querySelectorAll<HTMLElement>(":scope > .view-slot");
+      if (slots?.[0]) slots[0].style.flex = `${ratio} 1 0`;
+      if (slots?.[1]) slots[1].style.flex = `${1 - ratio} 1 0`;
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      void setLayout((l) => ({ ...l, split: l.split ? { ...l.split, ratio } : l.split }));
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
   return (
     <div className="shell">
       <header className="topbar">
@@ -74,6 +101,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
           <span className="project-name">{project.name}</span>
           {project.dirty && <span className="dirty-dot" title={t("Unsaved changes")} aria-label={t("Unsaved changes")} />}
           <FileMenu project={project} onSave={save} onClose={close} />
+          <LayoutMenu />
         </div>
         <div className="topbar-actions">
           <IconButton label={project.undoLabel ? t("Undo %1", t(project.undoLabel)) : t("Undo")} shortcut="Ctrl+Z" icon={<Undo2 size={16} />} isDisabled={!project.undoLabel} onPress={undo} />
@@ -105,47 +133,65 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
       {project.warnings.length > 0 && <Banner tone="info">{t("Some parts of the model were imported with warnings: %1", project.warnings.join("; "))}</Banner>}
       <SourceBanner project={project} />
       {project.importReport && <ImportReportDialog report={project.importReport} />}
-      <div className={`workspace ${view === "report" ? "is-report" : ""} ${view === "model" ? "is-model" : ""} ${view === "query" ? "is-query" : ""}`}>
+      <div className={`workspace ${second ? "is-split" : view === "report" ? "is-report" : view === "model" ? "is-model" : view === "query" ? "is-query" : ""}`}>
         <nav className="rail" aria-label={t("Views")}>
           <IconButton label={t("Report view")} shortcut="Ctrl+1" icon={<ChartPie size={18} />} pressed={view === "report"} onPress={() => setView("report")} />
           <IconButton label={t("Data view")} shortcut="Ctrl+2" icon={<Sheet size={18} />} pressed={view === "data"} onPress={() => setView("data")} />
           <IconButton label={t("Model view")} shortcut="Ctrl+3" icon={<Network size={18} />} pressed={view === "model"} onPress={() => setView("model")} />
           <IconButton label={t("Transform data")} shortcut="Ctrl+4" icon={<Workflow size={18} />} pressed={view === "query"} onPress={() => setView("query")} />
         </nav>
-        {view === "report" ? (
-          <main className="main">
-            <ReportView model={project.model} />
-          </main>
-        ) : view === "model" ? (
-          <main className="main">
-            <Suspense fallback={<ViewLoading />}>
-              <ModelView model={project.model} />
-            </Suspense>
-          </main>
-        ) : view === "query" ? (
-          <main className="main">
-            <Suspense fallback={<ViewLoading />}>
-              <QueryEditor project={project} />
-            </Suspense>
-          </main>
-        ) : (
-          <>
-            <TablesPanel
-              project={project}
-              selected={selected}
-              onSelect={setSelected}
-              onSelectColumn={(tableId, column) => {
-                setSelected(tableId);
-                useDataView.getState().select(tableId, column);
-              }}
-            />
-            <main className="main">
-              <Suspense fallback={<ViewLoading />}>
-                {table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}
-              </Suspense>
-            </main>
-          </>
-        )}
+        {(() => {
+          const render = (kind: View, slot: 0 | 1) =>
+            kind === "report" ? (
+              <main className="main">
+                <ReportSlot.Provider value={slot}>
+                  <ReportView model={project.model} />
+                </ReportSlot.Provider>
+              </main>
+            ) : kind === "model" ? (
+              <main className="main">
+                <Suspense fallback={<ViewLoading />}>
+                  <ModelView model={project.model} />
+                </Suspense>
+              </main>
+            ) : kind === "query" ? (
+              <main className="main">
+                <Suspense fallback={<ViewLoading />}>
+                  <QueryEditor project={project} />
+                </Suspense>
+              </main>
+            ) : (
+              <>
+                <TablesPanel
+                  project={project}
+                  selected={selected}
+                  onSelect={setSelected}
+                  onSelectColumn={(tableId, column) => {
+                    setSelected(tableId);
+                    useDataView.getState().select(tableId, column);
+                  }}
+                />
+                <main className="main">
+                  <Suspense fallback={<ViewLoading />}>
+                    {table ? <DataView key={`${project.path}\n${table.id}`} project={project} table={table} /> : <div className="main-empty">{t("This project has no tables yet.")}</div>}
+                  </Suspense>
+                </main>
+              </>
+            );
+          if (!second) return render(view, 0);
+          // Two views side by side (a layout's split): the second has its own page when both are reports.
+          return (
+            <div className="views" ref={views}>
+              <div className={`view-slot is-${view}`} style={{ flex: `${split!.ratio} 1 0` }}>
+                {render(view, 0)}
+              </div>
+              <div className="view-divider" role="separator" aria-orientation="vertical" aria-label={t("Resize the views")} onPointerDown={dragDivider} />
+              <div className={`view-slot is-${second}`} style={{ flex: `${1 - split!.ratio} 1 0` }}>
+                {render(second, 1)}
+              </div>
+            </div>
+          );
+        })()}
       </div>
       <StatusBar project={project} table={view === "data" ? table : null} />
     </div>
