@@ -251,10 +251,14 @@ test("a hierarchy drills in a column chart; a bin and a list group in visuals", 
   await expect(ungrouped.getByLabel("Camping")).toHaveCount(0);
   await dialog(page).getByRole("button", { name: "OK" }).click();
   await expect(dialog(page)).toHaveCount(0);
+  // The group is a calculated column: it shows once computed (slow on CI).
+  const count = await visuals(page).count();
   await tick(page, "Product", "Category (groups)");
-  const table = visuals(page).last();
+  await expect(visuals(page)).toHaveCount(count + 1);
+  const table = visuals(page).nth(count);
+  await expect(table.locator("tbody tr")).not.toHaveCount(0, { timeout: 15_000 });
   await tick(page, "Sales", "Total Sales");
-  await expect(table.locator("tbody tr")).toHaveCount(2);
+  await expect(table.locator("tbody tr")).toHaveCount(2, { timeout: 15_000 });
   await expect(table.locator("tbody tr td:first-child")).toHaveText(["Other", "Outdoor"]);
   await shot(page, "v11-03-groups");
 
