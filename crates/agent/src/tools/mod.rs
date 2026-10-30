@@ -117,7 +117,7 @@ pub fn fail<T>(msg: impl Into<String>) -> Res<T> {
 #[serde(rename_all = "camelCase")]
 pub struct ToolDef {
     pub name: &'static str,
-    pub description: &'static str,
+    pub description: String,
     pub input_schema: Value,
 }
 

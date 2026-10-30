@@ -28,7 +28,7 @@ pub fn defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "page",
-            description: "Adds, renames or resizes, hides, moves, duplicates or removes a page. add returns the new page's id; the user is taken to pages you change.",
+            description: "Adds, renames or resizes, hides, moves, duplicates or removes a page. add returns the new page's id; the user is taken to pages you change.".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "remove", "move", "duplicate"] },
@@ -43,7 +43,10 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "add_visual",
-            description: "Adds a visual to a page with its fields, title and formatting. Returns its id. Check the numbers with query_visual.",
+            description: format!(
+                "Adds a visual to a page with its fields, title and formatting. Returns its id. Check the numbers with query_visual. Roles by type: {}.",
+                catalog::roles_summary()
+            ),
             input_schema: schema(
                 json!({ "page": { "type": "string" }, "type": { "type": "string", "description": "lineChart, columnChart, barChart, donutChart, card, table, matrix, slicer … (list_visual_types)" }, "fields": field_map, "title": { "type": "string" }, "position": position, "format": format }),
                 &["page", "type"],
@@ -51,7 +54,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "update_visual",
-            description: "Changes a visual (id or title): its type, fields (fields replaces the roles given; add_fields appends; remove_fields takes fields out), title, position, formatting (merged), sort or visibility.",
+            description: "Changes a visual (id or title): its type, fields (fields replaces the roles given; add_fields appends; remove_fields takes fields out), title, position, formatting (merged), sort or visibility.".into(),
             input_schema: schema(
                 json!({
                     "visual": { "type": "string" }, "type": { "type": "string" },
@@ -66,7 +69,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "remove_visual",
-            description: "Removes visuals (ids or titles).",
+            description: "Removes visuals (ids or titles).".into(),
             input_schema: schema(
                 json!({ "visuals": { "type": "array", "items": { "type": "string" } } }),
                 &["visuals"],
@@ -74,7 +77,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "arrange_page",
-            description: "Lays out every visual on a page: slicers across the top, then cards, then charts two or three to a row, then tables. order lists visuals (ids or titles) to place first within their band.",
+            description: "Lays out every visual on a page: slicers across the top, then cards, then charts two or three to a row, then tables. order lists visuals (ids or titles) to place first within their band.".into(),
             input_schema: schema(
                 json!({ "page": { "type": "string" }, "order": { "type": "array", "items": { "type": "string" } } }),
                 &["page"],
@@ -82,7 +85,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "set_filter",
-            description: "Sets (or with filter null, removes) a filter on a field for the report, a page or a visual. filter is {\"kind\": \"basic\", \"values\": [\"Europe\"], \"exclude\": false} | {\"kind\": \"advanced\", \"conditions\": [{\"op\": \"greater\", \"value\": \"100\"}], \"or\": false} (ops: equals, notEquals, contains, notContains, startsWith, endsWith, less, lessOrEqual, greater, greaterOrEqual, between (value2), isBlank, isNotBlank) | {\"kind\": \"topN\", \"count\": 5, \"bottom\": false, \"by\": \"[Total Sales]\"} | {\"kind\": \"relativeDate\", \"period\": \"last|this|next\", \"count\": 3, \"unit\": \"days|weeks|months|years\"}.",
+            description: "Sets (or with filter null, removes) a filter on a field for the report, a page or a visual. filter is {\"kind\": \"basic\", \"values\": [\"Europe\"], \"exclude\": false} | {\"kind\": \"advanced\", \"conditions\": [{\"op\": \"greater\", \"value\": \"100\"}], \"or\": false} (ops: equals, notEquals, contains, notContains, startsWith, endsWith, less, lessOrEqual, greater, greaterOrEqual, between (value2), isBlank, isNotBlank) | {\"kind\": \"topN\", \"count\": 5, \"bottom\": false, \"by\": \"[Total Sales]\"} | {\"kind\": \"relativeDate\", \"period\": \"last|this|next\", \"count\": 3, \"unit\": \"days|weeks|months|years\"}.".into(),
             input_schema: schema(
                 json!({
                     "scope": { "type": "string", "enum": ["report", "page", "visual"] },
@@ -95,7 +98,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "set_theme",
-            description: "Sets the report's theme: a built-in (Classic, Daylight, Nightfall), \"desktop\" to follow the Omarchy theme, or custom colours.",
+            description: "Sets the report's theme: a built-in (Classic, Daylight, Nightfall), \"desktop\" to follow the Omarchy theme, or custom colours.".into(),
             input_schema: schema(
                 json!({
                     "builtin": { "type": "string" },
@@ -106,7 +109,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "bookmark",
-            description: "Adds a bookmark of a page as it is now (its filters and visuals' state), updates one to the page's current state, renames or removes one.",
+            description: "Adds a bookmark of a page as it is now (its filters and visuals' state), updates one to the page's current state, renames or removes one.".into(),
             input_schema: schema(
                 json!({ "action": { "type": "string", "enum": ["add", "update", "rename", "remove"] }, "name": { "type": "string" }, "page": { "type": "string" }, "new_name": { "type": "string" } }),
                 &["action", "name"],

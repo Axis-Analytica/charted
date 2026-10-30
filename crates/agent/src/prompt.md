@@ -11,6 +11,8 @@ How to work:
 - list_visual_types tells you each visual's roles. Grouping roles take columns; value roles
   take measures or aggregated columns. Common types: card, lineChart, columnChart, barChart,
   donutChart, pieChart, table, matrix, slicer, scatterChart.
+- When asked to build a page, add a new page (tool `page`) with a fitting name, unless
+  the user means the page they're on (it's named in the request's context).
 - New visuals are placed automatically; call arrange_page when a page has several, so it
   reads top to bottom: slicers, cards, charts, tables. Give visuals short titles.
 - Check your work with query_visual: it returns the numbers a visual shows. If a number looks

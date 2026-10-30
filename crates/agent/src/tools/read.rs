@@ -15,7 +15,7 @@ pub fn defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "describe_model",
-            description: "The semantic model: tables (rows), columns (type, format, hidden, calculated expression), measures (DAX, format), hierarchies, relationships, roles, calculation groups and field parameters. Call it first. Pass table to see one table only.",
+            description: "The semantic model: tables (rows), columns (type, format, hidden, calculated expression), measures (DAX, format), hierarchies, relationships, roles, calculation groups and field parameters. Call it first. Pass table to see one table only.".into(),
             input_schema: schema(
                 json!({ "table": { "type": "string", "description": "Only this table" } }),
                 &[],
@@ -23,12 +23,12 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "describe_report",
-            description: "The report: its pages (name, size, visual count), theme, bookmarks and report filters. With page (name or id): that page's visuals with ids, types, titles, positions, fields, filters and formatting.",
+            description: "The report: its pages (name, size, visual count), theme, bookmarks and report filters. With page (name or id): that page's visuals with ids, types, titles, positions, fields, filters and formatting.".into(),
             input_schema: schema(json!({ "page": { "type": "string" } }), &[]),
         },
         ToolDef {
             name: "list_visual_types",
-            description: "Visual types you can add, with their roles (where fields go: grouping roles take columns, value roles take measures or aggregated columns), sizes and, for one type, its formatting properties.",
+            description: "Visual types you can add, with their roles (where fields go: grouping roles take columns, value roles take measures or aggregated columns), sizes and, for one type, its formatting properties.".into(),
             input_schema: schema(
                 json!({ "type": { "type": "string", "description": "One type, with its format properties" } }),
                 &[],
@@ -36,7 +36,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "check_dax",
-            description: "Checks a DAX expression without saving it. kind: measure (default), column (needs table), table, role_filter (needs table), calc_item.",
+            description: "Checks a DAX expression without saving it. kind: measure (default), column (needs table), table, role_filter (needs table), calc_item.".into(),
             input_schema: schema(
                 json!({
                     "expression": { "type": "string" },
@@ -48,7 +48,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "query_visual",
-            description: "The numbers a visual shows (by id or title), as rows named after its fields, to check your work. Without data access only visuals that aggregate (a measure or SUM/COUNT…) answer, up to 50 rows.",
+            description: "The numbers a visual shows (by id or title), as rows named after its fields, to check your work. Without data access only visuals that aggregate (a measure or SUM/COUNT…) answer, up to 50 rows.".into(),
             input_schema: schema(
                 json!({ "visual": { "type": "string" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }),
                 &["visual"],
@@ -56,7 +56,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "query_fields",
-            description: "Aggregates without making a visual: values (measures or SUM('T'[C]) …) by group_by columns. Without data access at least one value is needed and up to 50 rows come back.",
+            description: "Aggregates without making a visual: values (measures or SUM('T'[C]) …) by group_by columns. Without data access at least one value is needed and up to 50 rows come back.".into(),
             input_schema: schema(
                 json!({
                     "group_by": { "type": "array", "items": { "type": "string" } },
@@ -68,7 +68,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "sample_rows",
-            description: "Distinct combinations of a table's columns (all, or those named), up to 50. Needs data access.",
+            description: "Distinct combinations of a table's columns (all, or those named), up to 50. Needs data access.".into(),
             input_schema: schema(
                 json!({ "table": { "type": "string" }, "columns": { "type": "array", "items": { "type": "string" } }, "limit": { "type": "integer", "minimum": 1, "maximum": 50 } }),
                 &["table"],
@@ -76,7 +76,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "distinct_values",
-            description: "A column's values (for filters and slicers), optionally those containing search, up to 100. Needs data access.",
+            description: "A column's values (for filters and slicers), optionally those containing search, up to 100. Needs data access.".into(),
             input_schema: schema(
                 json!({ "field": { "type": "string" }, "search": { "type": "string" }, "limit": { "type": "integer", "minimum": 1, "maximum": 100 } }),
                 &["field"],

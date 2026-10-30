@@ -20,7 +20,7 @@ pub fn defs() -> Vec<ToolDef> {
     vec![
         ToolDef {
             name: "measure",
-            description: "Adds, updates (expression, format, description, folder, hidden), renames or removes a measure. DAX is checked first; a measure that doesn't check isn't saved. format is a format string like \"#,0\", \"$#,0.00\" or \"0.0%\".",
+            description: "Adds, updates (expression, format, description, folder, hidden), renames or removes a measure. DAX is checked first; a measure that doesn't check isn't saved. format is a format string like \"#,0\", \"$#,0.00\" or \"0.0%\".".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "rename", "remove"] },
@@ -34,7 +34,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "column",
-            description: "Adds a calculated column (DAX per row), or changes a column: expression (calculated only), format, summarize_by (Default, None, Sum, Average, Min, Max, Count, DistinctCount), sort_by (another column of its table), data_category (e.g. City, Country, ImageUrl, WebUrl), folder, description, hidden, or renames or removes it (calculated columns only; data columns change through Power Query).",
+            description: "Adds a calculated column (DAX per row), or changes a column: expression (calculated only), format, summarize_by (Default, None, Sum, Average, Min, Max, Count, DistinctCount), sort_by (another column of its table), data_category (e.g. City, Country, ImageUrl, WebUrl), folder, description, hidden, or renames or removes it (calculated columns only; data columns change through Power Query).".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add_calculated", "update", "rename", "remove"] },
@@ -48,7 +48,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "table",
-            description: "Adds a calculated table (a DAX table expression, e.g. CALENDAR or SUMMARIZECOLUMNS), changes one's expression, or renames, hides, describes, marks as the date table (date_column) or removes a table (calculated tables, calculation groups and parameters only).",
+            description: "Adds a calculated table (a DAX table expression, e.g. CALENDAR or SUMMARIZECOLUMNS), changes one's expression, or renames, hides, describes, marks as the date table (date_column) or removes a table (calculated tables, calculation groups and parameters only).".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add_calculated", "update", "rename", "remove"] },
@@ -61,7 +61,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "relationship",
-            description: "Adds, changes or removes a relationship. from is the many side ('Sales'[ProductKey]), to the one side ('Product'[ProductKey]). cardinality: many_to_one (default), one_to_one, many_to_many; direction: single (default) or both; active defaults to true.",
+            description: "Adds, changes or removes a relationship. from is the many side ('Sales'[ProductKey]), to the one side ('Product'[ProductKey]). cardinality: many_to_one (default), one_to_one, many_to_many; direction: single (default) or both; active defaults to true.".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "remove"] },
@@ -74,7 +74,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "hierarchy",
-            description: "Adds, replaces the levels of, or removes a hierarchy: levels are columns of the table, top first.",
+            description: "Adds, replaces the levels of, or removes a hierarchy: levels are columns of the table, top first.".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "remove"] },
@@ -86,7 +86,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "role",
-            description: "Adds, updates or removes a row-level security role. filters maps table names to DAX conditions per row (e.g. {\"Store\": \"[Region] = \\\"Europe\\\"\"}).",
+            description: "Adds, updates or removes a row-level security role. filters maps table names to DAX conditions per row (e.g. {\"Store\": \"[Region] = \\\"Europe\\\"\"}).".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "remove"] },
@@ -98,7 +98,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "calculation_group",
-            description: "Adds, updates or removes a calculation group: items apply to whatever measure a visual shows, with SELECTEDMEASURE () standing for it (e.g. YTD = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( 'Date'[Date] ) )). Put the group's Name column on an axis or in a slicer to use it.",
+            description: "Adds, updates or removes a calculation group: items apply to whatever measure a visual shows, with SELECTEDMEASURE () standing for it (e.g. YTD = CALCULATE ( SELECTEDMEASURE (), DATESYTD ( 'Date'[Date] ) )). Put the group's Name column on an axis or in a slicer to use it.".into(),
             input_schema: schema(
                 json!({
                     "action": { "type": "string", "enum": ["add", "update", "remove"] },
@@ -110,7 +110,7 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "parameter",
-            description: "Adds a parameter. kind field: a field parameter whose slicer swaps the fields a visual shows (fields: measures or columns; labels optional). kind numeric: a what-if parameter (min, max, step, default; decimal for non-whole numbers) with a '<name> Value' measure to use in other measures.",
+            description: "Adds a parameter. kind field: a field parameter whose slicer swaps the fields a visual shows (fields: measures or columns; labels optional). kind numeric: a what-if parameter (min, max, step, default; decimal for non-whole numbers) with a '<name> Value' measure to use in other measures.".into(),
             input_schema: schema(
                 json!({
                     "kind": { "type": "string", "enum": ["field", "numeric"] }, "name": { "type": "string" },

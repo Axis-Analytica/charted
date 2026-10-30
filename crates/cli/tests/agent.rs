@@ -133,3 +133,93 @@ fn a_stand_in_agent_builds_a_page_through_the_socket() {
     host.shutdown();
     assert!(!host.socket().exists());
 }
+
+/// The checkpoint with Claude Code itself (it uses the user's account):
+/// `bin/heavy cargo test -p charted-cli --test agent -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn claude_code_builds_the_roadmap_page() {
+    let dir = tempfile::tempdir().unwrap();
+    // SAFETY: set before any thread of this test reads the environment.
+    unsafe {
+        std::env::set_var("XDG_RUNTIME_DIR", dir.path().join("run"));
+        std::env::set_var("CHARTED_AGENT_MCP", env!("CARGO_BIN_EXE_charted-headless"));
+        std::env::remove_var("CHARTED_AGENT_CMD");
+    }
+    let app = Arc::new(Mutex::new(App::new(dir.path().join("state"))));
+    app.lock()
+        .unwrap()
+        .handle(Request::OpenSample {
+            dir: Some(dir.path().join("p").display().to_string()),
+        })
+        .unwrap();
+    let host = Host::start(app.clone(), |_| {}).unwrap();
+    host.handle(AgentRequest::SetAgent {
+        agent: "claude".into(),
+        model: "sonnet".into(),
+    })
+    .unwrap();
+    host.handle(AgentRequest::Consent).unwrap();
+    let ask = |text: &str| {
+        host.handle(AgentRequest::Send {
+            text: text.into(),
+            page: None,
+            visuals: vec![],
+        })
+        .unwrap();
+        let started = Instant::now();
+        while host.status().running {
+            assert!(started.elapsed() < Duration::from_secs(600), "too slow");
+            std::thread::sleep(Duration::from_millis(500));
+        }
+        let turn = host.status().turns.last().unwrap().clone();
+        for item in &turn.items {
+            match item {
+                Item::Step { step } => println!(
+                    "  {} {}{}",
+                    if step.ok { "✓" } else { "✗" },
+                    step.text,
+                    step.detail
+                        .as_ref()
+                        .map(|d| format!("  [{}]", d.replace('\n', " | ")))
+                        .unwrap_or_default()
+                ),
+                Item::Text { text } => println!("  » {text}"),
+                Item::Error { message } => println!("  ! {message}"),
+                Item::Confirm { what, answer, .. } => println!("  ? {what} {answer:?}"),
+            }
+        }
+        println!(
+            "  {:?} cost {:?} in {:.0}s",
+            turn.status,
+            turn.cost_usd,
+            started.elapsed().as_secs_f64()
+        );
+        turn
+    };
+    println!("request 1");
+    let turn = ask(
+        "Build a page with sales by month as a line, sales by category as a donut and a region slicer.",
+    );
+    assert_eq!(turn.status, TurnStatus::Done);
+    let m = app.lock().unwrap().session().unwrap().project.model.clone();
+    let page = m
+        .report
+        .pages
+        .iter()
+        .max_by_key(|p| p.visuals.len())
+        .unwrap();
+    let types: Vec<_> = page
+        .visuals
+        .iter()
+        .map(|v| v.visual_type.as_str())
+        .collect();
+    println!("page {:?}: {types:?}", page.settings.name);
+    assert!(
+        types.contains(&"lineChart") && types.contains(&"donutChart") && types.contains(&"slicer")
+    );
+    println!("request 2 (a follow-up, in the same session)");
+    let turn = ask("Add a measure for average order value and show it as a card on that page.");
+    assert_eq!(turn.status, TurnStatus::Done);
+    host.shutdown();
+}

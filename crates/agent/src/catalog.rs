@@ -68,6 +68,27 @@ pub fn visual(ty: &str) -> Option<&'static VisualDef> {
         .find(|v| v.ty.eq_ignore_ascii_case(ty))
 }
 
+/// Each data visual's roles, for the agent ("lineChart: category, series, values, …").
+pub fn roles_summary() -> String {
+    catalog()
+        .visuals
+        .iter()
+        .filter(|v| !v.decor && !v.roles.is_empty())
+        .map(|v| {
+            format!(
+                "{}: {}",
+                v.ty,
+                v.roles
+                    .iter()
+                    .map(|r| r.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
 pub fn types() -> String {
     catalog()
         .visuals
