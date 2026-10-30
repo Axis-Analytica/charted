@@ -12,4 +12,8 @@ export type ProjectSnapshot = { name: string, path: string, model: Model, dirty:
 /**
  * What a Power BI import just brought across (shown once, until dismissed).
  */
-importReport?: ImportReport | null, };
+importReport?: ImportReport | null, 
+/**
+ * Why calculated tables and columns could not be computed, by table or column id.
+ */
+calcErrors: { [key in string]: string }, };

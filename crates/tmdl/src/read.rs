@@ -1,8 +1,9 @@
 //! Reads a Power BI semantic model — TMDL (a PBIP's `definition/` folder) or TMSL
 //! (`model.bim`) — into a charted model and its queries. What charted can't use is
 //! listed in the import report instead of being dropped silently:
-//! calculation groups, perspectives, translations, calculated tables and M
-//! queries it doesn't understand (their tables come in without data).
+//! calculation groups, perspectives, translations, field parameters and M queries it
+//! doesn't understand (their tables come in without data). Calculated tables come in as
+//! calculated tables.
 //!
 //! charted's own exports carry each table's query as an annotation (`chartedQuery`),
 //! and the exact type of date columns (`chartedDataType`), so they come back exactly.
@@ -54,6 +55,8 @@ struct ImColumn {
     description: Option<String>,
     annotations: BTreeMap<String, String>,
     row_number: bool,
+    /// Has the `ParameterMetadata` extended property (a field parameter's column).
+    parameter: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -410,6 +413,11 @@ fn tmdl_table(n: &Node, name: String) -> ImTable {
                 description: doc(c),
                 annotations: annotations(c),
                 row_number: cp.get("type").is_some_and(|t| t == "rowNumber"),
+                parameter: c.children.iter().any(|x| {
+                    x.text
+                        .trim_start()
+                        .starts_with("extendedProperty ParameterMetadata")
+                }),
                 name,
             }),
             "measure" => t.measures.push(ImMeasure {
@@ -684,6 +692,9 @@ fn read_bim(text: &str) -> Result<Sm, String> {
                 description: s(&c, "description"),
                 annotations: bim_annotations(&c),
                 row_number: kind == "rowNumber",
+                parameter: arr(&c, "extendedProperties")
+                    .iter()
+                    .any(|x| s(x, "name").as_deref() == Some("ParameterMetadata")),
             });
         }
         for me in arr(&t, "measures") {
@@ -909,6 +920,7 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             .and_then(|p| p.annotations.get("chartedQuery"))
             .or_else(|| t.annotations.get("chartedQuery"))
             .and_then(|j| serde_json::from_str(j).ok());
+        let mut calculated = None;
         let query = match (own, partition) {
             (Some(q), _) => Some(q),
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("m") => {
@@ -939,11 +951,21 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 }
             }
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("calculated") => {
-                skip(
-                    "table",
-                    t.name.clone(),
-                    "calculated tables aren't supported yet; it comes in without data",
-                );
+                // Field parameters are calculated tables of NAMEOF references.
+                let parameter = t.columns.iter().any(|c| c.parameter)
+                    || p.source.to_ascii_uppercase().contains("NAMEOF");
+                if parameter {
+                    skip(
+                        "table",
+                        t.name.clone(),
+                        "field parameters aren't supported yet; it comes in without data",
+                    );
+                } else {
+                    calculated = Some(CalculatedTable {
+                        expression: p.source.trim().to_string(),
+                        language: ExpressionLanguage::Dax,
+                    });
+                }
                 None
             }
             (None, Some(p)) => {
@@ -959,10 +981,11 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             }
             (None, None) => None,
         };
-        let source = query
-            .as_ref()
-            .map(|q| q.table.clone())
-            .unwrap_or_else(|| source_name(&t.name, &taken));
+        let source = match (&query, &calculated) {
+            (Some(q), _) => q.table.clone(),
+            (None, Some(_)) => calculated_table_source(&id),
+            (None, None) => source_name(&t.name, &taken),
+        };
         taken.push(source.clone());
         if let Some(q) = query {
             queries.push(q);
@@ -984,6 +1007,17 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                     Some(e) => ColumnKind::Calculated {
                         expression: e.clone(),
                         language: ExpressionLanguage::Dax,
+                    },
+                    // A calculated table's columns name their result column, as
+                    // `[Name]` or `Table[Name]`.
+                    None if calculated.is_some() => ColumnKind::Data {
+                        source_column: c
+                            .source_column
+                            .as_deref()
+                            .and_then(|s| s.strip_suffix(']'))
+                            .and_then(|s| s.rsplit_once('['))
+                            .map(|(_, n)| n.replace("]]", "]"))
+                            .unwrap_or_else(|| c.name.clone()),
                     },
                     None => ColumnKind::Data {
                         source_column: c.source_column.clone().unwrap_or_else(|| c.name.clone()),
@@ -1081,6 +1115,7 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             hierarchies,
             hidden: t.hidden,
             is_date_table: t.date_table,
+            calculated,
             extras: Default::default(),
         });
     }

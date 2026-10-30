@@ -4,6 +4,8 @@
 # the app with the sample so the demo in docs/demos/mN.md can be followed live.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Memory-capped and one at a time across checkouts and agents (see bin/heavy).
+[ -n "${CHARTED_HEAVY:-}" ] || exec bin/heavy "$0" "$@"
 . bin/env
 m="${1:?usage: bin/checkpoint m0}"
 out="$HOME/Work/charted-checkpoints/$m"
@@ -98,4 +100,5 @@ fi
 echo "Screenshots: $out"
 [ -n "${CHARTED_CHECKPOINT_NO_OPEN:-}" ] && exit 0
 echo "Opening charted with the sample. Follow docs/demos/$m.md."
-./target/debug/charted open "$demo"
+# Detached, so the demo window doesn't hold bin/heavy's lock while it stays open.
+setsid -f ./target/debug/charted open "$demo" >/dev/null 2>&1

@@ -5,7 +5,7 @@
 // creates one), and Enter does the same from the keyboard. Hovering shows a field's
 // description. Right-click (or Shift+F10) on a table, a field or the space around them
 // opens a menu to add measures, columns, hierarchies and groups, rename (F2), hide, edit
-// properties and delete.
+// properties and delete. "New table" opens the formula bar for a calculated table.
 import {
   CalendarDays,
   ChevronRight,
@@ -25,8 +25,9 @@ import {
   Settings2,
   Sparkles,
   SquareFunction,
-  Table2,
+  TableProperties,
   Trash2,
+  TriangleAlert,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { Change } from "../bridge/generated/Change";
@@ -45,7 +46,7 @@ import type { MenuEntry } from "../kit/Menu";
 import { useApp } from "../state/app";
 import { useDataView } from "../state/dataview";
 import { editVisual, fieldKey, newId, newVisual, sameField, useReport, withField, withFields, withoutField } from "../state/report";
-import { ColumnIcon, MeasureIcon } from "../views/icons";
+import { ColumnIcon, MeasureIcon, TableIcon } from "../views/icons";
 import { FIELD_MIME } from "./Canvas";
 import { FieldProperties, type PropsTarget } from "./FieldProperties";
 import { type FolderNode, folderString, folderTree, hierarchyFields, newHierarchy, withLevel } from "./fieldTree";
@@ -86,6 +87,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const commit = useApp((s) => s.commit);
   const edit = useApp((s) => s.edit);
   const { selected, select, field: current, set } = useReport();
+  const calcErrors = useApp((s) => s.state?.project?.calcErrors);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState<Set<string>>(() => new Set(model.tables.slice(0, 1).map((x) => x.id)));
   /** Folders are open until closed; hierarchies closed until opened. */
@@ -157,6 +159,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const menuKey = (e: React.KeyboardEvent) => e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey);
   const change = (label: string, c: Change) => commit(label, [c]);
   const paneItems = (): MenuEntry[] => [
+    { id: "new-table", label: t("New table"), icon: <TableProperties size={13} />, run: () => set({ formula: "table:new" }) },
     { id: "expand", label: t("Expand all"), icon: <ChevronsUpDown size={13} />, run: () => setAll(true) },
     { id: "collapse", label: t("Collapse all"), icon: <ChevronsDownUp size={13} />, run: () => setAll(false) },
     { id: "hidden", label: showHidden ? t("Don't show hidden fields") : t("View hidden fields"), icon: showHidden ? <EyeOff size={13} /> : <Eye size={13} />, run: () => setShowHidden((x) => !x) },
@@ -183,6 +186,19 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
       items: [
         ...newItems(tb),
         null,
+        ...(tb.calculated
+          ? [
+              { id: "edit-table", label: t("Edit formula"), icon: <SquareFunction size={13} />, run: () => set({ formula: `table:${tb.id}` }) },
+              {
+                id: "delete-table",
+                label: t("Delete table"),
+                icon: <Trash2 size={13} />,
+                run: async () => {
+                  if (await change("Delete table", { op: "removeTable", table: tb.id })) set({ formula: null, field: null });
+                },
+              },
+            ]
+          : []),
         { id: "rename", label: t("Rename"), icon: <Pencil size={13} />, shortcut: "F2", run: () => setRenaming(`t:${tb.id}`) },
         { id: "hide", label: tb.hidden ? t("Unhide") : t("Hide"), icon: tb.hidden ? <Eye size={13} /> : <EyeOff size={13} />, run: () => change(tb.hidden ? "Unhide table" : "Hide table", { op: "setTableHidden", table: tb.id, hidden: !tb.hidden }) },
         {
@@ -589,8 +605,13 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
                     }
                   >
                     <ChevronRight size={13} className={`tree-caret ${isOpen ? "is-open" : ""}`} />
-                    <Table2 size={14} />
+                    <TableIcon table={tb} />
                     <span>{tb.name}</span>
+                    {calcErrors?.[tb.id] && (
+                      <span className="field-error" role="img" aria-label={t("Error: %1", calcErrors[tb.id]!)} title={calcErrors[tb.id]}>
+                        <TriangleAlert size={13} />
+                      </span>
+                    )}
                   </button>
                 )}
                 <IconButton className="field-add" label={t("New measure in %1", tb.name)} icon={<Plus size={13} />} onPress={() => set({ formula: `new:${tb.id}` })} />

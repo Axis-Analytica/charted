@@ -5,6 +5,8 @@
 #   target/duckdb-download/<arch>/v2.0.0/libduckdb.so  (installed to /usr/lib/charted)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Memory-capped and one at a time across checkouts and agents (see bin/heavy).
+[ -n "${CHARTED_HEAVY:-}" ] || exec bin/heavy "$0" "$@"
 . bin/env
 (cd ui && pnpm install --frozen-lockfile >/dev/null && pnpm build)
 cargo build --release -p charted --features custom-protocol

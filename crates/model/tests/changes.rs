@@ -46,6 +46,7 @@ fn fixture() -> Model {
         hierarchies: vec![hierarchy("h-1", "Keys", &["c-s-date", "c-s-prod"])],
         hidden: false,
         is_date_table: false,
+        calculated: None,
         extras: Default::default(),
     };
     let product = Table {
@@ -61,12 +62,29 @@ fn fixture() -> Model {
         hierarchies: vec![],
         hidden: false,
         is_date_table: false,
+        calculated: None,
+        extras: Default::default(),
+    };
+    let top = Table {
+        id: "t-top".into(),
+        name: "Top".into(),
+        description: None,
+        source: calculated_table_source("t-top"),
+        columns: vec![col("c-t-cat", "Category", DataType::String)],
+        measures: vec![],
+        hierarchies: vec![],
+        hidden: false,
+        is_date_table: false,
+        calculated: Some(CalculatedTable {
+            expression: "VALUES ( Product[Category] )".into(),
+            language: ExpressionLanguage::Dax,
+        }),
         extras: Default::default(),
     };
     Model {
         name: "Sales".into(),
         description: None,
-        tables: vec![sales, product],
+        tables: vec![sales, product, top],
         relationships: vec![Relationship {
             id: "r-1".into(),
             from_table: "t-sales".into(),
@@ -195,6 +213,7 @@ fn arb_change() -> impl Strategy<Value = Change> {
     let table = prop_oneof![
         Just("t-sales".to_string()),
         Just("t-prod".to_string()),
+        Just("t-top".to_string()),
         Just("t-missing".to_string())
     ];
     let column = prop_oneof![
@@ -203,6 +222,7 @@ fn arb_change() -> impl Strategy<Value = Change> {
         Just("c-s-amt".to_string()),
         Just("c-p-key".to_string()),
         Just("c-p-cat".to_string()),
+        Just("c-t-cat".to_string()),
     ];
     let name = prop_oneof![
         Just("Sales".to_string()),
@@ -283,7 +303,31 @@ fn arb_change() -> impl Strategy<Value = Change> {
             },
             index: None,
         }),
-        (table, any::<bool>()).prop_map(|(table, hidden)| Change::SetTableHidden { table, hidden }),
+        (table.clone(), any::<bool>())
+            .prop_map(|(table, hidden)| Change::SetTableHidden { table, hidden }),
+        (table, "[A-Z]{1,3}").prop_map(|(table, n)| Change::SetTableExpression {
+            table,
+            expression: format!("TOPN ( {}, Product )", n.len()),
+        }),
+        name.prop_map(|name| Change::AddTable {
+            table: Table {
+                id: format!("t-calc-{name}"),
+                source: calculated_table_source(&format!("t-calc-{name}")),
+                name,
+                description: None,
+                columns: vec![],
+                measures: vec![],
+                hierarchies: vec![],
+                hidden: false,
+                is_date_table: false,
+                calculated: Some(CalculatedTable {
+                    expression: "Product".into(),
+                    language: ExpressionLanguage::Dax,
+                }),
+                extras: Default::default(),
+            },
+            index: Some(1),
+        }),
         hierarchy_change(),
         report_change(),
         role_change(),
@@ -633,4 +677,37 @@ fn roles_are_validated() {
     );
     assert!(matches!(missing, Err(ChangeError::UnknownTable { .. })));
     assert_eq!(model, fixture());
+}
+
+#[test]
+fn a_calculated_tables_expression_changes_and_undoes() {
+    let mut model = fixture();
+    let before = model.clone();
+    let inverse = apply(
+        &mut model,
+        Change::SetTableExpression {
+            table: "t-top".into(),
+            expression: "TOPN ( 3, Product )".into(),
+        },
+    )
+    .unwrap();
+    let calc = model.table("t-top").unwrap().calculated.clone().unwrap();
+    assert_eq!(calc.expression, "TOPN ( 3, Product )");
+    apply_all(&mut model, &inverse).unwrap();
+    assert_eq!(model, before);
+    // Only calculated tables have an expression.
+    let err = apply(
+        &mut model,
+        Change::SetTableExpression {
+            table: "t-sales".into(),
+            expression: "Product".into(),
+        },
+    )
+    .unwrap_err();
+    assert!(matches!(err, ChangeError::Invalid { .. }), "{err}");
+    assert_eq!(model, before);
+    // The definition survives JSON (the project file and the bridge).
+    let json = serde_json::to_string(&model).unwrap();
+    let back: Model = serde_json::from_str(&json).unwrap();
+    assert_eq!(back, model);
 }

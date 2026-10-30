@@ -752,6 +752,147 @@ expression: golden
 ## Green Category — by category
 "Camping" | "Camping"
 
+## Best Category Sales — card
+10138
+
+## Best Category Sales — by category
+∅ | 81
+"Apparel" | 6675
+"Camping" | 10138
+"Footwear" | 6519
+
+## Busy Categories — card
+3
+
+## Busy Categories — by category
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Sold Colors — card
+5
+
+## Sold Colors — by category
+∅ | 1
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## Qty Over Category Regions — card
+269
+
+## Qty Over Category Regions — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Selected Prices — card
+925
+
+## Selected Prices — by category
+"Apparel" | 255
+"Camping" | 460
+"Footwear" | 210
+
+## Best Category Qty — card
+111
+
+## Best Category Qty — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Days In Q1 2024 — card
+91
+
+## Days In Q1 2024 — by category
+∅ | 91
+"Apparel" | 91
+"Camping" | 91
+"Footwear" | 91
+
+## Odd Sum — card
+25
+
+## Odd Sum — by category
+∅ | 25
+"Apparel" | 25
+"Camping" | 25
+"Footwear" | 25
+
+## Best Category Units — card
+111
+
+## Best Category Units — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Last 3 Months Via Var — card
+18
+
+## Last 3 Months Via Var — by category
+"Apparel" | 10
+"Camping" | 4
+"Footwear" | 4
+
+## Var Table Twice — card
+115
+
+## Var Table Twice — by category
+∅ | 4
+"Apparel" | 112
+"Camping" | 83
+"Footwear" | 74
+
+## Average 12M Via Vars — card
+18.7
+
+## Average 12M Via Vars — by category
+∅ | 3
+"Apparel" | 9.125
+"Camping" | 7.4286
+"Footwear" | 6.5556
+
+## Qty Mod 7 — card
+3
+
+## Qty Mod 7 — by category
+∅ | 3
+"Apparel" | 6
+"Camping" | 5
+"Footwear" | 3
+
+## Negative Mod — card
+3
+
+## Negative Mod — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 2
+"Footwear" | 3
+
+## Latest Weekday — card
+7
+
+## Latest Weekday — by category
+∅ | 7
+"Apparel" | 7
+"Camping" | 7
+"Footwear" | 7
+
+## Weekday Sum — card
+170
+
+## Weekday Sum — by category
+∅ | 170
+"Apparel" | 170
+"Camping" | 170
+"Footwear" | 170
+
 ## Neither Apparel Nor Camping — card
 76
 

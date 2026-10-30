@@ -33,6 +33,11 @@ pub enum Change {
         table: Id,
         is_date_table: bool,
     },
+    /// A calculated table's DAX expression (the session re-syncs its columns).
+    SetTableExpression {
+        table: Id,
+        expression: String,
+    },
     RenameColumn {
         table: Id,
         column: Id,
@@ -479,6 +484,19 @@ pub fn apply(model: &mut Model, change: Change) -> Result<Vec<Change>> {
             Ok(vec![Change::SetDateTable {
                 table,
                 is_date_table: old,
+            }])
+        }
+        Change::SetTableExpression { table, expression } => {
+            let t = table_mut(model, &table)?;
+            let Some(calc) = t.calculated.as_mut() else {
+                return Err(ChangeError::Invalid {
+                    message: format!("\"{}\" is not a calculated table", t.name),
+                });
+            };
+            let old = std::mem::replace(&mut calc.expression, expression);
+            Ok(vec![Change::SetTableExpression {
+                table,
+                expression: old,
             }])
         }
         Change::RenameColumn {

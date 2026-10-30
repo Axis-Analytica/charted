@@ -80,6 +80,24 @@ pub fn diagnostics(text: &str, home: Option<String>) -> String {
     })
 }
 
+/// Problems in a table expression (a calculated table's formula).
+#[wasm_bindgen]
+pub fn table_diagnostics(text: &str) -> String {
+    MODEL.with(|cell| {
+        let model = cell.borrow();
+        let (_, diags) = charted_dax::check_table(&model, text);
+        let out: Vec<Diag> = diags
+            .into_iter()
+            .map(|d| Diag {
+                start: to_utf16(text, d.span.start),
+                end: to_utf16(text, d.span.end.max(d.span.start)),
+                message: d.message,
+            })
+            .collect();
+        json(&out)
+    })
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct CompletionOut {

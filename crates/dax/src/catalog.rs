@@ -35,6 +35,7 @@ AVERAGEX|Table; Expression|Aggregation|The mean of an expression evaluated for e
 BLANK||Information|Returns blank.
 CALCULATE|Expression; [Filter]…|Filter|Evaluates an expression in a filter context changed by the filters.
 CALCULATETABLE|Table; [Filter]…|Filter|Evaluates a table in a filter context changed by the filters.
+CALENDAR|StartDate; EndDate|Table|A table with one column, Date, of every date from the start date to the end date.
 CEILING|Number; Significance|Math|Rounds up to the nearest multiple of significance.
 COALESCE|Value1; Value2; [Value]…|Logical|The first argument that is not blank.
 CONCATENATE|Text1; Text2|Text|Joins two text strings.
@@ -71,6 +72,7 @@ FIRSTNONBLANK|Column; Expression|Filter|The first value of a column for which th
 FLOOR|Number; Significance|Math|Rounds down to the nearest multiple of significance.
 FORMAT|Value; FormatString|Text|Converts a value to text with a format string.
 GENERATE|Table1; Table2|Table|The cross join of each row of Table1 with Table2 evaluated in its context.
+GENERATESERIES|StartValue; EndValue; [IncrementValue]|Table|A table with one column, Value, of the numbers from the start value to the end value.
 HASONEVALUE|Column|Information|TRUE when the filter context leaves exactly one value of the column.
 HOUR|DateTime|Date and time|The hour of a time.
 IF|LogicalTest; ResultIfTrue; [ResultIfFalse]|Logical|Returns one value when a condition is TRUE and another when it is FALSE.
@@ -226,9 +228,12 @@ pub fn support_markdown() -> String {
            inactive relationship on inside CALCULATE. Changes that would give filters two active \
            paths between tables are refused, as in Power BI. Many-to-many relationships are \
            stored and exported but do not filter yet.\n\
-         - **Calculated columns** are evaluated per row with the table's columns, RELATED and \
-           scalar functions, and stored with the data; aggregates, measures and CALCULATE in \
-           calculated columns are not supported yet.\n\
+         - **Calculated columns** are evaluated per row of their table with no filters, and \
+           stored with the data. They may aggregate: `CALCULATE ( SUM ( Sales[Amount] ) )` and \
+           measures transition the row into a filter (on every column the row has), \
+           `SUM ( Sales[Amount] )` alone is the grand total, RELATEDTABLE, ALLEXCEPT shares, \
+           RANKX, EARLIER and variables work as in Power BI. They are recomputed on load, \
+           refresh and edits, as set-based SQL (a 20,000-row EARLIER rank takes about 0.3 s).\n\
          - **FILTER as a CALCULATE filter** may test measures and values from the outer \
            context, as running totals do: \
            `FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) )`. \
@@ -252,6 +257,14 @@ pub fn support_markdown() -> String {
            several different values are an error unless there is an alternate result. \
            **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context \
            and can be iterated or used as filters.\n\
+         - **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and \
+           used as calculated tables; their new columns are named `[Name]` in expressions \
+           over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each \
+           group's filter context; SUMMARIZECOLUMNS crosses the visible values of each \
+           table's group columns and leaves out rows whose new columns are all blank. \
+           **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.\n\
+         - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted \
+           and used as CALCULATE filters in the context where they're defined.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \

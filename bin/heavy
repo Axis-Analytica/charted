@@ -1,0 +1,47 @@
+#!/bin/bash
+# bin/heavy CMD... — runs a memory-hungry command (cargo build/test/clippy, Playwright,
+# long DAX golden runs) in its own memory-capped systemd scope, one at a time across
+# every checkout, worktree and agent on the machine.
+#
+# Why: on an 8 GB machine systemd-oomd kills the largest scope in app.slice once RAM and
+# swap both pass 90%. A build started from a terminal lives in that terminal's scope, so
+# oomd took the whole terminal (every Claude session in it, and their work) four times
+# in October 2026. In its own scope the job is slowed past MemoryHigh, killed on its own
+# past MemoryMax, and never takes the terminal down with it.
+#
+# Limits: CHARTED_HEAVY_HIGH (default 3G), CHARTED_HEAVY_MAX (4G), CHARTED_HEAVY_SWAP (2G).
+# Without a systemd user session (CI, containers) the command just runs.
+set -euo pipefail
+[ $# -gt 0 ] || { echo "usage: bin/heavy command [args...]" >&2; exit 2; }
+# Already inside a heavy scope (bin/test running bin/wasm, say), or no systemd: run as is.
+if [ -n "${CHARTED_HEAVY:-}" ] || ! command -v systemd-run >/dev/null || [ ! -S "${XDG_RUNTIME_DIR:-/nonexistent}/bus" ]; then
+  exec "$@"
+fi
+
+lock="$XDG_RUNTIME_DIR/charted-heavy.lock"
+exec 9>"$lock"
+if ! flock -n 9; then
+  echo "bin/heavy: waiting for another heavy job to finish: $(cat "$lock.who" 2>/dev/null || echo unknown)" >&2
+  flock 9
+fi
+echo "$(pwd): $*" > "$lock.who"
+
+# The inner shell reports the scope's peak memory and whether the cap killed anything.
+set +e
+CHARTED_HEAVY=1 systemd-run --user --scope --quiet --collect --unit="charted-heavy-$$" \
+  -p MemoryHigh="${CHARTED_HEAVY_HIGH:-3G}" -p MemoryMax="${CHARTED_HEAVY_MAX:-4G}" \
+  -p MemorySwapMax="${CHARTED_HEAVY_SWAP:-2G}" \
+  bash -c '
+    cg="/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)"
+    "$@"; rc=$?
+    peak=$(numfmt --to=iec <"$cg/memory.peak" 2>/dev/null || echo ?)
+    swap=$(numfmt --to=iec <"$cg/memory.swap.peak" 2>/dev/null || echo ?)
+    kills=$(awk "/^oom_kill /{print \$2}" "$cg/memory.events" 2>/dev/null)
+    echo "bin/heavy: exit $rc, peak memory $peak, peak swap $swap" >&2
+    if [ "${kills:-0}" -gt 0 ]; then
+      echo "bin/heavy: the memory cap killed $kills process(es); raise CHARTED_HEAVY_MAX or run less at once" >&2
+    fi
+    exit $rc' bash "$@" 9>&-
+rc=$?
+rm -f "$lock.who"
+exit $rc

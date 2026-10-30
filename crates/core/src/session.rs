@@ -113,6 +113,9 @@ pub struct ProjectSnapshot {
     /// What a Power BI import just brought across (shown once, until dismissed).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub import_report: Option<crate::pbimport::ImportReport>,
+    /// Why calculated tables and columns could not be computed, by table or column id.
+    #[serde(default)]
+    pub calc_errors: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -192,6 +195,8 @@ pub struct Session {
     schema: crate::visualq::Schema,
     /// What each calculated column was last computed from (expression, type, relationships).
     calc_state: std::collections::HashMap<String, String>,
+    /// Why calculated tables and columns could not be computed, by id.
+    calc_errors: std::collections::BTreeMap<String, String>,
     recovery: Option<RecoveryInfo>,
     pub import_report: Option<crate::pbimport::ImportReport>,
     /// Extensions the user agreed to download (set by the `App`).
@@ -266,6 +271,7 @@ impl Session {
             indexes: SharedIndexes::default(),
             schema,
             calc_state: Default::default(),
+            calc_errors: Default::default(),
             recovery,
             import_report: None,
             consent,
@@ -331,11 +337,22 @@ impl Session {
             warnings: self.project.warnings.clone(),
             recovery: self.recovery.clone(),
             import_report: self.import_report.clone(),
+            calc_errors: self.calc_errors.clone(),
         })
     }
 
     pub fn commit(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
-        let changes = self.prepare(changes)?;
+        let changes = self.prepare(changes, true)?;
+        self.commit_prepared(label, changes)
+    }
+
+    /// Commits changes charted made itself (they may set calculated tables' types).
+    fn commit_internal(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
+        let changes = self.prepare(changes, false)?;
+        self.commit_prepared(label, changes)
+    }
+
+    fn commit_prepared(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
         self.check_against_data(&changes)?;
         self.check_model(&changes)?;
         self.history
@@ -359,24 +376,93 @@ impl Session {
         Ok(())
     }
 
-    /// Fills in what the client cannot know: a new calculated column's type.
-    fn prepare(&self, mut changes: Vec<Change>) -> Result<Vec<Change>, CoreError> {
-        for c in &mut changes {
-            if let Change::AddColumn { table, column, .. } = c
-                && let ColumnKind::Calculated { expression, .. } = &column.kind
-                && column.data_type == charted_model::DataType::Unknown
-            {
-                let (_, ty) = charted_compiler::visual::calculated_column(
-                    &self.project.model,
-                    &self.schema,
+    /// Fills in what the client cannot know: a new calculated column's type, a
+    /// calculated table's storage and the columns its expression gives (re-synced when
+    /// the expression changes). `from_client`: the change came from a user, who can't
+    /// set the type of a calculated table's columns.
+    fn prepare(&self, changes: Vec<Change>, from_client: bool) -> Result<Vec<Change>, CoreError> {
+        let mut scratch = self.project.model.clone();
+        let mut out = Vec::with_capacity(changes.len());
+        for mut c in changes {
+            let mut extra = Vec::new();
+            match &mut c {
+                Change::AddColumn { table, column, .. } => {
+                    if let ColumnKind::Calculated { expression, .. } = &column.kind
+                        && column.data_type == charted_model::DataType::Unknown
+                    {
+                        let (_, ty) = charted_compiler::visual::calculated_column(
+                            &scratch,
+                            &self.schema,
+                            table,
+                            expression,
+                        )
+                        .map_err(|e| CoreError::Invalid(e.to_string()))?;
+                        column.data_type = charted_compiler::visual::value_type_to_data_type(ty);
+                    }
+                }
+                Change::AddTable { table, .. } if table.calculated.is_some() => {
+                    table.source = charted_model::calculated_table_source(&table.id);
+                    let has_data = table
+                        .columns
+                        .iter()
+                        .any(|c| matches!(c.kind, ColumnKind::Data { .. }));
+                    if !has_data {
+                        let expression = &table.calculated.as_ref().expect("calculated").expression;
+                        let (_, shape) = charted_compiler::visual::calculated_table(
+                            &scratch,
+                            &self.schema,
+                            expression,
+                        )
+                        .map_err(|e| CoreError::Invalid(format!("{}: {e}", table.name)))?;
+                        let calc: Vec<charted_model::Column> = std::mem::take(&mut table.columns);
+                        for (name, ty) in &shape {
+                            let mut col = new_column(name, *ty);
+                            if calc.iter().any(|c| c.name.eq_ignore_ascii_case(name)) {
+                                col.name = format!("{name} (data)");
+                            }
+                            table.columns.push(col);
+                        }
+                        table.columns.extend(calc);
+                    }
+                }
+                Change::SetTableExpression { table, expression } => {
+                    let t = scratch
+                        .table(table)
+                        .ok_or_else(|| ChangeError::UnknownTable { id: table.clone() })?;
+                    let (_, shape) = charted_compiler::visual::calculated_table(
+                        &scratch,
+                        &self.schema,
+                        expression,
+                    )
+                    .map_err(|e| CoreError::Invalid(format!("{}: {e}", t.name)))?;
+                    sync_columns(&scratch, t, &shape, &mut extra);
+                }
+                Change::SetColumn {
                     table,
-                    expression,
-                )
-                .map_err(|e| CoreError::Invalid(e.to_string()))?;
-                column.data_type = charted_compiler::visual::value_type_to_data_type(ty);
+                    column,
+                    property: ColumnProperty::DataType(_),
+                } if from_client => {
+                    if let Some(t) = scratch.table(table)
+                        && t.calculated.is_some()
+                        && t.column(column)
+                            .is_some_and(|c| matches!(c.kind, ColumnKind::Data { .. }))
+                    {
+                        return Err(CoreError::Invalid(
+                            "a calculated table's columns get their types from its expression"
+                                .into(),
+                        ));
+                    }
+                }
+                _ => {}
             }
+            charted_model::apply(&mut scratch, c.clone())?;
+            for e in &extra {
+                charted_model::apply(&mut scratch, e.clone())?;
+            }
+            out.push(c);
+            out.extend(extra);
         }
-        Ok(changes)
+        Ok(out)
     }
 
     /// Model rules that need the whole model: no new ambiguous filter paths, and
@@ -395,6 +481,31 @@ impl Session {
                 name(&b),
                 name(&a)
             )));
+        }
+        // No new circular dependencies between calculated tables and columns.
+        let graphed = changes.iter().any(|c| {
+            matches!(
+                c,
+                Change::AddTable { .. }
+                    | Change::SetTableExpression { .. }
+                    | Change::AddColumn { .. }
+                    | Change::AddMeasure { .. }
+                    | Change::UpdateMeasure { .. }
+                    | Change::SetColumn {
+                        property: ColumnProperty::Expression(_),
+                        ..
+                    }
+            )
+        });
+        if graphed {
+            let before = crate::calcgraph::build(&self.project.model).cycles;
+            let after_cycles = crate::calcgraph::build(&after).cycles;
+            if let Some((_, members)) = after_cycles
+                .iter()
+                .find(|(id, _)| !before.contains_key(*id))
+            {
+                return Err(CoreError::Invalid(crate::calcgraph::cycle_message(members)));
+            }
         }
         for c in changes {
             if let Change::AddRole { role, .. } | Change::UpdateRole { role } = c {
@@ -752,6 +863,11 @@ impl Session {
         } else {
             self.refresh_calculated();
         }
+        // Calculated tables reading the loaded tables may now have other columns.
+        let sync = self.calculated_table_sync();
+        if !sync.is_empty() {
+            self.commit_internal(label, sync)?;
+        }
         self.history.forget();
         self.write_recovery();
         Ok(())
@@ -766,7 +882,7 @@ impl Session {
         ids: &[String],
         gone: &[&Query],
     ) -> Result<Vec<Change>, CoreError> {
-        use charted_model::{Column, ColumnProperty, Summarize, Table};
+        use charted_model::Table;
         let model = &self.project.model;
         let old = &self.project.queries;
         let mut changes = Vec::new();
@@ -780,31 +896,6 @@ impl Session {
                 });
             }
         }
-        let new_column = |name: &str, data_type| Column {
-            id: uuid::Uuid::new_v4().to_string(),
-            name: name.to_string(),
-            data_type,
-            kind: ColumnKind::Data {
-                source_column: name.to_string(),
-            },
-            description: None,
-            format_string: None,
-            summarize_by: if name.ends_with("Key")
-                || name.ends_with("ID")
-                || name.ends_with("Id")
-                || name == "Year"
-            {
-                Summarize::None
-            } else {
-                Summarize::Default
-            },
-            data_category: None,
-            sort_by: None,
-            display_folder: None,
-            hidden: false,
-            is_key: false,
-            extras: Default::default(),
-        };
         let mut taken: Vec<String> = model.tables.iter().map(|t| t.name.to_lowercase()).collect();
         for q in queries.iter().filter(|q| ids.contains(&q.id) && !q.no_load) {
             let cols = self.db.describe(&sql::ident(&q.table))?;
@@ -833,6 +924,7 @@ impl Session {
                             hidden: false,
                             hierarchies: Vec::new(),
                             is_date_table: false,
+                            calculated: None,
                             extras: Default::default(),
                         },
                         index: None,
@@ -857,134 +949,241 @@ impl Session {
                         .iter()
                         .map(|c| (c.name.clone(), crate::types::from_duckdb(&c.duckdb_type)))
                         .collect();
-                    for c in &t.columns {
-                        let ColumnKind::Data { source_column } = &c.kind else {
-                            continue;
-                        };
-                        match physical.iter().find(|(n, _)| n == source_column) {
-                            None => {
-                                // What uses the column goes first.
-                                for r in model
-                                    .relationships
-                                    .iter()
-                                    .filter(|r| r.from_column == c.id || r.to_column == c.id)
-                                {
-                                    if !changes.iter().any(|x| matches!(x, Change::RemoveRelationship { relationship } if *relationship == r.id)) {
-                                        changes.push(Change::RemoveRelationship { relationship: r.id.clone() });
-                                    }
-                                }
-                                for other in t
-                                    .columns
-                                    .iter()
-                                    .filter(|o| o.sort_by.as_deref() == Some(c.id.as_str()))
-                                {
-                                    changes.push(Change::SetColumn {
-                                        table: t.id.clone(),
-                                        column: other.id.clone(),
-                                        property: ColumnProperty::SortBy(None),
-                                    });
-                                }
-                                changes.push(Change::RemoveColumn {
-                                    table: t.id.clone(),
-                                    column: c.id.clone(),
-                                });
-                            }
-                            Some((_, ty))
-                                if *ty != c.data_type
-                                    && c.data_type != charted_model::DataType::Unknown =>
-                            {
-                                changes.push(Change::SetColumn {
-                                    table: t.id.clone(),
-                                    column: c.id.clone(),
-                                    property: ColumnProperty::DataType(*ty),
-                                });
-                            }
-                            _ => {}
-                        }
-                    }
-                    for (name, ty) in &physical {
-                        let known = t.columns.iter().any(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == name));
-                        if !known && !name.starts_with("__calc_") {
-                            let mut col = new_column(name, *ty);
-                            // Keep column names unique next to calculated columns.
-                            if t.columns.iter().any(|c| c.name.eq_ignore_ascii_case(name)) {
-                                col.name = format!("{name} (data)");
-                            }
-                            changes.push(Change::AddColumn {
-                                table: t.id.clone(),
-                                column: col,
-                                index: None,
-                            });
-                        }
-                    }
+                    sync_columns(model, t, &physical, &mut changes);
                 }
             }
         }
         Ok(changes)
     }
 
-    fn refresh_calculated(&mut self) {
-        let model = self.project.model.clone();
-        let rels = serde_json::to_string(&model.relationships).unwrap_or_default();
-        let mut pending: Vec<(
-            &charted_model::Table,
-            &charted_model::Column,
-            String,
-            String,
-        )> = Vec::new();
-        for t in &model.tables {
-            for c in &t.columns {
-                if let ColumnKind::Calculated { expression, .. } = &c.kind {
-                    let sig = format!("{expression}\u{0}{:?}\u{0}{rels}", c.data_type);
-                    if self.calc_state.get(&c.id) != Some(&sig) {
-                        pending.push((t, c, expression.clone(), sig));
-                    }
-                }
+    /// Changes giving each calculated table the columns its expression now has.
+    fn calculated_table_sync(&self) -> Vec<Change> {
+        let model = &self.project.model;
+        let mut changes = Vec::new();
+        for t in model.tables.iter().filter(|t| t.calculated.is_some()) {
+            let expression = &t.calculated.as_ref().expect("calculated").expression;
+            if let Ok((_, shape)) =
+                charted_compiler::visual::calculated_table(model, &self.schema, expression)
+            {
+                sync_columns(model, t, &shape, &mut changes);
             }
         }
-        // Columns that use other calculated columns wait for them: retry while progressing.
-        let mut changed = false;
-        loop {
-            let mut progress = false;
-            let mut rest = Vec::new();
-            for (t, c, expression, sig) in pending {
-                match charted_compiler::visual::calculated_column(
-                    &model,
-                    &self.schema,
-                    &t.id,
-                    &expression,
-                ) {
-                    Ok((select, _)) => {
-                        let col = sql::ident(&charted_compiler::calc_column_name(&c.id));
-                        let src = sql::ident(&t.source);
-                        let ty = charted_compiler::sqltype(c.data_type).unwrap_or("VARCHAR");
-                        let script = format!(
-                            "ALTER TABLE {src} DROP COLUMN IF EXISTS {col}; ALTER TABLE {src} ADD COLUMN {col} {ty}; \
-                             UPDATE {src} SET {col} = TRY_CAST(s.v AS {ty}) FROM ({select}) AS s WHERE {src}.rowid = s.rid;"
-                        );
-                        match self.db.execute(&script) {
-                            Ok(()) => {
-                                self.calc_state.insert(c.id.clone(), sig);
-                                // Later columns see this one.
-                                self.schema = crate::visualq::Schema::read(&self.db, &model);
-                                progress = true;
-                                changed = true;
-                            }
-                            Err(e) => {
-                                tracing::warn!("could not compute {}[{}]: {e}", t.name, c.name)
-                            }
+        changes
+    }
+
+    /// Computes the calculated tables and columns whose definition, or anything they
+    /// read, changed: dependencies first (see [`crate::calcgraph`]). Each item's
+    /// signature covers its expression, types, the relationships, the measures it uses
+    /// and the signatures of what it reads, so an unchanged item is skipped. Errors
+    /// (unsupported expressions, SQL errors, cycles) leave the table empty or the column
+    /// blank and are kept in `calc_errors`.
+    fn refresh_calculated(&mut self) {
+        use crate::calcgraph::{self, Item};
+        use std::hash::{Hash, Hasher};
+        let model = self.project.model.clone();
+        let graph = calcgraph::build(&model);
+        let rels = serde_json::to_string(&model.relationships).unwrap_or_default();
+        let ids: std::collections::HashSet<&str> = graph.order.iter().map(|i| i.id()).collect();
+        self.calc_state.retain(|k, _| ids.contains(k.as_str()));
+        self.calc_errors.retain(|k, _| ids.contains(k.as_str()));
+        self.drop_stale_calculated_tables(&model);
+        let mut sigs: std::collections::HashMap<&str, String> = Default::default();
+        for item in &graph.order {
+            let id = item.id();
+            let Some(t) = model.table(item.table()) else {
+                continue;
+            };
+            let mut h = std::collections::hash_map::DefaultHasher::new();
+            match item {
+                Item::Table { .. } => {
+                    if let Some(c) = &t.calculated {
+                        (&c.expression, format!("{:?}", c.language)).hash(&mut h);
+                    }
+                    for c in &t.columns {
+                        if let ColumnKind::Data { source_column } = &c.kind {
+                            (source_column, format!("{:?}", c.data_type)).hash(&mut h);
                         }
                     }
-                    Err(_) => rest.push((t, c, expression, sig)),
+                }
+                Item::Column { column, .. } => {
+                    if let Some(c) = t.column(column)
+                        && let ColumnKind::Calculated { expression, .. } = &c.kind
+                    {
+                        (expression, format!("{:?}", c.data_type)).hash(&mut h);
+                    }
                 }
             }
-            pending = rest;
-            if !progress || pending.is_empty() {
-                break;
+            rels.hash(&mut h);
+            graph.measures.get(id).hash(&mut h);
+            for d in graph.deps.get(id).into_iter().flatten() {
+                sigs.get(d.as_str()).hash(&mut h);
             }
-        }
-        if changed {
+            let sig = format!("{:016x}", h.finish());
+            sigs.insert(id, sig.clone());
+            if self.calc_state.get(id) == Some(&sig) {
+                continue;
+            }
+            let result = match (graph.cycles.get(id), item) {
+                (Some(members), _) => Err(calcgraph::cycle_message(members)),
+                (None, Item::Table { .. }) => self.compute_table(&model, t),
+                (None, Item::Column { column, .. }) => self.compute_column(&model, t, column),
+            };
+            match result {
+                Ok(()) => {
+                    self.calc_errors.remove(id);
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "could not compute {}: {e}",
+                        calcgraph::item_name(&model, item)
+                    );
+                    // Left empty, so what reads it still runs.
+                    let empty = match item {
+                        Item::Table { .. } => self.empty_table(t),
+                        Item::Column { column, .. } => self.blank_column(t, column),
+                    };
+                    if let Err(e2) = empty {
+                        tracing::warn!(
+                            "could not empty {}: {e2}",
+                            calcgraph::item_name(&model, item)
+                        );
+                    }
+                    self.calc_errors.insert(id.to_string(), e);
+                }
+            }
+            self.calc_state.insert(id.to_string(), sig);
+            // Later items see this one.
             self.schema = crate::visualq::Schema::read(&self.db, &model);
+        }
+    }
+
+    /// Materialises a calculated table with exactly its model columns and types.
+    fn compute_table(&self, model: &Model, t: &charted_model::Table) -> Result<(), String> {
+        let calc = t.calculated.as_ref().expect("calculated table");
+        if calc.language != charted_model::ExpressionLanguage::Dax {
+            return Err("only DAX calculated tables can be computed".into());
+        }
+        let (select, shape) =
+            charted_compiler::visual::calculated_table(model, &self.schema, &calc.expression)
+                .map_err(|e| e.to_string())?;
+        let data: Vec<(&str, charted_model::DataType)> = t
+            .columns
+            .iter()
+            .filter_map(|c| match &c.kind {
+                ColumnKind::Data { source_column } => Some((source_column.as_str(), c.data_type)),
+                _ => None,
+            })
+            .collect();
+        let body = if data.is_empty() {
+            select
+        } else {
+            let cols: Vec<String> = data
+                .iter()
+                .map(|(name, ty)| {
+                    let n = sql::ident(name);
+                    let has = shape.iter().any(|(s, _)| s == name);
+                    match (has, charted_compiler::sqltype(*ty)) {
+                        (true, Some(st)) => format!("TRY_CAST(s.{n} AS {st}) AS {n}"),
+                        (true, None) => format!("s.{n} AS {n}"),
+                        (false, Some(st)) => format!("CAST(NULL AS {st}) AS {n}"),
+                        (false, None) => format!("NULL AS {n}"),
+                    }
+                })
+                .collect();
+            format!("SELECT {} FROM ({select}) AS s", cols.join(", "))
+        };
+        self.db
+            .execute(&format!(
+                "CREATE OR REPLACE TABLE {} AS {body}",
+                sql::ident(&t.source)
+            ))
+            .map_err(|e| e.to_string())
+    }
+
+    /// An empty calculated table with its model columns.
+    fn empty_table(&self, t: &charted_model::Table) -> Result<(), DbError> {
+        let mut cols: Vec<String> = t
+            .columns
+            .iter()
+            .filter_map(|c| match &c.kind {
+                ColumnKind::Data { source_column } => Some(format!(
+                    "{} {}",
+                    sql::ident(source_column),
+                    charted_compiler::sqltype(c.data_type).unwrap_or("VARCHAR")
+                )),
+                _ => None,
+            })
+            .collect();
+        if cols.is_empty() {
+            cols.push("\"__empty\" INTEGER".into());
+        }
+        self.db.execute(&format!(
+            "CREATE OR REPLACE TABLE {} ({})",
+            sql::ident(&t.source),
+            cols.join(", ")
+        ))
+    }
+
+    /// Stores a calculated column's values in a column of its table's data.
+    fn compute_column(
+        &self,
+        model: &Model,
+        t: &charted_model::Table,
+        column: &str,
+    ) -> Result<(), String> {
+        let Some(c) = t.column(column) else {
+            return Ok(());
+        };
+        let ColumnKind::Calculated { expression, .. } = &c.kind else {
+            return Ok(());
+        };
+        let (select, _) =
+            charted_compiler::visual::calculated_column(model, &self.schema, &t.id, expression)
+                .map_err(|e| e.to_string())?;
+        let col = sql::ident(&charted_compiler::calc_column_name(&c.id));
+        let src = sql::ident(&t.source);
+        let ty = charted_compiler::sqltype(c.data_type).unwrap_or("VARCHAR");
+        let script = format!(
+            "ALTER TABLE {src} DROP COLUMN IF EXISTS {col}; ALTER TABLE {src} ADD COLUMN {col} {ty}; \
+             UPDATE {src} SET {col} = TRY_CAST(s.v AS {ty}) FROM ({select}) AS s WHERE {src}.rowid = s.rid;"
+        );
+        self.db.execute(&script).map_err(|e| e.to_string())
+    }
+
+    /// A calculated column with no values.
+    fn blank_column(&self, t: &charted_model::Table, column: &str) -> Result<(), DbError> {
+        let Some(c) = t.column(column) else {
+            return Ok(());
+        };
+        let col = sql::ident(&charted_compiler::calc_column_name(&c.id));
+        let src = sql::ident(&t.source);
+        let ty = charted_compiler::sqltype(c.data_type).unwrap_or("VARCHAR");
+        self.db.execute(&format!(
+            "ALTER TABLE {src} DROP COLUMN IF EXISTS {col}; ALTER TABLE {src} ADD COLUMN {col} {ty};"
+        ))
+    }
+
+    /// Drops the data of calculated tables that left the model (undo brings it back by
+    /// computing the table again).
+    fn drop_stale_calculated_tables(&self, model: &Model) {
+        let Ok(rows) = self.db.json_rows(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main' AND starts_with(table_name, '__calc_table_')",
+            None,
+        ) else {
+            return;
+        };
+        for row in rows {
+            let Some(name) = serde_json::from_str::<serde_json::Value>(&row)
+                .ok()
+                .and_then(|v| v["table_name"].as_str().map(str::to_string))
+            else {
+                continue;
+            };
+            if !model.tables.iter().any(|t| t.source == name) {
+                let _ = self
+                    .db
+                    .execute(&format!("DROP TABLE IF EXISTS {}", sql::ident(&name)));
+            }
         }
     }
 
@@ -1154,4 +1353,108 @@ fn whole_model_changes(from: &Model, to: &Model) -> Vec<Change> {
         filters: to.report.filters.clone(),
     });
     changes
+}
+
+/// A data column as charted adds it for a loaded or computed column.
+fn new_column(name: &str, data_type: charted_model::DataType) -> charted_model::Column {
+    use charted_model::Summarize;
+    charted_model::Column {
+        id: uuid::Uuid::new_v4().to_string(),
+        name: name.to_string(),
+        data_type,
+        kind: ColumnKind::Data {
+            source_column: name.to_string(),
+        },
+        description: None,
+        format_string: None,
+        summarize_by: if name.ends_with("Key")
+            || name.ends_with("ID")
+            || name.ends_with("Id")
+            || name == "Year"
+        {
+            Summarize::None
+        } else {
+            Summarize::Default
+        },
+        data_category: None,
+        sort_by: None,
+        display_folder: None,
+        hidden: false,
+        is_key: false,
+        extras: Default::default(),
+    }
+}
+
+/// Changes bringing a table's data columns in line with `physical` (the loaded or
+/// computed columns): missing ones go with what uses them, changed types follow and
+/// new ones are added. Columns that keep their name keep their properties.
+fn sync_columns(
+    model: &Model,
+    t: &charted_model::Table,
+    physical: &[(String, charted_model::DataType)],
+    changes: &mut Vec<Change>,
+) {
+    for c in &t.columns {
+        let ColumnKind::Data { source_column } = &c.kind else {
+            continue;
+        };
+        match physical.iter().find(|(n, _)| n == source_column) {
+            None => {
+                // What uses the column goes first.
+                for r in model
+                    .relationships
+                    .iter()
+                    .filter(|r| r.from_column == c.id || r.to_column == c.id)
+                {
+                    if !changes.iter().any(|x| matches!(x, Change::RemoveRelationship { relationship } if *relationship == r.id)) {
+                        changes.push(Change::RemoveRelationship {
+                            relationship: r.id.clone(),
+                        });
+                    }
+                }
+                for other in t
+                    .columns
+                    .iter()
+                    .filter(|o| o.sort_by.as_deref() == Some(c.id.as_str()))
+                {
+                    changes.push(Change::SetColumn {
+                        table: t.id.clone(),
+                        column: other.id.clone(),
+                        property: ColumnProperty::SortBy(None),
+                    });
+                }
+                changes.push(Change::RemoveColumn {
+                    table: t.id.clone(),
+                    column: c.id.clone(),
+                });
+            }
+            Some((_, ty))
+                if *ty != c.data_type && c.data_type != charted_model::DataType::Unknown =>
+            {
+                changes.push(Change::SetColumn {
+                    table: t.id.clone(),
+                    column: c.id.clone(),
+                    property: ColumnProperty::DataType(*ty),
+                });
+            }
+            _ => {}
+        }
+    }
+    for (name, ty) in physical {
+        let known = t.columns.iter().any(
+            |c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == name),
+        );
+        if !known && !name.starts_with("__calc_") {
+            let mut col = new_column(name, *ty);
+            // Keep column names unique next to calculated columns.
+            if t.columns.iter().any(|c| c.name.eq_ignore_ascii_case(name)) {
+                col.name = format!("{name} (data)");
+            }
+            changes.push(Change::AddColumn {
+                table: t.id.clone(),
+                column: col,
+                index: None,
+            });
+        }
+    }
 }

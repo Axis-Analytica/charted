@@ -8,7 +8,7 @@ import { useShortcut } from "../app/shortcuts";
 import { useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
 import { Menu } from "../kit/Menu";
-import { ColumnIcon, MeasureIcon } from "../views/icons";
+import { ColumnIcon, MeasureIcon, TableIcon } from "../views/icons";
 import { useApp } from "../state/app";
 import { newId } from "../state/report";
 import { arrow, CARD_W, cardHeight, edge, type Point } from "./geometry";
@@ -327,6 +327,11 @@ export function ModelView({ model }: { model: Model }) {
                       }}
                     >
                       <span className="model-card-title">{tbl.name}</span>
+                      {tbl.calculated && (
+                        <span className="model-card-badge">
+                          <TableIcon table={tbl} size={13} />
+                        </span>
+                      )}
                       {tbl.isDateTable && (
                         <span className="model-card-badge" title={t("Date table")}>
                           <CalendarDays size={13} />

@@ -260,6 +260,8 @@ struct RowBinding {
     identity: Vec<Id>,
     /// Every column the row has: context transition replaces the filters on them.
     covers: Vec<Id>,
+    /// Types of columns added to the rows (ADDCOLUMNS…), by key.
+    ext_types: Vec<(Id, ValueType)>,
     /// RELATED lookups: (table, column) → frame column.
     related: Vec<((Id, Id), String)>,
 }
@@ -353,6 +355,7 @@ fn row_pure(b: &Bound) -> bool {
                 | Bound::Aggregate { .. }
                 | Bound::Rank { .. }
                 | Bound::ConcatX { .. }
+                | Bound::Earlier { .. }
                 | Bound::Calculate { .. }
                 | Bound::Info { .. }
                 | Bound::Var(_)
@@ -767,6 +770,26 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
             )
         }
         ScalarFunc::Today => ("current_date".into(), ValueType::Date),
+        ScalarFunc::Mod => {
+            let (x, d) = (
+                format!("coalesce(CAST({} AS DOUBLE), 0)", a[0].0),
+                format!("coalesce(CAST({} AS DOUBLE), 0)", a[1].0),
+            );
+            (
+                format!("(CASE WHEN {d} = 0 THEN NULL ELSE {x} - {d} * floor({x} / {d}) END)"),
+                num,
+            )
+        }
+        ScalarFunc::Weekday => {
+            let d = date_sql(&a[0]);
+            let kind = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());
+            (
+                format!(
+                    "(CASE {kind} WHEN 2 THEN isodow({d}) WHEN 3 THEN isodow({d}) - 1 ELSE dayofweek({d}) + 1 END)"
+                ),
+                num,
+            )
+        }
         ScalarFunc::EoMonth => (
             format!(
                 "last_day(CAST(date_trunc('month', {}) + to_months(CAST({} AS INTEGER)) AS DATE))",
@@ -1032,6 +1055,15 @@ impl<'a> Compiler<'a> {
             _ => raw,
         };
         Ok((sql, ValueType::of(c.data_type)))
+    }
+
+    /// The table a column belongs to (ids are unique across tables).
+    fn table_of(&self, column: &str) -> Option<Id> {
+        self.model
+            .tables
+            .iter()
+            .find(|t| t.column(column).is_some())
+            .map(|t| t.id.clone())
     }
 
     fn column_type(&self, table_id: &str, column: &str) -> DataType {
@@ -1388,14 +1420,9 @@ impl<'a> Compiler<'a> {
                     "iterating a time-intelligence table (use it as a CALCULATE filter)".into(),
                 ));
             }
-            TableExpr::Filter { .. }
-            | TableExpr::AllSelected { .. }
-            | TableExpr::TopN { .. }
-            | TableExpr::CalculateTable { .. } => {
-                unreachable!(
-                    "filters and ALLSELECTED were unwrapped; TOPN and CALCULATETABLE take the frame path"
-                )
-            }
+            _ => unreachable!(
+                "filters and ALLSELECTED were unwrapped; other tables take the frame path"
+            ),
         };
         let mut related: Vec<(Id, Id)> = Vec::new();
         if let Some(a) = arg {
@@ -2076,6 +2103,25 @@ impl<'a> Compiler<'a> {
                     _ => unreachable!("matched above"),
                 }
             }
+            // Tables with added columns filter by their model columns.
+            TableExpr::AddColumns { .. }
+            | TableExpr::SelectColumns { .. }
+            | TableExpr::Summarize { .. }
+            | TableExpr::SummarizeColumns { .. }
+            | TableExpr::Calendar { .. }
+            | TableExpr::GenerateSeries { .. } => {
+                if !t
+                    .shape(self.model)
+                    .iter()
+                    .any(|(k, _)| !k.starts_with('\u{0}'))
+                {
+                    return Err(CompileError::Unsupported(
+                        "a table of only new columns as a filter".into(),
+                    ));
+                }
+                let f = self.filter_set(t, outer, frame, rows)?;
+                added.push((f, true));
+            }
             // CALCULATETABLE as a filter: its rows per frame row.
             TableExpr::CalculateTable { source, .. } => {
                 let replaces = matches!(
@@ -2172,14 +2218,15 @@ impl<'a> Compiler<'a> {
                     !f.columns.iter().any(|col| r.covers.contains(col))
                 }
             });
-            for col in &r.identity {
-                if let Some((_, name)) = r.columns.iter().find(|(c, _)| c == col) {
-                    c.keys.push(Key {
-                        name: name.clone(),
-                        table: r.table.clone(),
-                        column: col.clone(),
-                    });
-                }
+            // Every column the row has becomes a filter (ALLEXCEPT may keep some of them),
+            // on its own table (SUMMARIZE's rows carry related columns); added columns
+            // don't filter.
+            for (col, name) in r.columns.iter().filter(|(c, _)| !c.starts_with('\u{0}')) {
+                c.keys.push(Key {
+                    name: name.clone(),
+                    table: self.table_of(col).unwrap_or_else(|| r.table.clone()),
+                    column: col.clone(),
+                });
             }
         }
         c
@@ -2285,6 +2332,104 @@ impl<'a> Compiler<'a> {
                 ValueType::Number
             },
         })
+    }
+
+    /// A row frame materialised with columns added (`(key, value, lineage)`): the rows
+    /// that pass `keep` (unrendered SQL), joined back to the outer frame. With `only`,
+    /// the rows keep just the added columns (and the model columns they repeat).
+    #[allow(clippy::too_many_arguments)]
+    fn add_columns(
+        &mut self,
+        rf: RowFrame,
+        added: Vec<(Id, Scalar, Option<Id>)>,
+        only: bool,
+        keep: Option<String>,
+        conds: Vec<&Bound>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<RowFrame> {
+        let rel = rf.frame.rel.clone();
+        let mut binding = rf.rows.last().cloned().expect("the iterated row");
+        let combined = Scalar {
+            sql: added
+                .iter()
+                .map(|(_, v, _)| v.sql.clone())
+                .chain(rf.conds.iter().cloned())
+                .chain(keep.iter().cloned())
+                .collect(),
+            ty: ValueType::Number,
+        };
+        let (_, from) = self.render(&combined, &rel);
+        let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+        let mut select: Vec<String> = keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
+        if only {
+            binding.columns.clear();
+            binding.related.clear();
+            binding.identity.clear();
+            binding.covers.clear();
+        } else {
+            let cols: Vec<String> = binding
+                .columns
+                .iter()
+                .map(|(_, n)| n.clone())
+                .chain(binding.related.iter().map(|(_, n)| n.clone()))
+                .collect();
+            select.extend(cols.iter().map(|n| format!("f.{n} AS {n}")));
+        }
+        for (key, v, lineage) in &added {
+            let n = self.fresh("r");
+            select.push(format!("{} AS {n}", self.render(v, &rel).0));
+            if let (true, Some(col)) = (only, lineage) {
+                binding.columns.push((col.clone(), n.clone()));
+                binding.identity.push(col.clone());
+                binding.covers.push(col.clone());
+            }
+            binding.columns.push((key.clone(), n));
+            binding.ext_types.push((key.clone(), v.ty));
+        }
+        let mut wh: Vec<String> = rf
+            .conds
+            .iter()
+            .map(|c| {
+                self.render(
+                    &Scalar {
+                        sql: c.clone(),
+                        ty: ValueType::Bool,
+                    },
+                    &rel,
+                )
+                .0
+            })
+            .collect();
+        if let Some(k) = &keep {
+            wh.push(
+                self.render(
+                    &Scalar {
+                        sql: format!("({k})"),
+                        ty: ValueType::Bool,
+                    },
+                    &rel,
+                )
+                .0,
+            );
+        }
+        let rows_name = self.fresh("rows");
+        self.ctes.push(CteDef {
+            name: rows_name.clone(),
+            sql: format!(
+                "SELECT {} FROM {from}{}",
+                select.join(", "),
+                if wh.is_empty() {
+                    String::new()
+                } else {
+                    format!(" WHERE {}", wh.join(" AND "))
+                }
+            ),
+            keys: Vec::new(),
+            exact: true,
+        });
+        self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows)
     }
 
     /// TOPN's rows: the source's frame rows ranked by the order values within each outer
@@ -2674,6 +2819,263 @@ impl<'a> Compiler<'a> {
             }
             return Ok(rf);
         }
+        match cur {
+            TableExpr::AddColumns { source, cols } | TableExpr::SelectColumns { source, cols } => {
+                let exprs: Vec<&Bound> = cols.iter().map(|(_, x)| x).collect();
+                let rf = self.row_frame(source, &exprs, ctx, frame, rows)?;
+                let mut added = Vec::new();
+                for (name, x) in cols {
+                    let v = self.scalar(x, ctx, &rf.frame, &rf.rows)?;
+                    let lineage = match x {
+                        Bound::Column { column, .. } => Some(column.clone()),
+                        _ => None,
+                    };
+                    added.push((charted_dax::bind::ext_key(name), v, lineage));
+                }
+                let only = matches!(cur, TableExpr::SelectColumns { .. });
+                return self.add_columns(rf, added, only, None, conds, ctx, frame, rows);
+            }
+            TableExpr::Summarize { source, group } => {
+                let refs: Vec<Bound> = group
+                    .iter()
+                    .map(|(t, c)| Bound::Related {
+                        table: t.clone(),
+                        column: c.clone(),
+                    })
+                    .collect();
+                let rf =
+                    self.row_frame(source, &refs.iter().collect::<Vec<_>>(), ctx, frame, rows)?;
+                let mut values = Vec::new();
+                for r in &refs {
+                    values.push(self.scalar(r, ctx, &rf.frame, &rf.rows)?);
+                }
+                let base = rf.rows.last().map(|b| b.table.clone()).unwrap_or_default();
+                let rel = rf.frame.rel.clone();
+                let combined = Scalar {
+                    sql: values
+                        .iter()
+                        .map(|v| v.sql.clone())
+                        .chain(rf.conds.iter().cloned())
+                        .collect(),
+                    ty: ValueType::Number,
+                };
+                let (_, from) = self.render(&combined, &rel);
+                let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+                let mut select: Vec<String> =
+                    keys.iter().map(|k| format!("f.{k} AS {k}")).collect();
+                let mut binding = RowBinding {
+                    table: base,
+                    columns: Vec::new(),
+                    identity: group.iter().map(|(_, c)| c.clone()).collect(),
+                    covers: group.iter().map(|(_, c)| c.clone()).collect(),
+                    ext_types: Vec::new(),
+                    related: Vec::new(),
+                };
+                for ((_, c), v) in group.iter().zip(&values) {
+                    let n = self.fresh("r");
+                    select.push(format!("{} AS {n}", self.render(v, &rel).0));
+                    binding.columns.push((c.clone(), n));
+                }
+                let wh: Vec<String> = rf
+                    .conds
+                    .iter()
+                    .map(|c| {
+                        self.render(
+                            &Scalar {
+                                sql: c.clone(),
+                                ty: ValueType::Bool,
+                            },
+                            &rel,
+                        )
+                        .0
+                    })
+                    .collect();
+                let rows_name = self.fresh("rows");
+                self.ctes.push(CteDef {
+                    name: rows_name.clone(),
+                    sql: format!(
+                        "SELECT DISTINCT {} FROM {from}{}",
+                        select.join(", "),
+                        if wh.is_empty() {
+                            String::new()
+                        } else {
+                            format!(" WHERE {}", wh.join(" AND "))
+                        }
+                    ),
+                    keys: Vec::new(),
+                    exact: true,
+                });
+                return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
+            }
+            TableExpr::SummarizeColumns {
+                group,
+                filters,
+                cols,
+            } => {
+                let inner = self.calculate_ctx(ctx, filters, frame, rows)?;
+                let mut tables: Vec<Id> = Vec::new();
+                for (t, _) in group {
+                    if !tables.contains(t) {
+                        tables.push(t.clone());
+                    }
+                }
+                let outer_rel = if frame.rel == "k" {
+                    self.domain()?
+                } else {
+                    frame.rel.clone()
+                };
+                let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+                let mut select: Vec<String> =
+                    keys.iter().map(|k| format!("o.{k} AS {k}")).collect();
+                let mut from = format!("{outer_rel} AS o");
+                let mut binding = RowBinding {
+                    table: tables[0].clone(),
+                    columns: Vec::new(),
+                    identity: group.iter().map(|(_, c)| c.clone()).collect(),
+                    covers: group.iter().map(|(_, c)| c.clone()).collect(),
+                    ext_types: Vec::new(),
+                    related: Vec::new(),
+                };
+                // Each table's visible combinations of its group columns, crossed.
+                for (i, t) in tables.iter().enumerate() {
+                    let cols_t: Vec<Id> = group
+                        .iter()
+                        .filter(|(x, _)| x == t)
+                        .map(|(_, c)| c.clone())
+                        .collect();
+                    let f = self.value_set(t, &cols_t, &inner)?;
+                    let Pred::InSet {
+                        set,
+                        keys: set_keys,
+                        ..
+                    } = &f.pred
+                    else {
+                        unreachable!("value sets")
+                    };
+                    let alias_s = format!("s{i}");
+                    let on: Vec<String> = set_keys
+                        .iter()
+                        .filter(|k| keys.contains(&k.name))
+                        .map(|k| format!("{alias_s}.{0} IS NOT DISTINCT FROM o.{0}", k.name))
+                        .collect();
+                    from.push_str(&if on.is_empty() {
+                        format!(" CROSS JOIN {} AS {alias_s}", self.ctes[*set].name)
+                    } else {
+                        format!(
+                            " JOIN {} AS {alias_s} ON {}",
+                            self.ctes[*set].name,
+                            on.join(" AND ")
+                        )
+                    });
+                    for (j, c) in cols_t.iter().enumerate() {
+                        let n = self.fresh("r");
+                        select.push(format!("{alias_s}.v{j} AS {n}"));
+                        binding.columns.push((c.clone(), n));
+                    }
+                }
+                let rows_name = self.fresh("rows");
+                self.ctes.push(CteDef {
+                    name: rows_name.clone(),
+                    sql: format!("SELECT DISTINCT {} FROM {from}", select.join(", ")),
+                    keys: Vec::new(),
+                    exact: true,
+                });
+                if cols.is_empty() {
+                    return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
+                }
+                let rf =
+                    self.join_rows(&rows_name, &keys, binding, Vec::new(), ctx, frame, rows)?;
+                // Added columns in the group's filter context; rows where all are blank go.
+                let mut added = Vec::new();
+                for (name, x) in cols {
+                    let v = self.scalar(x, &inner, &rf.frame, &rf.rows)?;
+                    added.push((charted_dax::bind::ext_key(name), v, None));
+                }
+                let keep = added
+                    .iter()
+                    .map(|(_, v, _)| format!("({}) IS NOT NULL", v.sql))
+                    .collect::<Vec<_>>()
+                    .join(" OR ");
+                return self.add_columns(rf, added, false, Some(keep), conds, ctx, frame, rows);
+            }
+            TableExpr::Calendar { start, end } | TableExpr::GenerateSeries { start, end, .. } => {
+                let a = self.scalar(start, ctx, frame, rows)?;
+                let b = self.scalar(end, ctx, frame, rows)?;
+                let step = match cur {
+                    TableExpr::GenerateSeries { step, .. } => {
+                        Some(self.scalar(step, ctx, frame, rows)?)
+                    }
+                    _ => None,
+                };
+                let rel = if frame.rel == "k" {
+                    self.domain()?
+                } else {
+                    frame.rel.clone()
+                };
+                let combined = Scalar {
+                    sql: [a.sql.clone(), b.sql.clone()]
+                        .into_iter()
+                        .chain(step.iter().map(|x| x.sql.clone()))
+                        .collect(),
+                    ty: ValueType::Number,
+                };
+                let (_, from) = self.render(&combined, &rel);
+                let (asql, _) = self.render(&a, &rel);
+                let (bsql, _) = self.render(&b, &rel);
+                let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+                let n = self.fresh("r");
+                let (name, ty, sql) = match &step {
+                    None => (
+                        "Date",
+                        ValueType::Date,
+                        format!(
+                            "SELECT {}CAST(unnest(generate_series(CAST({} AS TIMESTAMP), CAST({} AS TIMESTAMP), INTERVAL 1 DAY)) AS DATE) AS {n} FROM {from}",
+                            keys.iter()
+                                .map(|k| format!("f.{k} AS {k}, "))
+                                .collect::<String>(),
+                            date_sql(&(asql, a.ty)),
+                            date_sql(&(bsql, b.ty)),
+                        ),
+                    ),
+                    Some(st) => {
+                        let (ssql, _) = self.render(st, &rel);
+                        let (a, b, st) = (
+                            format!("CAST({asql} AS DOUBLE)"),
+                            format!("CAST({bsql} AS DOUBLE)"),
+                            format!("CAST({ssql} AS DOUBLE)"),
+                        );
+                        (
+                            "Value",
+                            ValueType::Number,
+                            format!(
+                                "SELECT {}x.a + x.i * x.s AS {n} FROM (SELECT f.*, {a} AS a, {st} AS s, unnest(range(0, CAST(floor(({b} - {a}) / {st} + 1e-9) AS BIGINT) + 1)) AS i FROM {from} WHERE {st} > 0) AS x",
+                                keys.iter()
+                                    .map(|k| format!("x.{k} AS {k}, "))
+                                    .collect::<String>(),
+                            ),
+                        )
+                    }
+                };
+                let rows_name = self.fresh("rows");
+                self.ctes.push(CteDef {
+                    name: rows_name.clone(),
+                    sql,
+                    keys: Vec::new(),
+                    exact: true,
+                });
+                let key = charted_dax::bind::ext_key(name);
+                let binding = RowBinding {
+                    table: String::new(),
+                    columns: vec![(key.clone(), n)],
+                    identity: Vec::new(),
+                    covers: Vec::new(),
+                    ext_types: vec![(key, ty)],
+                    related: Vec::new(),
+                };
+                return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
+            }
+            _ => {}
+        }
         // TOPN: its source's rows per row of the frame, ranked within each.
         if let TableExpr::TopN { n, source, order } = cur {
             return self.top_rows(n, source, order, conds, ctx, frame, rows);
@@ -2709,6 +3111,7 @@ impl<'a> Compiler<'a> {
                 columns: vec![(column.clone(), n)],
                 identity: vec![column.clone()],
                 covers: vec![column.clone()],
+                ext_types: Vec::new(),
                 related: Vec::new(),
             };
             return self.join_rows(&rows_name, &reach, binding, conds, ctx, frame, rows);
@@ -2730,13 +3133,7 @@ impl<'a> Compiler<'a> {
                     "iterating a list of values".into(),
                 ));
             }
-            TableExpr::Filter { .. }
-            | TableExpr::AllSelected { .. }
-            | TableExpr::Dates { .. }
-            | TableExpr::TopN { .. }
-            | TableExpr::CalculateTable { .. } => {
-                unreachable!("filters, ALLSELECTED, dates, TOPN and CALCULATETABLE were handled")
-            }
+            _ => unreachable!("other tables were handled above"),
         };
         let tab = table(self.model, &t)?;
         // A whole row has every column, identified by the table's key column when it
@@ -2771,6 +3168,7 @@ impl<'a> Compiler<'a> {
             columns: Vec::new(),
             identity,
             covers: cols.clone(),
+            ext_types: Vec::new(),
             related: Vec::new(),
         };
         let mut select: Vec<String> = Vec::new();
@@ -2778,8 +3176,20 @@ impl<'a> Compiler<'a> {
             select.push(format!("{e} AS {}", k.name));
         }
         for c in &cols {
+            // A calculated column not computed yet (the one being added) can't be read.
+            let sql = match self.column_sql(&t, c) {
+                Ok((sql, _)) => sql,
+                Err(_)
+                    if tab
+                        .column(c)
+                        .is_some_and(|x| matches!(x.kind, ColumnKind::Calculated { .. })) =>
+                {
+                    continue;
+                }
+                Err(e) => return Err(e),
+            };
             let n = self.fresh("r");
-            select.push(format!("{} AS {n}", self.column_sql(&t, c)?.0));
+            select.push(format!("{sql} AS {n}"));
             binding.columns.push((c.clone(), n));
         }
         for (rt, rc) in &related {
@@ -2923,13 +3333,43 @@ impl<'a> Compiler<'a> {
                 let name = rows
                     .iter()
                     .rev()
-                    .find(|r| &r.table == table)
-                    .and_then(|r| r.columns.iter().find(|(c, _)| c == column))
+                    .find_map(|r| r.columns.iter().find(|(c, _)| c == column))
                     .map(|(_, n)| n.clone())
                     .ok_or_else(|| {
                         CompileError::Unsupported(
                             "this column reference outside the iterated columns".into(),
                         )
+                    })?;
+                lit(
+                    format!("f.{name}"),
+                    ValueType::of(self.column_type(table, column)),
+                )
+            }
+            Bound::Ext { name } => {
+                let key = charted_dax::bind::ext_key(name);
+                let (col, ty) = rows
+                    .iter()
+                    .rev()
+                    .find_map(|r| {
+                        let n = r.columns.iter().find(|(c, _)| c == &key)?;
+                        let ty = r.ext_types.iter().find(|(c, _)| c == &key).map(|(_, t)| *t);
+                        Some((n.1.clone(), ty.unwrap_or(ValueType::Number)))
+                    })
+                    .ok_or_else(|| {
+                        CompileError::Field(format!("there's no column [{name}] here"))
+                    })?;
+                lit(format!("f.{col}"), ty)
+            }
+            Bound::Earlier { table, column, n } => {
+                let name = rows
+                    .iter()
+                    .rev()
+                    .filter(|r| &r.table == table)
+                    .nth(*n)
+                    .and_then(|r| r.columns.iter().find(|(c, _)| c == column))
+                    .map(|(_, n)| n.clone())
+                    .ok_or_else(|| {
+                        CompileError::Unsupported("this EARLIER outside its row contexts".into())
                     })?;
                 lit(
                     format!("f.{name}"),
@@ -3021,11 +3461,13 @@ impl<'a> Compiler<'a> {
                         t = source;
                     }
                     // Date sets are per frame row: they always take the frame path.
-                    ok && !matches!(
+                    ok && matches!(
                         t,
-                        TableExpr::Dates { .. }
-                            | TableExpr::TopN { .. }
-                            | TableExpr::CalculateTable { .. }
+                        TableExpr::Table(_)
+                            | TableExpr::Values { .. }
+                            | TableExpr::All { .. }
+                            | TableExpr::AllSelected { .. }
+                            | TableExpr::List(_)
                     )
                 };
                 if pure {
@@ -3473,6 +3915,11 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
                     part.push_str(&format!(" WHERE {}", conds.join(" AND ")));
                 }
             }
+            // An aggregate without keys has its one row even over no rows: it gives the
+            // visual rows only when it found something.
+            if ck.is_empty() {
+                part.push_str(" WHERE x.v IS NOT NULL");
+            }
             parts.push(part);
         }
         parts.join(" UNION ")
@@ -3617,8 +4064,9 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
 }
 
 /// The SQL that computes a calculated column: one row per row of its table, with the
-/// table's `rowid` as `rid` and the value as `v`, and the value's type. Calculated
-/// columns may use the row's columns, RELATED lookups and scalar functions.
+/// table's `rowid` as `rid` and the value as `v`, and the value's type. Row expressions
+/// (the row's columns, RELATED, scalar functions) are computed directly; aggregates,
+/// measures, CALCULATE and EARLIER over a frame of the table's rows.
 pub fn calculated_column(
     model: &Model,
     catalog: &dyn Catalog,
@@ -3634,11 +4082,6 @@ pub fn calculated_column(
                 .unwrap_or_else(|| "the expression has an error".into()),
         )
     })?;
-    if !row_pure(&bound) {
-        return Err(CompileError::Unsupported(
-            "measures, aggregates and CALCULATE in calculated columns".into(),
-        ));
-    }
     let mut c = Compiler {
         model,
         catalog,
@@ -3656,15 +4099,187 @@ pub fn calculated_column(
     };
     let mut related = Vec::new();
     related_refs(&bound, &mut related);
-    let extra: Vec<Id> = related.into_iter().map(|(t, _)| t).collect();
+    let extra: Vec<Id> = related.iter().map(|(t, _)| t.clone()).collect();
     let (_, _, from, _) = c.scope(table_id, &Ctx::default(), &extra, false)?;
-    let (v, ty) = c.row(&bound, None)?;
+    if row_pure(&bound) {
+        let (v, ty) = c.row(&bound, None)?;
+        return Ok((
+            format!(
+                "SELECT {}.rowid AS rid, {v} AS v FROM {from}",
+                alias(model, table_id)
+            ),
+            ty,
+        ));
+    }
+    // Aggregates, measures and CALCULATE: the table's rows are a frame (every column
+    // readable), evaluated with no filters; context transition filters on the key
+    // column, or else on the loaded columns (two rows alike get the same value).
+    let tab = table(model, table_id)?;
+    let mut binding = RowBinding {
+        table: table_id.to_string(),
+        columns: Vec::new(),
+        identity: Vec::new(),
+        covers: tab.columns.iter().map(|x| x.id.clone()).collect(),
+        ext_types: Vec::new(),
+        related: Vec::new(),
+    };
+    let mut select = vec![format!("{}.rowid AS rid", alias(model, table_id))];
+    for col in &tab.columns {
+        // Calculated columns not computed yet can't be read (nor are they needed).
+        let Ok((sql, _)) = c.column_sql(table_id, &col.id) else {
+            continue;
+        };
+        let n = c.fresh("r");
+        select.push(format!("{sql} AS {n}"));
+        binding.columns.push((col.id.clone(), n));
+    }
+    for (rt, rc) in &related {
+        let n = c.fresh("r");
+        select.push(format!("{} AS {n}", c.column_sql(rt, rc)?.0));
+        binding.related.push(((rt.clone(), rc.clone()), n));
+    }
+    binding.identity = match tab.columns.iter().find(|x| x.is_key) {
+        Some(k) => vec![k.id.clone()],
+        None => tab
+            .columns
+            .iter()
+            .filter(|x| matches!(x.kind, ColumnKind::Data { .. }))
+            .map(|x| x.id.clone())
+            .collect(),
+    };
+    let keys: Vec<Key> = binding
+        .columns
+        .iter()
+        .filter(|(col, _)| binding.identity.contains(col))
+        .map(|(col, n)| Key {
+            name: n.clone(),
+            table: table_id.to_string(),
+            column: col.clone(),
+        })
+        .collect();
+    c.ctes.push(CteDef {
+        name: "crow".into(),
+        sql: format!("SELECT {} FROM {from}", select.join(", ")),
+        keys: Vec::new(),
+        exact: true,
+    });
+    let frame = Frame {
+        rel: "crow".into(),
+        keys,
+    };
+    let v = c.scalar(&bound, &Ctx::default(), &frame, &[binding])?;
+    let (sql, from) = c.render(&v, "crow");
+    let with: Vec<String> = c
+        .ctes
+        .iter()
+        .map(|x| format!("{} AS ({})", x.name, x.sql))
+        .collect();
     Ok((
         format!(
-            "SELECT {}.rowid AS rid, {v} AS v FROM {from}",
-            alias(model, table_id)
+            "WITH {} SELECT f.rid AS rid, {sql} AS v FROM {from}",
+            with.join(", ")
         ),
-        ty,
+        v.ty,
+    ))
+}
+
+/// A calculated table's columns: name and model type, in order.
+pub type TableShape = Vec<(String, DataType)>;
+
+/// The SQL that computes a calculated table (one row per row of the table expression,
+/// evaluated with no filters) and its columns.
+pub fn calculated_table(
+    model: &Model,
+    catalog: &dyn Catalog,
+    expression: &str,
+) -> Result<(String, TableShape)> {
+    let (bound, diags) = charted_dax::check_table(model, expression);
+    let bound = bound.ok_or_else(|| {
+        CompileError::Field(
+            diags
+                .first()
+                .map(|d| d.message.clone())
+                .unwrap_or_else(|| "the expression has an error".into()),
+        )
+    })?;
+    let mut c = Compiler {
+        model,
+        catalog,
+        ctes: Vec::new(),
+        vars: Vec::new(),
+        stack: Vec::new(),
+        top_keys: Vec::new(),
+        top_filters: Vec::new(),
+        dom: None,
+        dks: Vec::new(),
+        counter: 0,
+        extra_top: BTreeSet::new(),
+        dom_rows: false,
+        security: Vec::new(),
+    };
+    // The rows are iterated from a frame of one row.
+    c.ctes.push(CteDef {
+        name: "one".into(),
+        sql: "SELECT 1 AS one".into(),
+        keys: Vec::new(),
+        exact: true,
+    });
+    let frame = Frame {
+        rel: "one".into(),
+        keys: Vec::new(),
+    };
+    let rf = c.row_frame(&bound, &[], &Ctx::default(), &frame, &[])?;
+    let row = rf.rows.last().cloned().expect("the iterated row");
+    let cond = Scalar {
+        sql: if rf.conds.is_empty() {
+            "TRUE".into()
+        } else {
+            rf.conds
+                .iter()
+                .map(|x| format!("({x})"))
+                .collect::<Vec<_>>()
+                .join(" AND ")
+        },
+        ty: ValueType::Bool,
+    };
+    let (cond_sql, from) = c.render(&cond, &rf.frame.rel);
+    let mut shape: TableShape = Vec::new();
+    let mut select = Vec::new();
+    for (key, base) in bound.shape(model) {
+        let Some((_, n)) = row.columns.iter().find(|(c, _)| c == &key) else {
+            continue;
+        };
+        let ty = match row.ext_types.iter().find(|(c, _)| c == &key) {
+            Some((_, t)) => value_type_to_data_type(*t),
+            None => model
+                .tables
+                .iter()
+                .find_map(|t| t.column(&key))
+                .map(|c| c.data_type)
+                .unwrap_or(DataType::String),
+        };
+        // Power BI names repeated columns "Name", "Name2"…
+        let mut name = base.clone();
+        let mut i = 1;
+        while shape.iter().any(|(x, _)| x.eq_ignore_ascii_case(&name)) {
+            i += 1;
+            name = format!("{base}{i}");
+        }
+        select.push(format!("f.{n} AS {}", ident(&name)));
+        shape.push((name, ty));
+    }
+    let with: Vec<String> = c
+        .ctes
+        .iter()
+        .map(|x| format!("{} AS ({})", x.name, x.sql))
+        .collect();
+    Ok((
+        format!(
+            "WITH {} SELECT {} FROM {from} WHERE {cond_sql}",
+            with.join(", "),
+            select.join(", ")
+        ),
+        shape,
     ))
 }
 

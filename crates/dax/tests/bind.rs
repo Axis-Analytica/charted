@@ -52,6 +52,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -64,6 +65,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: false,
+                calculated: None,
                 extras: Default::default(),
             },
             Table {
@@ -79,6 +81,7 @@ fn model() -> Model {
                 hidden: false,
                 hierarchies: Vec::new(),
                 is_date_table: true,
+                calculated: None,
                 extras: Default::default(),
             },
         ],
@@ -326,4 +329,17 @@ fn omitted_arguments_only_where_allowed() {
     };
     assert!(value.is_none() && ascending && dense);
     assert!(err("RANKX ( ALL ( Product[Category] ), [Total], , UP )").contains("ASC or DESC"));
+}
+
+#[test]
+fn table_variables_are_used_where_they_are_defined() {
+    assert!(matches!(
+        ok("VAR t = VALUES ( Product[Category] ) RETURN COUNTROWS ( t )"),
+        Bound::Aggregate { .. }
+    ));
+    assert!(
+        err("VAR t = VALUES ( Product[Category] ) RETURN SUMX ( VALUES ( Product[Category] ), COUNTROWS ( t ) )")
+            .contains("where it's defined")
+    );
+    assert!(err("VAR t = VALUES ( Product[Category] ) RETURN t + 1").contains("is a table"));
 }

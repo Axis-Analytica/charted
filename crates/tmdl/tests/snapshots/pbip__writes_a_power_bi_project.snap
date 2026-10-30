@@ -44,6 +44,7 @@ annotation PBI_QueryOrder = ["Sales","Date"]
 
 ref table Sales
 ref table Date
+ref table 'Top Days'
 
 ref cultureInfo en-US
 
@@ -209,6 +210,37 @@ table Date
 				    #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers", {{"DateKey", Int64.Type}, {"Month Name", type text}, {"MonthNumber", Int64.Type}})
 				in
 				    #"Changed Type"
+
+=== Shop.SemanticModel/definition/tables/Top Days.tmdl
+table 'Top Days'
+	lineageTag: t-top
+
+	/// Best days
+	column Day
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: c-top-day
+		isNameInferred
+		sourceColumn: [Day]
+
+		annotation SummarizationSetBy = Automatic
+		annotation chartedDataType = Date
+		annotation chartedDefaultFormat = true
+
+	column 'Top Year' = YEAR ( 'Top Days'[Day] )
+		dataType: double
+		lineageTag: c-top-year
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Top Days' = calculated
+		mode: import
+		source =
+				TOPN (
+					3,
+					VALUES ( Sales[Day] ),
+					[Total]
+				)
 
 === Shop.Report/definition.pbir
 {

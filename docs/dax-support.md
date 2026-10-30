@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (90 functions)
+## Evaluated (99 functions)
 
 ### Aggregation
 
@@ -36,6 +36,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `MONTH ( Date )` | The month, 1 to 12. |
 | `QUARTER ( Date )` | The quarter, 1 to 4. |
 | `TODAY (  )` | The current date. |
+| `WEEKDAY ( Date, [ReturnType] )` | The day of the week. |
 | `YEAR ( Date )` | The year of a date. |
 
 ### Filter
@@ -47,6 +48,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ALLSELECTED ( [TableOrColumn], [Column]… )` | Removes filters from inside the visual, keeping the filters from outside it (slicers, page and report filters). |
 | `CALCULATE ( Expression, [Filter]… )` | Evaluates an expression in a filter context changed by the filters. |
 | `CALCULATETABLE ( Table, [Filter]… )` | Evaluates a table in a filter context changed by the filters. |
+| `EARLIER ( Column, [Number] )` | A column's value in an outer row context. |
 | `FILTER ( Table, FilterExpression )` | The rows of a table for which the expression is TRUE. |
 | `KEEPFILTERS ( Filter )` | Applies a CALCULATE filter on top of existing filters instead of replacing them. |
 | `REMOVEFILTERS ( [TableOrColumn], [Column]… )` | Removes filters from tables or columns (in CALCULATE). |
@@ -83,6 +85,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ABS ( Number )` | The absolute value of a number. |
 | `DIVIDE ( Numerator, Denominator, [AlternateResult] )` | Divides, returning the alternate result (blank by default) when the denominator is zero. |
 | `INT ( Number )` | Rounds down to an integer. |
+| `MOD ( Number, Divisor )` | The remainder after division. |
 | `PI (  )` | The number π, 3.14159265358979. |
 | `ROUND ( Number, NumberOfDigits )` | Rounds a number to the given number of digits. |
 
@@ -104,7 +107,13 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 
 | Function | Description |
 |---|---|
+| `ADDCOLUMNS ( Table, Name, Expression, [Name, Expression]… )` | Adds calculated columns to a table. |
+| `CALENDAR ( StartDate, EndDate )` | A table with one column, Date, of every date from the start date to the end date. |
 | `DISTINCT ( ColumnOrTable )` | The distinct values of a column (without the blank row), or the distinct rows of a table. |
+| `GENERATESERIES ( StartValue, EndValue, [IncrementValue] )` | A table with one column, Value, of the numbers from the start value to the end value. |
+| `SELECTCOLUMNS ( Table, Name, Expression, [Name, Expression]… )` | A table with the given columns. |
+| `SUMMARIZE ( Table, GroupByColumn…, [Name, Expression]… )` | A table grouped by columns, with optional expressions. |
+| `SUMMARIZECOLUMNS ( GroupByColumn…, [Filter]…, [Name, Expression]… )` | A table grouped by columns with expressions, as visuals use. |
 | `TOPN ( N, Table, [OrderBy], [Order]… )` | The top N rows of a table by an expression. |
 | `VALUES ( TableOrColumn )` | The distinct values of a column (with the blank row when unmatched rows exist), or a table's rows. |
 
@@ -156,18 +165,20 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 
 - **Filter context.** Visual groupings, slicers and page/report filters, CALCULATE filter arguments (Boolean, table, ALL/REMOVEFILTERS/ALLEXCEPT/ALLSELECTED, KEEPFILTERS, VALUES as a filter) and context transition in iterators behave as in Power BI.
 - **Relationships.** Active many-to-one and one-to-one relationships filter from the one side to the many side; *Both* also filters the other way. USERELATIONSHIP switches an inactive relationship on inside CALCULATE. Changes that would give filters two active paths between tables are refused, as in Power BI. Many-to-many relationships are stored and exported but do not filter yet.
-- **Calculated columns** are evaluated per row with the table's columns, RELATED and scalar functions, and stored with the data; aggregates, measures and CALCULATE in calculated columns are not supported yet.
+- **Calculated columns** are evaluated per row of their table with no filters, and stored with the data. They may aggregate: `CALCULATE ( SUM ( Sales[Amount] ) )` and measures transition the row into a filter (on every column the row has), `SUM ( Sales[Amount] )` alone is the grand total, RELATEDTABLE, ALLEXCEPT shares, RANKX, EARLIER and variables work as in Power BI. They are recomputed on load, refresh and edits, as set-based SQL (a 20,000-row EARLIER rank takes about 0.3 s).
 - **FILTER as a CALCULATE filter** may test measures and values from the outer context, as running totals do: `FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) )`. A filter on the date column of a marked date table (or on a date column used in a relationship) replaces every filter on that table, as in Power BI. As a table, ALLSELECTED returns the rows visible without the visual's own grouping.
 - **DATESINPERIOD and DATESBETWEEN** take any date expression for their ends (`MAX ( 'Date'[Date] )`, `EOMONTH ( MAX ( 'Date'[Date] ), -1 )`, `TODAY ()`, a variable), evaluated in the outer filter context; a blank end of DATESBETWEEN is open. Time-intelligence tables can be iterated (`AVERAGEX ( DATESINPERIOD ( … ), [Sales] )`) as well as used as filters.
 - **RANKX** ranks with blank as zero (or empty text), descending by default; ties share a rank and skip the next ones unless DENSE. The value argument may be left out (`RANKX ( T, e, , ASC )`).
 - **TOPN** keeps the rows tied at the cut (so it can return more than N), orders descending by default with blank as zero, and works as a CALCULATE filter or an iterated table. **CONCATENATEX** takes its delimiter as text and orders by its order expression, then by the text.
 - **LOOKUPVALUE** filters the search columns to the values (evaluated where it is called) in the current filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
+- **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and used as calculated tables; their new columns are named `[Name]` in expressions over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each group's filter context; SUMMARIZECOLUMNS crosses the visible values of each table's group columns and leaves out rows whose new columns are all blank. **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.
+- **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted and used as CALCULATE filters in the context where they're defined.
 - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (46)
+## Recognised, not yet evaluated (39)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`ADDCOLUMNS`, `AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EARLIER`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `MOD`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SELECTCOLUMNS`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `SUMMARIZE`, `SUMMARIZECOLUMNS`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKDAY`, `WEEKNUM`, `YEARFRAC`
+`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKNUM`, `YEARFRAC`
