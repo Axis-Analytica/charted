@@ -77,15 +77,15 @@ test("roles: create one, view the report as it, stop viewing", async ({ page }) 
   await tick(page, "Store", "Region");
   await expect(slicer.locator(".slicer-item", { hasText: "Europe" })).toBeVisible();
 
-  // Manage roles: a role that sees North America's stores only.
+  // Manage roles: a role that sees Asia Pacific's stores only (v11pq renames North America).
   await security(page, "Manage roles…");
   const dialog = page.getByRole("dialog", { name: "Manage roles" });
   await dialog.getByRole("button", { name: "New role" }).click();
-  await dialog.getByRole("textbox", { name: "Role name" }).fill("North only");
+  await dialog.getByRole("textbox", { name: "Role name" }).fill("Asia only");
   await dialog.getByRole("listbox", { name: "Tables" }).getByRole("option", { name: "Store" }).click();
   await dialog.locator(".roles-dax .monaco-editor").click();
-  await page.keyboard.insertText('[Region] = "North America"');
-  await expect(dialog.locator(".roles-dax .view-lines")).toContainText("North America");
+  await page.keyboard.insertText('[Region] = "Asia Pacific"');
+  await expect(dialog.locator(".roles-dax .view-lines")).toContainText("Asia Pacific");
   await expect(dialog.getByRole("listbox", { name: "Tables" }).getByRole("option", { name: "Store" }).getByLabel("Filtered")).toBeVisible();
   // A measure isn't a row condition: the check says so before saving.
   await dialog.getByRole("listbox", { name: "Tables" }).getByRole("option", { name: "Product" }).click();
@@ -100,11 +100,11 @@ test("roles: create one, view the report as it, stop viewing", async ({ page }) 
   // View as the role: the card and the slicer see only its rows.
   await security(page, "View as…");
   const viewAs = page.getByRole("dialog", { name: "View as roles" });
-  await viewAs.getByRole("checkbox", { name: "North only" }).check();
+  await viewAs.getByRole("checkbox", { name: "Asia only" }).check();
   await viewAs.getByRole("button", { name: "OK" }).click();
-  await expect(page.locator(".view-as-bar")).toContainText("Viewing as: North only");
+  await expect(page.locator(".view-as-bar")).toContainText("Viewing as: Asia only");
   await expect(slicer.locator(".slicer-item", { hasText: "Europe" })).toHaveCount(0);
-  await expect(slicer.locator(".slicer-item", { hasText: "North America" })).toBeVisible();
+  await expect(slicer.locator(".slicer-item", { hasText: "Asia Pacific" })).toBeVisible();
   await expect.poll(() => cardMillions(card)).toBeLessThan(total * 0.9);
   const north = await cardMillions(card);
   expect(north).toBeGreaterThan(0);
