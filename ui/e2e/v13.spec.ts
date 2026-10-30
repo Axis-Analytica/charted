@@ -344,6 +344,8 @@ test("buttons and a page navigator: Ctrl+click while editing, click in reading v
   // A Back button returns to the page before.
   const back = await addVisual(page, "Button", { x: 200, y: 100 });
   await fmt.getByRole("combobox", { name: "Icon" }).selectOption("back");
+  // The icon (and with it the Back action) is saved before the click follows it.
+  await expect(back.locator("svg.lucide-arrow-left")).toBeVisible();
   await back.click({ modifiers: ["Control"] });
   await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
 
