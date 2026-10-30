@@ -8,10 +8,11 @@ stored as [Apache Ossie](https://ossie.apache.org/) documents and export to Powe
 projects (PBIP/TMDL/PBIR), so your work is never locked in. Power BI projects import,
 with a report of anything that doesn't come across.
 
-> **Status:** 1.0 release candidate. All seven milestones are built: get and shape
-> data, model it, write DAX (time intelligence included), build interactive reports
-> with drill-down, drill-through and bookmarks, and move projects to and from Power BI.
-> See [Install](#install) and what comes next in [docs/ROADMAP.md](docs/ROADMAP.md).
+> **Status:** v1.4.0. Get and shape data, model it, write DAX (time intelligence,
+> calculated tables and columns, calculation groups), build interactive reports with
+> drill-down, drill-through, bookmarks and parameters, preview row-level security, and
+> move projects to and from Power BI. See [Install](#install) and what comes next in
+> [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ![charted's report view: a card, a column chart, a matrix of sales by category and year with Camping selected, cross-filtering a line chart and a region slicer](docs/screenshots/report.png)
 
@@ -26,15 +27,27 @@ with a report of anything that doesn't come across.
 
 ## Install
 
-On Omarchy or any Arch-based system, from a checkout:
+On Omarchy or any Arch-based system (x86_64 or aarch64), install the release build as
+a pacman package:
 
 ```sh
+mkdir -p ~/src/charted-bin && cd ~/src/charted-bin
+curl -LO https://raw.githubusercontent.com/Axis-Analytica/charted/v1.4.0/pkgbuild/PKGBUILD-bin
+mv PKGBUILD-bin PKGBUILD
+makepkg -si
+```
+
+Or build it yourself from a checkout (Rust, Node and pnpm needed):
+
+```sh
+git clone https://github.com/Axis-Analytica/charted && cd charted
+bin/setup          # toolchains and dependencies
 bin/install        # builds a release and installs it as a pacman package
 ```
 
 charted then appears in the launcher (Super+Space) and opens `.charted` projects,
-`.chartedz` bundles and Power BI `.pbip` files. AUR packages (`charted`, `charted-bin`)
-follow the 1.0 release.
+`.chartedz` bundles and Power BI `.pbip` files. The release tarballs and their checksums
+are on the [releases page](https://github.com/Axis-Analytica/charted/releases).
 
 ## What works today
 
