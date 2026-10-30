@@ -1021,10 +1021,11 @@ fn power_query_sources_come_back_from_their_m() {
     }
 }
 
-/// A model.bim with a calculated table and a field parameter: the first comes in as a
-/// calculated table, the second is reported.
+/// A model.bim with a calculated table, a what-if parameter and a field parameter: the
+/// first two come in as calculated tables (both columns carry `ParameterMetadata`, but
+/// only field parameters are NAMEOF lists), the third is reported.
 #[test]
-fn model_bim_calculated_tables_come_in_and_field_parameters_are_reported() {
+fn model_bim_calculated_tables_and_what_if_parameters_come_in_and_field_parameters_are_reported() {
     let bim = serde_json::json!({
         "name": "Shop",
         "model": {
@@ -1041,6 +1042,18 @@ fn model_bim_calculated_tables_come_in_and_field_parameters_are_reported() {
                     "partitions": [{"name": "Top Products", "mode": "import", "source": {
                         "type": "calculated",
                         "expression": ["ADDCOLUMNS (", "    TOPN ( 5, VALUES ( Product[Product] ), [Total] ),", "    \"Sales\", [Total]", ")"]
+                    }}]
+                },
+                {
+                    "name": "Discount",
+                    "columns": [
+                        {"name": "Discount", "dataType": "int64", "sourceColumn": "[Value]",
+                         "extendedProperties": [{"type": "json", "name": "ParameterMetadata", "value": {"version": 0}}]}
+                    ],
+                    "measures": [{"name": "Discount Value", "expression": "SELECTEDVALUE('Discount'[Discount], 10)"}],
+                    "partitions": [{"name": "Discount", "mode": "import", "source": {
+                        "type": "calculated",
+                        "expression": "GENERATESERIES(0, 50, 5)"
                     }}]
                 },
                 {
@@ -1081,6 +1094,16 @@ fn model_bim_calculated_tables_come_in_and_field_parameters_are_reported() {
         })
         .collect();
     assert_eq!(sources, ["Product", "Sales"]);
+    let discount = im.model.table_by_name("Discount").unwrap();
+    assert_eq!(
+        discount.calculated.as_ref().unwrap().expression,
+        "GENERATESERIES(0, 50, 5)"
+    );
+    assert!(matches!(
+        &discount.columns[0].kind,
+        ColumnKind::Data { source_column } if source_column == "Value"
+    ));
+    assert_eq!(discount.measures[0].name, "Discount Value");
     // The field parameter's table is still there, without data.
     assert!(
         im.model

@@ -1195,5 +1195,18 @@
   "Delete table": "حذف الجدول",
   "Error: %1": "خطأ: %1",
   "New table": "جدول جديد",
-  "Table formula": "صيغة الجدول"
+  "Table formula": "صيغة الجدول",
+  "A table named %1 already exists.": "يوجد جدول باسم %1 بالفعل.",
+  "A whole number parameter takes whole numbers.": "معلمة العدد الصحيح تقبل الأعداد الصحيحة فقط.",
+  "Add slicer to this page": "إضافة أداة تقسيم إلى هذه الصفحة",
+  "Enter a name.": "أدخل اسمًا.",
+  "Enter a number in each box.": "أدخل رقمًا في كل مربع.",
+  "Makes a table of the values, a measure %1 with the one picked, and a slicer to pick it.": "ينشئ جدولًا بالقيم، ومقياسًا %1 بالقيمة المختارة، وأداة تقسيم لاختيارها.",
+  "New parameter…": "معلمة جديدة…",
+  "Parameter": "معلمة",
+  "That's more than 10,000 values; use a larger increment.": "هذا أكثر من 10,000 قيمة؛ استخدم زيادة أكبر.",
+  "The default must be between the minimum and the maximum.": "يجب أن تكون القيمة الافتراضية بين الحد الأدنى والحد الأقصى.",
+  "The increment must be more than 0.": "يجب أن تكون الزيادة أكبر من 0.",
+  "The maximum must be at least the minimum.": "يجب ألا يقل الحد الأقصى عن الحد الأدنى.",
+  "What-if parameter": "معلمة ماذا لو"
 }

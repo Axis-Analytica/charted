@@ -55,8 +55,6 @@ struct ImColumn {
     description: Option<String>,
     annotations: BTreeMap<String, String>,
     row_number: bool,
-    /// Has the `ParameterMetadata` extended property (a field parameter's column).
-    parameter: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -413,11 +411,6 @@ fn tmdl_table(n: &Node, name: String) -> ImTable {
                 description: doc(c),
                 annotations: annotations(c),
                 row_number: cp.get("type").is_some_and(|t| t == "rowNumber"),
-                parameter: c.children.iter().any(|x| {
-                    x.text
-                        .trim_start()
-                        .starts_with("extendedProperty ParameterMetadata")
-                }),
                 name,
             }),
             "measure" => t.measures.push(ImMeasure {
@@ -692,9 +685,6 @@ fn read_bim(text: &str) -> Result<Sm, String> {
                 description: s(&c, "description"),
                 annotations: bim_annotations(&c),
                 row_number: kind == "rowNumber",
-                parameter: arr(&c, "extendedProperties")
-                    .iter()
-                    .any(|x| s(x, "name").as_deref() == Some("ParameterMetadata")),
             });
         }
         for me in arr(&t, "measures") {
@@ -951,10 +941,10 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                 }
             }
             (None, Some(p)) if p.kind.eq_ignore_ascii_case("calculated") => {
-                // Field parameters are calculated tables of NAMEOF references.
-                let parameter = t.columns.iter().any(|c| c.parameter)
-                    || p.source.to_ascii_uppercase().contains("NAMEOF");
-                if parameter {
+                // Field parameters are calculated tables of NAMEOF references. What-if
+                // parameters (GENERATESERIES) also mark their column with
+                // `ParameterMetadata`, and are ordinary calculated tables.
+                if p.source.to_ascii_uppercase().contains("NAMEOF") {
                     skip(
                         "table",
                         t.name.clone(),

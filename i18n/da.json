@@ -1159,5 +1159,18 @@
   "Delete table": "Slet tabel",
   "Error: %1": "Fejl: %1",
   "New table": "Ny tabel",
-  "Table formula": "Tabelformel"
+  "Table formula": "Tabelformel",
+  "A table named %1 already exists.": "Der findes allerede en tabel med navnet %1.",
+  "A whole number parameter takes whole numbers.": "En heltalsparameter tager hele tal.",
+  "Add slicer to this page": "Tilføj udsnit til denne side",
+  "Enter a name.": "Angiv et navn.",
+  "Enter a number in each box.": "Angiv et tal i hvert felt.",
+  "Makes a table of the values, a measure %1 with the one picked, and a slicer to pick it.": "Opretter en tabel med værdierne, en måling %1 med den valgte og et udsnit til at vælge den.",
+  "New parameter…": "Ny parameter…",
+  "Parameter": "Parameter",
+  "That's more than 10,000 values; use a larger increment.": "Det er mere end 10.000 værdier; brug et større trin.",
+  "The default must be between the minimum and the maximum.": "Standard skal ligge mellem minimum og maksimum.",
+  "The increment must be more than 0.": "Trinnet skal være større end 0.",
+  "The maximum must be at least the minimum.": "Maksimum skal være mindst lig med minimum.",
+  "What-if parameter": "Hvad-hvis-parameter"
 }

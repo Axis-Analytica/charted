@@ -5,7 +5,8 @@
 // creates one), and Enter does the same from the keyboard. Hovering shows a field's
 // description. Right-click (or Shift+F10) on a table, a field or the space around them
 // opens a menu to add measures, columns, hierarchies and groups, rename (F2), hide, edit
-// properties and delete. "New table" opens the formula bar for a calculated table.
+// properties and delete. "New table" opens the formula bar for a calculated table, and
+// "New parameter…" makes a what-if parameter.
 import {
   CalendarDays,
   ChevronRight,
@@ -24,6 +25,7 @@ import {
   Search,
   Settings2,
   Sparkles,
+  SlidersHorizontal,
   SquareFunction,
   TableProperties,
   Trash2,
@@ -51,6 +53,7 @@ import { FIELD_MIME } from "./Canvas";
 import { FieldProperties, type PropsTarget } from "./FieldProperties";
 import { type FolderNode, folderString, folderTree, hierarchyFields, newHierarchy, withLevel } from "./fieldTree";
 import { GroupDialog, type GroupTarget } from "./GroupDialog";
+import { ParameterDialog } from "./ParameterDialog";
 import { groupKind, groupOf } from "./groups";
 
 /** Which model object a Fields pane drag carries, for dropping it onto a folder. */
@@ -99,6 +102,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const [showHidden, setShowHidden] = useState(false);
   const [props, setProps] = useState<PropsTarget | null>(null);
   const [group, setGroup] = useState<GroupTarget | null>(null);
+  const [parameter, setParameter] = useState(false);
   /** The folder a drag is over. */
   const [dropAt, setDropAt] = useState<string | null>(null);
   const visual = selected.length === 1 ? page.visuals.find((v) => v.id === selected[0]) : undefined;
@@ -160,6 +164,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
   const change = (label: string, c: Change) => commit(label, [c]);
   const paneItems = (): MenuEntry[] => [
     { id: "new-table", label: t("New table"), icon: <TableProperties size={13} />, run: () => set({ formula: "table:new" }) },
+    { id: "new-parameter", label: t("New parameter…"), icon: <SlidersHorizontal size={13} />, run: () => setParameter(true) },
     { id: "expand", label: t("Expand all"), icon: <ChevronsUpDown size={13} />, run: () => setAll(true) },
     { id: "collapse", label: t("Collapse all"), icon: <ChevronsDownUp size={13} />, run: () => setAll(false) },
     { id: "hidden", label: showHidden ? t("Don't show hidden fields") : t("View hidden fields"), icon: showHidden ? <EyeOff size={13} /> : <Eye size={13} />, run: () => setShowHidden((x) => !x) },
@@ -624,6 +629,7 @@ export function FieldsPane({ model, page }: { model: Model; page: Page }) {
       {menu && <ContextMenu menu={menu} onClose={() => setMenu(null)} />}
       {props && <FieldProperties model={model} target={props} onClose={() => setProps(null)} />}
       {group && <GroupDialog model={model} target={group} onClose={() => setGroup(null)} />}
+      {parameter && <ParameterDialog model={model} page={page} onClose={() => setParameter(false)} />}
     </section>
   );
 }
