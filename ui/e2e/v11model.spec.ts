@@ -203,6 +203,8 @@ test("a hierarchy drills in a column chart; a bin and a list group in visuals", 
   await expect(rename).toHaveValue("Year Hierarchy");
   await rename.fill("Calendar");
   await rename.press("Enter");
+  // The rename must land before the menus offer "Add to hierarchy Calendar".
+  await expect(tableItem(page, "Date").locator(".field-hierarchy .field-name", { hasText: /^Calendar$/ })).toBeVisible();
   await fieldMenu(page, "Date", "Quarter", "Add to hierarchy Calendar");
   await fieldMenu(page, "Date", "MonthName", "Add to hierarchy Calendar");
   const calendar = tableItem(page, "Date").locator("li.field-hierarchy", { has: page.locator(".field-name", { hasText: /^Calendar$/ }) });
