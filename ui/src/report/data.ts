@@ -34,7 +34,7 @@ const cache = new Map<string, Promise<VisualData>>();
 /** Everything in the model that can change a visual's results. */
 export function modelSignature(model: Model): string {
   return JSON.stringify([
-    model.tables.map((t) => [t.id, t.source, t.columns.map((c) => [c.id, c.dataType, c.sortBy, c.kind]), t.measures.map((m) => [m.id, m.expression])]),
+    model.tables.map((t) => [t.id, t.source, t.calculated?.expression ?? null, t.columns.map((c) => [c.id, c.dataType, c.sortBy, c.kind]), t.measures.map((m) => [m.id, m.expression])]),
     model.relationships.map((r) => [r.id, r.fromColumn, r.toColumn, r.active, r.crossFilter, r.fromCardinality, r.toCardinality]),
   ]);
 }

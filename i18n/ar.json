@@ -1143,5 +1143,10 @@
   "Table name": "اسم الجدول",
   "The table needs a name.": "يحتاج الجدول إلى اسم.",
   "Two columns have the same name.": "يوجد عمودان بالاسم نفسه.",
-  "Type of %1": "نوع %1"
+  "Type of %1": "نوع %1",
+  "Calculated table": "جدول محسوب",
+  "Delete table": "حذف الجدول",
+  "Error: %1": "خطأ: %1",
+  "New table": "جدول جديد",
+  "Table formula": "صيغة الجدول"
 }

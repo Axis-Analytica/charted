@@ -1,6 +1,8 @@
-import { Binary, Calendar, CalendarClock, Clock, Hash, Percent, Sigma, SquareFunction, ToggleLeft, Type } from "lucide-react";
+import { Binary, Calendar, CalendarClock, Clock, Hash, Percent, Sigma, SquareFunction, Table2, TableProperties, ToggleLeft, Type } from "lucide-react";
 import type { Column } from "../bridge/generated/Column";
 import type { DataType } from "../bridge/generated/DataType";
+import type { Table } from "../bridge/generated/Table";
+import { useT } from "../i18n";
 
 export function DataTypeIcon({ type, size = 14 }: { type: DataType; size?: number }) {
   switch (type) {
@@ -19,6 +21,17 @@ export function DataTypeIcon({ type, size = 14 }: { type: DataType; size?: numbe
 
 export function ColumnIcon({ column, size = 14 }: { column: Column; size?: number }) {
   return column.kind.kind === "calculated" ? <SquareFunction size={size} /> : <DataTypeIcon type={column.dataType} size={size} />;
+}
+
+/** A table: calculated tables (from a DAX expression) have their own icon. */
+export function TableIcon({ table, size = 14, className }: { table: Table; size?: number; className?: string }) {
+  const { t } = useT();
+  if (!table.calculated) return <Table2 size={size} className={className} />;
+  return (
+    <span className={`table-icon-calc ${className ?? ""}`} title={t("Calculated table")} aria-label={t("Calculated table")} role="img">
+      <TableProperties size={size} />
+    </span>
+  );
 }
 
 export function MeasureIcon({ size = 14 }: { size?: number }) {

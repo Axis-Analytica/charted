@@ -1,11 +1,16 @@
 // The formula bar: edit a measure as `Name = expression`, checked against the model as
 // you type (parse, names, supported functions, cycles). Enter commits, Shift+Enter
 // adds a line, Escape cancels. Quick measures write the DAX for common calculations.
+// In table mode (`table:<id>`, `table:new`) it edits a calculated table's DAX table
+// expression; what the core can't compute is shown under it when committing.
 import { Check, Sparkles, Trash2, WandSparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { errorMessage, transport } from "../bridge";
+import type { Change } from "../bridge/generated/Change";
 import type { DaxCheck } from "../bridge/generated/DaxCheck";
 import type { Measure } from "../bridge/generated/Measure";
 import type { Model } from "../bridge/generated/Model";
+import type { Table } from "../bridge/generated/Table";
 import { useT } from "../i18n";
 import { IconButton } from "../kit/Button";
 import { useApp } from "../state/app";
@@ -37,7 +42,109 @@ export function uniqueName(model: Model, base: string): string {
   for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`.toLowerCase())) return `${base} ${i}`;
 }
 
+/** A table name not used yet: `base`, `base 2`… */
+export function uniqueTableName(model: Model, base: string): string {
+  const taken = new Set(model.tables.map((tb) => tb.name.toLowerCase()));
+  if (!taken.has(base.toLowerCase())) return base;
+  for (let i = 2; ; i++) if (!taken.has(`${base} ${i}`.toLowerCase())) return `${base} ${i}`;
+}
+
 export function FormulaBar({ model }: { model: Model }) {
+  const formula = useReport((s) => s.formula);
+  return formula?.startsWith("table:") ? <TableFormulaBar model={model} formula={formula} /> : <MeasureFormulaBar model={model} />;
+}
+
+/** A calculated table: `Name = table expression`. */
+function TableFormulaBar({ model, formula }: { model: Model; formula: string }) {
+  const { t } = useT();
+  const set = useReport((s) => s.set);
+  const ref = useRef<DaxEditorHandle>(null);
+  const id = formula.slice("table:".length);
+  const table = id === "new" ? undefined : model.tables.find((tb) => tb.id === id && tb.calculated);
+  const fallback = useMemo(() => uniqueTableName(model, t("Table")), [model, t]);
+  const initial = table ? `${table.name} = ${table.calculated!.expression}` : `${fallback} = `;
+  const [text, setText] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setText(initial);
+    setError(null);
+    requestAnimationFrame(() => ref.current?.focus());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formula, table?.calculated?.expression, table?.name]);
+
+  if (id !== "new" && !table) return null;
+  const { name, expression } = split(text, fallback);
+  const dirty = text !== initial;
+  const cancel = () => (table ? setText(initial) : set({ formula: null }));
+
+  /** Commits, keeping the core's message (an unsupported function, a cycle) in view. */
+  const run = async (label: string, changes: Change[]) => {
+    try {
+      const state = await transport.rpc({ type: "commit", label, changes });
+      useApp.setState({ state });
+      setError(null);
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    }
+  };
+  const save = async () => {
+    if (!expression) return;
+    if (table) {
+      if (!dirty) return;
+      const changes: Change[] = [];
+      if (name !== table.name) changes.push({ op: "renameTable", table: table.id, name });
+      if (expression !== table.calculated!.expression) changes.push({ op: "setTableExpression", table: table.id, expression });
+      if (changes.length) await run("Edit table", changes);
+      return;
+    }
+    const tb: Table = {
+      id: newId(),
+      name,
+      description: null,
+      source: "",
+      columns: [],
+      measures: [],
+      hierarchies: [],
+      hidden: false,
+      isDateTable: false,
+      calculated: { expression, language: "Dax" },
+    };
+    if (await run("New table", [{ op: "addTable", table: tb, index: null }])) set({ formula: `table:${tb.id}` });
+  };
+
+  return (
+    <div className={`formula-bar ${error ? "has-error" : ""}`} role="group" aria-label={t("Formula bar")}>
+      <IconButton label={t("Cancel")} shortcut="Escape" icon={<X size={15} />} onPress={cancel} />
+      <IconButton label={t("Commit")} shortcut="Enter" icon={<Check size={15} />} isDisabled={!expression || (!!table && !dirty)} onPress={save} />
+      <div className="formula-edit">
+        <DaxEditor ref={ref} label={t("Table formula")} model={model} table value={text} onChange={setText} onCommit={save} onCancel={cancel} />
+        {error && (
+          <div className="formula-problem" role="alert">
+            {error}
+          </div>
+        )}
+      </div>
+      <div className="formula-tools">
+        <IconButton label={t("Format DAX")} shortcut="Shift+Alt+F" icon={<WandSparkles size={15} />} onPress={() => ref.current?.format()} />
+        {table && (
+          <IconButton
+            label={t("Delete table")}
+            icon={<Trash2 size={15} />}
+            onPress={async () => {
+              if (await run("Delete table", [{ op: "removeTable", table: table.id }])) set({ formula: null, field: null });
+            }}
+          />
+        )}
+        <IconButton label={t("Close formula bar")} icon={<X size={15} />} onPress={() => set({ formula: null })} />
+      </div>
+    </div>
+  );
+}
+
+function MeasureFormulaBar({ model }: { model: Model }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
   const formula = useReport((s) => s.formula);

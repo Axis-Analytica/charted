@@ -1,4 +1,4 @@
-import { ChevronRight, Table2 } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { ProjectSnapshot } from "../bridge/generated/ProjectSnapshot";
 import type { Table } from "../bridge/generated/Table";
@@ -6,7 +6,7 @@ import { formatNumber, useT } from "../i18n";
 import { useApp } from "../state/app";
 import { useShortcut } from "../app/shortcuts";
 import { useDataView } from "../state/dataview";
-import { ColumnIcon, MeasureIcon } from "./icons";
+import { ColumnIcon, MeasureIcon, TableIcon } from "./icons";
 
 function RenameInput({ initial, onDone }: { initial: string; onDone(name: string | null): void }) {
   const { t } = useT();
@@ -110,7 +110,7 @@ export function TablesPanel({
                 >
                   <ChevronRight size={13} />
                 </button>
-                <Table2 size={14} className="tree-icon" />
+                <TableIcon table={table} className="tree-icon" />
                 {renaming === table.id ? (
                   <RenameInput initial={table.name} onDone={(n) => rename(table, n)} />
                 ) : (

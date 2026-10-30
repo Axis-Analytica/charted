@@ -1,7 +1,7 @@
 // v1.1 modelling in the Fields pane: display folders, the properties dialog for measures
 // and columns, hierarchies (created, filled and drilled in a column chart), and groups:
-// a bin and a list group used in visuals. Everything it adds to the shared sample is
-// removed again at the end.
+// a bin and a list group used in visuals; and a calculated table made, edited and deleted
+// in the formula bar. Everything it adds to the shared sample is removed again at the end.
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 const shots = process.env.CHARTED_SHOTS;
@@ -270,4 +270,56 @@ test("a hierarchy drills in a column chart; a bin and a list group in visuals", 
   await fieldMenu(page, "Product", "Category (groups)", "Delete");
   await fieldMenu(page, "Sales", "Amount (bins)", "Delete");
   await expect(fieldRow(page, "Sales", "Amount (bins)")).toHaveCount(0);
+});
+
+test("a calculated table: created in the formula bar, used in a visual, edited and deleted", async ({ page }) => {
+  await openSample(page);
+  await page.getByTestId("report-page").click({ position: { x: 5, y: 5 } });
+
+  // New table, from the Fields pane's menu, opens the formula bar on a table expression.
+  await fieldsPane(page).locator(".field-table-btn", { hasText: /^Product$/ }).click({ button: "right" });
+  await page.getByRole("menuitem", { name: "New table", exact: true }).click();
+  const editor = page.locator(".formula-bar .dax-editor");
+  await expect(editor).toBeVisible();
+  await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Table = ");
+  await editor.click();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Delete");
+
+  // A scalar isn't a table: the editor says so before committing.
+  await page.keyboard.type("Category List = COUNTROWS ( Product )");
+  await expect(page.locator(".formula-bar .squiggly-error")).toBeVisible({ timeout: 15_000 });
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Delete");
+  await page.keyboard.type("Category List = VALUES ( Product[Category] )");
+  await expect(page.locator(".formula-bar .squiggly-error")).toHaveCount(0, { timeout: 15_000 });
+  await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();
+
+  // It shows as a calculated table with the column it computed, usable in a visual.
+  const btn = fieldsPane(page).locator(".field-table-btn", { hasText: /^Category List$/ });
+  await expect(btn.locator(".table-icon-calc")).toHaveAttribute("title", "Calculated table", { timeout: 15_000 });
+  await tick(page, "Category List", "Category");
+  const table = visuals(page).last();
+  await expect(table.locator("tbody tr td:first-child")).toContainText(["Camping"]);
+  const rows = await table.locator("tbody tr").count();
+  expect(rows).toBeGreaterThan(1);
+  await shot(page, "v11-04-calculated-table");
+
+  // Editing the formula recomputes it: one row fewer without Camping.
+  await btn.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Edit formula", exact: true }).click();
+  await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Category List = VALUES");
+  await editor.click();
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Delete");
+  await page.keyboard.type('Category List = FILTER ( VALUES ( Product[Category] ), Product[Category] <> "Camping" )');
+  await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();
+  await expect(table.locator("tbody tr")).toHaveCount(rows - 1, { timeout: 15_000 });
+
+  // Leave the shared sample as other specs expect it.
+  await table.click();
+  await page.keyboard.press("Delete");
+  await btn.click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Delete table", exact: true }).click();
+  await expect(btn).toHaveCount(0);
 });

@@ -1107,5 +1107,10 @@
   "Table name": "Tabelnavn",
   "The table needs a name.": "Tabellen skal have et navn.",
   "Two columns have the same name.": "To kolonner har samme navn.",
-  "Type of %1": "Typen af %1"
+  "Type of %1": "Typen af %1",
+  "Calculated table": "Beregnet tabel",
+  "Delete table": "Slet tabel",
+  "Error: %1": "Fejl: %1",
+  "New table": "Ny tabel",
+  "Table formula": "Tabelformel"
 }
