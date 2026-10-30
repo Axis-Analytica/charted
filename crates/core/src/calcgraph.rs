@@ -242,7 +242,7 @@ impl Refs {
                     self.table(t, whole);
                 }
             }
-            ExprKind::Call { args, .. } | ExprKind::List(args) => {
+            ExprKind::Call { args, .. } | ExprKind::List(args) | ExprKind::Tuple(args) => {
                 args.iter().for_each(|a| self.walk(model, a, row, whole))
             }
             ExprKind::Unary { expr, .. } => self.walk(model, expr, row, whole),

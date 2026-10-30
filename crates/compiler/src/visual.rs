@@ -2998,6 +2998,96 @@ impl<'a> Compiler<'a> {
                     .join(" OR ");
                 return self.add_columns(rf, added, false, Some(keep), conds, ctx, frame, rows);
             }
+            TableExpr::List(list) => {
+                let names = cur.ext_names();
+                let mut cells: Vec<Vec<Scalar>> = Vec::new();
+                for r in list {
+                    cells.push(
+                        r.iter()
+                            .map(|b| self.scalar(b, ctx, frame, rows))
+                            .collect::<Result<Vec<_>>>()?,
+                    );
+                }
+                let mut types = Vec::new();
+                for i in 0..names.len() {
+                    let ty = cells.first().map_or(ValueType::Number, |r| r[i].ty);
+                    if cells.iter().any(|r| r[i].ty != ty) {
+                        return Err(CompileError::Unsupported(format!(
+                            "a table column of values of different types ({})",
+                            names[i]
+                        )));
+                    }
+                    types.push(ty);
+                }
+                let rel = if frame.rel == "k" {
+                    self.domain()?
+                } else {
+                    frame.rel.clone()
+                };
+                let combined = Scalar {
+                    sql: cells.iter().flatten().map(|c| c.sql.clone()).collect(),
+                    ty: ValueType::Number,
+                };
+                let (_, from) = self.render(&combined, &rel);
+                let keys: Vec<String> = frame.keys.iter().map(|k| k.name.clone()).collect();
+                let outs: Vec<String> = names.iter().map(|_| self.fresh("r")).collect();
+                let selects: Vec<String> = cells
+                    .iter()
+                    .map(|r| {
+                        let vals: Vec<String> = r
+                            .iter()
+                            .zip(&outs)
+                            .map(|(c, n)| format!("{} AS {n}", self.render(c, &rel).0))
+                            .collect();
+                        format!(
+                            "SELECT {}{} FROM {from}",
+                            keys.iter()
+                                .map(|k| format!("f.{k} AS {k}, "))
+                                .collect::<String>(),
+                            vals.join(", ")
+                        )
+                    })
+                    .collect();
+                let sql = if selects.is_empty() {
+                    // No rows: the columns, and nothing in them.
+                    format!(
+                        "SELECT {}{} FROM {from} WHERE false",
+                        keys.iter()
+                            .map(|k| format!("f.{k} AS {k}, "))
+                            .collect::<String>(),
+                        outs.iter()
+                            .map(|n| format!("NULL AS {n}"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                } else {
+                    selects.join(" UNION ALL ")
+                };
+                let rows_name = self.fresh("rows");
+                self.ctes.push(CteDef {
+                    name: rows_name.clone(),
+                    sql,
+                    keys: Vec::new(),
+                    exact: true,
+                });
+                let binding = RowBinding {
+                    table: String::new(),
+                    columns: names
+                        .iter()
+                        .zip(&outs)
+                        .map(|(n, o)| (charted_dax::bind::ext_key(n), o.clone()))
+                        .collect(),
+                    identity: Vec::new(),
+                    covers: Vec::new(),
+                    ext_types: names
+                        .iter()
+                        .zip(&types)
+                        .map(|(n, t)| (charted_dax::bind::ext_key(n), *t))
+                        .collect(),
+                    related: Vec::new(),
+                };
+                return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
+            }
             TableExpr::Calendar { start, end } | TableExpr::GenerateSeries { start, end, .. } => {
                 let a = self.scalar(start, ctx, frame, rows)?;
                 let b = self.scalar(end, ctx, frame, rows)?;
@@ -3467,7 +3557,6 @@ impl<'a> Compiler<'a> {
                             | TableExpr::Values { .. }
                             | TableExpr::All { .. }
                             | TableExpr::AllSelected { .. }
-                            | TableExpr::List(_)
                     )
                 };
                 if pure {

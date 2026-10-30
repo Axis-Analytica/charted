@@ -343,3 +343,14 @@ fn table_variables_are_used_where_they_are_defined() {
     );
     assert!(err("VAR t = VALUES ( Product[Category] ) RETURN t + 1").contains("is a table"));
 }
+
+#[test]
+fn table_constructors_and_nameof() {
+    assert!(err("COUNTROWS ( { ( 1, 2 ), ( 3 ) } )").contains("needs 2 values"));
+    assert!(err("( 1, 2 ) + 1").contains("in a table"));
+    assert!(err("NAMEOF ( 1 )").contains("column or a measure"));
+    assert!(err("NAMEOF ( [Nope] )").contains("no measure named"));
+    assert!(
+        matches!(ok("NAMEOF ( Product[Category] )"), Bound::Text(t) if t == "'Product'[Category]")
+    );
+}

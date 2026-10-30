@@ -66,8 +66,11 @@ pub enum ExprKind {
         value: Box<Expr>,
         body: Box<Expr>,
     },
-    /// A table constructor `{ a, b, c }` (one column).
+    /// A table constructor: `{ a, b, c }` (one column), or `{ (a, b), (c, d) }` with a
+    /// [`ExprKind::Tuple`] per row.
     List(Vec<Expr>),
+    /// `( a, b, … )`: a row of a table constructor.
+    Tuple(Vec<Expr>),
     Error,
     /// An argument left out (`f ( a, , c )`).
     Omitted,
@@ -233,8 +236,20 @@ impl Parser {
             }
             Tok::LParen => {
                 let e = self.expr(0);
-                self.expect_close(span);
-                return e;
+                if !matches!(self.peek(), Tok::Comma) {
+                    self.expect_close(span);
+                    return e;
+                }
+                let mut items = vec![e];
+                while matches!(self.peek(), Tok::Comma) {
+                    self.bump();
+                    items.push(self.expr(0));
+                }
+                let end = self.expect_close(span);
+                return Expr {
+                    span: span.to(end),
+                    kind: ExprKind::Tuple(items),
+                };
             }
             Tok::Bracket(name) => ExprKind::Ref { table: None, name },
             Tok::LBrace => {
@@ -457,6 +472,10 @@ mod tests {
                 "{{{}}}",
                 items.iter().map(show).collect::<Vec<_>>().join(", ")
             ),
+            ExprKind::Tuple(items) => format!(
+                "({})",
+                items.iter().map(show).collect::<Vec<_>>().join(", ")
+            ),
             ExprKind::Error => "!".into(),
             ExprKind::Omitted => "_".into(),
         }
@@ -500,6 +519,11 @@ mod tests {
             ok("Product[Color] IN { \"Red\", \"Blue\" }"),
             "(Product[Color] In {\"Red\", \"Blue\"})"
         );
+        assert_eq!(
+            ok("{ (\"Sales\", NAMEOF ( [Total] ), 0), (\"Units\", 2, 1) }"),
+            "{(\"Sales\", NAMEOF([Total]), 0), (\"Units\", 2, 1)}"
+        );
+        assert_eq!(ok("( 1 + 2 ) * 3"), "((1 Add 2) Mul 3)");
         assert!(
             parse("VAR a = 1 a").diagnostics[0]
                 .message

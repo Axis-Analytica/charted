@@ -662,6 +662,24 @@ const MEASURES: &[(&str, &str)] = &[
         "Weekday Sum",
         "SUMX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date] ) + WEEKDAY ( Date[Date], 3 ) )",
     ),
+    // Table constructors and NAMEOF (field parameters' tables).
+    ("List Sum", "SUMX ( { 1, 2, [Quantity] }, [Value] )"),
+    (
+        "Rows Count",
+        "COUNTROWS ( { ( \"a\", 1 ), ( \"b\", 2 ), ( \"c\", [Orders] ) } )",
+    ),
+    (
+        "Rows Max",
+        "MAXX ( { ( \"a\", 1 ), ( \"b\", [Quantity] ) }, [Value2] )",
+    ),
+    (
+        "Rows Filtered",
+        "SUMX ( FILTER ( { ( \"a\", 1 ), ( \"b\", 2 ), ( \"c\", 3 ) }, [Value1] <> \"b\" ), [Value2] )",
+    ),
+    (
+        "Field Names",
+        "CONCATENATEX ( { ( \"Q\", NAMEOF ( [Quantity] ), 0 ), ( \"C\", NAMEOF ( Product[Category] ), 1 ) }, [Value2], \", \", [Value3] )",
+    ),
     // Several filters on one column are ANDed.
     (
         "Neither Apparel Nor Camping",
@@ -1960,6 +1978,8 @@ const TABLES: &[&str] = &[
     "CALENDAR ( DATE ( 2025, 1, 1 ), DATE ( 2025, 1, 31 ) )",
     "CALENDAR ( MIN ( Date[Date] ), MAX ( Date[Date] ) )",
     "GENERATESERIES ( 0, 1, 0.25 )",
+    "{ 10, 20, 30 }",
+    "{ ( \"Quantity\", NAMEOF ( [Quantity] ), 0 ), ( \"Category\", NAMEOF ( Product[Category] ), 1 ) }",
     "TOPN ( 2, ADDCOLUMNS ( VALUES ( Product[Category] ), \"Q\", [Quantity] ), [Q] )",
 ];
 

@@ -163,8 +163,9 @@ pub enum TableExpr {
         source: Box<TableExpr>,
         condition: Box<Bound>,
     },
-    /// A one-column table of literal values.
-    List(Vec<Bound>),
+    /// A table constructor: rows of values, all as wide. One column is `Value`; more are
+    /// `Value1`, `Value2`… (as Power BI names them).
+    List(Vec<Vec<Bound>>),
     /// Dates of a date column computed from the visible ones (time intelligence).
     Dates { table: Id, column: Id, op: DateOp },
     /// CALCULATETABLE (and RELATEDTABLE, with no filters): the rows of `source` in the
@@ -327,7 +328,10 @@ impl TableExpr {
             }
             TableExpr::Calendar { .. } => vec![(ext_key("Date"), "Date".into())],
             TableExpr::GenerateSeries { .. } => vec![(ext_key("Value"), "Value".into())],
-            TableExpr::List(_) => Vec::new(),
+            TableExpr::List(rows) => list_names(rows)
+                .into_iter()
+                .map(|n| (ext_key(&n), n))
+                .collect(),
         }
     }
 
@@ -347,6 +351,7 @@ impl TableExpr {
             }
             TableExpr::Calendar { .. } => vec!["Date".into()],
             TableExpr::GenerateSeries { .. } => vec!["Value".into()],
+            TableExpr::List(rows) => list_names(rows),
             _ => Vec::new(),
         }
     }
@@ -589,6 +594,7 @@ pub const SUPPORTED: &[&str] = &[
     "MINX",
     "MOD",
     "MONTH",
+    "NAMEOF",
     "NEXTDAY",
     "NEXTMONTH",
     "NEXTQUARTER",
@@ -885,6 +891,10 @@ impl<'a> Binder<'a> {
                 )
             }
             ExprKind::List(_) => self.err(e.span, "a list of values can only be used with IN"),
+            ExprKind::Tuple(_) => self.err(
+                e.span,
+                "a row of values ( a, b ) can only be used in a table { … }",
+            ),
             ExprKind::Ref { table, name } => self.reference(table.as_deref(), name, e.span, rows),
             ExprKind::Var {
                 name, value, body, ..
@@ -1032,6 +1042,46 @@ impl<'a> Binder<'a> {
                 t.name, c.name
             ),
         )
+    }
+
+    /// NAMEOF's argument: a column or measure, written out as `'Table'[Name]` (a
+    /// measure under its home table), as Power BI returns it.
+    fn name_of(&mut self, e: &Expr) -> Option<String> {
+        let ExprKind::Ref { table, name } = &e.kind else {
+            return self
+                .err(
+                    e.span,
+                    "NAMEOF needs a column or a measure, such as [Total Sales]",
+                )
+                .and(None);
+        };
+        let quote =
+            |t: &str, n: &str| format!("'{}'[{}]", t.replace('\'', "''"), n.replace(']', "]]"));
+        if let Some(tn) = table {
+            let t = self.table(tn, e.span)?;
+            if let Some(m) = t
+                .measures
+                .iter()
+                .find(|m| m.name.eq_ignore_ascii_case(name))
+            {
+                return Some(quote(&t.name, &m.name));
+            }
+            return match t.column_by_name(name) {
+                Some(c) => Some(quote(&t.name, &c.name)),
+                None => self
+                    .err(
+                        e.span,
+                        format!("table '{}' has no column or measure named [{name}]", t.name),
+                    )
+                    .and(None),
+            };
+        }
+        match self.measure_named(name) {
+            Some((t, m)) => Some(quote(&t.name, &m.name)),
+            None => self
+                .err(e.span, format!("there's no measure named [{name}]"))
+                .and(None),
+        }
     }
 
     /// A `Table[Column]` argument, by name, without row-context checks.
@@ -1351,8 +1401,30 @@ impl<'a> Binder<'a> {
         match &e.kind {
             ExprKind::Table(name) => Some(TableExpr::Table(self.table(name, e.span)?.id.clone())),
             ExprKind::List(items) => {
-                let list: Vec<Option<Bound>> = items.iter().map(|i| self.expr(i, rows)).collect();
-                Some(TableExpr::List(list.into_iter().collect::<Option<Vec<_>>>()?))
+                let width = |i: &Expr| match &i.kind {
+                    ExprKind::Tuple(v) => v.len(),
+                    _ => 1,
+                };
+                let w = items.first().map(width).unwrap_or(1);
+                let mut out = Vec::new();
+                let mut ok = true;
+                for i in items {
+                    if width(i) != w {
+                        self.err(i.span, format!("every row of the table needs {w} values"));
+                        ok = false;
+                        continue;
+                    }
+                    let cells: Vec<&Expr> = match &i.kind {
+                        ExprKind::Tuple(v) => v.iter().collect(),
+                        _ => vec![i],
+                    };
+                    let row: Vec<Option<Bound>> = cells.into_iter().map(|c| self.expr(c, rows)).collect();
+                    match row.into_iter().collect::<Option<Vec<_>>>() {
+                        Some(r) => out.push(r),
+                        None => ok = false,
+                    }
+                }
+                ok.then_some(TableExpr::List(out))
             }
             ExprKind::Call { name, args } => {
                 let upper = name.to_ascii_uppercase();
@@ -1831,6 +1903,13 @@ impl<'a> Binder<'a> {
                     filters: filters.into_iter().collect::<Option<Vec<_>>>()?,
                 })
             }
+            "NAMEOF" => {
+                if !self.arity(&upper, args, span, 1, 1) {
+                    return None;
+                }
+                let name = self.name_of(&args[0])?;
+                Some(Bound::Text(name))
+            }
             "RELATED" => {
                 if !self.arity(&upper, args, span, 1, 1) {
                     return None;
@@ -2141,7 +2220,9 @@ fn collect_refs(model: &Model, e: &Expr, out: &mut Vec<(Id, Id)>) {
             }
         }
         ExprKind::Call { args, .. } => args.iter().for_each(|a| collect_refs(model, a, out)),
-        ExprKind::List(items) => items.iter().for_each(|a| collect_refs(model, a, out)),
+        ExprKind::List(items) | ExprKind::Tuple(items) => {
+            items.iter().for_each(|a| collect_refs(model, a, out))
+        }
         ExprKind::Unary { expr, .. } => collect_refs(model, expr, out),
         ExprKind::Binary { left, right, .. } => {
             collect_refs(model, left, out);
@@ -2267,13 +2348,22 @@ fn order_keyword(e: &Expr) -> Option<bool> {
     }
 }
 
+/// A table constructor's column names: `Value`, or `Value1`, `Value2`… for rows of
+/// several values.
+fn list_names(rows: &[Vec<Bound>]) -> Vec<String> {
+    match rows.first().map_or(1, Vec::len) {
+        1 => vec!["Value".into()],
+        n => (1..=n).map(|i| format!("Value{i}")).collect(),
+    }
+}
+
 fn walk_table(t: &TableExpr, f: &mut dyn FnMut(&Bound)) {
     match t {
         TableExpr::Filter { source, condition } => {
             walk_table(source, f);
             walk(condition, f);
         }
-        TableExpr::List(items) => items.iter().for_each(|a| walk(a, f)),
+        TableExpr::List(rows) => rows.iter().flatten().for_each(|a| walk(a, f)),
         TableExpr::CalculateTable { source, filters } => {
             walk_table(source, f);
             filters.iter().for_each(|fa| walk_filter(fa, f));

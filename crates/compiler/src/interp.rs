@@ -548,7 +548,21 @@ impl<'a> Interp<'a> {
                 self.touched = touched;
                 Ok(out)
             }
-            TableExpr::List(_) => Err("lists are not tables here".into()),
+            TableExpr::List(list) => {
+                let names = t.ext_names();
+                let mut out = Vec::new();
+                for r in list {
+                    let mut values = HashMap::new();
+                    for (n, b) in names.iter().zip(r) {
+                        values.insert(charted_dax::bind::ext_key(n), self.eval(b, ctx, rows)?);
+                    }
+                    out.push(Row {
+                        table: String::new(),
+                        values,
+                    });
+                }
+                Ok(out)
+            }
             TableExpr::CalculateTable { source, filters } => {
                 let c = self.calc_ctx(filters, ctx, rows)?;
                 self.eval_table(source, &c, rows)

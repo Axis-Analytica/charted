@@ -893,6 +893,51 @@ expression: golden
 "Camping" | 170
 "Footwear" | 170
 
+## List Sum — card
+272
+
+## List Sum — by category
+∅ | 6
+"Apparel" | 114
+"Camping" | 85
+"Footwear" | 76
+
+## Rows Count — card
+3
+
+## Rows Count — by category
+∅ | 3
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 3
+
+## Rows Max — card
+269
+
+## Rows Max — by category
+∅ | 3
+"Apparel" | 111
+"Camping" | 82
+"Footwear" | 73
+
+## Rows Filtered — card
+4
+
+## Rows Filtered — by category
+∅ | 4
+"Apparel" | 4
+"Camping" | 4
+"Footwear" | 4
+
+## Field Names — card
+"'Sales'[Quantity], 'Product'[Category]"
+
+## Field Names — by category
+∅ | "'Sales'[Quantity], 'Product'[Category]"
+"Apparel" | "'Sales'[Quantity], 'Product'[Category]"
+"Camping" | "'Sales'[Quantity], 'Product'[Category]"
+"Footwear" | "'Sales'[Quantity], 'Product'[Category]"
+
 ## Neither Apparel Nor Camping — card
 76
 

@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (99 functions)
+## Evaluated (100 functions)
 
 ### Aggregation
 
@@ -63,6 +63,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `ISFILTERED ( TableOrColumn )` | TRUE when the column (or any column of the table) is filtered directly. |
 | `ISINSCOPE ( Column )` | TRUE when the column is a grouping level of the current row in the visual. |
 | `LOOKUPVALUE ( ResultColumn, SearchColumn, SearchValue, [SearchColumn, SearchValue]…, [AlternateResult] )` | The value of a column in the row matching the search values. |
+| `NAMEOF ( Value )` | The name of a column or measure, as 'Table'[Name] (field parameters use it). |
 | `SELECTEDVALUE ( Column, [AlternateResult] )` | The column's value when the filter context leaves exactly one, otherwise the alternate result. |
 
 ### Logical
@@ -173,6 +174,7 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **LOOKUPVALUE** filters the search columns to the values (evaluated where it is called) in the current filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
 - **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and used as calculated tables; their new columns are named `[Name]` in expressions over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each group's filter context; SUMMARIZECOLUMNS crosses the visible values of each table's group columns and leaves out rows whose new columns are all blank. **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.
 - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted and used as CALCULATE filters in the context where they're defined.
+- **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( "a", 1 ), ( "b", 2 ) }` (`Value1`, `Value2`…) can be iterated and used as calculated tables; **NAMEOF** gives a column's or measure's name as `'Table'[Name]`. Together they make field parameters.
 - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and the separators `- / . ,` and space (month and day names in English), and the named formats General Number, Fixed, Standard and Percent. Other format strings are reported as unsupported.
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).

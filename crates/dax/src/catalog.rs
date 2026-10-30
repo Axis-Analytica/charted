@@ -103,6 +103,7 @@ MINUTE|DateTime|Date and time|The minute of a time.
 MINX|Table; Expression|Aggregation|The smallest value of an expression evaluated for each row.
 MOD|Number; Divisor|Math|The remainder after division.
 MONTH|Date|Date and time|The month, 1 to 12.
+NAMEOF|Value|Information|The name of a column or measure, as 'Table'[Name] (field parameters use it).
 NEXTDAY|Dates|Time intelligence|The day after the last date.
 NEXTMONTH|Dates|Time intelligence|The dates of the next month.
 NEXTQUARTER|Dates|Time intelligence|The dates of the next quarter.
@@ -265,6 +266,9 @@ pub fn support_markdown() -> String {
            **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.\n\
          - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted \
            and used as CALCULATE filters in the context where they're defined.\n\
+         - **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( \"a\", 1 ), ( \"b\", 2 ) }` \
+           (`Value1`, `Value2`…) can be iterated and used as calculated tables; **NAMEOF** gives \
+           a column's or measure's name as `'Table'[Name]`. Together they make field parameters.\n\
          - **FORMAT** takes a format string written out as text: number formats `0`, `0.00`, \
            `#,0`, `#,##0.00`, `0%`, `0.0%` (optionally after `$`, `€`, `£` or `¥`), date \
            formats built from `yyyy`, `yy`, `mmmm`, `mmm`, `mm`, `m`, `dddd`, `ddd`, `dd`, `d` and \
