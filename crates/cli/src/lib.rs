@@ -146,8 +146,8 @@ pub enum SkillAction {
     Show,
 }
 
-mod devserver;
 #[cfg(feature = "dev-server")]
+mod devserver;
 mod mcp;
 
 pub const SKILL: &str = include_str!("../../../skill/SKILL.md");
