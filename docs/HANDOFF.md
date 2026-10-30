@@ -47,7 +47,7 @@ release below.
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  2. M7 is done and released in v1.5.0 (see below). Next: docs/PLAN.md (M8 and on). Later: the
+  2. M7 is done and released in v1.5.0 (see below). Next: docs/PLAN.md (launch readiness, then M8 and on). Later: the
      Power BI Desktop check in the VM (`~/Work/charted-checkpoints/pbi-roundtrip/`),
      AUR and omarchy-pkgs on the go-ahead.
 - **Step 12 (v1.5 speed) measured, rewrites not needed yet:** `calcbench` on the 10M
