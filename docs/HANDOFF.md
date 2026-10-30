@@ -47,7 +47,7 @@ release below.
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  2. Next milestone: M7, the in-app agent (design in docs/ROADMAP.md). Later: the
+  2. M7 is done on branch `m7-agent` (see below); merge and release it. Later: the
      Power BI Desktop check in the VM (`~/Work/charted-checkpoints/pbi-roundtrip/`),
      AUR and omarchy-pkgs on the go-ahead.
 - **Step 12 (v1.5 speed) measured, rewrites not needed yet:** `calcbench` on the 10M
@@ -60,18 +60,52 @@ release below.
   or later specs must avoid what it touches: v11pq renames North America to Americas
   in Store, so v14roles filters Asia Pacific.
 
-## Session after: plan M7 and beyond
+## M7: the in-app agent (done 2026-10-31, branch `m7-agent`)
 
-M7 is an agent inside charted that builds report pages. Its first design is in
-docs/ROADMAP.md: a control socket in the running app, `charted mcp` as an MCP server,
-and an Agent pane that runs the user's default Omarchy agent headless, with
-undoable "Agent: …" commits and privacy defaults.
-
-- The default agent comes from `omarchy-default-agent`; on this machine it's `claude`.
-  `/usr/share/omarchy/bin/omarchy-agent` shows the per-agent flags.
-- The user sees M7 as the feature that beats Power BI. Microsoft's Copilot needs
-  capacity, and its MCP server can't touch report pages.
-- Plan it fully then, including what comes after M7.
+- **Code:** `crates/agent` (`charted-agent`):
+  - `names.rs`: `'Table'[Column]` / `[Measure]` / `SUM(…)` parsing, resolution and
+    nearest-name suggestions.
+  - `layout.rs`: first-free-spot placement and whole-page arrangements.
+  - `catalog.json`: the visual types, generated from the UI registry by
+    `ui/src/report/catalog.test.ts`. After registry changes, regenerate it with
+    `CHARTED_UPDATE_CATALOG=1 bin/heavy pnpm -C ui exec vitest run catalog`.
+  - `builders.rs`: ports of the parameter dialogs' tables.
+  - `tools/`: about 30 tools.
+  - `host.rs`: the control socket, runner, consent and drafts.
+  - `stream.rs`: Claude and Codex output parsing.
+  - `transcript.rs`: chat history, kept in `<project>/.cache/agent/chat.json`.
+  - `prompt.md`: the system prompt.
+  - `charted mcp` (`crates/cli/src/mcp.rs`) is a stateless stdio proxy to the socket.
+  - The UI side is `ui/src/agent/` and `ui/src/state/agent.ts`.
+- **Undo:** `History::commit_grouped` merges an agent request's commits while they are
+  the latest entry. `Request::UndoGroup` undoes them, and `ProjectSnapshot.undoGroup`
+  names the group only while it is undoable as one. `AppState.revision` lets the UI keep
+  the newer of a reply and a pushed state (`state-changed` / `{event:"state"}`).
+- **Runner:**
+  - Claude runs as `claude -p --output-format stream-json --verbose --mcp-config …
+    --strict-mcp-config --tools "" --allowedTools mcp__charted__* --permission-mode
+    dontAsk --setting-sources project --max-turns 40`, with `--resume` for follow-ups.
+  - Codex runs as `codex exec --json -s read-only` with its shell, browser, apps and
+    plugin features disabled and the MCP server given through `-c`. Codex isn't signed
+    in on this machine, so only its parser is tested.
+  - Inherited `CLAUDE_CODE_*` variables are removed before either starts.
+  - A turn stops if the agent offers any tool of its own.
+- **Tests:**
+  - `cargo test -p charted-agent`: names, layout, catalog and builders, plus the tools on
+    the sample.
+  - `crates/cli/tests/agent.rs`: the stand-in agent `ui/e2e/fake-agent.mjs` runs end to
+    end through the socket.
+  - `ui/e2e/m7agent.spec.ts`: the pane, with the stand-in. Playwright sets
+    `CHARTED_AGENT_CMD`; with it set, only the stand-in is offered.
+  - The Claude Code checkpoint is `bin/heavy cargo test -p charted-cli --test agent --
+    --ignored --nocapture`. On 2026-10-31 it built the roadmap page in 17 s for $0.07
+    with sonnet, and the follow-up worked.
+- **Next:**
+  - Merge `m7-agent` into `main`, then decide the release (v1.5.0 with M7?).
+  - Test the terminal fallback with OpenCode, which isn't installed here.
+  - Run the Codex checkpoint once it is signed in.
+  - Possibly: agent-made screenshots of a page (vision) for layout checks.
+  - Possibly: a `charted mcp --project DIR` mode for agents run outside the app.
 
 ## Decisions already made (do not re-litigate)
 

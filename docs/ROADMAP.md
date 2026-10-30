@@ -140,6 +140,13 @@ stands on each.
 
 ## M7: an agent that builds reports inside charted
 
+**Done (2026-10-31).** Built as below, with these changes: the socket serves charted's
+tools (not the raw request API), so what the agent may do and see is decided in the
+app; one undo step per request (not per tool call); the scope grew to the model and to
+Power Query (as drafts the user applies); big deletes ask first; the conversation is
+kept per project. The tools, the pane and the tests are described in
+`docs/demos/m7.md`; the code is `crates/agent` and `ui/src/agent`.
+
 Microsoft's Copilot can draft a report page only with paid capacity and an admin
 switched on, and its modelling MCP server can't touch report pages. charted can let
 the agent already on the desktop build pages, live, in the open window:

@@ -23,5 +23,9 @@ Commands (all accept `--json`, exit 0 on success and 1 on failure, errors on std
 - `charted sample create <dir> [--scale demo|1m|10m]`: create the sample project.
 - `charted open [<project>]`: open the desktop app.
 
-Edit `model.ossie.yaml` and `queries/*.json` directly when asked to change a model; the
-app reloads them. Keep the Apache Ossie structure valid and run `charted check` after.
+To change a project that is open in the app, use the app's Agent pane (Ctrl+I in the
+report view): it runs Claude Code or Codex with charted's own tools (served by
+`charted mcp` over a socket in the running app), so changes show live and undo in one
+step. With the project closed, edit `model.ossie.yaml` and `queries/*.json` directly;
+the app reads them when it opens the project. Keep the Apache Ossie structure valid and
+run `charted check` after.

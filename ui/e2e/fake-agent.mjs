@@ -20,6 +20,8 @@ const config = JSON.parse(flag("--mcp-config"));
 const server = config.mcpServers.charted;
 const session = flag("--resume") ?? flag("--session-id") ?? "fake-session";
 const out = (o) => process.stdout.write(JSON.stringify(o) + "\n");
+// The page the user is on, from the context charted adds to the request.
+const here = () => /on the page ".*?" \(id ([^)]+)\)/.exec(prompt)?.[1];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 let prompt = "";
@@ -64,9 +66,9 @@ if (/\bbuild\b/i.test(prompt)) {
   await tool("query_visual", { visual: "Sales by category" });
   said = "Built the page Agent e2e with sales by month, by category and a region slicer.";
 } else if (/\bslow\b/i.test(prompt)) {
-  await tool("add_visual", { page: "Page 1", type: "card", title: "Slow one", fields: { values: ["[Total Sales]"] } });
+  await tool("add_visual", { page: here(), type: "card", title: "Slow one", fields: { values: ["[Total Sales]"] } });
   await sleep(1500);
-  await tool("add_visual", { page: "Page 1", type: "card", title: "Slow two", fields: { values: ["[Total Sales]"] } });
+  await tool("add_visual", { page: here(), type: "card", title: "Slow two", fields: { values: ["[Total Sales]"] } });
   await sleep(4000);
   said = "Added two cards.";
 } else if (/\bpeek\b/i.test(prompt)) {

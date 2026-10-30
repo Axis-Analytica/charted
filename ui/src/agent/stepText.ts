@@ -50,7 +50,3 @@ export const STEP_MESSAGES = [
   msg("Discarded the query draft"),
 ];
 
-/** Agent undo labels ("Agent: build me a page") as shown: the request stays as typed. */
-export function agentLabel(label: string, t: (s: string, ...a: string[]) => string): string | null {
-  return label.startsWith("Agent: ") ? t("Agent: %1", label.slice(7)) : null;
-}

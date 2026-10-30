@@ -137,6 +137,15 @@ are on the [releases page](https://github.com/Axis-Analytica/charted/releases).
   Public Power BI projects are part of the tests (`bin/corpus`).
 - `.chartedz` bundles: a whole project in one file to share. Export or import Apache
   Ossie with a diff preview.
+- **An agent inside the app.** The Agent pane (Ctrl+I) asks the agent already on your
+  desktop (Claude Code or Codex, Omarchy's default) to build or change things: "Build a
+  page with sales by month as a line, sales by category as a donut and a region
+  slicer." Each change lands live while you watch, and a whole request undoes in one
+  step. It works through charted's own tools (pages, visuals, filters, themes,
+  bookmarks, measures, columns, tables, relationships, roles, calculation groups,
+  parameters, and Power Query drafts you apply). It sees your model's names and the
+  totals it checks, and rows only if you let it. It uses your agent's own account; other
+  agents open in a terminal with the same tools.
 - A command line for scripts and agents, all with `--json`: `charted check`,
   `charted query` (including `--visual`), `charted export pbip|ossie`, `charted import`,
   `charted import-pbip`,
@@ -170,7 +179,7 @@ and the DAX support list, and `docs/HANDOFF.md` for the architecture.
 | M5 | Query editor: applied steps, transforms, profiling, more sources | Done |
 | M6 | Interop and release: time intelligence, drill, bookmarks, PBIP import, packaging | Done |
 | v1.x | Modelling and DAX, more visuals, report building, interop depth | [Planned](docs/ROADMAP.md) |
-| M7 | An agent inside charted that builds report pages on request | [Planned](docs/ROADMAP.md#m7-an-agent-that-builds-reports-inside-charted) |
+| M7 | An agent inside charted that builds report pages on request | Done ([demo](docs/demos/m7.md)) |
 
 ## License
 

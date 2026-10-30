@@ -10,7 +10,7 @@ import type { Model } from "../bridge/generated/Model";
 import type { Page } from "../bridge/generated/Page";
 import type { AgentStep as Step } from "../bridge/generated/AgentStep";
 import type { TurnRecord } from "../bridge/generated/TurnRecord";
-import { formatNumber, useT } from "../i18n";
+import { formatNumber, msg, useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
 import { ConfirmDialog } from "../kit/Dialog";
 import { Menu } from "../kit/Menu";
@@ -22,9 +22,9 @@ import { AgentConsent } from "./AgentConsent";
 import "./agent.css";
 
 const EXAMPLES = [
-  "Build a page with sales by month as a line, sales by category as a donut and a region slicer.",
-  "Add a measure for year-on-year growth in sales and show it as a card on this page.",
-  "Tidy up this page: consistent titles, and arrange the visuals.",
+  msg("Build a page with sales by month as a line, sales by category as a donut and a region slicer."),
+  msg("Add a measure for year-on-year growth in sales and show it as a card on this page."),
+  msg("Tidy up this page: consistent titles, and arrange the visuals."),
 ];
 
 export function AgentPane({ model, page }: { model: Model; page: Page }) {

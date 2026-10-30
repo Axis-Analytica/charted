@@ -76,8 +76,9 @@ test("Stop ends a request, and an edit made meanwhile keeps its own undo step", 
   await openSample(page);
   await openPane(page);
   await newChat(page);
-  const cards = page.getByTestId("visual").filter({ hasText: /Slow|Total Sales/ });
+  const cards = page.getByTestId("visual").filter({ hasText: /Slow (one|two)/ });
   const before = await page.getByTestId("visual").count();
+  const start = (await page.locator(".page-tab.is-on").textContent())!.trim();
   // An edit while the agent works: its request no longer undoes as one.
   let turn = await ask(page, "slow cards");
   await expect(turn.locator(".agent-step")).toHaveCount(1);
@@ -86,7 +87,7 @@ test("Stop ends a request, and an edit made meanwhile keeps its own undo step", 
   await expect(turn.getByRole("button", { name: "Undo this request" })).toBeDisabled();
   await expect(turn.locator(".agent-note")).toBeVisible();
   for (let i = 0; i < 3; i++) await page.keyboard.press("Control+z");
-  await page.getByRole("tab", { name: "Page 1" }).click();
+  await page.getByRole("tab", { name: start, exact: true }).click();
   await expect(page.getByTestId("visual")).toHaveCount(before);
   // Stop.
   turn = await ask(page, "slow cards");
