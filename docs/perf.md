@@ -33,3 +33,25 @@ Release build (`bin/build`), aarch64, 7 GB RAM, Hyprland.
 
 Visual queries: `cargo run --release -p charted-core --example visualbench -- "Harbor & Pine 10M" 5`.
 Memory: `/proc/<pid>/status` (RssAnon, RssFile) 10 s after opening the demo sample.
+
+## Calculated columns that read other rows (v1.5 step 12, 2026-10-30)
+
+Release build, aarch64, 10M sample (Customer 20,000 rows, Date 731 rows); p50 of 5
+(`cargo run --release -p charted-core --example calcbench -- "Harbor & Pine 10M" 5`).
+Budget: a 10,000-row EARLIER rank in < 2 s.
+
+| Column | p50 |
+|---|---|
+| Rank: `COUNTROWS ( FILTER ( Customer, [CustomerKey] < EARLIER ( [CustomerKey] ) ) ) + 1` | 564 ms |
+| Same city: `… [City] = EARLIER ( [City] )` | 33 ms |
+| Older in city: `= ` and `<` together | 448 ms |
+| `SUMX` over the same country | 74 ms |
+| Inner condition only (`[Segment] = "Consumer"`) | 1 ms |
+| Running count of days (`<=`, 731 rows) | 16 ms |
+| `CALCULATE ( SUM ( Sales[Amount] ) )` per customer (10M sales) | 161 ms |
+
+The frame path is within budget at twice the rows: DuckDB plans equality conditions as
+hash joins and inner-only ones as filters, so splitting FILTER into conjuncts gains
+nothing measurable. Inequalities against the outer row stay quadratic (a rank over
+100,000 rows would take ~15 s); rewriting them as window functions
+(`COUNT(*) OVER (PARTITION BY … ORDER BY x)`) is the follow-up if such tables appear.

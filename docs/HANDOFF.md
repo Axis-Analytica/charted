@@ -37,17 +37,20 @@ release below.
     SELECTEDMEASURE and its kin). DAX table constructors `{ ( … ) }` and NAMEOF came
     with them. Demo script: `docs/demos/v1.4.md`.
 - **Open, in order:**
-  1. Step 12: correlation rewrites for speed, with the 10M bench.
-  2. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
+  1. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
      AurumJet 65/96; `bin/corpus && bin/heavy cargo test -p charted-core --test corpus
      -- --ignored --nocapture`), checkpoints and demo notes per release, the 3000-case DAX
      golden run (`CHARTED_DAX_CASES=3000 bin/heavy cargo test -p charted-core --test
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  3. Still open from v1.0: the Power BI Desktop check in the VM
+  2. Still open from v1.0: the Power BI Desktop check in the VM
      (`~/Work/charted-checkpoints/pbi-roundtrip/`), then tag/AUR/omarchy-pkgs on the
      go-ahead.
+- **Step 12 (v1.5 speed) measured, rewrites not needed yet:** `calcbench` on the 10M
+  sample puts a 20,000-row EARLIER rank at 564 ms (budget: 10,000 rows in 2 s); see
+  docs/perf.md. Window-function rewrites for inequalities are the follow-up if tables of
+  100,000+ rows need ranks.
 - **Worktrees:** `.claude/worktrees/agent-*` (a035c, a0df, a8147) are all merged into
   `main`. They can be removed (`git worktree remove`); each holds its own `target/`.
 - **e2e specs share one sample project.** A spec that changes it must undo the change,
@@ -158,6 +161,7 @@ crates/core/src/visualq.rs    Schema (physical types), report visual → query (
                               limits by type), field values, DAX checks, titles
 crates/core/src/reportfile.rs report/report.json, pages/<id>/page.json, visuals/<id>.json
 crates/core/examples/visualbench.rs   visual query timings on a project
+crates/core/examples/calcbench.rs     calculated columns that read other rows (EARLIER ranks)
 crates/cli                    `charted query --visual <title|id>` (+ tests/query_visual.rs)
 ui/src/report/                ReportView (toolbar, page tabs, shortcuts), Canvas
                               (Moveable + Selecto), VisualContainer, registry.ts
