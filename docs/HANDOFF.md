@@ -9,7 +9,7 @@ release below.
 *Updated 2026-10-30.*
 
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
-  `main` has about 50 local commits, **not pushed**, carrying most of v1.1–v1.5. The
+  `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The
   plan is `~/.claude/plans/sparkling-scribbling-canyon.md` (Tracks A–E).
   - **Nothing is tagged.** No `v1.0.0`, AUR packages or omarchy-pkgs PR. Each needs the
     user's explicit go-ahead, as does pushing.
@@ -25,25 +25,24 @@ release below.
   - Track B (v1.2 visuals) and Track C (v1.3 report building).
   - Track D: hierarchies, groups and bins, display folders, Power Query references
     and *Enter data*.
-  - Track E (v1.4), part: roles with DAX row filters, *Manage roles*, *View as* (every
-    report query carries the role filters), and the theme editor. The CSV culture
-    round trip was already done. Demo script: `docs/demos/v1.4.md`.
+  - Track E (v1.4), except calculation groups: roles with DAX row filters, *Manage
+    roles*, *View as* (every report query carries the role filters), the theme editor,
+    what-if parameters and field parameters (*New parameter…* in the Fields pane;
+    `crates/core/src/fieldparams.rs` expands a visual's roles to the fields picked, and
+    the snapshot's `expandedRoles` carries them to the UI). DAX table constructors
+    `{ ( … ) }` and NAMEOF came with them. Demo script: `docs/demos/v1.4.md`.
 - **Open, in order:**
-  1. v1.4 what-if parameters: a dialog making a GENERATESERIES calculated table, a
-     SELECTEDVALUE measure and a slicer.
-  2. v1.4 field parameters. Import currently brings *Metric Choice* in as a table
-     without data.
-  3. v1.4 calculation groups: model type, import/export, SELECTEDMEASURE in the
+  1. v1.4 calculation groups: model type, import/export, SELECTEDMEASURE in the
      compiler, golden tests.
-  4. Step 12: correlation rewrites for speed, with the 10M bench.
-  5. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
+  2. Step 12: correlation rewrites for speed, with the 10M bench.
+  3. Release checks: the corpus rerun (baseline Contoso 7/7, sales-sample 32/33,
      AurumJet 65/96; `bin/corpus && bin/heavy cargo test -p charted-core --test corpus
      -- --ignored --nocapture`), checkpoints and demo notes per release, the 3000-case DAX
      golden run (`CHARTED_DAX_CASES=3000 bin/heavy cargo test -p charted-core --test
      dax_golden random`), and the Excel/Folder M check in the user's Windows VM. Every
      DAX feature gets golden cases; regenerate `docs/dax-support.md` with
      `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
-  6. Still open from v1.0: the Power BI Desktop check in the VM
+  4. Still open from v1.0: the Power BI Desktop check in the VM
      (`~/Work/charted-checkpoints/pbi-roundtrip/`), then tag/AUR/omarchy-pkgs on the
      go-ahead.
 - **Worktrees:** `.claude/worktrees/agent-*` (a035c, a0df, a8147) are all merged into
