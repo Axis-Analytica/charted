@@ -6,7 +6,7 @@ release below.
 
 ## Where things stand
 
-*Updated 2026-10-31 (end of the M7/M8 session).* **Next session: start with "Clean-up before M9" in docs/PLAN.md, then M9.** **v1.5.0 is released** (M7, the in-app agent): https://github.com/Axis-Analytica/charted/releases/tag/v1.5.0. The next work is in docs/PLAN.md.
+*Updated 2026-10-31 (end of the M7/M8 session).* **Next session: start with "Clean-up before M9" in docs/PLAN.md, then M9.** **v1.6.0 is released** (M8, reshape charted; M7's in-app agent came in v1.5.0): https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0. The next work is in docs/PLAN.md.
 
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
   `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The

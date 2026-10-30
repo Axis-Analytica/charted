@@ -169,9 +169,10 @@ The loose ends from M7, M8 and launch, in a sensible order.
 **Waiting on the user**
 1. **AUR.** Add `~/.ssh/aur.pub` to the AUR account, then run `bin/aur-publish` (it does
    `charted` and `charted-bin`).
-2. **v1.6.0.** Release M8 on the go-ahead (bump as for 1.5.0: `Cargo.toml`, `ui/package.json`,
-   the three PKGBUILDs and their checksums after the release builds, README status).
-3. **omacom/omarchy-pkgs#1879** (`charted-bin`) waits for a maintainer's build approval.
+2. **v1.6.0 is released** (2026-10-31). The PKGBUILDs carry its checksums, so
+   `bin/aur-publish` publishes 1.6.0.
+3. **omacom/omarchy-pkgs#1879** (`charted-bin`, updated to 1.6.0) waits for a
+   maintainer's build approval.
    Answer review comments if any.
 4. **Checks only the user can run:**
    - the Power BI Desktop round trip in the VM;

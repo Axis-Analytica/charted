@@ -16,8 +16,8 @@ options=('!strip' '!debug')
 source_x86_64=("$url/releases/download/v$pkgver/charted-$pkgver-x86_64.tar.gz")
 source_aarch64=("$url/releases/download/v$pkgver/charted-$pkgver-aarch64.tar.gz")
 # From the release's SHA256SUMS.
-sha256sums_x86_64=('SKIP')
-sha256sums_aarch64=('SKIP')
+sha256sums_x86_64=('f38c3fa1069a7839835dc51d6fa749f23ab24063afc4e7f772d4953ff9457322')
+sha256sums_aarch64=('f336bb7f515912f30ee8a4f035d8690a89328b46035bb04faa80af8f5bad3266')
 
 package() {
   cp -a "$srcdir/charted-$pkgver/usr" "$pkgdir/"
