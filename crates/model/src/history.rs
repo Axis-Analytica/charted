@@ -14,6 +14,22 @@ pub struct HistoryEntry {
     pub changes: Vec<Change>,
     /// Inverse changes, already in the order they must be applied.
     pub inverse: Vec<Change>,
+    /// The agent request this entry belongs to: commits with the same group merge into
+    /// one entry while it is the latest, so a request undoes in one step.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub group: Option<String>,
+}
+
+/// Where a group's entries stand in the history.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GroupStatus {
+    /// The latest applied entries, and only those, belong to the group.
+    Latest(usize),
+    /// Some of the group's entries are under others (edits made since), or undone.
+    Buried,
+    /// No applied entry belongs to the group.
+    Gone,
 }
 
 /// A linear undo/redo history with a saved marker for the unsaved-changes indicator.
@@ -71,6 +87,17 @@ impl History {
         label: impl Into<String>,
         changes: Vec<Change>,
     ) -> Result<(), ChangeError> {
+        self.commit_grouped(model, label, changes, None)
+    }
+
+    /// As `commit`, but a transaction in the same group as the latest entry joins it.
+    pub fn commit_grouped(
+        &mut self,
+        model: &mut Model,
+        label: impl Into<String>,
+        changes: Vec<Change>,
+        group: Option<&str>,
+    ) -> Result<(), ChangeError> {
         if changes.is_empty() {
             return Ok(());
         }
@@ -79,10 +106,23 @@ impl History {
         if self.saved.is_some_and(|s| s > self.cursor) {
             self.saved = None;
         }
+        if let Some(g) = group
+            && let Some(top) = self.cursor.checked_sub(1).map(|i| &mut self.entries[i])
+            && top.group.as_deref() == Some(g)
+        {
+            top.changes.extend(changes);
+            let old = std::mem::replace(&mut top.inverse, inverse);
+            top.inverse.extend(old);
+            if self.saved == Some(self.cursor) {
+                self.saved = None;
+            }
+            return Ok(());
+        }
         self.entries.push(HistoryEntry {
             label: label.into(),
             changes,
             inverse,
+            group: group.map(str::to_string),
         });
         self.cursor += 1;
         if let Some(limit) = self.limit {
@@ -116,6 +156,36 @@ impl History {
         let label = self.entries[self.cursor].label.clone();
         self.cursor += 1;
         Ok(Some(label))
+    }
+
+    /// Where `group`'s entries stand.
+    pub fn group_status(&self, group: &str) -> GroupStatus {
+        let applied = &self.entries[..self.cursor];
+        let ours = |e: &HistoryEntry| e.group.as_deref() == Some(group);
+        let top = applied.iter().rev().take_while(|e| ours(e)).count();
+        let all = applied.iter().filter(|e| ours(e)).count();
+        match (top, all) {
+            (_, 0) => GroupStatus::Gone,
+            (t, a) if t == a => GroupStatus::Latest(t),
+            _ => GroupStatus::Buried,
+        }
+    }
+
+    /// Undoes `group`'s entries when they are the latest. Returns how many were undone, or
+    /// `None` when they aren't (the caller explains).
+    pub fn undo_group(&mut self, model: &mut Model, group: &str) -> Result<Option<usize>, ChangeError> {
+        let GroupStatus::Latest(n) = self.group_status(group) else {
+            return Ok(None);
+        };
+        for _ in 0..n {
+            self.undo(model)?;
+        }
+        Ok(Some(n))
+    }
+
+    /// The latest applied entry's group.
+    pub fn undo_group_id(&self) -> Option<&str> {
+        self.cursor.checked_sub(1).and_then(|i| self.entries[i].group.as_deref())
     }
 
     pub fn undo_label(&self) -> Option<&str> {

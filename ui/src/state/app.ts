@@ -7,6 +7,7 @@ import type { Change } from "../bridge/generated/Change";
 import type { EnvSnapshot } from "../bridge/generated/EnvSnapshot";
 import type { Model } from "../bridge/generated/Model";
 import type { Request } from "../bridge/generated/Request";
+import { newer } from "./revision";
 import { toast } from "./toasts";
 
 interface Store {
@@ -25,6 +26,11 @@ interface Store {
 
 let queue: Promise<unknown> = Promise.resolve();
 
+/** Takes a state from the core unless a newer one has arrived already. */
+export function applyState(state: AppState) {
+  if (newer(useApp.getState().state, state)) useApp.setState({ state });
+}
+
 export const useApp = create<Store>()((set, get) => ({
   state: null,
   env: null,
@@ -33,8 +39,7 @@ export const useApp = create<Store>()((set, get) => ({
   async rpc(request, busy) {
     if (busy) set({ busy });
     try {
-      const state = await transport.rpc(request);
-      set({ state });
+      applyState(await transport.rpc(request));
       return true;
     } catch (e) {
       toast({ kind: "error", title: errorMessage(e) });

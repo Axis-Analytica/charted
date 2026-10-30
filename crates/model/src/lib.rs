@@ -12,6 +12,6 @@ pub mod report;
 mod types;
 
 pub use change::{Change, ChangeError, ColumnProperty, apply};
-pub use history::{History, HistoryEntry, apply_all};
+pub use history::{GroupStatus, History, HistoryEntry, apply_all};
 pub use report::*;
 pub use types::*;

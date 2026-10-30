@@ -1,6 +1,7 @@
 // WebSocket transport for running the UI in a browser against `charted serve --dev`
 // (used by end-to-end tests and screenshots). Text frames carry JSON; data replies are
 // binary frames: an 8-byte little-endian request id followed by Arrow IPC bytes.
+import type { AppState } from "./generated/AppState";
 import type { EnvSnapshot } from "./generated/EnvSnapshot";
 import type { PickOptions, Transport } from "./transport";
 
@@ -16,6 +17,7 @@ export function wsTransport(): Transport {
   let nextId = 1;
   const pending = new Map<number, Pending>();
   const envListeners = new Set<(e: EnvSnapshot) => void>();
+  const stateListeners = new Set<(s: AppState) => void>();
   let socket: Promise<WebSocket> | null = null;
 
   const connect = () => {
@@ -39,6 +41,10 @@ export function wsTransport(): Transport {
         const msg = JSON.parse(ev.data as string);
         if (msg.event === "env") {
           for (const l of envListeners) l(msg.payload);
+          return;
+        }
+        if (msg.event === "state") {
+          for (const l of stateListeners) l(msg.payload);
           return;
         }
         const p = pending.get(msg.id);
@@ -68,6 +74,11 @@ export function wsTransport(): Transport {
       envListeners.add(cb);
       void connect();
       return () => envListeners.delete(cb);
+    },
+    onState(cb) {
+      stateListeners.add(cb);
+      void connect();
+      return () => stateListeners.delete(cb);
     },
     // End-to-end tests answer file dialogs by setting window.__chartedPick.
     pick: (options) => {

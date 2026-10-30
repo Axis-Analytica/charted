@@ -9,7 +9,11 @@ import type { TableStats } from "./TableStats";
 /**
  * Everything the UI needs to render the open project.
  */
-export type ProjectSnapshot = { name: string, path: string, model: Model, dirty: boolean, undoLabel: string | null, redoLabel: string | null, tables: Array<TableStats>, queries: Array<QuerySummary>, warnings: Array<string>, recovery: RecoveryInfo | null, 
+export type ProjectSnapshot = { name: string, path: string, model: Model, dirty: boolean, undoLabel: string | null, redoLabel: string | null, 
+/**
+ * The agent request the latest undo entry belongs to (see [`Session::commit_grouped`]).
+ */
+undoGroup?: string, tables: Array<TableStats>, queries: Array<QuerySummary>, warnings: Array<string>, recovery: RecoveryInfo | null, 
 /**
  * What a Power BI import just brought across (shown once, until dismissed).
  */

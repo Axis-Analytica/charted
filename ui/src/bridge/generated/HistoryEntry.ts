@@ -12,4 +12,9 @@ label: string, changes: Array<Change>,
 /**
  * Inverse changes, already in the order they must be applied.
  */
-inverse: Array<Change>, };
+inverse: Array<Change>, 
+/**
+ * The agent request this entry belongs to: commits with the same group merge into
+ * one entry while it is the latest, so a request undoes in one step.
+ */
+group?: string, };

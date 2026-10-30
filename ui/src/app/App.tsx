@@ -7,7 +7,7 @@ import { useLanguage, useT } from "../i18n";
 import { ConfirmDialog } from "../kit/Dialog";
 import { Spinner } from "../kit/misc";
 import { Toasts } from "../kit/Toasts";
-import { useApp } from "../state/app";
+import { applyState, useApp } from "../state/app";
 import { FrameHud } from "./FrameMeter";
 import { KitGallery } from "./KitGallery";
 import { CommandPalette, ShortcutOverlay } from "./Overlays";
@@ -28,6 +28,7 @@ function useEnvironment() {
     transport.env().then(apply);
     return transport.onEnv(apply);
   }, [setEnv]);
+  useEffect(() => transport.onState(applyState), []);
 }
 
 export function App() {

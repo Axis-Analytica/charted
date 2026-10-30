@@ -11,4 +11,9 @@ projectsDir: string,
 /**
  * charted crashed last time (until dismissed).
  */
-crash?: CrashInfo | null, };
+crash?: CrashInfo | null, 
+/**
+ * Counts the changes made; a state pushed by the agent and a reply to the UI's own
+ * request can arrive in either order, and the UI keeps the newer.
+ */
+revision: number, };

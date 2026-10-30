@@ -106,6 +106,10 @@ pub struct ProjectSnapshot {
     pub dirty: bool,
     pub undo_label: Option<String>,
     pub redo_label: Option<String>,
+    /// The agent request the latest undo entry belongs to (see [`Session::commit_grouped`]).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[ts(optional)]
+    pub undo_group: Option<String>,
     pub tables: Vec<TableStats>,
     pub queries: Vec<QuerySummary>,
     pub warnings: Vec<String>,
@@ -320,6 +324,7 @@ impl Session {
             dirty: self.history.is_dirty(),
             undo_label: self.history.undo_label().map(str::to_string),
             redo_label: self.history.redo_label().map(str::to_string),
+            undo_group: self.history.undo_group_id().map(str::to_string),
             tables,
             queries: self
                 .project
@@ -350,8 +355,40 @@ impl Session {
     }
 
     pub fn commit(&mut self, label: &str, changes: Vec<Change>) -> Result<(), CoreError> {
+        self.commit_grouped(label, changes, None)
+    }
+
+    /// As `commit`, but commits in `group` (an agent request) join the latest entry while
+    /// it is the group's, so the request undoes in one step.
+    pub fn commit_grouped(
+        &mut self,
+        label: &str,
+        changes: Vec<Change>,
+        group: Option<&str>,
+    ) -> Result<(), CoreError> {
         let changes = self.prepare(changes, true)?;
-        self.commit_prepared(label, changes)
+        self.check_against_data(&changes)?;
+        self.check_model(&changes)?;
+        self.history
+            .commit_grouped(&mut self.project.model, label, changes, group)?;
+        self.refresh_calculated();
+        self.write_recovery();
+        Ok(())
+    }
+
+    /// Where an agent request's undo entries stand.
+    pub fn group_status(&self, group: &str) -> charted_model::GroupStatus {
+        self.history.group_status(group)
+    }
+
+    /// Undoes an agent request's entries when they are the latest; false when they aren't.
+    pub fn undo_group(&mut self, group: &str) -> Result<bool, CoreError> {
+        let done = self.history.undo_group(&mut self.project.model, group)?.is_some();
+        if done {
+            self.refresh_calculated();
+            self.write_recovery();
+        }
+        Ok(done)
     }
 
     /// Commits changes charted made itself (they may set calculated tables' types).

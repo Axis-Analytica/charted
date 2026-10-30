@@ -715,3 +715,63 @@ fn a_calculated_tables_expression_changes_and_undoes() {
     let back: Model = serde_json::from_str(&json).unwrap();
     assert_eq!(back, model);
 }
+
+fn rename(table: &str, name: &str) -> Vec<Change> {
+    vec![Change::RenameTable {
+        table: table.into(),
+        name: name.into(),
+    }]
+}
+
+#[test]
+fn an_agent_requests_commits_undo_in_one_step() {
+    let mut model = fixture();
+    let mut history = History::new();
+    history.commit_grouped(&mut model, "Agent: tidy", rename("t-sales", "A"), Some("g1")).unwrap();
+    history.commit_grouped(&mut model, "Agent: tidy", rename("t-sales", "B"), Some("g1")).unwrap();
+    history.commit_grouped(&mut model, "Agent: tidy", rename("t-prod", "C"), Some("g1")).unwrap();
+    assert_eq!(history.undo_label(), Some("Agent: tidy"));
+    assert_eq!(history.undo_group_id(), Some("g1"));
+    assert_eq!(history.group_status("g1"), GroupStatus::Latest(1));
+    assert_eq!(history.undo_group(&mut model, "g1").unwrap(), Some(1));
+    assert_eq!(model, fixture());
+    assert_eq!(history.group_status("g1"), GroupStatus::Gone);
+    // Redo replays the whole request.
+    history.redo(&mut model).unwrap();
+    assert_eq!(model.table("t-sales").unwrap().name, "B");
+    assert_eq!(model.table("t-prod").unwrap().name, "C");
+    history.undo(&mut model).unwrap();
+    assert_eq!(model, fixture());
+}
+
+#[test]
+fn a_users_edit_during_a_request_buries_it() {
+    let mut model = fixture();
+    let mut history = History::new();
+    history.commit_grouped(&mut model, "Agent: x", rename("t-sales", "A"), Some("g")).unwrap();
+    history.commit(&mut model, "Rename table", rename("t-prod", "Mine")).unwrap();
+    history.commit_grouped(&mut model, "Agent: x", rename("t-sales", "B"), Some("g")).unwrap();
+    // The agent's next commit starts a new entry, above the user's.
+    assert_eq!(history.group_status("g"), GroupStatus::Buried);
+    assert_eq!(history.undo_group(&mut model, "g").unwrap(), None);
+    assert_eq!(model.table("t-sales").unwrap().name, "B");
+    for _ in 0..3 {
+        history.undo(&mut model).unwrap();
+    }
+    assert_eq!(model, fixture());
+}
+
+#[test]
+fn joining_a_saved_entry_makes_the_model_unsaved() {
+    let mut model = fixture();
+    let mut history = History::new();
+    history.commit_grouped(&mut model, "Agent: x", rename("t-sales", "A"), Some("g")).unwrap();
+    history.mark_saved();
+    assert!(!history.is_dirty());
+    history.commit_grouped(&mut model, "Agent: x", rename("t-sales", "B"), Some("g")).unwrap();
+    assert!(history.is_dirty());
+    // Another group starts its own entry.
+    history.commit_grouped(&mut model, "Agent: y", rename("t-sales", "C"), Some("h")).unwrap();
+    assert_eq!(history.group_status("g"), GroupStatus::Buried);
+    assert_eq!(history.group_status("h"), GroupStatus::Latest(1));
+}

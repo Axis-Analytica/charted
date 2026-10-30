@@ -47,6 +47,10 @@ pub enum Request {
     },
     Undo,
     Redo,
+    /// Undoes an agent request's entries, when they are still the latest.
+    UndoGroup {
+        group: String,
+    },
     Save,
     RestoreRecovery,
     DiscardRecovery,
@@ -147,6 +151,10 @@ pub struct AppState {
     /// charted crashed last time (until dismissed).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub crash: Option<crate::crash::CrashInfo>,
+    /// Counts the changes made; a state pushed by the agent and a reply to the UI's own
+    /// request can arrive in either order, and the UI keeps the newer.
+    #[ts(type = "number")]
+    pub revision: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -482,6 +490,7 @@ pub struct App {
     session: Option<Session>,
     state_dir: PathBuf,
     running: Running,
+    revision: u64,
 }
 
 type RunningMap = HashMap<String, (u64, Arc<charted_engine::InterruptHandle>)>;
@@ -506,6 +515,7 @@ impl App {
             session: None,
             state_dir,
             running: RUNNING.clone(),
+            revision: 0,
         }
     }
 
@@ -552,12 +562,38 @@ impl App {
             version: env!("CARGO_PKG_VERSION").into(),
             crash: crate::crash::pending(&self.state_dir),
             projects_dir: projects_dir().display().to_string(),
+            revision: self.revision,
         })
     }
 
+    pub fn state_dir(&self) -> &Path {
+        &self.state_dir
+    }
+
     pub fn handle(&mut self, request: Request) -> Result<AppState, ApiError> {
+        if !matches!(request, Request::State) {
+            self.revision += 1;
+        }
         self.apply(request)?;
         Ok(self.state()?)
+    }
+
+    /// Commits an agent's changes in its request's undo group.
+    pub fn commit_grouped(
+        &mut self,
+        label: &str,
+        changes: Vec<Change>,
+        group: &str,
+    ) -> Result<AppState, ApiError> {
+        self.revision += 1;
+        self.session_mut()?
+            .commit_grouped(label, changes, Some(group))?;
+        Ok(self.state()?)
+    }
+
+    /// Marks a change made outside `handle` (see `commit_grouped`).
+    pub fn touch(&mut self) {
+        self.revision += 1;
     }
 
     fn apply(&mut self, request: Request) -> Result<(), CoreError> {
@@ -596,6 +632,14 @@ impl App {
             Request::Commit { label, changes } => self.session_mut()?.commit(&label, changes)?,
             Request::Undo => self.session_mut()?.undo()?,
             Request::Redo => self.session_mut()?.redo()?,
+            Request::UndoGroup { group } => {
+                if !self.session_mut()?.undo_group(&group)? {
+                    return Err(CoreError::Invalid(
+                        "the agent's changes aren't the latest any more; undo step by step"
+                            .into(),
+                    ));
+                }
+            }
             Request::Save => self.session_mut()?.save()?,
             Request::RestoreRecovery => self.session_mut()?.restore_recovery()?,
             Request::DiscardRecovery => self.session_mut()?.discard_recovery(),

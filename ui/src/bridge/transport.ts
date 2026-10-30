@@ -21,6 +21,8 @@ export interface Transport {
   data(request: DataRequest): Promise<ArrayBuffer>;
   env(): Promise<EnvSnapshot>;
   onEnv(callback: (env: EnvSnapshot) => void): () => void;
+  /** States the core pushes after changes the UI didn't ask for (the agent's). */
+  onState(callback: (state: AppState) => void): () => void;
   pick(options: PickOptions): Promise<string | null>;
   /** Paths passed on the command line (`charted open <path>`), consumed once. */
   initialPath(): Promise<string | null>;
