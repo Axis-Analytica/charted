@@ -125,6 +125,8 @@ test("a Trends page: last year and year to date, drill down and up, drill throug
   await tick(page, "Sales", "Total Sales");
   await tick(page, "Sales", "Sales LY");
   await expect.poll(async () => (await option(line)).series.length).toBe(2);
+  // Last year's values arrive after the series appears.
+  await expect.poll(async () => (await values(line, 1))[12] ?? null).not.toBeNull();
   const sales = await values(line, 0);
   const ly = await values(line, 1);
   expect(ly.slice(0, 12).every((v) => v === null)).toBe(true);

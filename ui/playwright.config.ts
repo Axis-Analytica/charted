@@ -15,9 +15,6 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
-  // Shared CI runners are slower than a workstation: a test that times out gets one
-  // more try there (reported as flaky), never locally.
-  retries: process.env.CI ? 1 : 0,
   reporter: [["list"]],
   use: {
     baseURL: `http://localhost:${web}`,
