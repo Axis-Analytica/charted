@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 charted-core.workspace = true
+charted-agent = { workspace = true, optional = true }
 charted-model.workspace = true
 charted-engine.workspace = true
 charted-samplegen.workspace = true
@@ -29,7 +30,7 @@ tungstenite = { version = "0.29", optional = true }
 default = ["dev-server"]
 # `charted serve --dev`: the request API over a local WebSocket, so the UI can run in a
 # browser for end-to-end tests. Not built into release packages.
-dev-server = ["dep:tungstenite"]
+dev-server = ["dep:tungstenite", "dep:charted-agent"]
 
 [dev-dependencies]
 tempfile = "3"

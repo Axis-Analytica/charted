@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import type { AgentEvent } from "./generated/AgentEvent";
 import type { AppState } from "./generated/AppState";
 import type { EnvSnapshot } from "./generated/EnvSnapshot";
 import type { PickOptions, Transport } from "./transport";
@@ -24,6 +25,8 @@ export const tauriTransport: Transport & { printPdf(path: string, width: number,
   env: () => invoke("env"),
   onEnv: (callback) => subscribe<EnvSnapshot>("env-changed", callback),
   onState: (callback) => subscribe<AppState>("state-changed", callback),
+  agent: (request) => invoke("agent", { request }),
+  onAgent: (callback) => subscribe<AgentEvent>("agent-event", callback),
   pick: (options: PickOptions) => invoke<string | null>("pick", { options }),
   initialPath: () => invoke<string | null>("initial_path"),
   quit: () => invoke("quit"),

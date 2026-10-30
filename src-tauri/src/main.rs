@@ -5,6 +5,7 @@ mod pdf;
 mod pick;
 mod screenshot;
 
+use charted_agent::host::{AgentRequest, AgentStatus, Host, Push};
 use charted_core::env::EnvSnapshot;
 use charted_core::env::watch::{self, EnvPaths};
 use charted_core::{ApiError, App, AppState, DataRequest, Request};
@@ -16,6 +17,8 @@ use tauri::{Emitter, Manager, WindowEvent};
 
 struct Shared {
     app: Arc<Mutex<App>>,
+    /// The in-app agent (started once the window exists, as it pushes to it).
+    agent: Mutex<Option<Arc<Host>>>,
     initial: Mutex<Option<String>>,
     env: EnvPaths,
 }
@@ -52,6 +55,15 @@ async fn data(state: tauri::State<'_, Shared>, request: DataRequest) -> Result<R
         job.run().map(Response::new)
     })
     .await
+}
+
+#[tauri::command]
+async fn agent(state: tauri::State<'_, Shared>, request: AgentRequest) -> Result<AgentStatus, ApiError> {
+    let host = state.agent.lock().unwrap_or_else(|p| p.into_inner()).clone();
+    let Some(host) = host else {
+        return Err(ApiError { code: "agent".into(), message: "the agent couldn't start".into(), detail: None });
+    };
+    blocking(move || host.handle(request).map_err(charted_agent::host::api_error)).await
 }
 
 #[tauri::command]
@@ -144,6 +156,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
     let app = Arc::new(Mutex::new(App::new(state_dir())));
     let shared = Shared {
         app: app.clone(),
+        agent: Mutex::new(None),
         initial: Mutex::new(initial),
         env: EnvPaths::from_env(),
     };
@@ -153,6 +166,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         .invoke_handler(tauri::generate_handler![
             rpc,
             data,
+            agent,
             env,
             initial_path,
             pick,
@@ -171,6 +185,17 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
             });
             // Keep the watcher alive for the app's lifetime.
             tauri_app.manage(watcher);
+            let handle = tauri_app.handle().clone();
+            let app = tauri_app.state::<Shared>().app.clone();
+            match Host::start(app, move |push| {
+                let _ = match push {
+                    Push::State(s) => handle.emit("state-changed", s),
+                    Push::Agent(a) => handle.emit("agent-event", a),
+                };
+            }) {
+                Ok(host) => *tauri_app.state::<Shared>().agent.lock().unwrap_or_else(|p| p.into_inner()) = Some(host),
+                Err(e) => eprintln!("charted: the agent's socket couldn't start: {e}"),
+            }
             if let Some(file) = screenshot.clone() {
                 screenshot::schedule(tauri_app.handle().clone(), file);
             }
@@ -189,10 +214,13 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         })
         .build(tauri::generate_context!())
         .expect("error while building charted")
-        .run(|_, event| {
+        .run(|app_handle, event| {
             // Let queries still running on other threads finish (or stop) before the
             // process exits and DuckDB's static data goes away.
             if let tauri::RunEvent::Exit = event {
+                if let Some(host) = app_handle.state::<Shared>().agent.lock().unwrap_or_else(|p| p.into_inner()).take() {
+                    host.shutdown();
+                }
                 charted_core::api::shutdown(std::time::Duration::from_secs(3));
             }
         });

@@ -868,6 +868,7 @@ version = "1.4.0"
 dependencies = [
  "ashpd",
  "cairo-rs",
+ "charted-agent",
  "charted-cli",
  "charted-core",
  "charted-engine",
@@ -907,6 +908,7 @@ dependencies = [
 name = "charted-cli"
 version = "1.4.0"
 dependencies = [
+ "charted-agent",
  "charted-core",
  "charted-engine",
  "charted-model",

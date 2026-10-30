@@ -11,6 +11,7 @@ tauri-build.workspace = true
 
 [dependencies]
 charted-core.workspace = true
+charted-agent.workspace = true
 # Without the development WebSocket server: release builds never listen on a port.
 charted-cli = { path = "../crates/cli", default-features = false }
 charted-engine.workspace = true

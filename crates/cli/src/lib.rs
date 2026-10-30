@@ -97,6 +97,12 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
+    /// An MCP server over stdio for the agent charted's Agent pane starts: it serves the
+    /// running window's tools (the window gives the agent its socket and token).
+    Mcp {
+        #[arg(long, env = "CHARTED_SOCKET")]
+        socket: PathBuf,
+    },
     /// Install the bundled agent skill so coding agents can drive charted.
     Skill {
         #[command(subcommand)]
@@ -141,6 +147,7 @@ pub enum SkillAction {
 }
 
 #[cfg(feature = "dev-server")]
+mod mcp;
 mod devserver;
 
 pub const SKILL: &str = include_str!("../../../skill/SKILL.md");
@@ -190,6 +197,10 @@ fn import_pbip(input: &Path, into: Option<PathBuf>, json: bool) -> i32 {
 pub fn run(command: Command) -> i32 {
     match command {
         Command::Open { .. } => fail("`open` needs the desktop app"),
+        Command::Mcp { socket } => match std::env::var("CHARTED_AGENT_TOKEN") {
+            Ok(token) => mcp::serve(&socket, &token),
+            Err(_) => fail("charted mcp is started by charted's Agent pane, which gives it CHARTED_AGENT_TOKEN"),
+        },
         Command::Check { project, json } => {
             let report = charted_core::check::check(&project);
             if json {

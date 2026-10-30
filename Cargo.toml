@@ -42,6 +42,7 @@ charted-dax = { path = "crates/dax" }
 charted-tmdl = { path = "crates/tmdl" }
 charted-engine = { path = "crates/engine" }
 charted-core = { path = "crates/core" }
+charted-agent = { path = "crates/agent" }
 charted-samplegen = { path = "crates/samplegen" }
 
 [profile.dev]

@@ -9,7 +9,7 @@ mod report;
 
 use charted_core::api::{App, AppState};
 use charted_model::{Change, Model};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Mutex;
 use ts_rs::TS;
@@ -30,7 +30,7 @@ pub trait Turn: Sync {
 
 /// One thing the agent did, for the Agent pane: `text` is English, and `op` with `args`
 /// is the same as a message the UI translates (ui/src/agent/stepText.ts).
-#[derive(Debug, Clone, PartialEq, Serialize, TS)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct Step {
@@ -44,6 +44,7 @@ pub struct Step {
     #[ts(optional)]
     pub page: Option<String>,
     /// The visuals it touched.
+    #[serde(default)]
     pub visuals: Vec<String>,
     /// DAX or fields, shown when the step is expanded.
     #[serde(skip_serializing_if = "Option::is_none")]

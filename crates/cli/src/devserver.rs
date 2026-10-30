@@ -6,6 +6,7 @@
 
 use charted_core::env::EnvSnapshot;
 use charted_core::env::watch::EnvPaths;
+use charted_agent::host::{AgentRequest, Push};
 use charted_core::{ApiError, App};
 use serde_json::{Value, json};
 use std::net::TcpListener;
@@ -20,10 +21,28 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
         std::env::temp_dir().join(format!("charted-dev-{}", std::process::id()))
     });
     let app = Arc::new(Mutex::new(App::new(state_dir)));
+    // What the agent changes, and its progress, go to every window.
+    let windows: Arc<Mutex<Vec<std::sync::mpsc::Sender<Message>>>> = Default::default();
+    let host = {
+        let windows = windows.clone();
+        charted_agent::host::Host::start(app.clone(), move |push| {
+            let (event, payload) = match push {
+                Push::State(s) => ("state", serde_json::to_value(s).unwrap()),
+                Push::Agent(a) => ("agent", serde_json::to_value(a).unwrap()),
+            };
+            let text = json!({ "event": event, "payload": payload }).to_string();
+            windows
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .retain(|tx| tx.send(Message::Text(text.clone().into())).is_ok());
+        })?
+    };
     eprintln!("charted dev server on ws://127.0.0.1:{port}");
     for stream in listener.incoming() {
         let stream = stream?;
         let app = app.clone();
+        let host = host.clone();
+        let windows = windows.clone();
         let token = token.to_string();
         std::thread::spawn(move || {
             // The handshake callback's error type is fixed by tungstenite.
@@ -57,6 +76,7 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                 .get_ref()
                 .set_read_timeout(Some(std::time::Duration::from_millis(20)));
             let (tx, rx) = std::sync::mpsc::channel::<Message>();
+            windows.lock().unwrap_or_else(|p| p.into_inner()).push(tx.clone());
             let mut env_seen = serde_json::to_value(EnvSnapshot::read(&paths)).unwrap();
             let mut env_checked = std::time::Instant::now();
             'conn: loop {
@@ -135,6 +155,17 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
                             Err(e) => Err(e),
                         }
                     }
+                    "agent" => match serde_json::from_value::<AgentRequest>(params) {
+                        Ok(r) => host
+                            .handle(r)
+                            .map(|s| serde_json::to_value(s).unwrap())
+                            .map_err(charted_agent::host::api_error),
+                        Err(e) => Err(ApiError {
+                            code: "invalid".into(),
+                            message: e.to_string(),
+                            detail: None,
+                        }),
+                    },
                     "env" => Ok(serde_json::to_value(EnvSnapshot::read(&paths)).unwrap()),
                     "pick" => Ok(std::env::var("CHARTED_PICK_RESULT")
                         .map(Value::String)
@@ -158,3 +189,4 @@ pub fn serve(port: u16, token: &str, state_dir: Option<PathBuf>) -> std::io::Res
     }
     Ok(())
 }
+

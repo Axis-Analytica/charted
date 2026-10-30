@@ -1,5 +1,8 @@
 // The UI talks to the Rust core through a Transport, so the same code runs inside the
 // Tauri window, in a plain browser against the development server, and in tests.
+import type { AgentEvent } from "./generated/AgentEvent";
+import type { AgentRequest } from "./generated/AgentRequest";
+import type { AgentStatus } from "./generated/AgentStatus";
 import type { AppState } from "./generated/AppState";
 import type { DataRequest } from "./generated/DataRequest";
 import type { EnvSnapshot } from "./generated/EnvSnapshot";
@@ -23,6 +26,9 @@ export interface Transport {
   onEnv(callback: (env: EnvSnapshot) => void): () => void;
   /** States the core pushes after changes the UI didn't ask for (the agent's). */
   onState(callback: (state: AppState) => void): () => void;
+  /** The in-app agent: requests, and what it pushes while it works. */
+  agent(request: AgentRequest): Promise<AgentStatus>;
+  onAgent(callback: (event: AgentEvent) => void): () => void;
   pick(options: PickOptions): Promise<string | null>;
   /** Paths passed on the command line (`charted open <path>`), consumed once. */
   initialPath(): Promise<string | null>;
