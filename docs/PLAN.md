@@ -162,6 +162,47 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
 beside the report, and hide the buttons I've never pressed." Watch it happen live, undo
 it in one step, then save it as a profile and load it again.
 
+## Clean-up before M9 (the next session starts here)
+
+The loose ends from M7, M8 and launch, in a sensible order.
+
+**Waiting on the user**
+1. **AUR.** Add `~/.ssh/aur.pub` to the AUR account, then run `bin/aur-publish` (it does
+   `charted` and `charted-bin`).
+2. **v1.6.0.** Release M8 on the go-ahead (bump as for 1.5.0: `Cargo.toml`, `ui/package.json`,
+   the three PKGBUILDs and their checksums after the release builds, README status).
+3. **omacom/omarchy-pkgs#1879** (`charted-bin`) waits for a maintainer's build approval.
+   Answer review comments if any.
+4. **Checks only the user can run:**
+   - the Power BI Desktop round trip in the VM;
+   - signing in to Codex (then run the Codex checkpoint);
+   - launch media (a GIF of the Agent pane).
+
+**Bugs and gaps found along the way**
+5. **Second report view (`ReportSlot` 1).** Drill-through, bookmarks and page-navigator
+   buttons move the *main* report's page (`useReport.page`), not the second one's. Route
+   them through the slot. Report shortcuts work only in the main view.
+6. **M8 leftovers:**
+   - export and import profiles as `.charted-workspace` files;
+   - hideable File-menu items and the Data, Model and Query views' toolbar buttons (give
+     them `data-command` ids like `report/toolbar.ts`);
+   - F6 moving focus between split views;
+   - right-to-left check of left and right docking.
+7. **Agent pane polish:**
+   - A failed step the agent then recovered from stays red. Show it as "retried"
+     (muted) when a later step of the same tool succeeds.
+   - Replies can run past the 1–3 sentences the prompt asks for.
+   - `query_visual` on a chart of month text (`'Date'[YearMonth]`) doesn't say whether
+     the order is right; consider returning the sort.
+8. **Terminal mode** (OpenCode, Crush, …): untested beyond Claude Code. Install OpenCode
+   to check `opencode.json` pickup in `.cache/agent/terminal/`.
+9. **Disk.** `target/` passed 60 GB, and the Mac's disk filled once (linking failed).
+   Consider `CARGO_INCREMENTAL=0` for `bin/test`, or a `bin/clean` that drops
+   `target/debug/incremental` and the old worktrees' `target/`
+   (`.claude/worktrees/agent-*` are merged and can be removed).
+10. **CI flakes** are fixed for v11model, v12 and the chart helpers. Watch for new ones;
+    the pattern is to wait for the data, never to retry.
+
 ## M9: a deeper agent
 
 - **Seeing the page.** A `screenshot_page` tool renders a page to PNG (the PDF export
