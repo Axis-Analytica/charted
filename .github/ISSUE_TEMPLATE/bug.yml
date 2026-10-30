@@ -1,0 +1,36 @@
+name: Bug
+description: Something in charted doesn't work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the sample (Explore the sample)
+        2. …
+  - type: input
+    id: version
+    attributes:
+      label: charted version
+      description: "Shown on the start screen, or run `charted --version`."
+      placeholder: "1.5.0"
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: Omarchy version (or distribution), and x86_64 or aarch64.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, the project (if you can share it), or the agent's transcript for Agent pane problems.

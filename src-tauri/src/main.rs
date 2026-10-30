@@ -104,10 +104,10 @@ async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
 /// reads and sends themselves). No other page can be opened.
 #[tauri::command]
 fn open_issue(url: String) -> Result<(), ApiError> {
-    if !charted_core::crash::is_issue_url(&url) {
+    if !charted_core::crash::is_project_page(&url) {
         return Err(ApiError {
             code: "invalid".into(),
-            message: "only charted's GitHub issues can be opened".into(),
+            message: "only charted's GitHub issues and discussions can be opened".into(),
             detail: None,
         });
     }

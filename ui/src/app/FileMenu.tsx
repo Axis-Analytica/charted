@@ -1,4 +1,4 @@
-import { FilePlus2, FileArchive, FileDown, FileInput, FileText, FileUp, FolderOutput, Save, X } from "lucide-react";
+import { Bug, FilePlus2, FileArchive, FileDown, FileInput, FileText, FileUp, FolderOutput, MessagesSquare, Save, X } from "lucide-react";
 import { useState } from "react";
 import { errorMessage, transport } from "../bridge";
 import type { ModelDiff } from "../bridge/generated/ModelDiff";
@@ -15,6 +15,8 @@ import { useShortcut } from "./shortcuts";
 import { exportPdf } from "../report/PrintLayout";
 
 const OSSIE = [{ name: "Apache Ossie", extensions: ["yaml", "yml"] }];
+/** charted on GitHub: problems go to its issues, ideas and questions to Discussions. */
+const REPO = "https://github.com/Axis-Analytica/charted";
 export const POWER_BI = [{ name: "Power BI project", extensions: ["pbip", "bim"] }];
 const BUNDLE = [{ name: "charted bundle", extensions: ["chartedz"] }];
 
@@ -76,6 +78,8 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
     { id: "import-pbip", keys: "", label: "Import Power BI project…", group: "File", run: () => importPowerBi(t) },
     { id: "save-bundle", keys: "", label: "Save as bundle…", group: "File", run: saveBundle },
     { id: "export-pdf", keys: "", label: "Export to PDF…", group: "File", run: () => void exportPdf(t) },
+    { id: "report-problem", keys: "", label: "Report a problem…", group: "General", run: () => void transport.openIssue(`${REPO}/issues/new/choose`) },
+    { id: "discussions", keys: "", label: "Ideas and questions…", group: "General", run: () => void transport.openIssue(`${REPO}/discussions`) },
   );
 
   const diff = pending?.diff;
@@ -94,6 +98,9 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
           { id: "export-ossie", label: t("Export Apache Ossie model…"), icon: <FileDown size={14} />, run: exportOssie },
           { id: "export-pdf", label: t("Export to PDF…"), icon: <FileText size={14} />, run: () => void exportPdf(t) },
           { id: "import-ossie", label: t("Import Apache Ossie model…"), icon: <FileUp size={14} />, run: importOssie },
+          null,
+          { id: "report-problem", label: t("Report a problem…"), icon: <Bug size={14} />, run: () => void transport.openIssue(`${REPO}/issues/new/choose`) },
+          { id: "discussions", label: t("Ideas and questions…"), icon: <MessagesSquare size={14} />, run: () => void transport.openIssue(`${REPO}/discussions`) },
           null,
           { id: "close", label: t("Close project"), icon: <X size={14} />, shortcut: "Ctrl+W", run: onClose },
         ]}

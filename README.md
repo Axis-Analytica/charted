@@ -135,7 +135,8 @@ are on the [releases page](https://github.com/Axis-Analytica/charted/releases).
 - Import Power BI projects (TMDL or `model.bim`, PBIR or the older `report.json`): the
   model, the Power Query that reads files (on disk or the web), and the report, with an
   import report of what charted can't use yet. An export imports back unchanged.
-  Public Power BI projects are part of the tests (`bin/corpus`).
+  Public Power BI projects are part of the tests (`bin/corpus`). What comes across, and
+  what doesn't yet: [docs/powerbi.md](docs/powerbi.md).
 - `.chartedz` bundles: a whole project in one file to share. Export or import Apache
   Ossie with a diff preview.
 - **An agent inside the app.** The Agent pane (Ctrl+I) asks the agent already on your
@@ -166,7 +167,10 @@ bin/build          # release build; bin/install packages and installs it
 
 charted is a Tauri 2 app: a Rust core (DuckDB, the semantic model, the DAX compiler) and
 a React UI rendered by WebKitGTK. See `docs/` for the milestone demos, performance notes
-and the DAX support list, and `docs/HANDOFF.md` for the architecture.
+and the DAX support list, and `docs/HANDOFF.md` for the architecture. To contribute, see
+[CONTRIBUTING.md](CONTRIBUTING.md) (and [AGENTS.md](AGENTS.md) if you work with a coding
+agent). Problems go in [issues](https://github.com/Axis-Analytica/charted/issues/new/choose);
+ideas and questions in [Discussions](https://github.com/Axis-Analytica/charted/discussions).
 
 ## Roadmap
 

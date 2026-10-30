@@ -1294,5 +1294,7 @@
   "Working…": "Arbejder…",
   "the names and types of your tables, columns and measures, and your DAX;": "navnene og typerne på dine tabeller, kolonner og målinger samt din DAX;",
   "the pages and visuals of your report;": "siderne og visualiseringerne i din rapport;",
-  "the totals the visuals it checks show, with their category labels (up to 50 rows).": "de totaler, som de visualiseringer, den kontrollerer, viser, med deres kategorietiketter (op til 50 rækker)."
+  "the totals the visuals it checks show, with their category labels (up to 50 rows).": "de totaler, som de visualiseringer, den kontrollerer, viser, med deres kategorietiketter (op til 50 rækker).",
+  "Report a problem…": "Rapportér et problem…",
+  "Ideas and questions…": "Idéer og spørgsmål…"
 }

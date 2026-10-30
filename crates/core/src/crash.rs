@@ -126,9 +126,17 @@ pub fn dismiss(state_dir: &Path) {
     }
 }
 
-/// Whether `url` is a new GitHub issue for charted (the only page charted opens).
+/// Whether `url` is a new GitHub issue for charted.
 pub fn is_issue_url(url: &str) -> bool {
     url.starts_with(&format!("{REPO}/issues/new?"))
+}
+
+/// The pages of charted's own the app opens in the browser: a new issue (prefilled, or
+/// the choice of templates) and Discussions. Nothing else.
+pub fn is_project_page(url: &str) -> bool {
+    is_issue_url(url)
+        || url == format!("{REPO}/issues/new/choose")
+        || url == format!("{REPO}/discussions")
 }
 
 #[cfg(test)]
@@ -156,5 +164,8 @@ mod tests {
         assert!(pending(dir.path()).is_none());
         assert!(dir.path().join("seen-crash-200.log").exists());
         assert!(!is_issue_url("https://example.com/issues/new?x"));
+        assert!(is_project_page(&format!("{REPO}/discussions")));
+        assert!(is_project_page(&format!("{REPO}/issues/new/choose")));
+        assert!(!is_project_page(&format!("{REPO}/discussions/../../evil")));
     }
 }

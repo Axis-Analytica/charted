@@ -11,6 +11,17 @@ green on `bin/test` and is committed. Every user-visible stage gets a demo note 
 
 ## Stage L: launch readiness (now, before the post goes out)
 
+**Status 2026-10-31:**
+- **Done:** items 1, 3 to 5 and 7.
+  - v1.5.0 released.
+  - Issue templates (bug, Power BI import/export), Discussions on, and *Report a problem…*
+    and *Ideas and questions…* in the File menu and Ctrl+K.
+  - docs/powerbi.md.
+  - CONTRIBUTING.md and AGENTS.md (CLAUDE.md points to it).
+  - The v11model and v12 CI flakes fixed.
+- **Item 2:** omarchy-pkgs#1879 is open; the AUR waits for the user's key.
+- **Item 6** (media) and **item 8** (VM, Codex, OpenCode checks) are the user's.
+
 The post promises that you can download it today, that it works with your AI, and that
 people can tell us what they love and hate. These make that true.
 

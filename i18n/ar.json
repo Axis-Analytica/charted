@@ -1334,5 +1334,7 @@
   "Working…": "جارٍ العمل…",
   "the names and types of your tables, columns and measures, and your DAX;": "أسماء جداولك وأعمدتك ومقاييسك وأنواعها، وتعبيرات DAX لديك؛",
   "the pages and visuals of your report;": "صفحات تقريرك ومرئياته؛",
-  "the totals the visuals it checks show, with their category labels (up to 50 rows).": "الإجماليات التي تعرضها المرئيات التي يتحقق منها، مع تسميات فئاتها (حتى 50 صفًا)."
+  "the totals the visuals it checks show, with their category labels (up to 50 rows).": "الإجماليات التي تعرضها المرئيات التي يتحقق منها، مع تسميات فئاتها (حتى 50 صفًا).",
+  "Report a problem…": "الإبلاغ عن مشكلة…",
+  "Ideas and questions…": "أفكار وأسئلة…"
 }

@@ -240,7 +240,12 @@ test("Top N on a page and conditional formatting in a table", async ({ page }) =
   await tick(page, "Product", "Category");
   await tick(page, "Sales", "Total Sales");
   await expect.poll(async () => (await categories(col)).length).toBe(6);
-  const top3 = (await categories(col)).slice(0, 3);
+  // The three biggest by value, once every value has arrived (the chart's order can
+  // still be settling, so it isn't read from the axis).
+  await expect.poll(async () => (await values(col, 0)).filter((v) => v != null).length).toBe(6);
+  const cats = await categories(col);
+  const vals = await values(col, 0);
+  const top3 = cats.map((c, i) => [c, vals[i] ?? 0] as const).sort((a, b) => Number(b[1]) - Number(a[1])).slice(0, 3).map(([c]) => c).sort();
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
   await expandTable(page, "Product");
   const pageFilters = page.getByRole("group", { name: "Filters on this page" });
@@ -252,7 +257,7 @@ test("Top N on a page and conditional formatting in a table", async ({ page }) =
   await card.getByRole("combobox", { name: "By value" }).selectOption({ label: "Total Sales" });
   await card.getByRole("button", { name: "Apply filter" }).click();
   await expect(card.locator(".filter-card-summary")).toHaveText("Top 3");
-  await expect.poll(async () => (await categories(col)).join()).toBe(top3.join());
+  await expect.poll(async () => [...(await categories(col))].sort().join()).toBe(top3.join());
   await shot(page, "v12-06-top-n");
 
   // Conditional formatting: a background gradient and data bars on Total Sales, and
