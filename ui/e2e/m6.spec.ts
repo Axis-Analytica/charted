@@ -188,6 +188,16 @@ test("a Trends page: last year and year to date, drill down and up, drill throug
   await tick(page, "Product", "Category");
   await tick(page, "Sales", "Total Sales");
   await expect.poll(async () => (await categories(bars)).length).toBe(6);
+  // The bars rank by value once the values arrive: wait until their order settles.
+  let order = "";
+  await expect
+    .poll(async () => {
+      const now = (await categories(bars)).join("|");
+      const settled = now === order;
+      order = now;
+      return settled;
+    }, { intervals: [500] })
+    .toBe(true);
   const first = (await categories(bars))[0]!;
   const at = await barAt(bars, 0);
   await page.mouse.click(at.x, at.y, { button: "right" });
