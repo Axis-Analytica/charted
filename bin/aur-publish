@@ -1,0 +1,34 @@
+#!/bin/bash
+# Publishes pkgbuild/PKGBUILD (as `charted`) and pkgbuild/PKGBUILD-bin (as `charted-bin`)
+# to the AUR: clones each package's AUR repository, copies the recipe in, regenerates
+# .SRCINFO, and pushes. Run after a release, once the PKGBUILDs carry its version and
+# checksums. Needs an AUR account with ~/.ssh/aur.pub registered (see ~/.ssh/config).
+#   bin/aur-publish [--dry-run]
+set -euo pipefail
+cd "$(dirname "$0")/.."
+dry=${1:-}
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+for pkg in charted charted-bin; do
+  src=pkgbuild/PKGBUILD
+  [[ $pkg == charted-bin ]] && src=pkgbuild/PKGBUILD-bin
+  git clone -q "ssh://aur@aur.archlinux.org/$pkg.git" "$work/$pkg"
+  cp "$src" "$work/$pkg/PKGBUILD"
+  (
+    cd "$work/$pkg"
+    makepkg --printsrcinfo >.SRCINFO
+    git add PKGBUILD .SRCINFO
+    if git diff --cached --quiet; then
+      echo "$pkg: already current"
+      exit 0
+    fi
+    ver=$(sed -n 's/^\tpkgver = //p' .SRCINFO)-$(sed -n 's/^\tpkgrel = //p' .SRCINFO)
+    git commit -qm "Update to $ver"
+    if [[ $dry == --dry-run ]]; then
+      echo "$pkg: would push $ver"
+    else
+      git push -q origin HEAD:master
+      echo "$pkg: pushed $ver"
+    fi
+  )
+done

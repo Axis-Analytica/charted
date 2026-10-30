@@ -61,8 +61,10 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
 
 ### M8.1 A workspace layout model (core)
 
-- **`Workspace` type** (ts-rs), kept per user in `<state dir>/workspace.json` and
-  optionally per project (`.charted` manifest `workspace` override):
+- **`Workspace` type** (ts-rs), kept per user in `<state dir>/workspaces/`. There is no
+  per-project layout. A user has several named **profiles** (for example *Standard*,
+  *Report + model*, *Two report pages*), one active at a time, switched from the View
+  menu, the command palette and the agent. A profile holds:
   - `panes`: id → `{ placement: dock-left | dock-right | float | hidden, width,
     float: {x, y, w, h}, order }`;
   - `views`: the layout of the main area: a single view, or a split
@@ -74,7 +76,13 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
 - **Requests.** `Request::SetWorkspace { patch }` and `ResetWorkspace`.
 - **Undo.** Its own small undo history, apart from the project's: layout isn't the
   model. *Undo layout* appears in the View menu and in the agent's steps.
-- **Profiles.** Save, load, export and import `.charted-workspace` files.
+- **Profiles.** Create, duplicate, rename, delete and switch profiles; export and import
+  them as `.charted-workspace` files. Built-in starting points:
+  - **Standard:** today's layout.
+  - **Report + model:** a split view.
+  - **Two report pages:** two report views side by side, each with its own page.
+
+  These are copied on first edit, so the built-ins stay as they ship.
 
 ### M8.2 The UI reads the layout
 
@@ -84,7 +92,8 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
   draggable, resizable overlay inside the window (no separate OS windows; that keeps
   Hyprland and Tauri simple).
 - **Split views.** The main area renders the `views` tree. Report beside model is the
-  headline. Two views share the selection: picking a table in the model highlights its
+  headline; two report views each keep their own current page (the page selection moves
+  from `useReport` into each view's own state). Two views share the selection: picking a table in the model highlights its
   fields in the report.
 - **Hiding commands.** One command registry (extend `app/shortcuts.ts`'s registry into
   a command list with ids, labels and the toolbar or menu they appear in). Toolbars and
@@ -104,6 +113,7 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
   - `describe_workspace`;
   - `set_pane { pane, placement, width? }`;
   - `split_view { a, b, direction, ratio }`;
+  - `profile { action: create | switch | rename | delete, name }`;
   - `hide_commands { ids }` / `show_commands`;
   - `list_commands` (ids, labels, where they appear, and how often the user used each:
     a local usage count kept in the state dir, never sent anywhere unless the agent
@@ -179,10 +189,16 @@ it in one step, then save it as a profile and load it again.
 | M9 (deeper agent) | M7 | about 2 sessions; v1.7.0 |
 | M10 (Mac and Windows) | – | about 2 sessions, plus signing decisions |
 
-## Decisions for the user
+## Decisions (2026-10-31)
 
-1. AUR and omarchy-pkgs: publish now? (needs the AUR key)
-2. GitHub Discussions on?
-3. M8 floating panes: floating inside the window (recommended), or real OS windows?
-4. A per-project layout override, or per-user only?
-5. Start M10 before or after M9?
+1. **AUR and omarchy-pkgs: go.**
+   - omarchy-pkgs PR omacom/omarchy-pkgs#1879 (`charted-bin`) is open; it waits for a
+     maintainer's build approval.
+   - AUR: the key `~/.ssh/aur.pub` has to be added to the AUR account, then
+     `bin/aur-publish` publishes `charted` and `charted-bin`.
+2. **GitHub Discussions: on.**
+3. **Floating panes:** trial floating inside the window. Revisit OS windows only if the
+   trial falls short.
+4. **Layouts:** no per-project layouts. Each user has several named profiles (Standard,
+   Report + model, Two report pages, …).
+5. **M10 (Mac and Windows) comes after M9.**
