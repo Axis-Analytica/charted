@@ -249,7 +249,7 @@ test("import a Power BI project, see what didn't come across, export and import 
   await fileMenu(page, "Import Power BI project…");
   const report = page.getByRole("dialog", { name: "Imported Contoso.pbip" });
   await expect(report).toBeVisible({ timeout: 30_000 });
-  await expect(report).toContainText("4 tables (2 with data)");
+  await expect(report).toContainText("5 tables (2 with data)");
   for (const s of ["Time Calculations", "Regional managers", "Sql.Database", "map"]) await expect(report).toContainText(s);
   await shot(page, "m6-05-import-report");
   await report.getByRole("button", { name: "Done" }).click();
