@@ -1,30 +1,41 @@
 #!/bin/bash
-# bin/demo: records the README's demo, the agent building a dashboard on the sample in
-# one request, with the real agent (Claude Code, signed in as you; it costs a request,
-# about $0.10–0.30). Writes docs/media/agent.gif (for GitHub) and docs/media/agent.mp4
-# (for posts), speeding up the stretch where the agent works.
-#   bin/demo                 record, then encode
-#   bin/demo --encode-only   re-encode the last recording
-#   SPEED=4 WIDTH=1200 FPS=12 bin/demo --encode-only
+# bin/demo: records the README's demos with the real agent (Claude Code, signed in as
+# you; it costs two requests, about $0.50–1.00): the agent building an in-depth customer
+# page on the sample, then restyling it from a short request. Writes, for each clip,
+# docs/media/agent-<clip>.gif (for GitHub) and .mp4 (for posts), squeezing the stretch
+# where the agent works to a few seconds.
+#   bin/demo                       record, then encode
+#   bin/demo --encode-only         re-encode the last recording
+#   CHARTED_DEMO_FAKE=1 bin/demo   try it with the tests' stand-in agent (free)
+#   WIDTH=960 FPS=8 bin/demo --encode-only
 set -euo pipefail
 cd "$(dirname "$0")/.."
 . bin/env
 tmp="${CHARTED_DEMO_TMP:-/tmp/charted-demo}"
 export CHARTED_DEMO_TMP="$tmp"
-speed="${SPEED:-4}" width="${WIDTH:-1200}" fps="${FPS:-12}"
+width="${WIDTH:-960}" fps="${FPS:-8}"
 if [ "${1:-}" != "--encode-only" ]; then
   bin/heavy cargo build -q -p charted-cli
-  rm -rf "$tmp/results"
+  rm -rf "$tmp/results" "$tmp/clips.json"
   (cd ui && CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" ../bin/heavy npx playwright test -c demo/playwright.config.ts)
 fi
 video="$(find "$tmp/results" -name '*.webm' | head -1)"
 [ -n "$video" ] || { echo "no recording in $tmp/results" >&2; exit 1; }
-read -r start sent done end < <(node -e 'const m=require(process.argv[1]);console.log(Math.max(0,m.typing-1),m.sent+1.5,m.done,m.end)' "$tmp/marks.json")
 mkdir -p docs/media
-# Normal speed while the request is typed, the agent's work sped up, normal speed after.
-# From just before the request is typed (the sample opening and panes closing are cut).
-cut="[0:v]trim=$start:$sent,setpts=PTS-STARTPTS[a];[0:v]trim=$sent:$done,setpts=(PTS-STARTPTS)/$speed[b];[0:v]trim=$done:$end,setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1[v]"
-ffmpeg -loglevel error -y -i "$video" -filter_complex "$cut" -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 -preset slow -movflags +faststart docs/media/agent.mp4
-ffmpeg -loglevel error -y -i docs/media/agent.mp4 -vf "fps=$fps,scale=$width:-1:flags=lanczos,split[x][y];[x]palettegen=stats_mode=diff:max_colors=200[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" docs/media/agent.gif
-ls -la docs/media/agent.mp4 docs/media/agent.gif
-ffprobe -v error -show_entries format=duration -of csv=p=0 docs/media/agent.mp4
+# The agent's work in each clip takes about this many seconds once sped up.
+for clip in build:12 restyle:5; do
+  name="${clip%%:*}" target="${clip##*:}"
+  cut="$(node -e '
+    const [file, name, target] = process.argv.slice(1);
+    const parts = require(file)[name];
+    const out = parts.map(([a, b, s], i) => {
+      const speed = s === "auto" ? Math.max(1, (b - a) / Number(target)) : s;
+      return `[0:v]trim=${a.toFixed(2)}:${b.toFixed(2)},setpts=(PTS-STARTPTS)/${speed.toFixed(3)}[p${i}]`;
+    });
+    console.log(out.join(";") + ";" + parts.map((_, i) => `[p${i}]`).join("") + `concat=n=${parts.length}:v=1[v]`);
+  ' "$tmp/clips.json" "$name" "$target")"
+  mp4="docs/media/agent-$name.mp4" gif="docs/media/agent-$name.gif"
+  ffmpeg -loglevel error -y -i "$video" -filter_complex "$cut" -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 -preset slow -movflags +faststart "$mp4"
+  ffmpeg -loglevel error -y -i "$mp4" -vf "fps=$fps,scale=$width:-1:flags=lanczos,split[x][y];[x]palettegen=stats_mode=diff:max_colors=200[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" "$gif"
+  printf '%s: %ss, %s gif, %s mp4\n' "$name" "$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$mp4" | cut -d. -f1)" "$(du -h "$gif" | cut -f1)" "$(du -h "$mp4" | cut -f1)"
+done

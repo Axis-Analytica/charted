@@ -19,9 +19,17 @@ with a report of anything that doesn't come across.
 > [Install](#install) and what comes next in
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
-![One request in the Agent pane: the agent builds an overview page on the sample, then a slicer cross-filters it](docs/media/agent.gif)
+**Ask for a dashboard, get one.** One request to the in-app agent builds an in-depth
+customer page on the sample: slicers, headline numbers, charts, a matrix and a
+top-customers table, checked against the data as it goes (sped up while it works):
 
-<sub>The agent building a page from one request (sped up while it works). [Video](docs/media/agent.mp4).</sub>
+![One request in the Agent pane builds a customer analysis page with slicers, cards, charts, a matrix and a table, then a region slicer cross-filters it](docs/media/agent-build.gif)
+
+**Restyle it in a sentence.** "Make it purple please, with Helvetica for the fonts":
+
+![One short request turns the dashboard purple with new fonts](docs/media/agent-restyle.gif)
+
+<sub>Videos: [building](docs/media/agent-build.mp4), [restyling](docs/media/agent-restyle.mp4). Recorded with `bin/demo` and Claude Code.</sub>
 
 ![charted's report view: a card, a column chart, a matrix of sales by category and year with Camping selected, cross-filtering a line chart and a region slicer](docs/screenshots/report.png)
 

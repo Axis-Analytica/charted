@@ -13,7 +13,7 @@ const agent = process.env.CHARTED_DEMO_FAKE ? `CHARTED_AGENT_CMD="node ${process
 export default defineConfig({
   testDir: ".",
   testMatch: /\.demo\.ts$/,
-  timeout: 600_000,
+  timeout: 1_500_000,
   workers: 1,
   reporter: [["list"]],
   outputDir: `${tmp}/results`,

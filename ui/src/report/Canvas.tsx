@@ -68,12 +68,14 @@ export function Canvas({ model, page, signature }: { model: Model; page: Page; s
   // Live offsets while dragging/resizing, by visual id.
   const live = useRef(new Map<string, Position>());
 
-  // Fit the page into the available space.
+  // Fit the page into the available space; a page taller than wide-screen (a long
+  // dashboard) fits its width and scrolls, so its visuals stay readable.
   useLayoutEffect(() => {
     const el = scroller.current;
     if (!el) return;
     const fit = () => {
-      const s = Math.min((el.clientWidth - 32) / page.width, (el.clientHeight - 32) / page.height);
+      const across = (el.clientWidth - 32) / page.width;
+      const s = page.height > page.width * 0.6 ? across : Math.min(across, (el.clientHeight - 32) / page.height);
       setScale(Math.max(0.2, Math.min(4, Math.floor(s * 100) / 100)));
     };
     fit();

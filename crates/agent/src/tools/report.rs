@@ -1004,7 +1004,7 @@ fn set_filter(cx: &Cx, args: &Value) -> Res<Done> {
         };
         let shown = format_projection(m, &field);
         let what = match &filter {
-            Some(f) => format!("{shown} {}", serde_json::to_string(f)?),
+            Some(f) => format!("{shown} {}", super::read::describe_filter(m, f)),
             None => format!("{shown} (removed)"),
         };
         let (changes, step) = match str_arg(args, "scope")? {

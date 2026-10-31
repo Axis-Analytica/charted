@@ -270,6 +270,52 @@ fn projections(m: &Model, ps: &[Projection]) -> String {
         .join(", ")
 }
 
+/// A filter in words, for the step the user sees ("top 20 by [Total Sales]").
+pub fn describe_filter(m: &Model, k: &charted_model::FilterKind) -> String {
+    use charted_model::FilterKind as K;
+    let lower = |d: &dyn std::fmt::Debug| format!("{d:?}").to_lowercase();
+    match k {
+        K::All => "all".into(),
+        K::Basic { values, exclude } => {
+            let mut v: Vec<String> = values
+                .iter()
+                .take(5)
+                .map(|x| x.clone().unwrap_or_else(|| "(Blank)".into()))
+                .collect();
+            if values.len() > 5 {
+                v.push("…".into());
+            }
+            format!("{} {}", if *exclude { "isn't" } else { "is" }, v.join(", "))
+        }
+        K::Advanced { conditions, or } => conditions
+            .iter()
+            .map(|c| {
+                [Some(lower(&c.op)), c.value.clone(), c.value2.clone()]
+                    .into_iter()
+                    .flatten()
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            })
+            .collect::<Vec<_>>()
+            .join(if *or { " or " } else { " and " }),
+        K::TopN {
+            count, bottom, by, ..
+        } => {
+            format!(
+                "{} {count} by {}",
+                if *bottom { "bottom" } else { "top" },
+                format_projection(m, by)
+            )
+        }
+        K::RelativeDate {
+            period,
+            count,
+            unit,
+            ..
+        } => format!("{} {count} {}", lower(period), lower(unit)),
+    }
+}
+
 fn filter_text(m: &Model, f: &charted_model::ReportFilter) -> String {
     format!(
         "{} {}",

@@ -194,7 +194,7 @@ From the user's first real use of the agent (docs/PLAN.md "v1.7.0: feedback batc
   `followDesktop` theme that keeps the desktop colours), and `list_visual_types` lists
   fonts, the user's included.
 - **Demo.** `bin/demo` records `ui/demo/agent.demo.ts` (real Claude Code, throwaway
-  state) and writes `docs/media/agent.gif` and `agent.mp4`; `CHARTED_DEMO_FAKE=1` tries
+  state) and writes `docs/media/agent-build.{gif,mp4}` (an in-depth customer page) and `agent-restyle.{gif,mp4}` ("make it purple"); `CHARTED_DEMO_FAKE=1` tries
   it with the stand-in for free; `bin/demo --encode-only` re-encodes.
 - **Fixed on the way:** after "Agree and send" the request stayed in the box.
 

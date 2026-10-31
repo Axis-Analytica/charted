@@ -39,6 +39,8 @@ export function Slicer({ visual, page, model, data }: { visual: Visual; page: Pa
   const own = visual.objects?.title?.text;
   const titleText = (typeof own === "string" && own.trim()) || name;
   const label = titled ? (headerText && headerText !== titleText ? headerText : "") : headerText || name;
+  // A list too short to show any values (a slicer in a row of filters) drops down.
+  const cramped = visual.position.height < (showHeader ? 120 : 96);
   const sel = visual.selection ?? null;
   const active = !!sel && sel.kind !== "all";
   if (!field) return null;
@@ -59,7 +61,7 @@ export function Slicer({ visual, page, model, data }: { visual: Visual; page: Pa
       ) : style === "relative" ? (
         <RelativeSlicer visual={visual} page={page} />
       ) : (
-        <ListSlicer visual={visual} page={page} model={model} data={data} dropdown={style === "dropdown"} />
+        <ListSlicer visual={visual} page={page} model={model} data={data} dropdown={style === "dropdown" || cramped} />
       )}
     </div>
   );
