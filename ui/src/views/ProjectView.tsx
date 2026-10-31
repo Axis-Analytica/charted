@@ -72,6 +72,12 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
   const split = useLayout().split;
   // A second view of the same kind only makes sense for reports (two pages).
   const second = split && (split.view !== view || view === "report") ? split.view : null;
+  // The panes, page buttons and shortcuts act on a report view that is shown: the second
+  // when it is the only report, the first when there is no second.
+  useEffect(() => {
+    const only = second === "report" && view !== "report" ? 1 : second === "report" ? null : 0;
+    if (only !== null && useReport.getState().slot !== only) useReport.getState().set({ slot: only });
+  }, [view, second]);
   const views = useRef<HTMLDivElement>(null);
   const dragDivider = (e: React.PointerEvent) => {
     const box = views.current?.getBoundingClientRect();

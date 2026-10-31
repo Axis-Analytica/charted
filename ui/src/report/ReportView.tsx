@@ -238,8 +238,12 @@ export function ReportView({ model }: { model: Model }) {
   const { t } = useT();
   const commit = useApp((s) => s.commit);
   const slot = useContext(ReportSlot);
-  const { page: page1, page2, slot: focused, selected, formula, set, select, editInteractions, focus, reading } = useReport();
+  const { page: page1, page2, slot: focused, selected, formula, set, select, editInteractions, focus, reading, view } = useReport();
   const pageId = slot ? page2 : page1;
+  // The panes live in the first report view, or the second when the first is another view.
+  const hostsPanes = slot === 0 || view !== "report";
+  // Whether this view is on screen (a second report view is only rendered when shown).
+  const onScreen = () => slot === 1 || useReport.getState().view === "report";
   const page = currentPage(model, pageId);
   const layout = useLayout();
   const split = layout.split?.view === "report";
@@ -258,7 +262,7 @@ export function ReportView({ model }: { model: Model }) {
   // The toolbar's commands in the command palette (built below; read when one runs).
   const toolsRef = useRef<Tool[]>([]);
   useShortcut(
-    ...(slot ? [] : TOOLBAR_COMMANDS).map(({ id, label }) => ({
+    ...(slot !== focused ? [] : TOOLBAR_COMMANDS).map(({ id, label }) => ({
       id: `toolbar-${id}`,
       keys: "",
       label,
@@ -266,7 +270,7 @@ export function ReportView({ model }: { model: Model }) {
       run: () => toolsRef.current.find((x) => x.id === id)?.run?.(),
       enabled: () => {
         const x = toolsRef.current.find((y) => y.id === id);
-        return !!x?.run && !x.disabled && slot === 0;
+        return !!x?.run && !x.disabled;
       },
     })),
   );
@@ -311,7 +315,7 @@ export function ReportView({ model }: { model: Model }) {
     const a = document.activeElement;
     return !a || a === document.body || !!a.closest(".report-center");
   };
-  const hasSelection = () => useReport.getState().selected.length > 0 && useReport.getState().view === "report" && !useReport.getState().reading && canvasFocused();
+  const hasSelection = () => useReport.getState().selected.length > 0 && onScreen() && !useReport.getState().reading && canvasFocused();
   const zOrder = (front: boolean) => {
     if (!page) return;
     const zs = page.visuals.map((v) => v.position.z);
@@ -358,11 +362,11 @@ export function ReportView({ model }: { model: Model }) {
     if (await commit(visuals.length > 1 ? "Paste visuals" : "Paste visual", visuals.map((v): Change => ({ op: "addVisual", page: p.id, visual: v, index: null })))) select(visuals.map((v) => v.id));
     if (dropped) toast({ kind: "info", title: t("Some fields aren't in this model"), detail: t("%1 fields were left out of the pasted visuals.", dropped) });
   };
-  const canPaste = () => useReport.getState().view === "report" && !useReport.getState().reading && canvasFocused() && !window.getSelection()?.toString();
+  const canPaste = () => onScreen() && !useReport.getState().reading && canvasFocused() && !window.getSelection()?.toString();
 
   useBookmarkShortcuts(model);
-  // Only the main report view takes the keyboard (a second one beside it shares it).
-  useShortcut(...(slot ? [] : ([
+  // The report view last used takes the keyboard (a second one beside it shares it).
+  useShortcut(...(slot !== focused ? [] : ([
     {
       id: "agent-pane",
       keys: "Ctrl+I",
@@ -376,7 +380,7 @@ export function ReportView({ model }: { model: Model }) {
           requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>(".agent-input")?.focus()));
         }
       },
-      enabled: () => useReport.getState().view === "report" && !useReport.getState().reading,
+      enabled: () => onScreen() && !useReport.getState().reading,
     },
     { id: "visual-copy", keys: "Ctrl+C", label: "Copy selected visuals", group: "Edit", run: () => void copyVisuals(false), enabled: () => hasSelection() && !window.getSelection()?.toString() },
     { id: "visual-cut", keys: "Ctrl+X", label: "Cut selected visuals", group: "Edit", run: () => void copyVisuals(true), enabled: () => hasSelection() && !window.getSelection()?.toString() },
@@ -400,7 +404,7 @@ export function ReportView({ model }: { model: Model }) {
     { id: "visual-right8", keys: "Shift+ArrowRight", label: "Move right by 8", group: "Edit", run: () => nudge(8, 0), enabled: hasSelection },
     { id: "visual-up8", keys: "Shift+ArrowUp", label: "Move up by 8", group: "Edit", run: () => nudge(0, -8), enabled: hasSelection },
     { id: "visual-down8", keys: "Shift+ArrowDown", label: "Move down by 8", group: "Edit", run: () => nudge(0, 8), enabled: hasSelection },
-    { id: "visual-all", keys: "Ctrl+A", label: "Select all visuals", group: "Edit", run: () => page && select(page.visuals.filter((v) => !v.hidden).map((v) => v.id)), enabled: () => useReport.getState().view === "report" && canvasFocused() },
+    { id: "visual-all", keys: "Ctrl+A", label: "Select all visuals", group: "Edit", run: () => page && select(page.visuals.filter((v) => !v.hidden).map((v) => v.id)), enabled: () => onScreen() && canvasFocused() },
     {
       id: "visual-none",
       keys: "Escape",
@@ -411,7 +415,7 @@ export function ReportView({ model }: { model: Model }) {
         select([]);
         useSelection.getState().clear();
       },
-      enabled: () => useReport.getState().view === "report" && canvasFocused() && (useReport.getState().selected.length > 0 || !!useSelection.getState().selection || !!useReport.getState().focus),
+      enabled: () => onScreen() && canvasFocused() && (useReport.getState().selected.length > 0 || !!useSelection.getState().selection || !!useReport.getState().focus),
     },
     {
       id: "visual-duplicate",
@@ -427,8 +431,8 @@ export function ReportView({ model }: { model: Model }) {
       },
       enabled: hasSelection,
     },
-    { id: "manage-roles", keys: "", label: "Manage roles…", group: "Edit", run: () => useRolesDialog.getState().set("manage"), enabled: () => useReport.getState().view === "report" },
-    { id: "view-as", keys: "", label: "View as roles…", group: "View", run: () => useRolesDialog.getState().set("viewAs"), enabled: () => useReport.getState().view === "report" && !!model.roles?.length },
+    { id: "manage-roles", keys: "", label: "Manage roles…", group: "Edit", run: () => useRolesDialog.getState().set("manage"), enabled: () => onScreen() },
+    { id: "view-as", keys: "", label: "View as roles…", group: "View", run: () => useRolesDialog.getState().set("viewAs"), enabled: () => onScreen() && !!model.roles?.length },
     { id: "new-measure", keys: "Ctrl+M", label: "New measure", group: "Edit", run: () => model.tables[0] && set({ formula: `new:${(useReport.getState().field?.table ?? model.tables[0].id)}` }), enabled: () => model.tables.length > 0 },
     { id: "new-quick-measure", keys: "", label: "New quick measure…", group: "Edit", run: () => model.tables[0] && set({ quick: useReport.getState().field?.table ?? model.tables[0].id }), enabled: () => model.tables.length > 0 },
     // Every visual type can be added from the command palette.
@@ -442,7 +446,7 @@ export function ReportView({ model }: { model: Model }) {
         const v = newVisual(page, d.type, useReport.getState().pointer);
         if (await commit("Add visual", [{ op: "addVisual", page: page.id, visual: v, index: null }])) select([v.id]);
       },
-      enabled: () => useReport.getState().view === "report" && !!page,
+      enabled: () => onScreen() && !!page,
     })),
   ] as Shortcut[])));
 
@@ -547,7 +551,7 @@ export function ReportView({ model }: { model: Model }) {
         {tools.map((x, i) => {
           const sep = x.sep && tools.slice(i + 1).some((y) => !hidden.has(y.id));
           // The second report view has no panes of its own.
-          if (hidden.has(x.id) || (slot === 1 && x.id.startsWith("pane-"))) return x.fill ? <span key={x.id} className="status-fill" /> : null;
+          if (hidden.has(x.id) || (!hostsPanes && x.id.startsWith("pane-"))) return x.fill ? <span key={x.id} className="status-fill" /> : null;
           return (
             <Fragment key={x.id}>
               <span className="toolbar-command" data-command={x.id}>
@@ -564,17 +568,17 @@ export function ReportView({ model }: { model: Model }) {
       <div
         className={`report-body ${compact ? "is-compact" : ""}`}
         ref={body}
-        onPointerDownCapture={() => focused !== slot && useReport.getState().set({ slot })}
       >
-        {!reading && slot === 0 && PANES.filter((k) => placeOf(k) === "left" && (!compact || k === "agent")).map(host)}
-        <div className="report-center">
+        {!reading && hostsPanes && PANES.filter((k) => placeOf(k) === "left" && (!compact || k === "agent")).map(host)}
+        {/* Using a canvas makes its view the one the panes act on (the panes themselves don't). */}
+        <div className="report-center" onPointerDownCapture={() => focused !== slot && useReport.getState().set({ slot })}>
           <ViewAsBanner model={model} />
           <DrillBar model={model} page={page} />
           <Canvas model={model} page={page} signature={signature} />
           {focusVisual && <FocusView model={model} page={page} visual={focusVisual} table={!!focus?.table} signature={signature} />}
           <PageTabs model={model} page={page} reading={reading} />
         </div>
-        {reading || slot === 1 ? null : compact ? (
+        {reading || !hostsPanes ? null : compact ? (
           <>
           {PANES.some(docked) && (
             <div className="pane-stack">
@@ -593,7 +597,7 @@ export function ReportView({ model }: { model: Model }) {
         ) : (
           PANES.filter((k) => placeOf(k) === "right").map(host)
         )}
-        {!reading && slot === 0 && PANES.filter((k) => placeOf(k) === "float").map(host)}
+        {!reading && hostsPanes && PANES.filter((k) => placeOf(k) === "float").map(host)}
       </div>
     </div>
   );

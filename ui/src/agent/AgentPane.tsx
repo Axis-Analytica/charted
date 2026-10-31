@@ -17,7 +17,7 @@ import { Menu } from "../kit/Menu";
 import { Banner, EmptyState, Spinner } from "../kit/misc";
 import { useAgent } from "../state/agent";
 import { useApp, useProject } from "../state/app";
-import { useReport, visualTitle } from "../state/report";
+import { showPage, useReport, visualTitle } from "../state/report";
 import { AgentConsent } from "./AgentConsent";
 import "./agent.css";
 
@@ -241,7 +241,7 @@ function StepLine({ step, model }: { step: Step; model: Model }) {
   const go = () => {
     const pageId = step.page && model.report.pages.some((p) => p.id === step.page) ? step.page : null;
     if (!pageId) return;
-    useReport.getState().set({ page: pageId, selected: exists, view: "report" });
+    showPage(pageId, { selected: exists, view: "report" });
   };
   return (
     <li className={`agent-step ${step.ok ? "" : "is-failed"}`}>

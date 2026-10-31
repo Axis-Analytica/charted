@@ -9,7 +9,7 @@ import type { AgentStatus } from "../bridge/generated/AgentStatus";
 import type { TurnRecord } from "../bridge/generated/TurnRecord";
 import { commandUses } from "../app/layout";
 import { TOOLBAR_COMMANDS } from "../report/toolbar";
-import { useReport } from "./report";
+import { showPage, shownPage, useReport } from "./report";
 import { toast } from "./toasts";
 
 interface AgentStore {
@@ -77,9 +77,9 @@ function applyTurn(turn: TurnRecord) {
     if (item.kind !== "step" || !item.step.ok) continue;
     for (const v of item.step.visuals) touched[v] = until;
     const page = item.step.page;
-    if (page && !follow.moved && turn.status === "running" && useReport.getState().page !== page) {
+    if (page && !follow.moved && turn.status === "running" && shownPage() !== page) {
       navigating = true;
-      useReport.getState().set({ page, selected: [] });
+      showPage(page);
       navigating = false;
     }
   }
@@ -100,7 +100,8 @@ export function initAgent(): () => void {
   });
   const offNav = useReport.subscribe((s, prev) => {
     // The view picking its first page isn't the user going somewhere.
-    if (prev.page && s.page !== prev.page && !navigating && useAgent.getState().status?.running) follow.moved = true;
+    const moved = (prev.page && s.page !== prev.page) || (prev.page2 && s.page2 !== prev.page2);
+    if (moved && !navigating && useAgent.getState().status?.running) follow.moved = true;
   });
   return () => {
     off();

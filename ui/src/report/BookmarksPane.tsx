@@ -17,7 +17,7 @@ import { IconButton } from "../kit/Button";
 import { Menu } from "../kit/Menu";
 import { useApp } from "../state/app";
 import { useDrillThrough } from "../state/drillthrough";
-import { newId, pageSettings, updateVisual, useReport } from "../state/report";
+import { newId, pageSettings, showPage, updateVisual } from "../state/report";
 import { useSelection } from "../state/selection";
 import { withSync } from "./sync";
 
@@ -51,7 +51,7 @@ export async function showBookmark(model: Model, b: Bookmark) {
   }
   useSelection.getState().clear();
   useDrillThrough.getState().set(null);
-  useReport.getState().set({ page: page.id, selected: [] });
+  showPage(page.id);
   useBookmark.getState().set(b.id);
   if (changes.length) await useApp.getState().commit("Show bookmark", withSync(model, changes));
 }

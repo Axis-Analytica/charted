@@ -236,7 +236,9 @@
 /* Narrow windows: one column of panes, switched by tabs. */
 .pane-stack { width: 272px; flex: none; display: flex; flex-direction: column; min-height: 0; border-inline-start: 1px solid var(--border); background: var(--bg-panel); }
 .pane-stack > .pane { flex: 1; width: auto; border-inline-start: 0; }
-.pane-stack .pane-head { display: none; }
+/* The tab names the pane; a head stays only for its actions (Add bookmark, …). */
+.pane-stack .pane-head:not(:has(button)) { display: none; }
+.pane-stack .pane-head > :first-child:not(:has(button)) { visibility: hidden; }
 .pane-switch { display: flex; gap: 2px; padding: 4px 6px 0; border-bottom: 1px solid var(--border); flex: none; }
 .pane-switch button { flex: 1; height: 30px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--fg-muted); font-size: var(--text-sm); font-weight: 500; }
 .pane-switch button[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--fg-strong); }

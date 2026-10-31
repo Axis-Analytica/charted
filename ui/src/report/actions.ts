@@ -6,7 +6,7 @@ import type { Page } from "../bridge/generated/Page";
 import type { Visual } from "../bridge/generated/Visual";
 import { msg } from "../i18n";
 import { drillBack, drillTargets, drillThrough, useDrillThrough } from "../state/drillthrough";
-import { useReport } from "../state/report";
+import { showPage, shownPage, useReport } from "../state/report";
 import { useSelection } from "../state/selection";
 import { toast } from "../state/toasts";
 import { showBookmark } from "./BookmarksPane";
@@ -40,29 +40,33 @@ export function navigatorPages(model: Model, showHidden: boolean): Page[] {
   return model.report.pages.filter((p) => showHidden || !p.hidden);
 }
 
-// The pages visited, for Back.
-const history: string[] = [];
+// The pages visited in each report view, for Back.
+const history: [string[], string[]] = [[], []];
 let goingBack = false;
 useReport.subscribe((s, prev) => {
-  if (s.page === prev.page || !prev.page) return;
-  if (goingBack) goingBack = false;
-  else history.push(prev.page);
-  if (history.length > 50) history.shift();
+  for (const [slot, key] of [[0, "page"], [1, "page2"]] as const) {
+    const from = prev[key];
+    if (s[key] === from || !from) continue;
+    if (goingBack) goingBack = false;
+    else history[slot].push(from);
+    if (history[slot].length > 50) history[slot].shift();
+  }
 });
 
 /** Goes to a page as a button does (leaving any drill through). */
 export function goToPage(id: string) {
-  useReport.getState().set({ page: id, selected: [] });
+  showPage(id);
 }
 
 /** Back: out of a drill through, else to the page shown before. */
 export function goBack(model: Model) {
   if (useDrillThrough.getState().current) return drillBack();
-  while (history.length) {
-    const id = history.pop()!;
-    if (id !== useReport.getState().page && model.report.pages.some((p) => p.id === id)) {
+  const back = history[useReport.getState().slot];
+  while (back.length) {
+    const id = back.pop()!;
+    if (id !== shownPage() && model.report.pages.some((p) => p.id === id)) {
       goingBack = true;
-      useReport.getState().set({ page: id, selected: [] });
+      showPage(id);
       return;
     }
   }

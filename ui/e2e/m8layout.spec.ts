@@ -76,6 +76,33 @@ test("two views side by side; two report pages keep their own page", async ({ pa
   if (shots) await page.screenshot({ path: `${shots}/m8-two-reports.png` });
   await page.keyboard.press("Control+z");
   await expect(tabs).toHaveCount(before);
+
+  // A bookmark shown from the panes moves the report view last used: the second one here.
+  await second.getByRole("button", { name: "New page" }).click();
+  await expect(tabs).toHaveCount(before + 1);
+  await second.getByRole("button", { name: "New page" }).click();
+  await expect(tabs).toHaveCount(before + 2);
+  const [pa, pb] = (await tabs.allTextContents()).slice(-2).map((x) => x.trim());
+  await pageTab(second, { name: pa }).click();
+  await page.getByRole("button", { name: "Bookmarks pane" }).click();
+  // Two views leave the panes narrow: they share a tabbed column.
+  const bookmarks = page.locator(".bookmarks-pane");
+  const tab = page.locator(".pane-switch").getByRole("tab", { name: "Bookmarks" });
+  await expect(bookmarks.or(tab).first()).toBeVisible();
+  if (await tab.isVisible()) await tab.click();
+  const count = await bookmarks.locator(".bookmark-name").count();
+  await bookmarks.getByRole("button", { name: "Add bookmark" }).click();
+  await expect(bookmarks.locator(".bookmark-name")).toHaveCount(count + 1);
+  await pageTab(second, { name: pb }).click();
+  await expect(pageTab(second, { selected: true })).toHaveText(pb!);
+  await bookmarks.locator(".bookmark-name").last().click();
+  await expect(pageTab(second, { selected: true })).toHaveText(pa!);
+  await expect(pageTab(first, { selected: true })).toHaveText(firstOn);
+  // Undo the bookmark and the two pages.
+  for (let i = 0; i < 3; i++) await page.keyboard.press("Control+z");
+  await expect(tabs).toHaveCount(before);
+  await expect(bookmarks.locator(".bookmark-name")).toHaveCount(count);
+  await page.getByRole("button", { name: "Bookmarks pane" }).click();
   await layoutMenu(page, "Standard");
   await expect(page.locator(".report-view")).toHaveCount(1);
 });

@@ -63,6 +63,16 @@ export const useReport = create<ReportStore>()((set) => ({
   select: (ids) => set({ selected: ids }),
 }));
 
+/** The page shown in the report view last used (the second one, side by side, when it was). */
+export const shownPage = (s: Pick<ReportStore, "page" | "page2" | "slot"> = useReport.getState()) => (s.slot ? s.page2 : s.page);
+
+/** Shows a page in the report view last used: drill through, bookmarks, page buttons and
+ * the agent move that view, not always the first. */
+export function showPage(id: string, extra: Partial<Pick<ReportStore, "selected" | "view">> = {}) {
+  const s = useReport.getState();
+  s.set({ ...(s.slot ? { page2: id } : { page: id }), selected: [], ...extra });
+}
+
 let counter = 0;
 /** A new id for pages, visuals and filters (UUID-shaped, as the model uses). */
 export function newId(): string {

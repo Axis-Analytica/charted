@@ -7,7 +7,7 @@ import type { Page } from "../bridge/generated/Page";
 import type { Projection } from "../bridge/generated/Projection";
 import type { QueryFilter } from "../bridge/generated/QueryFilter";
 import type { Visual } from "../bridge/generated/Visual";
-import { sameField, useReport } from "./report";
+import { sameField, showPage } from "./report";
 
 export interface DrillThrough {
   /** The page drilled to, and the page to go back to. */
@@ -52,14 +52,14 @@ export function drillThrough(from: Page, visual: Visual, fields: Projection[], t
     }
   }
   useDrillThrough.getState().set({ target: target.id, from: from.id, filters, point });
-  useReport.getState().set({ page: target.id, selected: [] });
+  showPage(target.id);
 }
 
 /** Back to the page drilled from. */
 export function drillBack() {
   const d = useDrillThrough.getState().current;
   useDrillThrough.getState().set(null);
-  if (d) useReport.getState().set({ page: d.from, selected: [] });
+  if (d) showPage(d.from);
 }
 
 const NONE: QueryFilter[] = [];
