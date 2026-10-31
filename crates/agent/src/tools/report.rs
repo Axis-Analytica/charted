@@ -907,14 +907,15 @@ fn arrange_page(cx: &Cx, args: &Value) -> Res<Done> {
         let mut changes: Vec<Change> = placed
             .into_iter()
             .filter_map(|(id, pos)| {
-                let v = p.visual(&id)?;
-                Some(Change::UpdateVisual {
-                    page: p.id.clone(),
-                    visual: Visual {
-                        position: pos,
-                        ..v.clone()
-                    },
-                })
+                let mut v = Visual { position: pos, ..p.visual(&id)?.clone() };
+                // A slicer in the short band at the top lists its values as a dropdown;
+                // a list wouldn't fit.
+                let style = v.objects.get("slicer").and_then(|o| o.get("style")).and_then(Value::as_str);
+                if v.visual_type == "slicer" && matches!(style, None | Some("list")) {
+                    let o = v.objects.entry("slicer").or_insert_with(|| json!({}));
+                    o["style"] = json!("dropdown");
+                }
+                Some(Change::UpdateVisual { page: p.id.clone(), visual: v })
             })
             .collect();
         if need > p.settings.height as f64 {

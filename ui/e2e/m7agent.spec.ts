@@ -49,6 +49,8 @@ async function ask(page: Page, text: string) {
   if (await agree.isVisible()) {
     await expect(page.getByRole("dialog")).toContainText("names and types");
     await agree.click();
+    // The request leaves the box once it's sent.
+    await expect(pane(page).getByRole("textbox", { name: "Ask the agent" })).toHaveValue("");
   }
   await expect(turns(page)).toHaveCount(before + 1);
   return turns(page).nth(before);

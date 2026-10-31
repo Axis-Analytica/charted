@@ -650,6 +650,9 @@ fn a_slicer_is_named_in_its_header_and_layers_can_be_moved() {
     ok(&app, &turn, "update_visual", json!({ "visual": "Store", "layer": "back" }));
     ok(&app, &turn, "arrange_page", json!({ "page": "Layers" }));
     let p = page(&app);
+    // Its short band fits a dropdown, not a list.
+    let slicer = p.visuals.iter().find(|v| v.visual_type == "slicer").unwrap();
+    assert_eq!(slicer.objects["slicer"]["style"], "dropdown");
     let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
     assert!(z("slicer") > z("card"));
 }

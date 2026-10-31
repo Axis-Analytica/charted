@@ -318,7 +318,7 @@ Vitest for the parser (including escapes and unclosed markers).
   fallback map), e2e (pick a bundled font for a title; add a font file fixture and use
   it in a text box; reopen the project elsewhere and it still renders).
 
-### Stage 4: the demo GIF
+### Stage 4: the demo GIF — done (docs/media, bin/demo)
 
 - `bin/demo` (new): starts `charted-headless serve` with the real HOME (so Claude Code
   is signed in) but throwaway docs/state dirs, and Vite; runs a Playwright script in

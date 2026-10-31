@@ -16,13 +16,16 @@ export function Card({ visual, model, data }: { visual: Visual; model: Model; da
   const f = projectionFormat(model, p);
   const units = prop<string>(visual.objects, def, "callout", "displayUnits");
   const size = prop<number>(visual.objects, def, "callout", "fontSize");
+  // A title that already names the value ("Total sales") makes the label a repeat.
+  const own = visual.objects?.title?.text;
+  const repeated = prop<boolean>(visual.objects, def, "title", "show") && typeof own === "string" && own.trim().toLowerCase() === projectionName(model, p).toLowerCase();
   const text = raw === null || raw === undefined ? "(Blank)" : typeof raw === "number" && f.type !== "String" ? withUnits(raw, units, f, locale) : fmt(raw, f, locale);
   return (
     <div className="card-visual">
       <div className={`card-value tabular ${raw == null ? "is-blank" : ""}`} style={{ fontSize: size, fontFamily: fontStack(prop<string>(visual.objects, def, "callout", "fontFamily")) ?? "var(--report-callout-font, inherit)" }} title={raw == null ? undefined : fmt(raw, f, locale)}>
         {text}
       </div>
-      {prop<boolean>(visual.objects, def, "label", "show") && <div className="card-label">{projectionName(model, p)}</div>}
+      {prop<boolean>(visual.objects, def, "label", "show") && !repeated && <div className="card-label">{projectionName(model, p)}</div>}
     </div>
   );
 }

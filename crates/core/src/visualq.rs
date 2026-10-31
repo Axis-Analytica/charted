@@ -824,6 +824,20 @@ pub fn visual_title(model: &Model, v: &charted_model::Visual) -> String {
             return t.to_string();
         }
     }
+    // A text box is named by its first line (without markdown's marks).
+    if let Some(line) = v
+        .objects
+        .get("text")
+        .and_then(|o| o.get("content"))
+        .and_then(Value::as_str)
+        .and_then(|t| t.lines().map(|l| l.trim_start_matches(['#', '-', ' ']).replace(['*', '_', '`'], "")).find(|l| !l.trim().is_empty()))
+    {
+        let line = line.trim();
+        return match line.char_indices().nth(40) {
+            Some((i, _)) => format!("{}…", &line[..i]),
+            None => line.to_string(),
+        };
+    }
     let mut groups = Vec::new();
     let mut values = Vec::new();
     // A hierarchy is named by the levels shown.

@@ -1,0 +1,30 @@
+#!/bin/bash
+# bin/demo: records the README's demo, the agent building a dashboard on the sample in
+# one request, with the real agent (Claude Code, signed in as you; it costs a request,
+# about $0.10–0.30). Writes docs/media/agent.gif (for GitHub) and docs/media/agent.mp4
+# (for posts), speeding up the stretch where the agent works.
+#   bin/demo                 record, then encode
+#   bin/demo --encode-only   re-encode the last recording
+#   SPEED=4 WIDTH=1200 FPS=12 bin/demo --encode-only
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+tmp="${CHARTED_DEMO_TMP:-/tmp/charted-demo}"
+export CHARTED_DEMO_TMP="$tmp"
+speed="${SPEED:-4}" width="${WIDTH:-1200}" fps="${FPS:-12}"
+if [ "${1:-}" != "--encode-only" ]; then
+  bin/heavy cargo build -q -p charted-cli
+  rm -rf "$tmp/results"
+  (cd ui && CHROMIUM_PATH="${CHROMIUM_PATH:-$(command -v chromium)}" ../bin/heavy npx playwright test -c demo/playwright.config.ts)
+fi
+video="$(find "$tmp/results" -name '*.webm' | head -1)"
+[ -n "$video" ] || { echo "no recording in $tmp/results" >&2; exit 1; }
+read -r start sent done end < <(node -e 'const m=require(process.argv[1]);console.log(Math.max(0,m.typing-1),m.sent+1.5,m.done,m.end)' "$tmp/marks.json")
+mkdir -p docs/media
+# Normal speed while the request is typed, the agent's work sped up, normal speed after.
+# From just before the request is typed (the sample opening and panes closing are cut).
+cut="[0:v]trim=$start:$sent,setpts=PTS-STARTPTS[a];[0:v]trim=$sent:$done,setpts=(PTS-STARTPTS)/$speed[b];[0:v]trim=$done:$end,setpts=PTS-STARTPTS[c];[a][b][c]concat=n=3:v=1[v]"
+ffmpeg -loglevel error -y -i "$video" -filter_complex "$cut" -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 -preset slow -movflags +faststart docs/media/agent.mp4
+ffmpeg -loglevel error -y -i docs/media/agent.mp4 -vf "fps=$fps,scale=$width:-1:flags=lanczos,split[x][y];[x]palettegen=stats_mode=diff:max_colors=200[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" docs/media/agent.gif
+ls -la docs/media/agent.mp4 docs/media/agent.gif
+ffprobe -v error -show_entries format=duration -of csv=p=0 docs/media/agent.mp4

@@ -79,6 +79,7 @@ fn snap(n: f64) -> f64 {
 /// What a visual is, for arranging.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Band {
+    Header,
     Slicer,
     Card,
     Chart,
@@ -88,13 +89,15 @@ pub enum Band {
 pub fn band(visual_type: &str) -> Band {
     match visual_type {
         "slicer" => Band::Slicer,
-        "card" | "multiRowCard" | "kpi" | "gauge" | "textbox" => Band::Card,
+        "textbox" => Band::Header,
+        "card" | "multiRowCard" | "kpi" | "gauge" => Band::Card,
         "table" | "matrix" => Band::Table,
         _ => Band::Chart,
     }
 }
 
-/// Positions for every visual (in the order given, by band): slicers across the top,
+/// Positions for every visual (in the order given, by band): text boxes as a header,
+/// slicers across the top,
 /// then cards in a row, then charts two (or three) to a row, then tables full width.
 /// Returns the positions and the page height needed (never less than `page_h`).
 pub fn arrange(
@@ -109,6 +112,7 @@ pub fn arrange(
     let charts = count(Band::Chart);
     // Height left for charts once the fixed bands are placed.
     let fixed = [
+        (Band::Header, 80.0),
         (Band::Slicer, 72.0),
         (Band::Card, 120.0),
         (Band::Table, 280.0),
@@ -123,7 +127,7 @@ pub fn arrange(
     let mut out = Vec::new();
     let mut y = MARGIN;
     let mut z = 0;
-    for b in [Band::Slicer, Band::Card, Band::Chart, Band::Table] {
+    for b in [Band::Header, Band::Slicer, Band::Card, Band::Chart, Band::Table] {
         let items: Vec<&String> = ordered
             .iter()
             .filter(|(_, (_, t))| band(t) == b)
@@ -133,6 +137,7 @@ pub fn arrange(
             continue;
         }
         let (cols, h) = match b {
+            Band::Header => (items.len().min(2), 80.0),
             Band::Slicer => (items.len().min(5), 72.0),
             Band::Card => (items.len().min(6), 120.0),
             Band::Chart => (per_row.min(items.len()), chart_h),

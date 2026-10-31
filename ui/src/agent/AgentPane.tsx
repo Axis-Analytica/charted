@@ -91,7 +91,7 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
           onCancel={() => useAgent.getState().set({ consent: null })}
           onAgree={async () => {
             useAgent.getState().set({ consent: null });
-            if (await request({ type: "consent" })) await useAgent.getState().send(consent.text, consent.page, consent.visuals);
+            if ((await request({ type: "consent" })) && (await useAgent.getState().send(consent.text, consent.page, consent.visuals))) useAgent.getState().set({ draft: "" });
           }}
         />
       )}

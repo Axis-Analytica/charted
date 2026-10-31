@@ -166,6 +166,38 @@ release below.
   5/5, 7–12 s and about $0.04 each.
 - **Not done:** more headless agents in the pane (OpenCode isn't installed here).
 
+## v1.7.0 feedback batch (done 2026-10-31)
+
+From the user's first real use of the agent (docs/PLAN.md "v1.7.0: feedback batch").
+
+- **Slicer names once.** A slicer's name is its header (`objects.header.text`, plus
+  `fontSize`/`fontFamily`); the agent's `set_title` writes there for slicers and leaves
+  the container title off. A slicer with its container title on drops the repeated
+  header text (`Slicer.tsx`). Header round-trips with PBIR (`visual.objects.header`).
+  `arrange_page` makes list slicers dropdowns (the slicer band is 72 px) and puts them
+  on top; an open dropdown lies over everything (`report.css`).
+- **Layer order for the agent.** `update_visual layer: front|back|forward|backward`;
+  `describe_report` prints each visual's layer.
+- **Markdown.** `ui/src/kit/Markdown.tsx`: a small parser that builds React nodes (no
+  HTML), used for the agent's replies and text boxes (`text.content` is markdown; the
+  Format pane's field is a textarea). Links show their address but don't open (charted
+  opens no pages but its own GitHub). PBIR: markdown ⇄ text runs with `textStyle`
+  (bold, italic, line-through, url), headings export as bold runs.
+- **Fonts.** 15 bundled OFL fonts (`ui/src/design/fonts.ts`, fontsource packages) and
+  Power BI names with bundled stand-ins (`fontNames.ts`, `fontStack`). The user's fonts:
+  `crates/core/src/fonts.rs`, a library in `<state>/fonts` (`AddFont`, `RemoveFont`,
+  `ReadFont`, `AppState.fonts`), copied into `<project>/fonts/` on save when the report
+  uses them; the UI registers them as `@font-face` data URLs (so agent screenshots carry
+  them). `fontFamily` on title, slicer header, text box and card callout; theme text
+  classes (title, label, callout); charts use the theme's label font. The agent:
+  `set_theme fonts:{title,label,callout}` (alone, on a desktop-following report, makes a
+  `followDesktop` theme that keeps the desktop colours), and `list_visual_types` lists
+  fonts, the user's included.
+- **Demo.** `bin/demo` records `ui/demo/agent.demo.ts` (real Claude Code, throwaway
+  state) and writes `docs/media/agent.gif` and `agent.mp4`; `CHARTED_DEMO_FAKE=1` tries
+  it with the stand-in for free; `bin/demo --encode-only` re-encodes.
+- **Fixed on the way:** after "Agree and send" the request stayed in the box.
+
 ## Decisions already made (do not re-litigate)
 
 - Name `charted`, Apache-2.0, repo `github.com/Axis-Analytica/charted` (public, `main`).

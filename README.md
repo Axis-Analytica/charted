@@ -17,6 +17,10 @@ with a report of anything that doesn't come across.
 > [Install](#install) and what comes next in
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
+![One request in the Agent pane: the agent builds an overview page on the sample, then a slicer cross-filters it](docs/media/agent.gif)
+
+<sub>The agent building a page from one request (sped up while it works). [Video](docs/media/agent.mp4).</sub>
+
 ![charted's report view: a card, a column chart, a matrix of sales by category and year with Camping selected, cross-filtering a line chart and a region slicer](docs/screenshots/report.png)
 
 | | |
