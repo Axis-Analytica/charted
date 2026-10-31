@@ -1,5 +1,8 @@
 # Roadmap after v1.0
 
+**After M10:** [GAPS.md](GAPS.md) compares charted with Power BI Desktop (DAX,
+formatting, visuals, data) and sets the next milestones, M11–M16.
+
 What's next, in order. Each release ends like the milestones did, with a checkpoint
 (`bin/checkpoint`) and a demo script. The order comes from three places: what analysts
 use most in Power BI Desktop, what real public Power BI projects needed when imported
