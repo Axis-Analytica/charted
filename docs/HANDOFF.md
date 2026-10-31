@@ -101,7 +101,11 @@ release below.
     --ignored --nocapture`. On 2026-10-31 it built the roadmap page in 17 s for $0.07
     with sonnet, and the follow-up worked.
 - **Next:**
-  - Test the terminal fallback with OpenCode, which isn't installed here.
+  - Terminal mode starts the agent picked in the pane itself (`terminal_command` in
+    `host.rs`), not `omarchy-agent-prompt` (which always starts Omarchy's default agent
+    with its permission-skipping flags). Offered: OpenCode, Cursor CLI, GitHub Copilot,
+    Gemini CLI. None has been run end to end yet; Copilot's `--additional-mcp-config`
+    flag is checked against its `--help`.
   - Run the Codex checkpoint once it is signed in.
   - Possibly: agent-made screenshots of a page (vision) for layout checks.
   - Possibly: a `charted mcp --project DIR` mode for agents run outside the app.
@@ -120,14 +124,22 @@ release below.
   - Pane places come from the layout (`app/layout.ts`), not `useReport`.
   - `report/PaneHost.tsx` docks or floats each pane.
   - The second report view is `ReportSlot` 1 (`report/slot.ts`). It keeps its own page
-    (`useReport.page2`), registers no shortcuts, and `useReport.slot` says which report
-    the panes act on.
-  - Toolbar buttons are `Tool`s with ids (`report/toolbar.ts`), each wrapped in
-    `[data-command]`, which is what lets them be hidden and their clicks counted
-    (localStorage).
-  - The UI sends the list of hideable commands (`SetCommands`) before each agent request.
+    (`useReport.page2`). `useReport.slot` is the report view last used (pointer or
+    keyboard focus in its canvas): the panes, shortcuts, drill through, bookmarks, page
+    buttons, Back and the agent's follow act on it, through `showPage`/`shownPage`
+    (`state/report.ts`). The panes live in the first report view, or the second when
+    the first is another view.
+  - Everything hideable is listed in `app/commands.ts` (report toolbar, File menu, the
+    Data, Model and Transform data toolbars). Toolbar buttons are wrapped in
+    `[data-command]` (`app/Hideable.tsx` outside the report), which is what hides them
+    and counts their clicks (localStorage); menu entries take `command`.
+  - The UI sends that list (`SetCommands`) before each agent request.
+  - Profiles export to and import from `.charted-workspace` files (`Export/ImportProfile`).
+  - Pane places are the reading start ("left") and end ("right"); in right-to-left
+    languages the menu labels say where the pane will actually show.
 - **Disk.** `target/` grows past 60 GB, and `/mnt/mac` (the Mac's disk) ran out once,
-  which broke linking. `rm -rf target/debug/incremental` frees about 20 GB safely.
+  which broke linking. `bin/clean` drops the incremental caches and agent worktrees'
+  `target/` (about 10–20 GB) and lists the worktrees that could go.
 
 ## Decisions already made (do not re-litigate)
 

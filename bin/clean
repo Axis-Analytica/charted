@@ -1,0 +1,26 @@
+#!/bin/bash
+# Frees disk taken by build caches: Cargo's incremental caches here and in agent
+# worktrees, and those worktrees' whole target/ (they rebuild on demand). With --all,
+# also target/debug (the next build starts from scratch). Worktrees themselves are only
+# listed: remove a merged, clean one with `git worktree remove <path>`.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+size() { du -sh "$@" 2>/dev/null | tail -1 | cut -f1; }
+before=$(df --output=avail -h . | tail -1 | tr -d ' ')
+
+rm -rf target/*/incremental target/*/*/incremental
+for w in .claude/worktrees/*/; do
+  [ -d "$w/target" ] && rm -rf "$w/target"
+done
+[ "${1:-}" = "--all" ] && rm -rf target/debug
+
+echo "Free: $before before, $(df --output=avail -h . | tail -1 | tr -d ' ') now (target/ is $(size target))."
+
+for w in .claude/worktrees/*/; do
+  [ -d "$w" ] || continue
+  head=$(git -C "$w" rev-parse HEAD 2>/dev/null) || continue
+  state=$(git merge-base --is-ancestor "$head" main && echo merged || echo "not merged")
+  [ -n "$(git -C "$w" status --porcelain)" ] && state="$state, has changes"
+  echo "worktree $w: $state"
+done

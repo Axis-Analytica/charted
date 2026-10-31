@@ -179,30 +179,21 @@ The loose ends from M7, M8 and launch, in a sensible order.
    - signing in to Codex (then run the Codex checkpoint);
    - launch media (a GIF of the Agent pane).
 
-**Bugs and gaps found along the way**
-5. **Second report view (`ReportSlot` 1).** Drill-through, bookmarks and page-navigator
-   buttons move the *main* report's page (`useReport.page`), not the second one's. Route
-   them through the slot. Report shortcuts work only in the main view.
-6. **M8 leftovers:**
-   - export and import profiles as `.charted-workspace` files;
-   - hideable File-menu items and the Data, Model and Query views' toolbar buttons (give
-     them `data-command` ids like `report/toolbar.ts`);
-   - F6 moving focus between split views;
-   - right-to-left check of left and right docking.
-7. **Agent pane polish:**
-   - A failed step the agent then recovered from stays red. Show it as "retried"
-     (muted) when a later step of the same tool succeeds.
-   - Replies can run past the 1–3 sentences the prompt asks for.
-   - `query_visual` on a chart of month text (`'Date'[YearMonth]`) doesn't say whether
-     the order is right; consider returning the sort.
-8. **Terminal mode** (OpenCode, Crush, …): untested beyond Claude Code. Install OpenCode
-   to check `opencode.json` pickup in `.cache/agent/terminal/`.
-9. **Disk.** `target/` passed 60 GB, and the Mac's disk filled once (linking failed).
-   Consider `CARGO_INCREMENTAL=0` for `bin/test`, or a `bin/clean` that drops
-   `target/debug/incremental` and the old worktrees' `target/`
-   (`.claude/worktrees/agent-*` are merged and can be removed).
-10. **CI flakes** are fixed for v11model, v12 and the chart helpers. Watch for new ones;
-    the pattern is to wait for the data, never to retry.
+**Done (2026-10-31, after v1.6.0)**
+5. Second report view: drill through, bookmarks, page buttons, Back, the agent's follow
+   and shortcuts act on the report view last used; panes show in the second view when
+   the first isn't a report; stacked panes keep their header actions (Add bookmark).
+6. M8 leftovers: File-menu items and the Data, Model and Transform data buttons hide
+   (Layout > Buttons and menus); profiles export and import as `.charted-workspace`;
+   F6 reaches the second view; right-to-left dock labels and the float corner grip.
+7. Agent pane: recovered failures show as retried; replies are asked to stay short and
+   not narrate; `query_visual` says how rows are sorted (and flags a text axis with no
+   sort-by column).
+8. Terminal mode starts the picked agent (not Omarchy's default) with its MCP set-up;
+   only OpenCode, Cursor CLI, Copilot and Gemini CLI are offered. **Still to do:** run
+   one end to end (none is signed in here; Copilot is installed).
+9. `bin/clean` frees build caches.
+10. CI flakes: the pattern is to wait for the data, never to retry. Watch for new ones.
 
 ## M9: a deeper agent
 

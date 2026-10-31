@@ -12,6 +12,7 @@ the rules agents most often break.
   bare cargo run can get the user's terminal killed by systemd-oomd on small machines.
 - **Full suite:** `bin/test` (it wraps itself in `bin/heavy`). Playwright needs
   `CHROMIUM_PATH=$(command -v chromium)`.
+- **Disk:** if a link fails or the disk is nearly full, run `bin/clean`.
 - **Killing processes:** never `pkill -f` or `pgrep -f` with a pattern that also appears
   in your own command line; it kills your shell. Use pid files or `fuser -k PORT/tcp`.
 
