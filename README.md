@@ -8,12 +8,14 @@ stored as [Apache Ossie](https://ossie.apache.org/) documents and export to Powe
 projects (PBIP/TMDL/PBIR), so your work is never locked in. Power BI projects import,
 with a report of anything that doesn't come across.
 
-> **Status:** v1.6.0. Get and shape data, model it, write DAX (time intelligence,
+> **Status:** v1.7.0. Get and shape data, model it, write DAX (time intelligence,
 > calculated tables and columns, calculation groups), build interactive reports with
 > drill-down, drill-through, bookmarks and parameters, preview row-level security, and
 > move projects to and from Power BI. New in 1.5: an agent inside the app (Claude Code
 > or Codex) that builds pages and edits the model as you watch. New in 1.6: layout
-> profiles, floating and docked panes, side-by-side views, and hideable buttons. See
+> profiles, floating and docked panes, side-by-side views, and hideable buttons. New in
+> 1.7: the agent checks its pages by looking at them and follows project instructions;
+> fifteen bundled fonts plus your own; markdown in text boxes. See
 > [Install](#install) and what comes next in
 > [docs/ROADMAP.md](docs/ROADMAP.md).
 
@@ -39,7 +41,7 @@ a pacman package:
 
 ```sh
 mkdir -p ~/src/charted-bin && cd ~/src/charted-bin
-curl -LO https://raw.githubusercontent.com/Axis-Analytica/charted/v1.6.0/pkgbuild/PKGBUILD-bin
+curl -LO https://raw.githubusercontent.com/Axis-Analytica/charted/v1.7.0/pkgbuild/PKGBUILD-bin
 mv PKGBUILD-bin PKGBUILD
 makepkg -si
 ```
