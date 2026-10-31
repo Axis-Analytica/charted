@@ -8,7 +8,7 @@ import type { AgentRequest } from "../bridge/generated/AgentRequest";
 import type { AgentStatus } from "../bridge/generated/AgentStatus";
 import type { TurnRecord } from "../bridge/generated/TurnRecord";
 import { commandUses } from "../app/layout";
-import { TOOLBAR_COMMANDS } from "../report/toolbar";
+import { HIDEABLE } from "../app/commands";
 import { showPage, shownPage, useReport } from "./report";
 import { toast } from "./toasts";
 
@@ -45,7 +45,7 @@ export const useAgent = create<AgentStore>()((set) => ({
       follow = { moved: false, seen: new Map() };
       // The buttons the agent may hide, and how often each is used here.
       const uses = commandUses();
-      const commands = [...TOOLBAR_COMMANDS, { id: "theme", label: "Theme" }, { id: "security", label: "Security" }].map((c) => ({ ...c, place: "report toolbar", uses: uses[c.id] ?? 0 }));
+      const commands = HIDEABLE.map((c) => ({ ...c, place: c.place.toLowerCase(), uses: uses[c.id] ?? 0 }));
       await transport.rpc({ type: "setCommands", commands });
       set({ status: await transport.agent({ type: "send", text, page, visuals }) });
       return true;

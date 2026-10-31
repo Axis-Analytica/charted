@@ -435,6 +435,79 @@ impl Layouts {
     }
 }
 
+/// A profile saved to share (`.charted-workspace`): its name and layout.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProfileFile {
+    format: String,
+    version: u32,
+    name: String,
+    layout: Layout,
+}
+
+const PROFILE_FORMAT: &str = "charted-workspace";
+
+impl Layouts {
+    /// Writes a profile to a `.charted-workspace` file.
+    pub fn export(&self, key: &str, path: &Path) -> Result<(), String> {
+        let p = self
+            .workspace
+            .find(key)
+            .ok_or_else(|| format!("there's no profile \"{key}\""))?;
+        let file = ProfileFile {
+            format: PROFILE_FORMAT.into(),
+            version: 1,
+            name: p.name.clone(),
+            layout: p.layout.clone(),
+        };
+        let json = serde_json::to_string_pretty(&file).map_err(|e| e.to_string())?;
+        std::fs::write(path, json + "\n")
+            .map_err(|e| format!("couldn't write {}: {e}", path.display()))
+    }
+
+    /// Adds the profile in a `.charted-workspace` file (renamed if the name is taken) and
+    /// makes it active. Returns its id.
+    pub fn import(&mut self, path: &Path) -> Result<String, String> {
+        let text = std::fs::read_to_string(path)
+            .map_err(|e| format!("couldn't read {}: {e}", path.display()))?;
+        let file: ProfileFile = serde_json::from_str(&text)
+            .map_err(|e| format!("{} isn't a layout profile: {e}", path.display()))?;
+        if file.format != PROFILE_FORMAT {
+            return Err(format!("{} isn't a layout profile", path.display()));
+        }
+        if file.version > 1 {
+            return Err(
+                "this layout profile is from a newer charted; update charted to open it".into(),
+            );
+        }
+        let base = match file.name.trim() {
+            "" => "Imported",
+            n => n,
+        };
+        let taken = |n: &str| {
+            self.workspace
+                .profiles
+                .iter()
+                .any(|p| p.name.eq_ignore_ascii_case(n))
+        };
+        let mut name = base.to_string();
+        let mut i = 2;
+        while taken(&name) {
+            name = format!("{base} ({i})");
+            i += 1;
+        }
+        let id = uuid::Uuid::new_v4().to_string();
+        self.workspace.profiles.push(Profile {
+            id: id.clone(),
+            name,
+            builtin: None,
+            layout: clean(file.layout),
+        });
+        self.workspace.active = id.clone();
+        Ok(id)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -526,5 +599,31 @@ mod tests {
         l.add("Mine", None).unwrap();
         l.workspace.write(d.path());
         assert_eq!(Workspace::read(d.path()).profiles.len(), 4);
+    }
+
+    #[test]
+    fn a_profile_exports_and_imports_under_a_free_name() {
+        let d = tempfile::tempdir().unwrap();
+        let path = d.path().join("wide.charted-workspace");
+        let mut l = Layouts::default();
+        l.add("Wide", None).unwrap();
+        l.set(floated("fields"), None);
+        l.export("Wide", &path).unwrap();
+        let id = l.import(&path).unwrap();
+        assert_eq!(l.workspace.active, id);
+        assert_eq!(l.workspace.active().name, "Wide (2)");
+        assert_eq!(l.workspace.active().layout, floated("fields"));
+        // Into someone else's charted, under its own name.
+        let mut other = Layouts::default();
+        other.import(&path).unwrap();
+        assert_eq!(other.workspace.active().name, "Wide");
+        std::fs::write(
+            &path,
+            r#"{"format":"something","version":1,"name":"x","layout":{}}"#,
+        )
+        .unwrap();
+        assert!(other.import(&path).is_err());
+        std::fs::write(&path, "{nope").unwrap();
+        assert!(other.import(&path).is_err());
     }
 }

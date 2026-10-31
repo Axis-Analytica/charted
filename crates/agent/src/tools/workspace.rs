@@ -18,7 +18,7 @@ pub fn defs() -> Vec<ToolDef> {
         ToolDef {
             name: "set_pane",
             description: format!(
-                "Moves a report pane: place left, right, float or hidden; width for a docked pane (180–640 px); x, y, width, height for a floating one. Panes: {}.",
+                "Moves a report pane: place left, right, float or hidden (left and right are the reading start and end, mirrored in right-to-left languages); width for a docked pane (180–640 px); x, y, width, height for a floating one. Panes: {}.",
                 PANES.join(", ")
             ),
             input_schema: schema(

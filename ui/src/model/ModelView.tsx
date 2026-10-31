@@ -16,6 +16,7 @@ import { layout, type LayoutResult } from "./layout";
 import { DateTableDialog } from "./DateTableDialog";
 import { RelationshipDialog } from "./RelationshipDialog";
 import "./model.css";
+import { Hideable } from "../app/Hideable";
 
 type Drag = { kind: "card"; table: string; start: Point; origin: Point } | { kind: "pan"; start: Point; origin: Point } | { kind: "link"; table: string; column: string; from: Point; to: Point };
 
@@ -164,6 +165,10 @@ export function ModelView({ model }: { model: Model }) {
     { id: "model-edit-relationship", keys: "Enter", label: "Edit relationship", group: "Edit", run: () => selectedRel && setDialog({ r: selectedRel, isNew: false }), enabled: () => !!selectedRel },
     { id: "model-delete-relationship", keys: "Delete", label: "Delete relationship", group: "Edit", run: () => selectedRel && edit("Delete relationship", () => [{ op: "removeRelationship", relationship: selectedRel.id }]), enabled: () => !!selectedRel },
     { id: "model-fit", keys: "Ctrl+0", label: "Fit diagram", group: "View", run: fit },
+    { id: "model-date-table", keys: "", label: "New date table", group: "Edit", run: () => setDateTable(true) },
+    { id: "model-arrange", keys: "", label: "Arrange the diagram", group: "View", run: () => resetLayout() },
+    { id: "model-zoom-in", keys: "", label: "Zoom in", group: "View", run: () => zoomBy(1.2) },
+    { id: "model-zoom-out", keys: "", label: "Zoom out", group: "View", run: () => zoomBy(1 / 1.2) },
   );
 
   const onPointerMove = (e: ReactPointerEvent) => {
@@ -225,20 +230,30 @@ export function ModelView({ model }: { model: Model }) {
   return (
     <div className="model-view">
       <div className="model-toolbar">
-        <Button size="sm" icon={<Link2 size={14} />} onPress={() => newRelationship()}>
-          {t("New relationship")}
-        </Button>
-        <Button size="sm" variant="ghost" icon={<CalendarDays size={14} />} onPress={() => setDateTable(true)}>
-          {t("New date table")}
-        </Button>
-        <Button size="sm" variant="ghost" icon={<LayoutGrid size={14} />} onPress={resetLayout}>
-          {t("Arrange")}
-        </Button>
+        <Hideable id="model-new-relationship">
+          <Button size="sm" icon={<Link2 size={14} />} onPress={() => newRelationship()}>
+            {t("New relationship")}
+          </Button>
+        </Hideable>
+        <Hideable id="model-date-table">
+          <Button size="sm" variant="ghost" icon={<CalendarDays size={14} />} onPress={() => setDateTable(true)}>
+            {t("New date table")}
+          </Button>
+        </Hideable>
+        <Hideable id="model-arrange">
+          <Button size="sm" variant="ghost" icon={<LayoutGrid size={14} />} onPress={resetLayout}>
+            {t("Arrange")}
+          </Button>
+        </Hideable>
         <span className="model-toolbar-gap" />
-        <IconButton label={t("Zoom out")} icon={<Minus size={15} />} onPress={() => zoomBy(1 / 1.2)} />
-        <span className="model-zoom tabular">{Math.round(view.zoom * 100)}%</span>
-        <IconButton label={t("Zoom in")} icon={<Plus size={15} />} onPress={() => zoomBy(1.2)} />
-        <IconButton label={t("Fit diagram")} shortcut="Ctrl+0" icon={<Maximize size={15} />} onPress={fit} />
+        <Hideable id="model-zoom">
+          <IconButton label={t("Zoom out")} icon={<Minus size={15} />} onPress={() => zoomBy(1 / 1.2)} />
+          <span className="model-zoom tabular">{Math.round(view.zoom * 100)}%</span>
+          <IconButton label={t("Zoom in")} icon={<Plus size={15} />} onPress={() => zoomBy(1.2)} />
+        </Hideable>
+        <Hideable id="model-fit">
+          <IconButton label={t("Fit diagram")} shortcut="Ctrl+0" icon={<Maximize size={15} />} onPress={fit} />
+        </Hideable>
       </div>
       <div className="model-body">
         <div

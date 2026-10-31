@@ -22,6 +22,7 @@ import { FilterMenu } from "./FilterMenu";
 import { FindBar } from "./FindBar";
 import { StatsDrawer } from "./StatsDrawer";
 import "./data.css";
+import { Hideable } from "../../app/Hideable";
 
 const MAX_COPY_ROWS = 1_000_000;
 
@@ -156,6 +157,7 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
 
   useShortcut(
     { id: "copy", keys: "Ctrl+C", label: "Copy selection as TSV", group: "Edit", run: copy, enabled: () => !window.getSelection()?.toString() },
+    { id: "new-column", keys: "", label: "New column", group: "Edit", run: () => setNewColumn(true) },
     { id: "stats", keys: "Ctrl+I", label: "Column statistics", group: "View", run: () => store.set({ statsOpen: !useDataView.getState().statsOpen }) },
     { id: "find", keys: "Ctrl+F", label: "Find in table", group: "Edit", run: () => store.set({ findOpen: true }), global: true },
     { id: "props", keys: "Ctrl+Alt+Enter", label: "Column properties", group: "View", run: () => store.set({ propsOpen: !useDataView.getState().propsOpen }) },
@@ -195,12 +197,20 @@ export function DataView({ project, table }: { project: ProjectSnapshot; table: 
           </div>
         </div>
         <div className="dv-tools">
-          <Button size="sm" variant="ghost" icon={<SquareFunction size={14} />} onPress={() => setNewColumn(true)}>
-            {t("New column")}
-          </Button>
-          <IconButton label={t("Find in table")} shortcut="Ctrl+F" icon={<Search size={15} />} onPress={() => store.set({ findOpen: true })} />
-          <IconButton label={t("Column statistics")} shortcut="Ctrl+I" icon={<ChartNoAxesColumn size={15} />} pressed={store.statsOpen} onPress={() => store.set({ statsOpen: !store.statsOpen })} />
-          <IconButton label={t("Column properties")} shortcut="Ctrl+Alt+Enter" icon={<PanelRight size={15} />} pressed={store.propsOpen} onPress={() => store.set({ propsOpen: !store.propsOpen })} />
+          <Hideable id="data-new-column">
+            <Button size="sm" variant="ghost" icon={<SquareFunction size={14} />} onPress={() => setNewColumn(true)}>
+              {t("New column")}
+            </Button>
+          </Hideable>
+          <Hideable id="data-find">
+            <IconButton label={t("Find in table")} shortcut="Ctrl+F" icon={<Search size={15} />} onPress={() => store.set({ findOpen: true })} />
+          </Hideable>
+          <Hideable id="data-stats">
+            <IconButton label={t("Column statistics")} shortcut="Ctrl+I" icon={<ChartNoAxesColumn size={15} />} pressed={store.statsOpen} onPress={() => store.set({ statsOpen: !store.statsOpen })} />
+          </Hideable>
+          <Hideable id="data-props">
+            <IconButton label={t("Column properties")} shortcut="Ctrl+Alt+Enter" icon={<PanelRight size={15} />} pressed={store.propsOpen} onPress={() => store.set({ propsOpen: !store.propsOpen })} />
+          </Hideable>
           {query && (
             <button type="button" className="sql-toggle" aria-expanded={showSql} onClick={() => setShowSql((s) => !s)}>
               <Code2 size={14} />

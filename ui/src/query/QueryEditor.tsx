@@ -26,6 +26,7 @@ import { EnterDataDialog } from "./EnterData";
 import { StepDialog } from "./StepDialog";
 import { type BuildContext, stepDisplayNames, type Transform, TRANSFORMS, transformById, transformFor } from "./transforms";
 import "./query.css";
+import { Hideable } from "../app/Hideable";
 
 const STEP_MIME = "application/x-charted-step";
 
@@ -198,19 +199,26 @@ export function QueryEditor({ project }: { project: ProjectSnapshot }) {
   return (
     <div className="qe">
       <div className="qe-ribbon" role="toolbar" aria-label={t("Transform data")}>
+        <Hideable id="query-new-source">
         <Menu label={t("New source")} trigger={<span className="qe-ribbon-btn"><Plus size={14} /> {t("New source")} <ChevronDown size={12} /></span>} items={[...SOURCES.map((s) => ({ id: s.kind, label: t(s.label), icon: s.icon, run: () => getData(s.kind) })), null, { id: "enterData", label: `${t("Enter data")}…`, icon: <Table2 size={14} />, run: () => setEnterData({ query: null }) }]} />
+        </Hideable>
         <span className="topbar-sep" />
         {GROUPS.map((g) => (
+          <Hideable key={g} id={`query-${g.toLowerCase().replace(/ /g, "-")}`}>
           <Menu
-            key={g}
             label={t(g)}
             trigger={<span className="qe-ribbon-btn">{t(g)} <ChevronDown size={12} /></span>}
             items={TRANSFORMS.filter((x) => x.group === g).map((x) => ({ id: x.id, label: x.direct ? t(x.label) : `${t(x.label)}…`, disabled: !query || (!columns.length && x.id !== "promoteHeaders"), run: () => run(x, null) }))}
           />
+          </Hideable>
         ))}
         <span className="topbar-sep" />
-        <IconButton label={t("Undo in the query editor")} icon={<Undo2 size={15} />} isDisabled={!draft.past.length} onPress={draft.undo} />
-        <IconButton label={t("Redo in the query editor")} icon={<Redo2 size={15} />} isDisabled={!draft.future.length} onPress={draft.redo} />
+        <Hideable id="query-undo">
+          <IconButton label={t("Undo in the query editor")} icon={<Undo2 size={15} />} isDisabled={!draft.past.length} onPress={draft.undo} />
+        </Hideable>
+        <Hideable id="query-redo">
+          <IconButton label={t("Redo in the query editor")} icon={<Redo2 size={15} />} isDisabled={!draft.future.length} onPress={draft.redo} />
+        </Hideable>
         <span className="status-fill" />
         <Button variant="ghost" size="sm" isDisabled={!dirty} onPress={() => setDiscard(true)}>
           {t("Discard changes")}

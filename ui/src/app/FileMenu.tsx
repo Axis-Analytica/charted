@@ -10,6 +10,8 @@ import { Menu } from "../kit/Menu";
 import { useApp } from "../state/app";
 import { dataJson } from "../state/dataview";
 import { toast } from "../state/toasts";
+import { shownItems } from "./commands";
+import { useLayout } from "./layout";
 import { useNewProject } from "./NewProject";
 import { useShortcut } from "./shortcuts";
 import { exportPdf } from "../report/PrintLayout";
@@ -30,6 +32,7 @@ export async function importPowerBi(t: (s: string) => string) {
 export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapshot; onSave(): void; onClose(): void }) {
   const { t } = useT();
   const rpc = useApp((s) => s.rpc);
+  const hidden = useLayout().hidden;
   const [pending, setPending] = useState<{ path: string; diff: ModelDiff } | null>(null);
   const [exporting, setExporting] = useState<{ dir: string; withData: boolean; folder: string } | null>(null);
 
@@ -88,22 +91,22 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
       <Menu
         label={t("File")}
         trigger={t("File")}
-        items={[
-          { id: "new", label: t("New project…"), icon: <FilePlus2 size={14} />, shortcut: "Ctrl+N", run: () => useNewProject.getState().set(true) },
+        items={shownItems([
+          { id: "new", command: "file-new", label: t("New project…"), icon: <FilePlus2 size={14} />, shortcut: "Ctrl+N", run: () => useNewProject.getState().set(true) },
           { id: "save", label: t("Save"), icon: <Save size={14} />, shortcut: "Ctrl+S", disabled: !project.dirty, run: onSave },
-          { id: "save-bundle", label: t("Save as bundle…"), icon: <FileArchive size={14} />, run: saveBundle },
+          { id: "save-bundle", command: "file-save-bundle", label: t("Save as bundle…"), icon: <FileArchive size={14} />, run: saveBundle },
           null,
-          { id: "import-pbip", label: t("Import Power BI project…"), icon: <FileInput size={14} />, run: () => importPowerBi(t) },
-          { id: "export-pbip", label: t("Export Power BI project…"), icon: <FolderOutput size={14} />, run: exportPbip },
-          { id: "export-ossie", label: t("Export Apache Ossie model…"), icon: <FileDown size={14} />, run: exportOssie },
-          { id: "export-pdf", label: t("Export to PDF…"), icon: <FileText size={14} />, run: () => void exportPdf(t) },
-          { id: "import-ossie", label: t("Import Apache Ossie model…"), icon: <FileUp size={14} />, run: importOssie },
+          { id: "import-pbip", command: "file-import-pbip", label: t("Import Power BI project…"), icon: <FileInput size={14} />, run: () => importPowerBi(t) },
+          { id: "export-pbip", command: "file-export-pbip", label: t("Export Power BI project…"), icon: <FolderOutput size={14} />, run: exportPbip },
+          { id: "export-ossie", command: "file-export-ossie", label: t("Export Apache Ossie model…"), icon: <FileDown size={14} />, run: exportOssie },
+          { id: "export-pdf", command: "file-export-pdf", label: t("Export to PDF…"), icon: <FileText size={14} />, run: () => void exportPdf(t) },
+          { id: "import-ossie", command: "file-import-ossie", label: t("Import Apache Ossie model…"), icon: <FileUp size={14} />, run: importOssie },
           null,
-          { id: "report-problem", label: t("Report a problem…"), icon: <Bug size={14} />, run: () => void transport.openIssue(`${REPO}/issues/new/choose`) },
-          { id: "discussions", label: t("Ideas and questions…"), icon: <MessagesSquare size={14} />, run: () => void transport.openIssue(`${REPO}/discussions`) },
+          { id: "report-problem", command: "file-report-problem", label: t("Report a problem…"), icon: <Bug size={14} />, run: () => void transport.openIssue(`${REPO}/issues/new/choose`) },
+          { id: "discussions", command: "file-discussions", label: t("Ideas and questions…"), icon: <MessagesSquare size={14} />, run: () => void transport.openIssue(`${REPO}/discussions`) },
           null,
           { id: "close", label: t("Close project"), icon: <X size={14} />, shortcut: "Ctrl+W", run: onClose },
-        ]}
+        ], hidden)}
       />
       <Dialog
         open={!!exporting}

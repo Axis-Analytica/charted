@@ -391,5 +391,5 @@
 .pane-host.is-float { position: absolute; z-index: 30; border: 1px solid var(--border); border-radius: var(--radius-md, 8px); background: var(--bg-panel); box-shadow: 0 10px 32px rgb(0 0 0 / 0.28); overflow: hidden; }
 .pane-host.is-float > .pane { width: 100%; border: 0; }
 .pane-host.is-float .pane-head { cursor: move; }
-.pane-host.is-float > .pane-resize.is-corner { top: auto; bottom: 0; left: auto; right: 0; inset-inline-start: auto; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--border) 50%); }
+.pane-host.is-float > .pane-resize.is-corner { inset: auto 0 0 auto; width: 14px; height: 14px; cursor: nwse-resize; background: linear-gradient(135deg, transparent 50%, var(--border) 50%); }
 .toolbar-command { display: contents; }

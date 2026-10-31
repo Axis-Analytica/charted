@@ -77,6 +77,15 @@ pub enum Request {
     ResetProfile {
         profile: String,
     },
+    /// Saves a profile to a `.charted-workspace` file, to share or keep.
+    ExportProfile {
+        profile: String,
+        path: String,
+    },
+    /// Adds the profile in a `.charted-workspace` file and switches to it.
+    ImportProfile {
+        path: String,
+    },
     /// The commands the UI can hide, and how often each was used (for the agent).
     SetCommands {
         commands: Vec<crate::workspace::CommandInfo>,
@@ -726,6 +735,13 @@ impl App {
             }
             Request::DeleteProfile { profile } => self.profile(|l| l.delete(&profile))?,
             Request::ResetProfile { profile } => self.profile(|l| l.reset(&profile))?,
+            Request::ExportProfile { profile, path } => self
+                .layouts
+                .export(&profile, Path::new(&path))
+                .map_err(CoreError::Invalid)?,
+            Request::ImportProfile { path } => {
+                self.profile(|l| l.import(Path::new(&path)).map(|_| ()))?
+            }
             Request::SetCommands { commands } => self.commands = commands,
             Request::UndoGroup { group } => {
                 if !self.session_mut()?.undo_group(&group)? {

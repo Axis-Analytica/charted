@@ -243,6 +243,7 @@ export function ReportView({ model }: { model: Model }) {
   // The panes live in the first report view, or the second when the first is another view.
   const hostsPanes = slot === 0 || view !== "report";
   // Whether this view is on screen (a second report view is only rendered when shown).
+  const makeCurrent = () => useReport.getState().slot !== slot && useReport.getState().set({ slot });
   const onScreen = () => slot === 1 || useReport.getState().view === "report";
   const page = currentPage(model, pageId);
   const layout = useLayout();
@@ -570,8 +571,8 @@ export function ReportView({ model }: { model: Model }) {
         ref={body}
       >
         {!reading && hostsPanes && PANES.filter((k) => placeOf(k) === "left" && (!compact || k === "agent")).map(host)}
-        {/* Using a canvas makes its view the one the panes act on (the panes themselves don't). */}
-        <div className="report-center" onPointerDownCapture={() => focused !== slot && useReport.getState().set({ slot })}>
+        {/* Using a canvas (pointer or keyboard) makes its view the one the panes act on; the panes themselves don't. */}
+        <div className="report-center" onPointerDownCapture={makeCurrent} onFocusCapture={makeCurrent}>
           <ViewAsBanner model={model} />
           <DrillBar model={model} page={page} />
           <Canvas model={model} page={page} signature={signature} />

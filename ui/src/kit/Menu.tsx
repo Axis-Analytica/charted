@@ -8,6 +8,8 @@ export interface MenuEntry {
   icon?: ReactNode;
   shortcut?: string;
   disabled?: boolean;
+  /** Its id among the commands people can hide (app/commands.ts); also counts its uses. */
+  command?: string;
   run(): void;
 }
 
@@ -30,7 +32,7 @@ export function Menu({ label, trigger, items }: { label: string; trigger: ReactN
         >
           {items.map((i, n) =>
             i ? (
-              <AriaMenuItem key={i.id} id={i.id} className="menu-item" textValue={i.label}>
+              <AriaMenuItem key={i.id} id={i.id} className="menu-item" textValue={i.label} data-command={i.command}>
                 <span className="menu-icon">{i.icon}</span>
                 <span className="menu-label">{i.label}</span>
                 {i.shortcut && <Kbd keys={i.shortcut} />}

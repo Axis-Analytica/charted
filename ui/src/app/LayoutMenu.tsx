@@ -8,10 +8,14 @@ import { useT } from "../i18n";
 import { Button } from "../kit/Button";
 import { Dialog } from "../kit/Dialog";
 import { Menu, type MenuEntry } from "../kit/Menu";
+import { transport } from "../bridge";
 import { useApp } from "../state/app";
-import { TOOLBAR_COMMANDS } from "../report/toolbar";
+import { toast } from "../state/toasts";
+import { HIDEABLE } from "./commands";
 import { setLayout, useLayout, useWorkspace, withHidden } from "./layout";
 import { useShortcut } from "./shortcuts";
+
+const PROFILE_FILES = [{ name: "charted layout profile", extensions: ["charted-workspace"] }];
 
 const SECOND: { view: ViewKind | null; label: string }[] = [
   { view: null, label: "One view" },
@@ -36,6 +40,14 @@ export function LayoutMenu() {
   );
   if (!ws) return null;
   const active = ws.profiles.find((p) => p.id === ws.active) ?? ws.profiles[0]!;
+  const exportProfile = async () => {
+    const path = await transport.pick({ title: t("Export a layout profile"), saveAs: `${t(active.name)}.charted-workspace`, filters: PROFILE_FILES });
+    if (path && (await rpc({ type: "exportProfile", profile: active.id, path }))) toast({ kind: "success", title: t("Exported the layout profile"), detail: path });
+  };
+  const importProfile = async () => {
+    const path = await transport.pick({ title: t("Import a layout profile"), filters: PROFILE_FILES });
+    if (path) await rpc({ type: "importProfile", path });
+  };
   const items: (MenuEntry | null)[] = [
     ...ws.profiles.map((p) => ({ id: `p:${p.id}`, label: t(p.name), icon: p.id === active.id ? <Check size={14} /> : undefined, run: () => void rpc({ type: "switchProfile", profile: p.id }) })),
     null,
@@ -48,12 +60,15 @@ export function LayoutMenu() {
     null,
     { id: "undo", label: t("Undo layout change"), disabled: !state?.layoutUndo, run: () => void rpc({ type: "undoLayout" }) },
     { id: "redo", label: t("Redo layout change"), disabled: !state?.layoutRedo, run: () => void rpc({ type: "redoLayout" }) },
-    { id: "hidden", label: layout.hidden.length ? t("Hidden buttons (%1)…", layout.hidden.length) : t("Hidden buttons…"), disabled: !layout.hidden.length, run: () => setHiddenOpen(true) },
+    { id: "hidden", label: layout.hidden.length ? t("Buttons and menus (%1 hidden)…", layout.hidden.length) : t("Buttons and menus…"), run: () => setHiddenOpen(true) },
     null,
     { id: "new", label: t("New profile…"), run: () => setNaming("new") },
     { id: "rename", label: t("Rename profile…"), run: () => setNaming("rename") },
     ...(active.builtin ? [{ id: "reset", label: t("Reset %1", t(active.name)), run: () => void rpc({ type: "resetProfile", profile: active.id }) }] : []),
     { id: "delete", label: t("Delete %1", t(active.name)), disabled: ws.profiles.length <= 1, run: () => void rpc({ type: "deleteProfile", profile: active.id }) },
+    null,
+    { id: "export", label: t("Export %1…", t(active.name)), run: () => void exportProfile() },
+    { id: "import", label: t("Import a profile…"), run: () => void importProfile() },
   ];
   return (
     <>
@@ -119,22 +134,20 @@ function NameDialog({ title, initial, onOk, onCancel }: { title: string; initial
   );
 }
 
-/** The buttons hidden from toolbars and menus, to bring back. */
+/** Every button and menu item that can be hidden, by where it is: untick to hide. */
 function HiddenDialog({ hidden, onClose }: { hidden: string[]; onClose(): void }) {
   const { t } = useT();
-  const label = (id: string) => {
-    const c = TOOLBAR_COMMANDS.find((x) => x.id === id);
-    return c ? t(c.label) : id === "theme" ? t("Theme") : id === "security" ? t("Security") : id;
-  };
+  const places = [...new Set(HIDEABLE.map((c) => c.place))];
   return (
     <Dialog
       open
       modal
       onOpenChange={(o) => !o && onClose()}
-      title={t("Hidden buttons")}
+      title={t("Buttons and menus")}
+      width={520}
       footer={
         <>
-          <Button variant="ghost" onPress={() => void setLayout((l) => withHidden(l, hidden, false)).then(onClose)}>
+          <Button variant="ghost" isDisabled={!hidden.length} onPress={() => void setLayout((l) => withHidden(l, l.hidden, false))}>
             {t("Show all")}
           </Button>
           <Button variant="primary" onPress={onClose}>
@@ -144,16 +157,19 @@ function HiddenDialog({ hidden, onClose }: { hidden: string[]; onClose(): void }
       }
     >
       <p className="field-hint">{t("Hidden buttons are still in the command palette (Ctrl+K).")}</p>
-      <ul className="hidden-commands">
-        {hidden.map((id) => (
-          <li key={id}>
-            <span>{label(id)}</span>
-            <Button size="sm" variant="ghost" onPress={() => void setLayout((l) => withHidden(l, [id], false))}>
-              {t("Show")}
-            </Button>
-          </li>
+      <div className="hidden-commands">
+        {places.map((place) => (
+          <fieldset key={place}>
+            <legend>{t(place)}</legend>
+            {HIDEABLE.filter((c) => c.place === place).map((c) => (
+              <label key={c.id} className="check">
+                <input type="checkbox" checked={!hidden.includes(c.id)} onChange={(e) => void setLayout((l) => withHidden(l, [c.id], !e.target.checked))} />
+                {t(c.label)}
+              </label>
+            ))}
+          </fieldset>
         ))}
-      </ul>
+      </div>
     </Dialog>
   );
 }

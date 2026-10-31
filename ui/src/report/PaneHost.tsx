@@ -18,19 +18,23 @@ export function PaneHost({ id, label, pane, children }: { id: string; label: str
   const float = pane.place === "float";
 
   const save = (patch: Partial<PaneLayout>) => void setLayout((l) => withPane(l, id, patch));
-  const openMenu = (x: number, y: number) =>
+  // Places are the reading start ("left") and end ("right"): mirrored right to left, so
+  // the labels say where the pane will show.
+  const openMenu = (x: number, y: number) => {
+    const rtl = document.documentElement.dir === "rtl";
     setMenu({
       x,
       y,
       label: t("Move %1", label),
       items: [
-        { id: "left", label: t("Dock on the left"), disabled: pane.place === "left", run: () => save({ place: "left" }) },
-        { id: "right", label: t("Dock on the right"), disabled: pane.place === "right", run: () => save({ place: "right" }) },
+        { id: "left", label: rtl ? t("Dock on the right") : t("Dock on the left"), disabled: pane.place === "left", run: () => save({ place: "left" }) },
+        { id: "right", label: rtl ? t("Dock on the left") : t("Dock on the right"), disabled: pane.place === "right", run: () => save({ place: "right" }) },
         { id: "float", label: t("Float"), disabled: float, run: () => save({ place: "float", float: pane.float ?? DEFAULT_FLOAT }) },
         null,
         { id: "hide", label: t("Hide pane"), run: () => save({ place: "hidden" }) },
       ],
     });
+  };
 
   /** Follows the pointer from `e`, calling `step` with how far it moved, then saves. */
   const track = (e: React.PointerEvent, step: (dx: number, dy: number) => void, done: () => void) => {
@@ -79,8 +83,7 @@ export function PaneHost({ id, label, pane, children }: { id: string; label: str
     }
     const width = ref.current?.getBoundingClientRect().width ?? 240;
     // A pane docked right grows as the edge moves left (mirrored right to left).
-    const rtl = document.documentElement.dir === "rtl";
-    const sign = (pane.place === "right") !== rtl ? -1 : 1;
+    const sign = (pane.place === "right") !== (document.documentElement.dir === "rtl") ? -1 : 1;
     let w = width;
     track(
       e,

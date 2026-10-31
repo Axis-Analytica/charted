@@ -23,6 +23,9 @@ async function layoutMenu(page: Page, item: string) {
   await page.getByRole("menuitem", { name: item, exact: true }).click();
 }
 
+const tmp = process.env.CHARTED_E2E_TMP ?? "/tmp/charted-e2e";
+const pick = (page: Page, path: string) => page.evaluate((p) => ((window as unknown as { __chartedPick: () => string }).__chartedPick = () => p), path);
+
 const fields = (page: Page) => page.locator('.pane-host[data-pane="fields"]');
 
 test.afterEach(async ({ page }) => {
@@ -77,6 +80,11 @@ test("two views side by side; two report pages keep their own page", async ({ pa
   await page.keyboard.press("Control+z");
   await expect(tabs).toHaveCount(before);
 
+  // F6 reaches the second view's canvas too.
+  await first.locator(".report-center").click({ position: { x: 8, y: 8 } });
+  for (let i = 0; i < 12 && !(await second.locator(".report-center").evaluate((el) => el.contains(document.activeElement))); i++) await page.keyboard.press("F6");
+  await expect.poll(() => second.locator(".report-center").evaluate((el) => el.contains(document.activeElement))).toBe(true);
+
   // A bookmark shown from the panes moves the report view last used: the second one here.
   await second.getByRole("button", { name: "New page" }).click();
   await expect(tabs).toHaveCount(before + 1);
@@ -107,6 +115,24 @@ test("two views side by side; two report pages keep their own page", async ({ pa
   await expect(page.locator(".report-view")).toHaveCount(1);
 });
 
+test("a profile exports to a file and imports as a new profile", async ({ page }) => {
+  await openSample(page);
+  await fields(page).locator(".pane-head").click({ button: "right" });
+  await page.getByRole("menuitem", { name: "Float" }).click();
+  await expect(fields(page)).toHaveClass(/is-float/);
+  await pick(page, `${tmp}/Mine.charted-workspace`);
+  await layoutMenu(page, "Export Standard…");
+  await expect(page.locator(".toast")).toContainText("Exported the layout profile");
+  await layoutMenu(page, "Reset Standard");
+  await expect(fields(page)).toHaveClass(/is-right/);
+  await layoutMenu(page, "Import a profile…");
+  // A copy under a free name, switched to, with the floating Fields pane.
+  await expect(page.getByRole("button", { name: "Layout" })).toContainText("Standard (2)");
+  await expect(fields(page)).toHaveClass(/is-float/);
+  await layoutMenu(page, "Delete Standard (2)");
+  await expect(page.getByRole("button", { name: "Layout" })).toContainText("Standard");
+});
+
 test("a toolbar button hides, and comes back from the Layout menu", async ({ page }) => {
   await openSample(page);
   const reading = page.getByRole("button", { name: "Reading view", exact: true });
@@ -118,9 +144,30 @@ test("a toolbar button hides, and comes back from the Layout menu", async ({ pag
   await page.locator(".palette-input").fill("Reading view");
   await expect(page.locator(".palette")).toContainText("Reading view");
   await page.keyboard.press("Escape");
-  await layoutMenu(page, "Hidden buttons (1)…");
-  await page.getByRole("dialog").getByRole("button", { name: "Show all" }).click();
+  await layoutMenu(page, "Buttons and menus (1 hidden)…");
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Show all" }).click();
   await expect(reading).toHaveCount(1);
+  // File menu items and the other views' buttons hide from the same list.
+  // The box follows the layout once the core has it.
+  const pdf = dialog.getByRole("checkbox", { name: "Export to PDF…" });
+  await pdf.click();
+  await expect(pdf).not.toBeChecked();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await page.getByRole("button", { name: "File" }).click();
+  await expect(page.getByRole("menuitem", { name: "Export Power BI project…" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Export to PDF…" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Model view" }).click();
+  const fit = page.getByRole("button", { name: "Fit diagram" });
+  await fit.click({ button: "right" });
+  await page.getByRole("menuitem", { name: /Hide Fit diagram/ }).click();
+  await expect(fit).toHaveCount(0);
+  await layoutMenu(page, "Buttons and menus (2 hidden)…");
+  await dialog.getByRole("button", { name: "Show all" }).click();
+  await dialog.getByRole("button", { name: "Done" }).click();
+  await expect(fit).toHaveCount(1);
+  await page.getByRole("button", { name: "Report view" }).click();
 });
 
 test("the agent reshapes the layout, and one undo takes it back", async ({ page }) => {
