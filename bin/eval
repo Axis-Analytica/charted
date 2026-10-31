@@ -1,0 +1,8 @@
+#!/bin/bash
+# Runs the agent evaluations (crates/cli/tests/eval.rs): real requests to a signed-in
+# agent on the sample, scored by checks on the model. They cost money.
+#   CHARTED_EVAL=build,yoy CHARTED_EVAL_MODEL=haiku bin/eval
+set -euo pipefail
+cd "$(dirname "$0")/.."
+. bin/env
+exec bin/heavy cargo test -q -p charted-cli --test eval -- --ignored --nocapture
