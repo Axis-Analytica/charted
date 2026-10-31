@@ -2,8 +2,9 @@
 # bin/demo: records the README's demos with the real agent (Claude Code, signed in as
 # you; it costs two requests, about $0.50–1.00): the agent building an in-depth customer
 # page on the sample, then restyling it from a short request. Writes, for each clip,
-# docs/media/agent-<clip>.gif (for GitHub) and .mp4 (for posts), squeezing the stretch
-# where the agent works to a few seconds.
+# docs/media/agent-<clip>.gif (for GitHub) and .mp4 (for posts), edited by
+# bin/demo-cut.mjs: zoomed in on the request as it's typed, pulled out as the agent works
+# (squeezed to a few seconds), with captions.
 #   bin/demo                       record, then encode
 #   bin/demo --encode-only         re-encode the last recording
 #   CHARTED_DEMO_FAKE=1 bin/demo   try it with the tests' stand-in agent (free)
@@ -22,18 +23,11 @@ fi
 video="$(find "$tmp/results" -name '*.webm' | head -1)"
 [ -n "$video" ] || { echo "no recording in $tmp/results" >&2; exit 1; }
 mkdir -p docs/media
+font=ui/node_modules/@fontsource/poppins/files/poppins-latin-600-normal.woff2
 # The agent's work in each clip takes about this many seconds once sped up.
 for clip in build:12 restyle:5; do
   name="${clip%%:*}" target="${clip##*:}"
-  cut="$(node -e '
-    const [file, name, target] = process.argv.slice(1);
-    const parts = require(file)[name];
-    const out = parts.map(([a, b, s], i) => {
-      const speed = s === "auto" ? Math.max(1, (b - a) / Number(target)) : s;
-      return `[0:v]trim=${a.toFixed(2)}:${b.toFixed(2)},setpts=(PTS-STARTPTS)/${speed.toFixed(3)}[p${i}]`;
-    });
-    console.log(out.join(";") + ";" + parts.map((_, i) => `[p${i}]`).join("") + `concat=n=${parts.length}:v=1[v]`);
-  ' "$tmp/clips.json" "$name" "$target")"
+  cut="$(node bin/demo-cut.mjs "$tmp/clips.json" "$name" "$target" "$font" "$tmp")"
   mp4="docs/media/agent-$name.mp4" gif="docs/media/agent-$name.gif"
   ffmpeg -loglevel error -y -i "$video" -filter_complex "$cut" -map "[v]" -c:v libx264 -pix_fmt yuv420p -crf 20 -preset slow -movflags +faststart "$mp4"
   ffmpeg -loglevel error -y -i "$mp4" -vf "fps=$fps,scale=$width:-1:flags=lanczos,split[x][y];[x]palettegen=stats_mode=diff:max_colors=200[p];[y][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle" "$gif"

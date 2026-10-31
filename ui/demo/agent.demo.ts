@@ -2,8 +2,9 @@
 //   build:   one request builds an in-depth customer page, then a scroll through it and a
 //            slicer click that cross-filters it;
 //   restyle: one short request turns the report purple, with new fonts.
-// Writes clips.json: for each clip, the stretches of the video to keep and how much to
-// speed each up ("auto" squeezes the agent's work to a few seconds).
+// Writes clips.json: for each clip, the stretches of the video to keep, how much to speed
+// each up ("auto" squeezes the agent's work to a few seconds), where to zoom and what
+// caption to show; bin/demo-cut.mjs turns it into an ffmpeg edit.
 import { writeFileSync } from "node:fs";
 import { expect, type Page, test } from "@playwright/test";
 
@@ -13,11 +14,22 @@ const BUILD =
   "Build an in-depth customer analysis page: a title and a one-line description at the top, slicers for year, segment, region and channel, headline cards for sales, customers, orders, sales per customer and average order value, sales by segment, sales by country, monthly sales by segment, a segment by product category matrix, and a table of the top 20 customers by sales.";
 const RESTYLE = process.env.CHARTED_DEMO_RESTYLE ?? "Make it purple please, with Helvetica for the fonts.";
 
-type Stretch = [from: number, to: number, speed: number | "auto"];
+type Stretch = {
+  from: number;
+  to: number;
+  speed: number | "auto";
+  zoom?: { at: [number, number]; from: number; to: number };
+  caption?: string;
+};
+const ZOOM = 3;
 
 test("the agent builds a customer dashboard, then restyles it", async ({ page }) => {
   start = Date.now();
   const clips: Record<string, Stretch[]> = { build: [], restyle: [] };
+  // Zoom in on the request box while it's typed, and back out as the agent starts.
+  const box: [number, number] = [1430, 905];
+  const zoomIn = { at: box, from: 1, to: ZOOM };
+  const zoomOut = { at: box, from: ZOOM, to: 1 };
 
   await page.goto("/");
   await page.getByRole("button", { name: "Explore the sample" }).click();
@@ -31,11 +43,16 @@ test("the agent builds a customer dashboard, then restyles it", async ({ page })
   const pane = page.locator(".agent-pane");
   await expect(pane).toBeVisible();
   await page.waitForTimeout(1000);
+  const r = await pane.getByRole("textbox", { name: "Ask the agent" }).boundingBox();
+  if (r) box.splice(0, 2, r.x + r.width / 2, r.y + r.height / 2 + 15);
 
   // The build.
   const a = now() - 0.5;
   const work = await ask(page, BUILD, true);
-  clips.build.push([a, work.sent, 1], [work.sent, work.done, "auto"]);
+  clips.build.push(
+    { from: a, to: work.sent, speed: 1, zoom: zoomIn, caption: "One request…" },
+    { from: work.sent, to: work.done, speed: "auto", zoom: zoomOut, caption: "…and Claude Code builds the whole page" },
+  );
   const b = now();
   await page.waitForTimeout(2500);
   // Down the page and back, then a slicer.
@@ -47,6 +64,9 @@ test("the agent builds a customer dashboard, then restyles it", async ({ page })
     await smoothScroll(page, 0, 2000);
     await page.waitForTimeout(600);
   }
+  const visuals = await page.getByTestId("visual").count();
+  clips.build.push({ from: b, to: now(), speed: 1, caption: `${visuals} visuals: cards, charts, a matrix, a top 20` });
+  const d = now();
   try {
     // The region slicer (the second dropdown is often a segment: one value left would
     // flatten the charts).
@@ -67,16 +87,20 @@ test("the agent builds a customer dashboard, then restyles it", async ({ page })
   } catch {
     console.log("no slicer to click");
   }
-  clips.build.push([b, now(), 1]);
+  clips.build.push({ from: d, to: now(), speed: 1, caption: "Every visual cross-filters" });
   await page.screenshot({ path: `${tmp}/build.png` });
 
   // The restyle.
   const c = now() - 0.5;
   const re = await ask(page, RESTYLE, false);
   await page.waitForTimeout(3500);
-  clips.restyle.push([c, re.sent, 1], [re.sent, re.done, "auto"], [re.done, now(), 1]);
+  clips.restyle.push(
+    { from: c, to: re.sent, speed: 1, zoom: zoomIn, caption: "Then: “Make it purple”" },
+    { from: re.sent, to: re.done, speed: "auto", zoom: zoomOut, caption: "One sentence…" },
+    { from: re.done, to: now(), speed: 1, caption: "…new colours, new fonts" },
+  );
   await page.screenshot({ path: `${tmp}/restyle.png` });
-  writeFileSync(`${tmp}/clips.json`, JSON.stringify(clips));
+  writeFileSync(`${tmp}/clips.json`, JSON.stringify({ size: [1600, 1000], ...clips }));
 });
 
 /** Types a request, sends it (agreeing to the first-use notice), and waits for the
