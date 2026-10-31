@@ -26,6 +26,12 @@ Commands (all accept `--json`, exit 0 on success and 1 on failure, errors on std
 To change a project that is open in the app, use the app's Agent pane (Ctrl+I in the
 report view): it runs Claude Code or Codex with charted's own tools (served by
 `charted mcp` over a socket in the running app), so changes show live and undo in one
-step. With the project closed, edit `model.ossie.yaml` and `queries/*.json` directly;
-the app reads them when it opens the project. Keep the Apache Ossie structure valid and
-run `charted check` after.
+step.
+
+With the project closed, an agent can use the same tools without the window:
+`charted mcp --project <dir>` is an MCP server over stdio (add it to your agent's MCP
+config). Each change is saved to the project at once; the app can't open the project
+while it runs. `--data` lets it read rows and values; `--allow-deletes` lets it delete
+pages, tables and things in use (otherwise those are refused). Power Query drafts and
+screenshots need the window. Or edit `model.ossie.yaml` and `queries/*.json` directly;
+keep the Apache Ossie structure valid and run `charted check` after.

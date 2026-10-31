@@ -97,11 +97,20 @@ pub enum Command {
         #[arg(long)]
         json: bool,
     },
-    /// An MCP server over stdio for the agent charted's Agent pane starts: it serves the
-    /// running window's tools (the window gives the agent its socket and token).
+    /// An MCP server over stdio with charted's agent tools. With --socket (what the Agent
+    /// pane starts), the running window's tools; with --project, the tools on a project with
+    /// no window open (saved after every change; the app can't open it meanwhile).
     Mcp {
-        #[arg(long, env = "CHARTED_SOCKET")]
-        socket: PathBuf,
+        #[arg(long, env = "CHARTED_SOCKET", conflicts_with = "project")]
+        socket: Option<PathBuf>,
+        #[arg(long)]
+        project: Option<PathBuf>,
+        /// Let the agent see rows and values (--project).
+        #[arg(long, requires = "project")]
+        data: bool,
+        /// Let the agent delete pages, tables and things in use without asking (--project).
+        #[arg(long, requires = "project")]
+        allow_deletes: bool,
     },
     /// Install the bundled agent skill so coding agents can drive charted.
     Skill {
@@ -197,11 +206,22 @@ fn import_pbip(input: &Path, into: Option<PathBuf>, json: bool) -> i32 {
 pub fn run(command: Command) -> i32 {
     match command {
         Command::Open { .. } => fail("`open` needs the desktop app"),
-        Command::Mcp { socket } => match std::env::var("CHARTED_AGENT_TOKEN") {
-            Ok(token) => mcp::serve(&socket, &token),
-            Err(_) => fail(
-                "charted mcp is started by charted's Agent pane, which gives it CHARTED_AGENT_TOKEN",
-            ),
+        Command::Mcp {
+            socket,
+            project,
+            data,
+            allow_deletes,
+        } => match (socket, project) {
+            (_, Some(project)) => mcp::serve_project(&project, data, allow_deletes),
+            (Some(socket), None) => match std::env::var("CHARTED_AGENT_TOKEN") {
+                Ok(token) => mcp::serve(&socket, &token),
+                Err(_) => fail(
+                    "charted mcp --socket is started by charted's Agent pane, which gives it CHARTED_AGENT_TOKEN; use --project DIR to work on a project directly",
+                ),
+            },
+            (None, None) => {
+                fail("charted mcp needs --project DIR (or --socket, from the Agent pane)")
+            }
         },
         Command::Check { project, json } => {
             let report = charted_core::check::check(&project);
