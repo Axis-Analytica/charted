@@ -6,6 +6,26 @@ Learn's DAX reference and monthly release notes, and the DAX the public projects
 `bin/corpus` actually use. The Power BI service (publishing, sharing, scheduled refresh,
 apps) is left out on purpose: it is a separate, later goal.
 
+## The goal: real projects come across
+
+Not parity. Microsoft ships every month and has hundreds of engineers; a function count
+is a race charted can't win and doesn't need to. The goal is that **the reports people
+really build come across and work**: a Power BI project imports, loads its data,
+computes the same numbers and looks right. That is finite, measurable and worth doing.
+
+- **The measure:** the share of real PBIP projects that import with their data, agree
+  with Power BI's numbers (the conformance run below) and render without gaps. Grow the
+  corpus beyond the five public demos (they use only CSV, Parquet, OData and web files;
+  real organisations' projects mostly use databases) and ask users for theirs through
+  the import issue template.
+- **Where charted wins instead:** the agent, Mac and Linux, offline, open files, no
+  Microsoft account. Keep investing there; that's why someone chooses charted.
+- **Not planned** (unless users show they need it): financial and INFO functions, the
+  statistical distributions, R/Python and custom visuals, DirectQuery and composite
+  models, most of the advanced analytics pane (anomalies, symmetry shading), the Power
+  BI service (a separate, later project). The rest of this file is a menu, not a
+  commitment.
+
 The milestones at the end turn this into work. M10 (Mac and Windows, `docs/PLAN.md`)
 comes first; these follow it.
 
@@ -156,11 +176,28 @@ import today).
 
 ## Data and model
 
-- **Connectors:**
-  - SQL Server, MySQL, ODBC, OData, SharePoint and REST.
-  - Excel from the web.
-  - Folder of Excel or Parquet files (only CSV now).
-  - PostgreSQL has never been tested against a real server.
+- **Connectors.** Have: CSV, Excel, Parquet, JSON, folders of CSV, SQLite, PostgreSQL
+  (never tested against a real server), web files. An imported project whose M uses
+  another source comes in with its columns but no data, so connectors are the first
+  thing between a real project and "it works". By what organisations use and what it
+  costs:
+  - **SQL Server / Azure SQL** (by far the commonest Power BI source). No official
+    DuckDB extension: a Rust TDS driver (`tiberius`) into DuckDB. SQL logins first;
+    Windows and Entra ID sign-in later. Difficulty 6.
+  - **PostgreSQL (verified) and MySQL / MariaDB** through DuckDB's own extensions. 3.
+  - **Cloud files and lake formats** DuckDB reads natively: S3, Azure Blob/ADLS, GCS,
+    Delta and Iceberg tables. 3.
+  - **ODBC**, which covers many databases in one go (Oracle, Snowflake, Databricks,
+    Redshift through their ODBC drivers). 4.
+  - **Snowflake, BigQuery, Databricks** natively (ADBC drivers or their REST APIs). 5
+    each; after ODBC, only where ODBC isn't good enough.
+  - **SharePoint / OneDrive Excel and CSV** (very common in Power BI projects): needs a
+    Microsoft sign-in (OAuth) from a desktop app. 7.
+  - **OData and REST APIs** (OData appears in the corpus). 4.
+  - Excel from the web, and folders of Excel or Parquet files. 2.
+  - With each: the M recognised on import (`Sql.Database`, `MySQL.Database`,
+    `Odbc.Query`, `SharePoint.Files`…), written on export, credentials in the keyring,
+    and the agent able to use it.
 - **Power Query:**
   - M parameters.
   - Query groups.
@@ -188,59 +225,33 @@ import today).
 
 ## Milestones (after M10)
 
-The order puts the most-used things first. Each item is measured by what a real project
-needs, and checked against Power BI where it can be.
+Each is measured by what real projects need, and checked against Power BI where it can
+be. Difficulty out of 10 in brackets.
 
-1. **M11: DAX breadth.**
-   - The 39 recognised functions, plus the cheap families: math (including
-     trigonometry and MROUND/QUOTIENT/RAND), text (FIND, SEARCH, REPLACE, VALUE, EXACT,
-     REPT, UNICHAR, UNICODE, FIXED, CONTAINSSTRING), date and time (TIME, HOUR, MINUTE,
-     SECOND, NOW, UTC…, DATEVALUE, TIMEVALUE, WEEKNUM, YEARFRAC, NETWORKDAYS,
-     CALENDARAUTO), the IS-type tests, and BIT functions.
-   - Statistics: MEDIAN(X), PERCENTILE(X), STDEV(X), VAR(X), GEOMEAN(X), PRODUCT(X),
-     the "A" aggregations, DISTINCTCOUNTNOBLANK.
-   - IFERROR, ISERROR and ERROR, with DAX errors modelled.
-   - DATATABLE and ROW.
-   - The full FORMAT string language, and dynamic format strings.
-   - The conformance run against Power BI Desktop.
-   - The aim: about 104 → 230 evaluated, and every function the corpus uses.
-2. **M12: formatting depth.**
-   - The Format pane settings above for every chart, plus per-series and per-point
-     colours and conditional colour (fx).
-   - Area and stacked area charts.
-   - All of it through PBIR in both directions.
-3. **M13: DAX semantics.**
-   - TREATAS, CROSSFILTER, many-to-many filtering, HASONEFILTER, ISCROSSFILTERED,
-     ALLCROSSFILTERED, ALLNOBLANKROW, CONTAINS(ROW), ISEMPTY, FILTERS.
-   - UNION, INTERSECT, EXCEPT, CROSSJOIN, the natural joins, GENERATE(ALL), GROUPBY.
-   - FIRSTNONBLANK and LASTNONBLANK.
-   - The rest of time intelligence (STARTOF/ENDOF, balances, weeks, fiscal year ends,
-     DateTime columns).
-   - The window functions.
-   - USERPRINCIPALNAME, for dynamic RLS.
-   - PATH functions.
-4. **M14: report depth.**
-   - Matrix layouts, drill and custom totals.
-   - Hierarchy, tile, list, date-picker and input slicers.
-   - The rest of the analytics pane.
-   - Relative date filters in the pane.
-   - Lock and hide filters.
-   - Full bookmarks.
-   - Grouping.
-   - A filled map from bundled shapes.
-   - PowerPoint and Excel export.
-5. **M15: modern DAX.**
-   - DAX user-defined functions, imported from `functions.tmdl`.
-   - Visual calculations.
-   - A DAX query view.
-   - A TMDL view.
-6. **M16: data reach.**
-   - SQL Server and MySQL (through DuckDB extensions where they exist), and a
-     verified PostgreSQL.
-   - Excel and Parquet folders.
-   - M parameters and query groups.
-   - Editable M.
-   - Error cells.
-   - The missing transforms.
+1. **M11: DAX that real models use (4).** The cheap families (math, text, date and time,
+   the IS-type tests), the statistics people use (MEDIAN(X), PERCENTILE(X), STDEV(X),
+   VAR(X), PRODUCT(X), the "A" aggregations), IFERROR / ISERROR / ERROR with DAX errors
+   modelled, DATATABLE and ROW, the full FORMAT string language and dynamic format
+   strings, and the conformance run against Power BI Desktop. Every function the corpus
+   uses evaluates.
+2. **M12: formatting depth (4).** The Format pane settings above for every chart,
+   per-series and per-point colours, conditional colour (fx), area and stacked area,
+   all through PBIR both ways.
+3. **M13: data sources (5).** SQL Server, PostgreSQL verified, MySQL, cloud files and
+   Delta/Iceberg, ODBC, OData, Excel and Parquet folders and Excel from the web; then
+   SharePoint/OneDrive and native Snowflake/BigQuery/Databricks as users ask. Plus the
+   Power Query pieces real projects lean on: M parameters (server and database names
+   live there), query groups, error cells.
+4. **M14: DAX semantics (8).** TREATAS, CROSSFILTER, many-to-many filtering,
+   HASONEFILTER, ISCROSSFILTERED, CONTAINS(ROW), ISEMPTY, UNION / INTERSECT / EXCEPT /
+   CROSSJOIN, FIRSTNONBLANK / LASTNONBLANK, the rest of time intelligence (fiscal year
+   ends, STARTOF / ENDOF, balances, DateTime columns), window functions,
+   USERPRINCIPALNAME. Only safe after M11's conformance run.
+5. **M15: report depth (6), in two or three releases.** Matrix layouts and drill,
+   hierarchy and other slicers, median/percentile/forecast lines, relative date
+   filters in the pane, lock and hide filters, full bookmarks, grouping, a filled map
+   from bundled shapes, PowerPoint and Excel export.
+6. **M16: modern DAX (7).** DAX user-defined functions (before projects depend on
+   them), a DAX query view, a TMDL view, then visual calculations.
 
 Then the Power BI service equivalent, as its own project.
