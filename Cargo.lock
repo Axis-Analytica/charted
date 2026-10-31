@@ -909,6 +909,7 @@ name = "charted-cli"
 version = "1.6.0"
 dependencies = [
  "charted-agent",
+ "charted-compiler",
  "charted-core",
  "charted-engine",
  "charted-model",
@@ -918,6 +919,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tungstenite",
+ "uuid",
 ]
 
 [[package]]
