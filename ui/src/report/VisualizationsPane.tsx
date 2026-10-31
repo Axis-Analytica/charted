@@ -1,6 +1,7 @@
 // The Visualizations pane: the visual gallery, field wells (Build) and the formatting
 // options generated from the registry (Format). With no visual selected, Format shows
 // the page's settings.
+import { FontPicker } from "./FontPicker";
 import { ChevronDown, GripVertical, Search, X } from "lucide-react";
 import { useRef, useState } from "react";
 import type { Aggregation } from "../bridge/generated/Aggregation";
@@ -377,6 +378,13 @@ function Control({ p, value: shown, onChange }: { p: PropDef; value: unknown; on
             ))}
           </div>
         </div>
+      );
+    case "font":
+      return (
+        <label className="field">
+          <span className="field-label">{t(p.label)}</span>
+          <FontPicker label={t(p.label)} value={mixed ? "" : String(value ?? "")} mixed={mixed} onChange={onChange} />
+        </label>
       );
   }
 }

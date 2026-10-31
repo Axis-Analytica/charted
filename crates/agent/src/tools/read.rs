@@ -93,7 +93,7 @@ pub fn call(cx: &Cx, name: &str, args: &Value) -> Option<Res<Done>> {
         "describe_report" => {
             cx.with_model(|m, _| Done::read(describe_report(m, opt_str(args, "page"))?))
         }
-        "list_visual_types" => list_visual_types(opt_str(args, "type")),
+        "list_visual_types" => list_visual_types(cx, opt_str(args, "type")),
         "check_dax" => cx.with_model(|m, s| check_dax(m, s, args)),
         "query_visual" => query_visual(cx, args),
         "query_fields" => query_fields(cx, args),
@@ -364,7 +364,10 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
     Ok(out)
 }
 
-fn list_visual_types(ty: Option<&str>) -> Res<Done> {
+/// The fonts charted ships with (ui/src/design/fonts.ts).
+pub const BUNDLED_FONTS: &str = "Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Source Sans 3, Noto Sans, Nunito, IBM Plex Sans, Oswald, Merriweather, Lora, Playfair Display, Roboto Mono";
+
+fn list_visual_types(cx: &Cx, ty: Option<&str>) -> Res<Done> {
     if let Some(t) = ty {
         let Some(v) = catalog::visual(t) else {
             return fail(format!(
@@ -387,6 +390,17 @@ fn list_visual_types(ty: Option<&str>) -> Res<Done> {
         .collect::<Vec<_>>()
         .join(", ");
     let _ = write!(out, "\nbuilt-in themes: {themes}");
+    let mut yours: Vec<String> = cx
+        .lock()
+        .state()
+        .map(|s| s.fonts.into_iter().map(|f| f.family).collect())
+        .unwrap_or_default();
+    yours.dedup();
+    let _ = write!(
+        out,
+        "\nfonts (fontFamily, set_theme fonts): {BUNDLED_FONTS}{}; Power BI names like Segoe UI, Arial, Helvetica or Georgia also work (a similar bundled font shows where they aren't installed)",
+        if yours.is_empty() { String::new() } else { format!("; the user's own: {}", yours.join(", ")) }
+    );
     Done::read(out)
 }
 

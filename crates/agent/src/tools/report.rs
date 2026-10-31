@@ -113,11 +113,12 @@ pub fn defs() -> Vec<ToolDef> {
         },
         ToolDef {
             name: "set_theme",
-            description: "Sets the report's theme: a built-in (Classic, Daylight, Nightfall), \"desktop\" to follow the Omarchy theme, or custom colours.".into(),
+            description: "Sets the report's theme: a built-in (Classic, Daylight, Nightfall), \"desktop\" to follow the Omarchy theme, or custom colours; and/or its fonts (alone, fonts change only the current theme's fonts; list_visual_types lists them).".into(),
             input_schema: schema(
                 json!({
                     "builtin": { "type": "string" },
-                    "custom": { "type": "object", "properties": { "name": {"type": "string"}, "dataColors": { "type": "array", "items": {"type": "string"} }, "background": {"type": "string"}, "foreground": {"type": "string"}, "tableAccent": {"type": "string"} } }
+                    "custom": { "type": "object", "properties": { "name": {"type": "string"}, "dataColors": { "type": "array", "items": {"type": "string"} }, "background": {"type": "string"}, "foreground": {"type": "string"}, "tableAccent": {"type": "string"} } },
+                    "fonts": { "type": "object", "description": "Font names for the report's text", "properties": { "title": {"type": "string", "description": "visual titles"}, "label": {"type": "string", "description": "labels and other text"}, "callout": {"type": "string", "description": "card values"} } }
                 }),
                 &[],
             ),
@@ -1015,7 +1016,8 @@ fn set_filter(cx: &Cx, args: &Value) -> Res<Done> {
 }
 
 fn set_theme(cx: &Cx, args: &Value) -> Res<Done> {
-    cx.change(|_, _| {
+    cx.change(|m, _| {
+        let fonts = args.get("fonts").and_then(Value::as_object).filter(|f| !f.is_empty());
         let (theme, name) = if let Some(b) = opt_str(args, "builtin") {
             if b.eq_ignore_ascii_case("desktop") || b.eq_ignore_ascii_case("omarchy") {
                 (None, "the desktop theme".to_string())
@@ -1047,12 +1049,35 @@ fn set_theme(cx: &Cx, args: &Value) -> Res<Done> {
             let mut json = Value::Object(c.clone());
             json["name"] = Value::String(name.clone());
             (Some(ReportTheme { name: name.clone(), json }), name)
+        } else if fonts.is_some() {
+            let current = m.report.theme.clone();
+            let name = current.as_ref().map_or("the desktop theme".to_string(), |t| t.name.clone());
+            (current, name)
         } else {
-            return fail("give builtin or custom");
+            return fail("give builtin, custom or fonts");
         };
+        let Some(fonts) = fonts else {
+            return Ok((
+                vec![Change::SetTheme { theme }],
+                Done { text: format!("The report now uses {name}."), step: Some(Step::new("Set the theme to %1", &[&name])) },
+            ));
+        };
+        // Fonts go in the theme's text classes; following the desktop, they start a
+        // theme of their own that keeps the desktop's colours.
+        let mut theme = theme.unwrap_or_else(|| ReportTheme { name: "Desktop fonts".into(), json: json!({ "name": "Desktop fonts", "followDesktop": true }) });
+        let mut set = vec![];
+        for (class, font) in fonts {
+            let Some(font) = font.as_str().filter(|f| !f.trim().is_empty()) else { continue };
+            if !["title", "label", "callout"].contains(&class.as_str()) {
+                return fail(format!("fonts are title, label or callout, not {class}"));
+            }
+            theme.json["textClasses"][class.as_str()]["fontFace"] = json!(font);
+            set.push(format!("{class} {font}"));
+        }
+        let list = set.join(", ");
         Ok((
-            vec![Change::SetTheme { theme }],
-            Done { text: format!("The report now uses {name}."), step: Some(Step::new("Set the theme to %1", &[&name])) },
+            vec![Change::SetTheme { theme: Some(theme) }],
+            Done { text: format!("The report's fonts: {list}."), step: Some(Step::new("Set the fonts: %1", &[&list])) },
         ))
     })
 }

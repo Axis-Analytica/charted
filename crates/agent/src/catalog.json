@@ -28,6 +28,11 @@
        "max": 96
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "displayUnits",
        "type": "select",
        "default": "auto",
@@ -70,6 +75,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -189,6 +199,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -271,6 +286,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -501,6 +521,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -727,6 +752,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -979,6 +1009,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -1225,6 +1260,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -1475,6 +1515,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -1701,6 +1746,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -1931,6 +1981,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -2119,6 +2174,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -2295,6 +2355,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -2401,6 +2466,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -2529,6 +2599,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -2652,6 +2727,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -2840,6 +2920,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -2943,6 +3028,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -3040,6 +3130,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -3247,6 +3342,11 @@
        "max": 40
       },
       {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
+      },
+      {
        "name": "align",
        "type": "select",
        "default": "left",
@@ -3311,6 +3411,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -3421,6 +3526,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -3560,6 +3670,11 @@
        "default": 12,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       }
      ]
     },
@@ -3582,6 +3697,11 @@
        "default": 13,
        "min": 8,
        "max": 40
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "align",
@@ -3636,6 +3756,11 @@
        "default": 16,
        "min": 8,
        "max": 96
+      },
+      {
+       "name": "fontFamily",
+       "type": "font",
+       "default": ""
       },
       {
        "name": "bold",

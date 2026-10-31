@@ -72,7 +72,7 @@ describe("a theme's visual styles as format defaults", () => {
   });
 
   it("styles titles and the page font from text classes", () => {
-    expect(textTokens(theme)).toEqual({ "--report-title-fg": "#AA0000", "--report-title-font": "Georgia, var(--font-ui, sans-serif)" });
+    expect(textTokens(theme)).toEqual({ "--report-title-fg": "#AA0000", "--report-title-font": "Georgia, \"Merriweather Variable\", var(--font-ui, sans-serif)" });
     expect(styleDefaults(null)).toEqual({});
   });
 });

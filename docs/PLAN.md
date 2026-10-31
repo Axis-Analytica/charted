@@ -285,7 +285,7 @@ Vitest for the parser (including escapes and unclosed markers).
 - Agent: prompt says text boxes take markdown; `add_visual type:"textbox"` documented.
 - Titles stay plain text (Power BI titles are plain).
 
-### Stage 3: fonts
+### Stage 3: fonts — done
 
 - **Bundled (15, all OFL, from `@fontsource`/`@fontsource-variable`, latin subset,
   400/700 or variable):** Inter (already), Roboto, Open Sans, Lato, Montserrat,

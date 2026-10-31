@@ -1,3 +1,4 @@
+import { fontStack } from "../design/fontNames";
 import {
   AlertTriangle,
   ArrowDown,
@@ -281,7 +282,7 @@ export function VisualContainer({ visual, page, model, signature, selected, regi
       onPointerDown={standalone ? undefined : onPointerDown}
     >
       {showTitle && title && (
-        <div className="visual-title" style={{ fontSize: prop<number>(o, def, "title", "fontSize"), textAlign: prop<"left" | "center" | "right">(o, def, "title", "align") }}>
+        <div className="visual-title" style={{ fontSize: prop<number>(o, def, "title", "fontSize"), fontFamily: fontStack(prop<string>(o, def, "title", "fontFamily")), textAlign: prop<"left" | "center" | "right">(o, def, "title", "align") }}>
           {title}
         </div>
       )}

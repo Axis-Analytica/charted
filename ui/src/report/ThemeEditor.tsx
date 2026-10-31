@@ -3,6 +3,7 @@
 // (everything else in the theme is kept). Changes show on the canvas as you make them
 // (a draft theme in view state); OK commits them as one undoable step, Cancel drops
 // them. The theme can be exported as a Power BI theme file.
+import { FontPicker } from "./FontPicker";
 import { ArrowDown, ArrowUp, Download, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { create } from "zustand";
@@ -27,8 +28,6 @@ const TEXT_CLASSES = [
   { name: "label", label: msg("Labels") },
   { name: "callout", label: msg("Card values") },
 ] as const;
-
-const FONTS = ["Segoe UI", "Segoe UI Semibold", "Arial", "Helvetica", "Verdana", "Tahoma", "Trebuchet MS", "Georgia", "Times New Roman", "Courier New", "Inter"];
 
 const hex = (v: unknown, fallback: string) => (typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : typeof v === "string" && /^#[0-9a-f]{3}$/i.test(v) ? `#${v.slice(1).replace(/./g, (c) => c + c)}`.toLowerCase() : fallback);
 
@@ -198,14 +197,7 @@ export function ThemeEditor({ model }: { model: Model }) {
                 return (
                   <div key={c.name} className="theme-text-row" role="group" aria-label={t(c.label)}>
                     <span className="theme-text-name">{t(c.label)}</span>
-                    <select className="select" aria-label={t("Font")} value={typeof tc.fontFace === "string" ? tc.fontFace : ""} onChange={(e) => update(withTextClass(json, c.name, "fontFace", e.target.value))}>
-                      <option value="">{t("Default")}</option>
-                      {[...new Set([...FONTS, ...(typeof tc.fontFace === "string" && tc.fontFace ? [tc.fontFace] : [])])].map((f) => (
-                        <option key={f} value={f}>
-                          {f}
-                        </option>
-                      ))}
-                    </select>
+                    <FontPicker label={t("Font")} value={typeof tc.fontFace === "string" ? tc.fontFace : ""} onChange={(f) => update(withTextClass(json, c.name, "fontFace", f))} />
                     <input
                       className="input theme-size"
                       type="number"

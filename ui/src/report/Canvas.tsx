@@ -21,7 +21,7 @@ import { paint, usePainter } from "./painter";
 import { withSync } from "./sync";
 import { CanvasScale, ThemeKey } from "./scale";
 import { themeStyle, themeTokens } from "./themes";
-import { setStyleDefaults, styleDefaults } from "./themeStyles";
+import { setStyleDefaults, styleDefaults, textTokens } from "./themeStyles";
 import { useThemeDraft } from "../state/themedraft";
 import type { ReportTheme } from "../bridge/generated/ReportTheme";
 import { VisualContainer } from "./VisualContainer";
@@ -47,7 +47,9 @@ export function usePageTheme(model: Model) {
   const defaults = useMemo(() => styleDefaults(theme?.json), [theme]);
   setStyleDefaults(defaults);
   const key = useMemo(() => JSON.stringify([tokens, defaults]), [tokens, defaults]);
-  return { tokens, key, style: themeStyle(tokens) };
+  // Without colours of its own, the theme's fonts still apply.
+  const style = useMemo(() => (tokens ? themeStyle(tokens) : textTokens(theme?.json)), [tokens, theme]);
+  return { tokens, key, style };
 }
 
 export function Canvas({ model, page, signature }: { model: Model; page: Page; signature: string }) {

@@ -248,7 +248,7 @@ fn buttons_and_page_navigators() {
 fn a_slicers_header_comes_across() {
     let mut s = visual("slicerA", "slicer", 1);
     s.objects = serde_json::from_value(
-        json!({ "header": { "show": true, "text": "Store", "fontSize": 14.0 }, "title": { "show": false } }),
+        json!({ "header": { "show": true, "text": "Store", "fontSize": 14.0, "fontFamily": "Lora" }, "title": { "show": false } }),
     )
     .unwrap();
     let m = model(vec![Page {
@@ -263,7 +263,7 @@ fn a_slicers_header_comes_across() {
     let (back, _) = read(&files);
     assert_eq!(
         back.pages[0].visuals[0].objects["header"],
-        json!({ "show": true, "text": "Store", "fontSize": 14.0 })
+        json!({ "show": true, "text": "Store", "fontSize": 14.0, "fontFamily": "Lora" })
     );
 }
 

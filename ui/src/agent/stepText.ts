@@ -18,6 +18,7 @@ export const STEP_MESSAGES = [
   msg("Filtered page \"%1\": %2"),
   msg("Filtered \"%1\": %2"),
   msg("Set the theme to %1"),
+  msg("Set the fonts: %1"),
   msg("Added bookmark \"%1\""),
   msg("Updated bookmark \"%1\""),
   msg("Renamed bookmark \"%1\""),

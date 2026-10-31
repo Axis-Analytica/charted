@@ -26,6 +26,8 @@ uuid = { version = "1", features = ["v4", "v5"] }
 calamine = "0.37"
 # .chartedz bundles (the same zip calamine uses).
 zip = { version = "9", default-features = false, features = ["deflate"] }
+# The family names of fonts the user adds.
+ttf-parser = "0.25"
 # PostgreSQL passwords live in the desktop keyring (Secret Service), not in projects.
 keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
 

@@ -60,7 +60,8 @@ export function dataColors(theme: ReportTheme): string[] {
 
 /** The page's design tokens for a report theme, or null to follow the desktop. */
 export function themeTokens(theme: ReportTheme | null | undefined, desktop: Desktop): Tokens | null {
-  if (!theme) return null;
+  // A theme of only fonts (`followDesktop`) keeps the desktop's colours.
+  if (!theme || (theme.json as { followDesktop?: unknown })?.followDesktop === true) return null;
   const j = theme.json as Record<string, unknown>;
   const colors = dataColors(theme);
   const background = str(j.background) ?? "#ffffff";

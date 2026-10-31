@@ -67,7 +67,8 @@ export function useEChart(interact: Interact, pointOf: PointOf) {
 
 /** Theme colours and fonts for a chart under `el`. */
 export function chartTheme(el: Element) {
-  const font = token("--font-ui") || "Inter Variable, sans-serif";
+  // The theme's label font, set on the page, else the UI's.
+  const font = token("--report-font", el) || token("--font-ui") || "Inter Variable, sans-serif";
   return {
     font,
     fg: token("--fg-muted", el),

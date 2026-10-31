@@ -3,6 +3,7 @@
 // (`textClasses.title.fontSize`…); charted reads the ones its own format objects have
 // (mapped to its names) and inserts them between a visual's own formatting and the
 // registry's defaults. Anything else in the theme is kept, and ignored.
+import { fontStack } from "../design/fontNames";
 
 /** Format defaults by charted visual type (or "*"), object and property. */
 export type StyleDefaults = Record<string, Record<string, Record<string, unknown>>>;
@@ -117,10 +118,11 @@ export function textTokens(json: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (typeof json !== "object" || json === null) return out;
   const tc = ((json as { textClasses?: Record<string, { color?: unknown; fontFace?: unknown }> }).textClasses ?? {}) as Record<string, { color?: unknown; fontFace?: unknown }>;
-  const font = (v: unknown) => (typeof v === "string" && v.trim() ? `${v.replace(/[;{}]/g, "")}, var(--font-ui, sans-serif)` : undefined);
+  const font = fontStack;
   const set = (k: string, v: string | undefined) => v && (out[k] = v);
   set("--report-title-fg", color(tc.title?.color));
   set("--report-title-font", font(tc.title?.fontFace));
   set("--report-font", font(tc.label?.fontFace));
+  set("--report-callout-font", font((tc as Record<string, { fontFace?: unknown }>).callout?.fontFace));
   return out;
 }

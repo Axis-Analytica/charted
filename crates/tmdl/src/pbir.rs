@@ -498,6 +498,13 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     {
         title_props.insert("text".into(), json!({ "expr": text_literal(text) }));
     }
+    if let Some(font) = title
+        .and_then(|t| t.get("fontFamily"))
+        .and_then(Value::as_str)
+        .filter(|t| !t.trim().is_empty())
+    {
+        title_props.insert("fontFamily".into(), json!({ "expr": text_literal(font) }));
+    }
     if !title_props.is_empty() {
         visual["visualContainerObjects"] = json!({ "title": [{ "properties": title_props }] });
     }
@@ -518,6 +525,9 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
         if let Some(size) = h.get("fontSize").and_then(Value::as_f64) {
             props.insert("fontSize".into(), json!({ "expr": { "Literal": { "Value": format!("{size}D") } } }));
         }
+        if let Some(font) = h.get("fontFamily").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) {
+            props.insert("fontFamily".into(), json!({ "expr": text_literal(font) }));
+        }
         if !props.is_empty() {
             visual["objects"] = json!({ "header": [{ "properties": props }] });
         }
@@ -529,9 +539,23 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
             .and_then(|t| t.get("content"))
             .and_then(Value::as_str)
     {
+        let font = v
+            .objects
+            .get("text")
+            .and_then(|t| t.get("fontFamily"))
+            .and_then(Value::as_str)
+            .filter(|f| !f.trim().is_empty());
         let paragraphs: Vec<Value> = text
             .split('\n')
-            .map(|l| json!({ "textRuns": markdown_runs(l) }))
+            .map(|l| {
+                let mut runs = markdown_runs(l);
+                if let Some(f) = font {
+                    for r in &mut runs {
+                        r["textStyle"]["fontFamily"] = json!(f);
+                    }
+                }
+                json!({ "textRuns": runs })
+            })
             .collect();
         visual["objects"] = json!({ "general": [{ "properties": { "paragraphs": paragraphs } }] });
     }
@@ -949,6 +973,9 @@ fn import_visual(
         if let Some(text) = t.get("text").and_then(lit) {
             title.insert("text".into(), json!(text));
         }
+        if let Some(font) = t.get("fontFamily").and_then(lit) {
+            title.insert("fontFamily".into(), json!(font));
+        }
         if !title.is_empty() {
             objects.insert("title".into(), Value::Object(title));
         }
@@ -967,7 +994,15 @@ fn import_visual(
                     .unwrap_or_default()
             })
             .collect();
-        objects.insert("text".into(), json!({ "content": text.join("\n") }));
+        let mut t = json!({ "content": text.join("\n") });
+        if let Some(f) = ps
+            .iter()
+            .flat_map(|p| p.get("textRuns").and_then(Value::as_array).into_iter().flatten())
+            .find_map(|r| r.pointer("/textStyle/fontFamily").and_then(Value::as_str))
+        {
+            t["fontFamily"] = json!(f);
+        }
+        objects.insert("text".into(), t);
     }
     if ours == "actionButton" {
         button_objects(vis, &mut objects);
@@ -981,6 +1016,9 @@ fn import_visual(
         }
         if let Some(text) = h.get("text").and_then(lit) {
             header.insert("text".into(), json!(text));
+        }
+        if let Some(font) = h.get("fontFamily").and_then(lit) {
+            header.insert("fontFamily".into(), json!(font));
         }
         if let Some(size) = h
             .get("fontSize")

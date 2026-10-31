@@ -1,5 +1,6 @@
 // Visuals without data: a text box (markdown; double-click to edit), an image (stored
 // in the report) and a shape.
+import { fontStack } from "../../design/fontNames";
 import { ImagePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Page } from "../../bridge/generated/Page";
@@ -29,6 +30,7 @@ export function TextBox({ visual, page }: { visual: Visual; page: Page }) {
   }, [editing]);
   const style = {
     fontSize: prop<number>(visual.objects, def, "text", "fontSize"),
+    fontFamily: fontStack(prop<string>(visual.objects, def, "text", "fontFamily")),
     fontWeight: prop<boolean>(visual.objects, def, "text", "bold") ? 700 : 400,
     textAlign: prop<"left" | "center" | "right">(visual.objects, def, "text", "align"),
     color: prop<string>(visual.objects, def, "text", "color") || undefined,

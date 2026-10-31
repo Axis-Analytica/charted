@@ -44,6 +44,8 @@ export type PropDef =
   | { name: string; label: string; type: "number"; default: number; min?: number; max?: number; step?: number }
   | { name: string; label: string; type: "select"; default: string; options: { value: string; label: string }[] }
   | { name: string; label: string; type: "color"; default: string }
+  /** A font name ("" for the theme's). */
+  | { name: string; label: string; type: "font"; default: string }
   /** A page or a bookmark of the report, by id (a button's destination). */
   | { name: string; label: string; type: "page" | "bookmark"; default: string };
 
@@ -95,6 +97,7 @@ const title: ObjectDef = {
     { name: "show", label: "Show", type: "bool", default: true },
     { name: "text", label: "Text", type: "text", default: "", placeholder: msg("Automatic") },
     { name: "fontSize", label: "Text size", type: "number", default: 13, min: 8, max: 40 },
+    { name: "fontFamily", label: "Font", type: "font", default: "" },
     { name: "align", label: "Alignment", type: "select", default: "left", options: [{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }] },
   ],
 };
@@ -188,6 +191,7 @@ export const VISUALS: VisualDef[] = [
         label: "Callout value",
         props: [
           { name: "fontSize", label: "Text size", type: "number", default: 36, min: 12, max: 96 },
+          { name: "fontFamily", label: "Font", type: "font", default: "" },
           { name: "displayUnits", label: "Display units", type: "select", default: "auto", options: [{ value: "auto", label: "Auto" }, { value: "none", label: "None" }, { value: "K", label: "Thousands" }, { value: "M", label: "Millions" }, { value: "B", label: "Billions" }] },
         ],
       },
@@ -394,6 +398,7 @@ VISUALS.push(
           { name: "show", label: "Show", type: "bool", default: true },
           { name: "text", label: "Text", type: "text", default: "", placeholder: msg("Automatic") },
           { name: "fontSize", label: "Text size", type: "number", default: 12, min: 8, max: 40 },
+          { name: "fontFamily", label: "Font", type: "font", default: "" },
         ],
       },
       { ...title, props: title.props.map((p) => (p.name === "show" ? { ...p, default: false } : p)) } as ObjectDef,
@@ -414,6 +419,7 @@ VISUALS.push(
         props: [
           { name: "content", label: "Text", type: "text", default: "", multiline: true },
           { name: "fontSize", label: "Text size", type: "number", default: 16, min: 8, max: 96 },
+          { name: "fontFamily", label: "Font", type: "font", default: "" },
           { name: "bold", label: "Bold", type: "bool", default: false },
           { name: "align", label: "Alignment", type: "select", default: "left", options: [{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }] },
           { name: "color", label: "Color", type: "color", default: "" },

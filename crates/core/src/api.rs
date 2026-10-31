@@ -86,6 +86,14 @@ pub enum Request {
     ImportProfile {
         path: String,
     },
+    /// Copies a font file (TTF, OTF or WOFF2) into the user's font library.
+    AddFont {
+        path: String,
+    },
+    /// Takes a font file out of the library (a project's own copy stays).
+    RemoveFont {
+        file: String,
+    },
     /// The commands the UI can hide, and how often each was used (for the agent).
     SetCommands {
         commands: Vec<crate::workspace::CommandInfo>,
@@ -198,6 +206,8 @@ pub struct AppState {
     pub workspace: crate::workspace::Workspace,
     pub layout_undo: bool,
     pub layout_redo: bool,
+    /// Fonts the user added, and the open project's own.
+    pub fonts: Vec<crate::fonts::FontFile>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -329,6 +339,10 @@ pub enum DataRequest {
     /// SVG, at most 5 MB).
     ReadImage {
         path: String,
+    },
+    /// The bytes of a font in the library or the project (`AppState.fonts`).
+    ReadFont {
+        file: String,
     },
     /// The query editor's preview of a query at a step (Arrow, at most `limit` rows).
     /// `queries` is the editor's draft set (merges and appends read them).
@@ -614,6 +628,10 @@ impl App {
             workspace: self.layouts.workspace.clone(),
             layout_undo: self.layouts.can_undo(),
             layout_redo: self.layouts.can_redo(),
+            fonts: crate::fonts::list(
+                &self.state_dir,
+                self.session.as_ref().map(|s| s.project.dir.as_path()),
+            ),
         })
     }
 
@@ -750,7 +768,17 @@ impl App {
                     ));
                 }
             }
-            Request::Save => self.session_mut()?.save()?,
+            Request::AddFont { path } => {
+                crate::fonts::add(&self.state_dir, Path::new(&path))?;
+            }
+            Request::RemoveFont { file } => crate::fonts::remove(&self.state_dir, &file)?,
+            Request::Save => {
+                let state_dir = self.state_dir.clone();
+                let s = self.session_mut()?;
+                let report = serde_json::to_value(&s.project.model.report).unwrap_or_default();
+                crate::fonts::bundle(&state_dir, &s.project.dir, &report)?;
+                s.save()?
+            }
             Request::RestoreRecovery => self.session_mut()?.restore_recovery()?,
             Request::DiscardRecovery => self.session_mut()?.discard_recovery(),
             Request::ForgetRecent { path } => recent::forget(&self.state_dir, Path::new(&path)),
@@ -868,6 +896,10 @@ impl App {
 
     /// Resolves a data request; run the job after releasing any lock on the `App`.
     pub fn data_job(&self, request: DataRequest) -> Result<DataJob, ApiError> {
+        if let DataRequest::ReadFont { file } = &request {
+            let project = self.session.as_ref().map(|s| s.project.dir.as_path());
+            return Ok(DataJob::Ready(crate::fonts::read(&self.state_dir, project, file)?));
+        }
         let s = self.session.as_ref().ok_or(CoreError::NoProject)?;
         let model = &s.project.model;
         let view = match &request {
@@ -938,6 +970,7 @@ impl App {
                 return Ok(DataJob::Relationship(s.database().clone(), sql));
             }
             DataRequest::ReadImage { path } => return Ok(DataJob::Ready(read_image(path)?)),
+            DataRequest::ReadFont { .. } => unreachable!("read before the session is needed"),
             DataRequest::QueryPreview {
                 query,
                 queries,

@@ -1357,5 +1357,12 @@
   "Remembered \"%1\"": "Huskede \"%1\"",
   "The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.": "Agenten læser dem ved hver anmodning: navngivningsregler, farver, hvilke tabeller der skal bruges. De gemmes i agent.md i projektmappen.",
   "Looked at page \"%1\"": "Så på siden \"%1\"",
-  "Markdown: **bold**, *italic*, # heading, - list": "Markdown: **fed**, *kursiv*, # overskrift, - liste"
+  "Markdown: **bold**, *italic*, # heading, - list": "Markdown: **fed**, *kursiv*, # overskrift, - liste",
+  "Add a font": "Tilføj en skrifttype",
+  "Add a font…": "Tilføj en skrifttype…",
+  "Included with charted": "Følger med charted",
+  "Power BI fonts (a similar font if not installed)": "Power BI-skrifttyper (en lignende skrifttype, hvis den ikke er installeret)",
+  "Set the fonts: %1": "Skrifttyper sat: %1",
+  "Theme font": "Temaets skrifttype",
+  "Your fonts": "Dine skrifttyper"
 }

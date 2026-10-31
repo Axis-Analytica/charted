@@ -2,6 +2,7 @@
 // page (as its interactions say). Styles: a list, a dropdown, a range between two
 // values (numbers and dates), or a relative date ("last 3 months"). The choice is
 // saved with the report and is one undoable step.
+import { fontStack } from "../../design/fontNames";
 import { ChevronDown, Eraser, Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DateUnit } from "../../bridge/generated/DateUnit";
@@ -45,7 +46,7 @@ export function Slicer({ visual, page, model, data }: { visual: Visual; page: Pa
     <div className="slicer" data-style={style}>
       {showHeader && (label || active) && (
         <div className="slicer-head">
-          <span className="slicer-title" style={{ fontSize: headerSize }}>{label}</span>
+          <span className="slicer-title" style={{ fontSize: headerSize, fontFamily: fontStack(prop<string>(visual.objects, def, "header", "fontFamily")) }}>{label}</span>
           {active && (
             <button type="button" className="slicer-clear" aria-label={t("Clear selections")} title={t("Clear selections")} onClick={() => setSelection(page, visual, null, "Clear slicer")}>
               <Eraser size={13} />

@@ -653,3 +653,26 @@ fn a_slicer_is_named_in_its_header_and_layers_can_be_moved() {
     let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
     assert!(z("slicer") > z("card"));
 }
+
+#[test]
+fn fonts_for_the_report_and_for_one_visual() {
+    let (_d, app) = sample();
+    let turn = Fake::new("f1");
+    let o = ok(&app, &turn, "list_visual_types", json!({}));
+    assert!(o.text.contains("Playfair Display"), "{}", o.text);
+    // Following the desktop, fonts alone keep its colours.
+    ok(&app, &turn, "set_theme", json!({ "builtin": "desktop" }));
+    ok(&app, &turn, "set_theme", json!({ "fonts": { "title": "Helvetica", "label": "Inter" } }));
+    let t = model(&app).report.theme.unwrap();
+    assert_eq!(t.json["followDesktop"], true);
+    assert_eq!(t.json["textClasses"]["title"]["fontFace"], "Helvetica");
+    assert_eq!(t.json["textClasses"]["label"]["fontFace"], "Inter");
+    err(&app, &turn, "set_theme", json!({ "fonts": { "body": "Inter" } }));
+    ok(&app, &turn, "page", json!({ "action": "add", "name": "Fonts" }));
+    ok(
+        &app,
+        &turn,
+        "add_visual",
+        json!({ "page": "Fonts", "type": "textbox", "format": { "text": { "content": "# Overview", "fontFamily": "Lora" } } }),
+    );
+}
