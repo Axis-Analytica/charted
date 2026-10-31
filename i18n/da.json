@@ -1348,5 +1348,6 @@
   "Model view toolbar": "Værktøjslinjen i modelvisning",
   "Report toolbar": "Rapportens værktøjslinje",
   "Transform data toolbar": "Værktøjslinjen i Transformér data",
-  "Zoom": "Zoom"
+  "Zoom": "Zoom",
+  "Retried: it worked on a later try": "Prøvet igen: det lykkedes ved et senere forsøg"
 }

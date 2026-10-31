@@ -157,6 +157,19 @@ fn the_agent_builds_a_page_in_one_undo_step() {
     )
     .text;
     assert!(rows.contains("Total Sales"), "{rows}");
+    // It says how the rows are ordered (months in calendar order, or alphabetically).
+    assert!(rows.starts_with("Sorted by 'Date'[YearMonth]"), "{rows}");
+    let donut = ok(
+        &app,
+        &turn,
+        "query_visual",
+        json!({ "visual": "Total Sales by Category" }),
+    )
+    .text;
+    assert!(
+        donut.starts_with("Sorted by [Total Sales], largest first."),
+        "{donut}"
+    );
     let slicer = p
         .visuals
         .iter()

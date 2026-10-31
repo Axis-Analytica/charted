@@ -1388,5 +1388,6 @@
   "Model view toolbar": "شريط أدوات عرض النموذج",
   "Report toolbar": "شريط أدوات التقرير",
   "Transform data toolbar": "شريط أدوات تحويل البيانات",
-  "Zoom": "تكبير/تصغير"
+  "Zoom": "تكبير/تصغير",
+  "Retried: it worked on a later try": "أُعيدت المحاولة: نجحت في محاولة لاحقة"
 }

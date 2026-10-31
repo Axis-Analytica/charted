@@ -1,7 +1,7 @@
 //! Reading the project: the model and report described, visual types, DAX checks, and
 //! numbers (visuals' aggregates always; rows and values only with data access).
 
-use charted_compiler::visual::VisualQuery;
+use charted_compiler::visual::{OrderTarget, VisualQuery};
 use charted_core::visualq;
 use charted_model::{ColumnKind, FieldRef, Model, Projection};
 use serde_json::{Value, json};
@@ -438,7 +438,7 @@ fn aggregates(p: &Projection) -> bool {
 fn query_visual(cx: &Cx, args: &Value) -> Res<Done> {
     let data = cx.turn.data();
     let limit = limit(args, data);
-    let (db, sql) = cx.with_model(|m, s| {
+    let (db, sql, sort_note) = cx.with_model(|m, s| {
         let (_, v) = names::find_visual(m, None, str_arg(args, "visual")?)?;
         if !data && !v.roles.values().flatten().any(aggregates) {
             return fail(format!(
@@ -456,9 +456,61 @@ fn query_visual(cx: &Cx, args: &Value) -> Res<Done> {
                 ..Default::default()
             },
         )?;
-        Ok((s.database().clone(), sql))
+        Ok((s.database().clone(), sql, sort_note(m, &v.id)))
     })?;
-    Done::read(rows_text(db.json_rows(&sql, Some(limit))?, limit))
+    let mut text = rows_text(db.json_rows(&sql, Some(limit))?, limit);
+    if let Some(note) = sort_note {
+        text = format!("{note}\n{text}");
+    }
+    Done::read(text)
+}
+
+/// How a visual orders its rows, so the agent can tell whether months or weekdays show in
+/// calendar order: a text axis without a sort-by column sorts alphabetically.
+fn sort_note(m: &Model, visual: &str) -> Option<String> {
+    let (q, _) = visualq::report_visual_query(m, visual, false, &[]).ok()?;
+    let name = |t: &OrderTarget| match *t {
+        OrderTarget::Group(i) => q.groups.get(i).map(|p| format_projection(m, p)),
+        OrderTarget::Value(i) => q.values.get(i).map(|p| format_projection(m, p)),
+    };
+    if let Some(o) = q.order.first() {
+        let by = name(&o.target)?;
+        let way = if o.descending {
+            "largest first"
+        } else {
+            "smallest first"
+        };
+        return Some(match o.target {
+            OrderTarget::Value(_) => format!("Sorted by {by}, {way}."),
+            OrderTarget::Group(_) => format!(
+                "Sorted by {by}, {}.",
+                if o.descending {
+                    "descending"
+                } else {
+                    "ascending"
+                }
+            ),
+        });
+    }
+    let g = q.groups.first()?;
+    let by = format_projection(m, g);
+    let FieldRef::Column { table, column } = &g.field else {
+        return Some(format!("Sorted by {by}."));
+    };
+    let t = m.table(table)?;
+    let c = t.column(column)?;
+    Some(match c.sort_by.as_ref().and_then(|id| t.column(id)) {
+        Some(key) => format!(
+            "Sorted by {by} in the order of its sort-by column {}.",
+            quote_name(&key.name)
+        ),
+        None if c.data_type.is_numeric() || c.data_type.is_temporal() => {
+            format!("Sorted by {by}, ascending.")
+        }
+        None => format!(
+            "Sorted by {by} alphabetically: it's text with no sort-by column. If it holds months or weekdays, give it a sort-by column (tool `column`, sort_by) so they show in calendar order."
+        ),
+    })
 }
 
 fn resolve_all(m: &Model, list: &[String]) -> Res<Vec<Projection>> {

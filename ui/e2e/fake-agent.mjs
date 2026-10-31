@@ -1,7 +1,8 @@
 // A stand-in for Claude Code in tests (CHARTED_AGENT_CMD="node fake-agent.mjs"): it reads
 // the MCP config charted passes, starts `charted mcp`, calls charted's tools as a script
 // chosen by a word in the request, and prints Claude Code's stream-json.
-//   build — a page with a line chart, a donut and a slicer; then checks the numbers
+//   build — a page with a line chart, a donut (after one misspelt try) and a slicer; then
+//           checks the numbers
 //   slow   — adds two cards a second apart (to edit or stop mid-request)
 //   peek   — lists a column's values (needs data access)
 //   delete — removes the page "Agent e2e" (asks the user)
@@ -61,6 +62,8 @@ if (/\bbuild\b/i.test(prompt)) {
   await tool("describe_model", {});
   await tool("page", { action: "add", name: "Agent e2e" });
   await tool("add_visual", { page: "Agent e2e", type: "lineChart", title: "Sales by month", fields: { category: ["'Date'[YearMonth]"], values: ["[Total Sales]"] } });
+  // A misspelt field first, put right on the next try (the pane shows it as retried).
+  await tool("add_visual", { page: "Agent e2e", type: "donutChart", title: "Sales by category", fields: { legend: ["'Product'[Categry]"], values: ["[Total Sales]"] } });
   await tool("add_visual", { page: "Agent e2e", type: "donutChart", title: "Sales by category", fields: { legend: ["'Product'[Category]"], values: ["[Total Sales]"] } });
   await tool("add_visual", { page: "Agent e2e", type: "slicer", fields: { field: ["'Store'[Region]"] } });
   await tool("arrange_page", { page: "Agent e2e" });

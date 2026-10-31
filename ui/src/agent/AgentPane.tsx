@@ -2,7 +2,7 @@
 // report and model, and watch it work. Its changes land live and each request undoes in
 // one step; its steps are listed as it goes, and Stop ends it. What it may see is set
 // here too (Let the agent see data), and asked once per agent (AgentConsent).
-import { Check, ChevronDown, ChevronRight, Database, FileCog, MessageSquarePlus, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Database, FileCog, MessageSquarePlus, RotateCcw, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentInfo } from "../bridge/generated/AgentInfo";
 import type { Item } from "../bridge/generated/Item";
@@ -162,7 +162,7 @@ function TurnView({ turn, model }: { turn: TurnRecord; model: Model }) {
       </div>
       <ol className="agent-items">
         {turn.items.map((item, i) => (
-          <ItemView key={i} item={item} running={running} model={model} />
+          <ItemView key={i} item={item} running={running} model={model} retried={retried(turn.items, i)} />
         ))}
       </ol>
       <div className="agent-turn-foot">
@@ -196,14 +196,20 @@ function TurnView({ turn, model }: { turn: TurnRecord; model: Model }) {
   );
 }
 
-function ItemView({ item, running, model }: { item: Item; running: boolean; model: Model }) {
+/** A failed step the agent got right later in the turn (the same tool, then working). */
+function retried(items: Item[], i: number): boolean {
+  const item = items[i]!;
+  return item.kind === "step" && !item.step.ok && items.slice(i + 1).some((x) => x.kind === "step" && x.step.ok && x.step.tool === item.step.tool);
+}
+
+function ItemView({ item, running, model, retried }: { item: Item; running: boolean; model: Model; retried: boolean }) {
   const { t } = useT();
   const request = useAgent((s) => s.request);
   switch (item.kind) {
     case "text":
       return <li className="agent-text">{item.text}</li>;
     case "step":
-      return <StepLine step={item.step} model={model} />;
+      return <StepLine step={item.step} model={model} retried={retried} />;
     case "error":
       return (
         <li>
@@ -233,7 +239,7 @@ function ItemView({ item, running, model }: { item: Item; running: boolean; mode
   }
 }
 
-function StepLine({ step, model }: { step: Step; model: Model }) {
+function StepLine({ step, model, retried }: { step: Step; model: Model; retried: boolean }) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const text = t(step.op, ...step.args.map((a) => t(a)));
@@ -244,9 +250,9 @@ function StepLine({ step, model }: { step: Step; model: Model }) {
     showPage(pageId, { selected: exists, view: "report" });
   };
   return (
-    <li className={`agent-step ${step.ok ? "" : "is-failed"}`}>
+    <li className={`agent-step ${step.ok ? "" : retried ? "is-retried" : "is-failed"}`} title={retried ? t("Retried: it worked on a later try") : undefined}>
       <span className="agent-step-row">
-        {step.ok ? <Check size={13} className="agent-step-icon" /> : <X size={13} className="agent-step-icon" />}
+        {step.ok ? <Check size={13} className="agent-step-icon" /> : retried ? <RotateCcw size={13} className="agent-step-icon" /> : <X size={13} className="agent-step-icon" />}
         <button type="button" className="agent-step-text" onClick={go} disabled={!step.page}>
           {text}
         </button>

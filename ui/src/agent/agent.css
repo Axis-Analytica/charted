@@ -21,6 +21,7 @@
 .agent-step-row { display: flex; align-items: center; gap: 6px; min-height: 22px; }
 .agent-step-icon { flex: none; color: var(--success, var(--accent-text)); }
 .agent-step.is-failed .agent-step-icon, .agent-step.is-failed .agent-step-text { color: var(--danger); }
+.agent-step.is-retried .agent-step-icon, .agent-step.is-retried .agent-step-text { color: var(--fg-faint); }
 .agent-step-text { flex: 1; min-width: 0; padding: 1px 2px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--fg-muted); text-align: start; overflow-wrap: anywhere; }
 .agent-step-text:enabled:hover { background: var(--bg-hover); color: var(--fg); }
 .agent-step-more.icon-btn { width: 20px; height: 20px; }

@@ -66,13 +66,16 @@ test("the agent builds a page live, and the request undoes in one step", async (
   await expect(page.getByRole("tab", { name: "Agent e2e" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("visual")).toHaveCount(3);
   const steps = turn.locator(".agent-step");
-  await expect(steps).toHaveCount(5);
+  await expect(steps).toHaveCount(6);
   await expect(steps.nth(1)).toContainText('Added line chart "Sales by month"');
+  // The misspelt try it then got right is muted, not red.
+  await expect(steps.nth(2)).toHaveClass(/is-retried/);
+  await expect(turn.locator(".agent-step.is-failed")).toHaveCount(0);
   await expect(turn.locator(".agent-text")).toContainText("Built the page Agent e2e");
   await expect(turn.locator(".agent-cost")).toContainText("$0.01");
   if (shots) await page.screenshot({ path: `${shots}/m7-agent.png` });
   // A step selects what it made.
-  await steps.nth(2).locator(".agent-step-text").click();
+  await steps.nth(3).locator(".agent-step-text").click();
   await expect(page.locator(".visual.is-selected")).toHaveCount(1);
   // One undo takes the whole request back.
   await expect(page.getByRole("button", { name: "Undo Agent: build me a page" })).toBeVisible();
