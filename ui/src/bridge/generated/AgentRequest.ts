@@ -3,4 +3,4 @@
 /**
  * What the window asks of the agent.
  */
-export type AgentRequest = { "type": "status" } | { "type": "send", text: string, page: string | null, visuals: Array<string>, } | { "type": "stop" } | { "type": "answer", id: string, allow: boolean, } | { "type": "newChat" } | { "type": "setData", on: boolean, } | { "type": "setAgent", agent: string, model: string, } | { "type": "consent" } | { "type": "openTerminal", text: string, } | { "type": "applyDraft" } | { "type": "discardDraft" } | { "type": "setInstructions", text: string, };
+export type AgentRequest = { "type": "status" } | { "type": "send", text: string, page: string | null, visuals: Array<string>, } | { "type": "stop" } | { "type": "answer", id: string, allow: boolean, } | { "type": "newChat" } | { "type": "setData", on: boolean, } | { "type": "setAgent", agent: string, model: string, } | { "type": "consent" } | { "type": "openTerminal", text: string, } | { "type": "applyDraft" } | { "type": "discardDraft" } | { "type": "setInstructions", text: string, } | { "type": "snapshot", id: string, png: string | null, error: string | null, };

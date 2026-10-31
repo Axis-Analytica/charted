@@ -20,6 +20,8 @@ interface AgentStore {
   touched: Record<string, number>;
   /** The composer's text, kept while the pane is closed. */
   draft: string;
+  /** A page the agent asked to see, being drawn (agent/PageSnapshot.tsx). */
+  snapshot: { id: string; page: string } | null;
   set(patch: Partial<Pick<AgentStore, "consent" | "draft">>): void;
   request(r: AgentRequest): Promise<boolean>;
   send(text: string, page: string | null, visuals: string[]): Promise<boolean>;
@@ -30,6 +32,7 @@ export const useAgent = create<AgentStore>()((set) => ({
   consent: null,
   touched: {},
   draft: "",
+  snapshot: null,
   set: (patch) => set(patch),
   async request(r) {
     try {
@@ -96,6 +99,7 @@ function applyTurn(turn: TurnRecord) {
 export function initAgent(): () => void {
   const off = transport.onAgent((e: AgentEvent) => {
     if (e.kind === "status") useAgent.setState({ status: e.status });
+    else if (e.kind === "snapshot") useAgent.setState({ snapshot: { id: e.id, page: e.page } });
     else applyTurn(e.turn);
   });
   const offNav = useReport.subscribe((s, prev) => {

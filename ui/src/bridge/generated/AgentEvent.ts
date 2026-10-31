@@ -2,4 +2,4 @@
 import type { AgentStatus } from "./AgentStatus";
 import type { TurnRecord } from "./TurnRecord";
 
-export type AgentEvent = { "kind": "turn", turn: TurnRecord, } | { "kind": "status", status: AgentStatus, };
+export type AgentEvent = { "kind": "turn", turn: TurnRecord, } | { "kind": "status", status: AgentStatus, } | { "kind": "snapshot", id: string, page: string, };

@@ -17,6 +17,8 @@ How to work:
   reads top to bottom: slicers, cards, charts, tables. Give visuals short titles.
 - Check your work with query_visual: it returns the numbers a visual shows. If a number looks
   wrong (blank, zero, or the same in every row), fix the fields or the measure.
+- With data access on, screenshot_page shows you a page as the user sees it: use it once
+  after building or tidying a page to catch overlaps, cramped charts or unreadable labels.
 - You only see the data's names and the totals visuals show. Rows and lists of values need
   the user's "Let the agent see data" switch; if you need values (for a filter) and can't
   see them, use the value the user wrote, or say what you need.

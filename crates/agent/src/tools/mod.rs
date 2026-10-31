@@ -12,7 +12,7 @@ mod workspace;
 use charted_core::api::{App, AppState};
 use charted_model::{Change, Model};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::sync::Mutex;
 use ts_rs::TS;
 
@@ -31,6 +31,10 @@ pub trait Turn: Sync {
     /// The queries as the agent has drafted them, if it has.
     fn draft(&self) -> Option<Vec<charted_compiler::steps::Query>>;
     fn set_draft(&self, queries: Option<Vec<charted_compiler::steps::Query>>);
+    /// A page as the window draws it, as a base64 PNG (only where a window is showing).
+    fn snapshot(&self, _page: &str) -> Result<String, String> {
+        Err("there's no window to draw the page in here".into())
+    }
 }
 
 /// One thing the agent did, for the Agent pane: `text` is English, and `op` with `args`
@@ -96,6 +100,8 @@ impl Step {
 pub struct Outcome {
     /// For the agent.
     pub text: String,
+    /// A picture for the agent (a base64 PNG), from screenshot_page.
+    pub image: Option<String>,
     pub is_error: bool,
     /// For the pane (reads have none).
     pub step: Option<Step>,
@@ -132,11 +138,16 @@ pub fn list() -> Vec<ToolDef> {
     v.extend(model::defs());
     v.extend(query::defs());
     v.extend(workspace::defs());
+    v.push(ToolDef {
+        name: "screenshot_page",
+        description: "A picture of a page as the user sees it: check layout, overlap, legibility and colours after building or tidying. Needs data access (it shows the numbers).".into(),
+        input_schema: schema(json!({ "page": { "type": "string", "description": "Name or id" } }), &["page"]),
+    });
     v
 }
 
 /// The tools only for a user who lets the agent see data.
-pub const DATA_TOOLS: &[&str] = &["sample_rows", "distinct_values"];
+pub const DATA_TOOLS: &[&str] = &["sample_rows", "distinct_values", "screenshot_page"];
 
 /// Runs a tool.
 pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outcome {
@@ -147,12 +158,16 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
                 "{name} needs data access, which is off: the user hasn't let the agent see rows or values. Work from the model's names and the visuals' totals, or ask the user to turn on \"Let the agent see data\" in the Agent pane."
             ),
             is_error: true,
+            image: None,
             step: Some(Step {
                 tool: name.into(),
                 ok: false,
                 ..Step::new("Needs data access: %1", &[name])
             }),
         };
+    }
+    if name == "screenshot_page" {
+        return screenshot(&cx, args);
     }
     let result = read::call(&cx, name, args)
         .or_else(|| report::call(&cx, name, args))
@@ -163,6 +178,7 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
     match result {
         Ok(Done { text, step }) => Outcome {
             text,
+            image: None,
             is_error: false,
             step: step.map(|s| Step {
                 tool: name.into(),
@@ -176,6 +192,47 @@ pub fn call(app: &Mutex<App>, turn: &dyn Turn, name: &str, args: &Value) -> Outc
                 ..Step::new("Not done: %1", &[&short(&msg)])
             }),
             text: msg,
+            image: None,
+            is_error: true,
+        },
+    }
+}
+
+/// screenshot_page: the window draws the page and sends it back as a picture.
+fn screenshot(cx: &Cx, args: &Value) -> Outcome {
+    let page = cx.with_model(|m, _| {
+        let p = crate::names::find_page(m, str_arg(args, "page")?)?;
+        Ok((
+            p.id.clone(),
+            p.settings.name.clone(),
+            p.settings.width,
+            p.settings.height,
+        ))
+    });
+    let shot = page.and_then(|(id, name, w, h)| {
+        cx.turn
+            .snapshot(&id)
+            .map(|png| (id, name, w, h, png))
+            .map_err(Fail)
+    });
+    match shot {
+        Ok((id, name, w, h, png)) => Outcome {
+            text: format!("The page \"{name}\" ({w}×{h} px) as the user sees it."),
+            image: Some(png),
+            is_error: false,
+            step: Some(Step {
+                tool: "screenshot_page".into(),
+                ..Step::new("Looked at page \"%1\"", &[&name]).page(&id)
+            }),
+        },
+        Err(Fail(msg)) => Outcome {
+            step: Some(Step {
+                tool: "screenshot_page".into(),
+                ok: false,
+                ..Step::new("Not done: %1", &[&short(&msg)])
+            }),
+            text: msg,
+            image: None,
             is_error: true,
         },
     }

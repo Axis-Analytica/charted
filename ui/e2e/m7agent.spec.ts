@@ -195,3 +195,20 @@ test("project instructions go with every request, and the agent can add one when
   await dialog.getByRole("button", { name: "Save" }).click();
   await expect(pane(page).getByRole("button", { name: "Project instructions", exact: true })).toBeVisible();
 });
+
+test("the agent sees a picture of the page only with data access", async ({ page }) => {
+  await openSample(page);
+  await openPane(page);
+  await newChat(page);
+  const blind = await ask(page, "look at this page");
+  await done(blind);
+  await expect(blind.locator(".agent-step.is-failed")).toContainText("Needs data access");
+  await expect(blind.locator(".agent-text")).toContainText("I can't see the page.");
+  const data = pane(page).getByRole("button", { name: "Let the agent see data" });
+  await data.click();
+  const seen = await ask(page, "look at this page");
+  await done(seen);
+  await expect(seen.locator(".agent-step")).toContainText("Looked at page");
+  await expect(seen.locator(".agent-text")).toContainText(/I saw the page: a PNG of \d+×\d+ pixels\./);
+  await pane(page).getByRole("button", { name: /The agent can see data/ }).click();
+});

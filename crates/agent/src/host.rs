@@ -55,6 +55,8 @@ pub enum AgentEvent {
     Turn { turn: TurnRecord },
     /// Everything else changed (agent, data access, a new chat).
     Status { status: AgentStatus },
+    /// The agent wants to see a page: draw it and answer with `Snapshot`.
+    Snapshot { id: String, page: String },
 }
 
 #[derive(Debug, Clone, Serialize, TS)]
@@ -135,6 +137,14 @@ pub enum AgentRequest {
     /// Replaces the project's instructions for the agent (agent.md).
     SetInstructions {
         text: String,
+    },
+    /// A page the agent asked to see, drawn (a base64 PNG), or why it couldn't be.
+    Snapshot {
+        id: String,
+        #[serde(default)]
+        png: Option<String>,
+        #[serde(default)]
+        error: Option<String>,
     },
 }
 
@@ -218,6 +228,8 @@ struct Inner {
     chat: Option<(PathBuf, Transcript)>,
     /// Questions waiting for the user.
     pending: HashMap<String, Sender<bool>>,
+    /// Pages the agent asked to see, waiting for the window to draw them.
+    snapshots: HashMap<String, Sender<Result<String, String>>>,
     /// The agent's drafted queries, for the project they're for.
     draft: Option<(PathBuf, Vec<charted_compiler::steps::Query>)>,
 }
@@ -275,6 +287,25 @@ impl Turn for TurnCtx {
             }
         });
         allow
+    }
+    fn snapshot(&self, page: &str) -> Result<String, String> {
+        let host = self.host.upgrade().ok_or("charted is closing")?;
+        let id = uuid::Uuid::new_v4().to_string();
+        let (tx, rx) = channel();
+        host.lock().snapshots.insert(id.clone(), tx);
+        (host.emit)(Push::Agent(AgentEvent::Snapshot {
+            id: id.clone(),
+            page: page.into(),
+        }));
+        let got = rx.recv_timeout(std::time::Duration::from_secs(30));
+        host.lock().snapshots.remove(&id);
+        match got {
+            Ok(r) => r,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                Err("the window didn't draw the page in time".into())
+            }
+            Err(_) => Err("the request was stopped".into()),
+        }
     }
     fn changed(&self, state: &AppState) {
         if let Some(host) = self.host.upgrade() {
@@ -363,6 +394,7 @@ impl Host {
                 running: None,
                 chat: None,
                 pending: HashMap::new(),
+                snapshots: HashMap::new(),
                 draft: None,
             }),
             me: me.clone(),
@@ -557,6 +589,13 @@ impl Host {
                 (self.emit)(Push::State(Box::new(state)));
             }
             AgentRequest::DiscardDraft => self.lock().draft = None,
+            AgentRequest::Snapshot { id, png, error } => {
+                if let Some(tx) = self.lock().snapshots.remove(&id) {
+                    let _ = tx.send(png.ok_or_else(|| {
+                        error.unwrap_or_else(|| "the page couldn't be drawn".into())
+                    }));
+                }
+            }
             AgentRequest::SetInstructions { text } => {
                 let dir = self.project_dir().ok_or("open a project first")?;
                 crate::settings::set_instructions(&dir, &text)?;
@@ -962,6 +1001,7 @@ impl Host {
             for (_, tx) in inner.pending.drain() {
                 let _ = tx.send(false);
             }
+            inner.snapshots.clear();
             child
         };
         self.kill(&child);
@@ -1092,7 +1132,12 @@ impl Host {
                             },
                         );
                     }
-                    json!({ "content": [{ "type": "text", "text": o.text }], "isError": o.is_error })
+                    let mut content = vec![json!({ "type": "text", "text": o.text })];
+                    if let Some(png) = o.image {
+                        content
+                            .push(json!({ "type": "image", "data": png, "mimeType": "image/png" }));
+                    }
+                    json!({ "content": content, "isError": o.is_error })
                 }
                 _ => {
                     json!({ "content": [{ "type": "text", "text": "unknown method" }], "isError": true })

@@ -63,5 +63,6 @@ export const STEP_MESSAGES = [
   msg("Reset the layout \"%1\""),
   msg("Remembered \"%1\""),
   msg("Formatted %1 visuals"),
+  msg("Looked at page \"%1\""),
 ];
 

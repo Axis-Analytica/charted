@@ -10,6 +10,7 @@ import { useShortcut } from "../app/shortcuts";
 import { cycleRegion } from "../app/regions";
 import { preloadDaxEditor } from "../dax/LazyDaxEditor";
 import { StatusBar } from "./StatusBar";
+import { PageSnapshot } from "../agent/PageSnapshot";
 // The data, model and query views load on first use, keeping the initial download small.
 const DataView = lazy(() => import("./data/DataView").then((m) => ({ default: m.DataView })));
 import { useDataView } from "../state/dataview";
@@ -200,6 +201,7 @@ export function ProjectView({ project }: { project: ProjectSnapshot }) {
         })()}
       </div>
       <StatusBar project={project} table={view === "data" ? table : null} />
+      <PageSnapshot model={project.model} />
     </div>
   );
 }

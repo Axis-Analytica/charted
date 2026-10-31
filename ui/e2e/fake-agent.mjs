@@ -10,6 +10,7 @@
 //   undraft — drafts taking that step out again
 //   layout — floats the Fields pane, puts the model beside the report, hides Align left
 //   rules  — says which project instructions it was given, and remembers one more
+//   look   — takes a picture of the page the user is on (needs data access)
 //   fail   — exits with an error
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -49,10 +50,12 @@ const rpc = (method, params) =>
     replies.set(id, resolve);
     mcp.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
   });
+let lastImage = null;
 const tool = async (name, args) => {
   out({ type: "assistant", message: { content: [{ type: "tool_use", id: `t${next}`, name: `mcp__charted__${name}`, input: args }] } });
   const r = await rpc("tools/call", { name, arguments: args });
   const text = r.result?.content?.[0]?.text ?? JSON.stringify(r.error);
+  lastImage = r.result?.content?.find((c) => c.type === "image") ?? null;
   out({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: `t${next}`, content: text, is_error: !!r.result?.isError }] } });
   return { text, error: !!r.result?.isError };
 };
@@ -94,6 +97,10 @@ if (/\bbuild\b/i.test(prompt)) {
 } else if (/\bdraft\b/i.test(prompt)) {
   await tool("draft_query", { action: "add_step", query: "Store", step: { op: "sortRows", columns: [["Region", false]] } });
   said = "Drafted sorting Store by region; press Apply in the Agent pane.";
+} else if (/\blook\b/i.test(prompt)) {
+  const r = await tool("screenshot_page", { page: here() });
+  const png = lastImage && lastImage.mimeType === "image/png" ? Buffer.from(lastImage.data, "base64") : null;
+  said = r.error ? "I can't see the page." : png && png.subarray(1, 4).toString() === "PNG" ? `I saw the page: a PNG of ${png.readUInt32BE(16)}×${png.readUInt32BE(20)} pixels.` : "I got no picture.";
 } else if (/\brules\b/i.test(prompt)) {
   const given = /The project's instructions[^\n]*\n([\s\S]*)$/.exec(prompt)?.[1]?.trim();
   await tool("remember", { instruction: "Money in thousands" });

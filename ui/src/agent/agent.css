@@ -53,3 +53,8 @@
   100% { box-shadow: 0 0 0 2px transparent; }
 }
 .agent-instructions { width: 100%; min-height: 220px; resize: vertical; font-family: var(--font-mono, monospace); font-size: var(--text-sm); line-height: 1.5; }
+/* Off screen, but laid out and drawn (for the agent's screenshot_page). */
+.agent-snapshot { position: fixed; left: -20000px; top: 0; pointer-events: none; }
+.agent-snapshot .page { box-shadow: none; }
+.agent-snapshot .visual-header, .agent-snapshot .visual-loading { display: none; }
+.agent-snapshot .visual.is-agent-touched { box-shadow: none; animation: none; }

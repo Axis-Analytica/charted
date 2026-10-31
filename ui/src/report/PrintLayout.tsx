@@ -54,7 +54,7 @@ export async function exportPdf(t: (s: string) => string) {
 };
 
 /** Polls until no visual is loading (several checks in a row), so charts are drawn. */
-function useAllLoaded(root: React.RefObject<HTMLElement | null>, active: boolean) {
+export function useAllLoaded(root: React.RefObject<HTMLElement | null>, active: boolean) {
   const [ready, setReady] = useState(false);
   useEffect(() => {
     if (!active) return;
