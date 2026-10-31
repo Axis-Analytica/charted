@@ -236,9 +236,12 @@ test("more visuals, focus mode, show as a table and export data", async ({ page 
 
   const text = await addVisual(page, "Text box", { x: 200, y: 420 });
   await text.locator(".textbox").dblclick();
-  await text.getByRole("textbox", { name: "Text" }).fill("Harbor & Pine — sales overview");
+  await text.getByRole("textbox", { name: "Text" }).fill("Harbor & Pine — **sales** overview\n- *this* year");
   await page.locator(".canvas-scroller").click({ position: { x: 4, y: 4 } });
-  await expect(text.locator(".textbox")).toHaveText("Harbor & Pine — sales overview");
+  // Text boxes take markdown.
+  await expect(text.locator(".textbox p")).toHaveText("Harbor & Pine — sales overview");
+  await expect(text.locator(".textbox strong")).toHaveText("sales");
+  await expect(text.locator(".textbox li em")).toHaveText("this");
 
   const shape = await addVisual(page, "Shape", { x: 520, y: 440 });
   await expect(shape.locator("svg rect")).toBeVisible();

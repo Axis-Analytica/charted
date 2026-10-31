@@ -1,11 +1,12 @@
-// Visuals without data: a text box (double-click to edit), an image (stored in the
-// report) and a shape.
+// Visuals without data: a text box (markdown; double-click to edit), an image (stored
+// in the report) and a shape.
 import { ImagePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Page } from "../../bridge/generated/Page";
 import type { Visual } from "../../bridge/generated/Visual";
 import { errorMessage, transport } from "../../bridge";
 import { useT } from "../../i18n";
+import { Markdown } from "../../kit/Markdown";
 import { useApp } from "../../state/app";
 import { toast } from "../../state/toasts";
 import { editVisual } from "../../state/report";
@@ -53,7 +54,7 @@ export function TextBox({ visual, page }: { visual: Visual; page: Page }) {
     );
   return (
     <div className={`textbox ${content ? "" : "is-empty"}`} style={style} onDoubleClick={() => setEditing(true)}>
-      {content || t("Double-click to type")}
+      {content ? <Markdown text={content} /> : t("Double-click to type")}
     </div>
   );
 }

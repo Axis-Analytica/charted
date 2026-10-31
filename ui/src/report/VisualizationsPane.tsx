@@ -271,6 +271,22 @@ function Control({ p, value: shown, onChange }: { p: PropDef; value: unknown; on
         </label>
       );
     case "text":
+      if (p.multiline)
+        return (
+          <label className="field">
+            <span className="field-label">{t(p.label)}</span>
+            <textarea
+              className="input textarea"
+              key={mixed ? "mixed" : String(value)}
+              rows={4}
+              defaultValue={String(value ?? "")}
+              placeholder={mixed ? t("Mixed") : undefined}
+              title={t("Markdown: **bold**, *italic*, # heading, - list")}
+              onBlur={(e) => (mixed ? e.target.value !== "" : e.target.value !== (value ?? "")) && onChange(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </label>
+        );
       return (
         <label className="field">
           <span className="field-label">{t(p.label)}</span>

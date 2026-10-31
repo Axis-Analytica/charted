@@ -1356,5 +1356,6 @@
   "Project instructions": "Projektinstruktioner",
   "Remembered \"%1\"": "Huskede \"%1\"",
   "The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.": "Agenten læser dem ved hver anmodning: navngivningsregler, farver, hvilke tabeller der skal bruges. De gemmes i agent.md i projektmappen.",
-  "Looked at page \"%1\"": "Så på siden \"%1\""
+  "Looked at page \"%1\"": "Så på siden \"%1\"",
+  "Markdown: **bold**, *italic*, # heading, - list": "Markdown: **fed**, *kursiv*, # overskrift, - liste"
 }

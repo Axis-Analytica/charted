@@ -266,3 +266,28 @@ fn a_slicers_header_comes_across() {
         json!({ "show": true, "text": "Store", "fontSize": 14.0 })
     );
 }
+
+#[test]
+fn a_text_boxs_markdown_becomes_styled_runs() {
+    let mut t = visual("text1", "textbox", 1);
+    t.objects = serde_json::from_value(
+        json!({ "text": { "content": "# Sales\nUp **12%** on *last year*, see [notes](https://x.org)" } }),
+    )
+    .unwrap();
+    let m = model(vec![Page {
+        id: "p1".into(),
+        settings: PageSettings::named("One"),
+        visuals: vec![t],
+    }]);
+    let files = as_power_bi(&m);
+    let ps = &file(&files, "text1/visual.json")["visual"]["objects"]["general"][0]["properties"]["paragraphs"];
+    assert_eq!(ps[0]["textRuns"][0], json!({ "value": "Sales", "textStyle": { "fontWeight": "bold" } }));
+    assert_eq!(ps[1]["textRuns"][1], json!({ "value": "12%", "textStyle": { "fontWeight": "bold" } }));
+    assert_eq!(ps[1]["textRuns"][3], json!({ "value": "last year", "textStyle": { "fontStyle": "italic" } }));
+    assert_eq!(ps[1]["textRuns"][5], json!({ "value": "notes", "url": "https://x.org" }));
+    let (back, _) = read(&files);
+    assert_eq!(
+        back.pages[0].visuals[0].objects["text"]["content"],
+        "**Sales**\nUp **12%** on *last year*, see [notes](https://x.org)"
+    );
+}

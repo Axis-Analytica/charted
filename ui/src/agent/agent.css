@@ -17,7 +17,7 @@
 .agent-chip button { display: grid; place-items: center; width: 14px; height: 14px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: inherit; }
 .agent-chip button:hover { background: var(--bg-hover); color: var(--fg); }
 .agent-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
-.agent-text { margin: 4px 0; color: var(--fg); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.agent-text { margin: 4px 0; color: var(--fg); line-height: 1.45; overflow-wrap: anywhere; }
 .agent-step-row { display: flex; align-items: center; gap: 6px; min-height: 22px; }
 .agent-step-icon { flex: none; color: var(--success, var(--accent-text)); }
 .agent-step.is-failed .agent-step-icon, .agent-step.is-failed .agent-step-text { color: var(--danger); }

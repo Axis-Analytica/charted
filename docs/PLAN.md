@@ -264,7 +264,7 @@ So "Store" appears twice.
 - Tests: Rust test that an agent-made slicer has no container title and header text;
   e2e: a slicer with title+header shows the name once; Vitest for the dedupe.
 
-### Stage 2: markdown
+### Stage 2: markdown — done (links show, but don't open)
 
 No markdown library exists; write a small safe renderer, `ui/src/kit/Markdown.tsx`,
 that parses a subset into React nodes (never `innerHTML`): paragraphs, line breaks,

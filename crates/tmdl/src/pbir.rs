@@ -531,7 +531,7 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     {
         let paragraphs: Vec<Value> = text
             .split('\n')
-            .map(|l| json!({ "textRuns": [{ "value": l }] }))
+            .map(|l| json!({ "textRuns": markdown_runs(l) }))
             .collect();
         visual["objects"] = json!({ "general": [{ "properties": { "paragraphs": paragraphs } }] });
     }
@@ -963,11 +963,7 @@ fn import_visual(
             .map(|p| {
                 p.get("textRuns")
                     .and_then(Value::as_array)
-                    .map(|r| {
-                        r.iter()
-                            .filter_map(|x| x.get("value").and_then(Value::as_str))
-                            .collect::<String>()
-                    })
+                    .map(|r| r.iter().map(run_markdown).collect::<String>())
                     .unwrap_or_default()
             })
             .collect();
@@ -1316,4 +1312,139 @@ fn resolve_aliases(v: &Value, aliases: &BTreeMap<String, String>) -> Value {
         Value::Array(a) => Value::Array(a.iter().map(|x| resolve_aliases(x, aliases)).collect()),
         _ => v.clone(),
     }
+}
+
+/// One line of a text box's markdown as Power BI text runs: emphasis becomes the run's
+/// textStyle, a link its url, and a heading a bold run (Power BI has no headings).
+fn markdown_runs(line: &str) -> Vec<Value> {
+    let (line, heading) = match line.trim_start().split_once(' ') {
+        Some((h, rest)) if !h.is_empty() && h.len() <= 3 && h.chars().all(|c| c == '#') => (rest, true),
+        _ => (line, false),
+    };
+    let mut runs = vec![];
+    inline_runs(line, Style { bold: heading, ..Style::default() }, &mut runs);
+    if runs.is_empty() {
+        runs.push(json!({ "value": "" }));
+    }
+    runs
+}
+
+#[derive(Clone, Copy, Default)]
+struct Style {
+    bold: bool,
+    italic: bool,
+    strike: bool,
+}
+
+fn push_run(out: &mut Vec<Value>, text: &str, st: Style, url: Option<&str>) {
+    if text.is_empty() {
+        return;
+    }
+    let mut style = serde_json::Map::new();
+    if st.bold {
+        style.insert("fontWeight".into(), json!("bold"));
+    }
+    if st.italic {
+        style.insert("fontStyle".into(), json!("italic"));
+    }
+    if st.strike {
+        style.insert("textDecoration".into(), json!("line-through"));
+    }
+    let mut run = json!({ "value": text });
+    if !style.is_empty() {
+        run["textStyle"] = Value::Object(style);
+    }
+    if let Some(u) = url {
+        run["url"] = json!(u);
+    }
+    out.push(run);
+}
+
+fn inline_runs(s: &str, st: Style, out: &mut Vec<Value>) {
+    let mut text = String::new();
+    let mut i = 0;
+    while i < s.len() {
+        let rest = &s[i..];
+        if let Some(c) = rest.strip_prefix('\\').and_then(|r| r.chars().next())
+            && "\\`*_~[]()#-".contains(c)
+        {
+            text.push(c);
+            i += 1 + c.len_utf8();
+            continue;
+        }
+        if let Some(r) = rest.strip_prefix('[')
+            && let Some(close) = r.find("](")
+            && let Some(end) = r[close + 2..].find(')')
+        {
+            push_run(out, &std::mem::take(&mut text), st, None);
+            let label = &r[..close];
+            let url = &r[close + 2..close + 2 + end];
+            let mut inner = vec![];
+            inline_runs(label, st, &mut inner);
+            for mut x in inner {
+                x["url"] = json!(url);
+                out.push(x);
+            }
+            i += 1 + close + 2 + end + 1;
+            continue;
+        }
+        let mark = ["**", "__", "~~", "*", "_", "`"]
+            .into_iter()
+            .find(|m| rest.starts_with(m) && rest[m.len()..].chars().next().is_some_and(|c| c != ' '));
+        if let Some(m) = mark
+            && let Some(end) = rest[m.len()..].find(m).filter(|e| *e > 0)
+        {
+            push_run(out, &std::mem::take(&mut text), st, None);
+            let inner = &rest[m.len()..m.len() + end];
+            let mut next = st;
+            match m {
+                "**" | "__" => next.bold = true,
+                "~~" => next.strike = true,
+                "`" => {}
+                _ => next.italic = true,
+            }
+            if m == "`" {
+                push_run(out, inner, st, None);
+            } else {
+                inline_runs(inner, next, out);
+            }
+            i += m.len() * 2 + end;
+            continue;
+        }
+        let c = rest.chars().next().unwrap_or(' ');
+        text.push(c);
+        i += c.len_utf8();
+    }
+    push_run(out, &text, st, None);
+}
+
+/// A Power BI text run as markdown, so styled text in a report's text boxes comes across.
+fn run_markdown(run: &Value) -> String {
+    let value = run.get("value").and_then(Value::as_str).unwrap_or("");
+    if value.trim().is_empty() {
+        return value.to_string();
+    }
+    let st = run.get("textStyle");
+    let has = |k: &str, want: &[&str]| {
+        st.and_then(|s| s.get(k))
+            .and_then(Value::as_str)
+            .is_some_and(|v| want.iter().any(|w| v.eq_ignore_ascii_case(w)))
+    };
+    // Markers go inside the run's own spaces ("**bold** ", not "**bold **").
+    let core = value.trim();
+    let (lead, trail) = (&value[..value.len() - value.trim_start().len()], &value[value.trim_end().len()..]);
+    let mut out = core.replace('*', "\\*").replace('_', "\\_");
+    if has("textDecoration", &["line-through"]) {
+        out = format!("~~{out}~~");
+    }
+    if has("fontStyle", &["italic"]) {
+        out = format!("*{out}*");
+    }
+    if has("fontWeight", &["bold", "700", "800", "900"]) {
+        out = format!("**{out}**");
+    }
+    if let Some(u) = run.get("url").and_then(Value::as_str) {
+        out = format!("[{out}]({u})");
+    }
+    format!("{lead}{out}{trail}")
 }

@@ -18,6 +18,7 @@ import { Banner, EmptyState, Spinner } from "../kit/misc";
 import { useAgent } from "../state/agent";
 import { useApp, useProject } from "../state/app";
 import { showPage, useReport, visualTitle } from "../state/report";
+import { Markdown } from "../kit/Markdown";
 import { AgentConsent } from "./AgentConsent";
 import "./agent.css";
 
@@ -251,7 +252,11 @@ function ItemView({ item, running, model, retried }: { item: Item; running: bool
   const request = useAgent((s) => s.request);
   switch (item.kind) {
     case "text":
-      return <li className="agent-text">{item.text}</li>;
+      return (
+        <li className="agent-text">
+          <Markdown text={item.text} />
+        </li>
+      );
     case "step":
       return <StepLine step={item.step} model={model} retried={retried} />;
     case "error":

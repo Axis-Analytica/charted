@@ -40,7 +40,7 @@ export interface RoleDef {
 
 export type PropDef =
   | { name: string; label: string; type: "bool"; default: boolean }
-  | { name: string; label: string; type: "text"; default: string; placeholder?: string }
+  | { name: string; label: string; type: "text"; default: string; placeholder?: string; multiline?: boolean }
   | { name: string; label: string; type: "number"; default: number; min?: number; max?: number; step?: number }
   | { name: string; label: string; type: "select"; default: string; options: { value: string; label: string }[] }
   | { name: string; label: string; type: "color"; default: string }
@@ -412,7 +412,7 @@ VISUALS.push(
         name: "text",
         label: "Text",
         props: [
-          { name: "content", label: "Text", type: "text", default: "" },
+          { name: "content", label: "Text", type: "text", default: "", multiline: true },
           { name: "fontSize", label: "Text size", type: "number", default: 16, min: 8, max: 96 },
           { name: "bold", label: "Bold", type: "bool", default: false },
           { name: "align", label: "Alignment", type: "select", default: "left", options: [{ value: "left", label: "Left" }, { value: "center", label: "Center" }, { value: "right", label: "Right" }] },

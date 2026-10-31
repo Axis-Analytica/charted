@@ -72,7 +72,7 @@ if (/\bbuild\b/i.test(prompt)) {
   await tool("add_visual", { page: "Agent e2e", type: "slicer", title: "Region", fields: { field: ["'Store'[Region]"] } });
   await tool("arrange_page", { page: "Agent e2e" });
   await tool("query_visual", { visual: "Sales by category" });
-  said = "Built the page Agent e2e with sales by month, by category and a region slicer.";
+  said = "Built the page **Agent e2e** with sales by month, by category and a region slicer.";
 } else if (/\bslow\b/i.test(prompt)) {
   await tool("add_visual", { page: here(), type: "card", title: "Slow one", fields: { values: ["[Total Sales]"] } });
   await sleep(1500);

@@ -1396,5 +1396,6 @@
   "Project instructions": "تعليمات المشروع",
   "Remembered \"%1\"": "تذكّر \"%1\"",
   "The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.": "يقرأ الوكيل هذه التعليمات مع كل طلب: قواعد التسمية والألوان والجداول التي يستخدمها. تُحفظ في agent.md في مجلد المشروع.",
-  "Looked at page \"%1\"": "اطّلع على الصفحة \"%1\""
+  "Looked at page \"%1\"": "اطّلع على الصفحة \"%1\"",
+  "Markdown: **bold**, *italic*, # heading, - list": "Markdown: ‏**عريض**، *مائل*، # عنوان، - قائمة"
 }

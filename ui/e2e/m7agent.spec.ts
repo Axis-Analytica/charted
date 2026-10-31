@@ -76,6 +76,8 @@ test("the agent builds a page live, and the request undoes in one step", async (
   await expect(steps.nth(2)).toHaveClass(/is-retried/);
   await expect(turn.locator(".agent-step.is-failed")).toHaveCount(0);
   await expect(turn.locator(".agent-text")).toContainText("Built the page Agent e2e");
+  // Replies are markdown.
+  await expect(turn.locator(".agent-text strong")).toHaveText("Agent e2e");
   await expect(turn.locator(".agent-cost")).toContainText("$0.01");
   if (shots) await page.screenshot({ path: `${shots}/m7-agent.png` });
   // A step selects what it made.
