@@ -138,6 +138,14 @@ stands on each.
 - The field list keeps what you expanded across views.
 - Smart guides that can be turned off, and a grid size setting.
 
+## M9: a deeper agent
+
+**Done (2026-10-31).** The agent can look at a page (`screenshot_page`, with data access),
+follows the project's instructions (`agent.md`, edited in the pane or added to with
+`remember`), applies report-wide formatting in one step (`format_visuals`), works on a
+project with no window (`charted mcp --project DIR`), and is measured by evaluations
+(`bin/eval`). See `docs/demos/m9.md`.
+
 ## M7: an agent that builds reports inside charted
 
 **Done (2026-10-31).** Built as below, with these changes: the socket serves charted's

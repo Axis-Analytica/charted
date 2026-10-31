@@ -6,7 +6,7 @@ release below.
 
 ## Where things stand
 
-*Updated 2026-10-31 (end of the M7/M8 session).* **Next session: start with "Clean-up before M9" in docs/PLAN.md, then M9.** **v1.6.0 is released** (M8, reshape charted; M7's in-app agent came in v1.5.0): https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0. The next work is in docs/PLAN.md.
+*Updated 2026-10-31 (clean-up and M9 session).* **The clean-up before M9 and M9 itself are done on `main`, not pushed or released (would be v1.7.0).** Next: the user's agent feedback, then M10 (docs/PLAN.md). **v1.6.0 is released** (M8, reshape charted; M7's in-app agent came in v1.5.0): https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0. The next work is in docs/PLAN.md.
 
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
   `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The
@@ -140,6 +140,31 @@ release below.
 - **Disk.** `target/` grows past 60 GB, and `/mnt/mac` (the Mac's disk) ran out once,
   which broke linking. `bin/clean` drops the incremental caches and agent worktrees'
   `target/` (about 10–20 GB) and lists the worktrees that could go.
+
+## M9: a deeper agent (done 2026-10-31, not released)
+
+- **Seeing the page.** `screenshot_page` (data tool: needs *Let the agent see data*).
+  The host emits `AgentEvent::Snapshot {id, page}` and blocks up to 30 s;
+  `ui/src/agent/PageSnapshot.tsx` (mounted in ProjectView) draws the page off screen at
+  its own size (≤1280 px wide), waits for every visual (`useAllLoaded`), captures it with
+  `html-to-image`, and answers `AgentRequest::Snapshot`. The image goes back as MCP image
+  content (`Outcome.image`). Checked in Chromium (e2e); **not yet seen in the WebKitGTK
+  desktop app**: try it there.
+- **Project instructions.** `agent.md` in the project folder (`settings::instructions`),
+  appended to every request; the pane's notebook button edits it
+  (`SetInstructions`); the `remember` tool adds a line after asking.
+- **Formatting standards.** `format_visuals`: format merged into many visuals at once
+  (objects a type lacks are skipped and reported), `title_case` recases titles (keeping
+  acronyms). One step.
+- **`charted mcp --project DIR`** (`crates/cli/src/mcp.rs`): the tools with no window.
+  Holds the project lock, saves after each change, refuses deletes needing an OK unless
+  `--allow-deletes`, data tools only with `--data`, no screenshots or query drafts.
+  `charted-agent` is now a normal dependency of the CLI.
+- **Evaluations.** `bin/eval` runs `crates/cli/tests/eval.rs` (ignored): five requests
+  on the sample, scored by checks on the model; `CHARTED_EVAL`, `CHARTED_EVAL_MODEL`,
+  `CHARTED_EVAL_AGENT`; results append to `target/evals.jsonl`. First run (sonnet):
+  5/5, 7–12 s and about $0.04 each.
+- **Not done:** more headless agents in the pane (OpenCode isn't installed here).
 
 ## Decisions already made (do not re-litigate)
 

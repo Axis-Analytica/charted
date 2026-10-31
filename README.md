@@ -148,12 +148,15 @@ are on the [releases page](https://github.com/Axis-Analytica/charted/releases).
   step. It works through charted's own tools (pages, visuals, filters, themes,
   bookmarks, measures, columns, tables, relationships, roles, calculation groups,
   parameters, and Power Query drafts you apply). It sees your model's names and the
-  totals it checks, and rows only if you let it. It uses your agent's own account; other
-  agents open in a terminal with the same tools.
+  totals it checks, and rows only if you let it. With data access it can also look at a
+  page to check the layout. Rules for a project ("always use the Date table", "titles in
+  sentence case") go in its instructions (`agent.md`), which it follows on every request.
+  It uses your agent's own account; other agents open in a terminal with the same tools,
+  and `charted mcp --project DIR` serves them to agents run elsewhere.
 - **Make it yours.** Layout profiles (Standard, Report + model, Two report pages, and
   your own): dock panes left or right or float them, put the model (or a second report
-  page) beside the report, and hide toolbar buttons you never use. Or ask the agent to
-  do it.
+  page) beside the report, and hide buttons and menu items you never use. Profiles export
+  and import as files. Or ask the agent to do it.
 - A command line for scripts and agents, all with `--json`: `charted check`,
   `charted query` (including `--visual`), `charted export pbip|ossie`, `charted import`,
   `charted import-pbip`,
@@ -192,6 +195,7 @@ ideas and questions in [Discussions](https://github.com/Axis-Analytica/charted/d
 | v1.x | Modelling and DAX, more visuals, report building, interop depth | [Planned](docs/ROADMAP.md) |
 | M7 | An agent inside charted that builds report pages on request | Done ([demo](docs/demos/m7.md)) |
 | M8 | Reshape the tool: layout profiles, docked or floating panes, side-by-side views, hidden buttons; the agent can do it too | Done ([demo](docs/demos/m8.md)) |
+| M9 | A deeper agent: it sees pages, follows project instructions, formats the whole report, works without the window, and is measured | Done ([demo](docs/demos/m9.md)) |
 
 ## License
 

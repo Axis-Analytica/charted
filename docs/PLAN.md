@@ -197,6 +197,9 @@ The loose ends from M7, M8 and launch, in a sensible order.
 
 ## M9: a deeper agent
 
+**Done (2026-10-31), not released.** All below except more agents in the pane. See
+docs/HANDOFF.md (M9) and docs/demos/m9.md.
+
 - **Seeing the page.** A `screenshot_page` tool renders a page to PNG (the PDF export
   path already renders pages), so the agent can check layout and legibility. Privacy:
   a screenshot shows data, so it is gated by "Let the agent see data".
