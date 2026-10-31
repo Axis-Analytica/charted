@@ -162,7 +162,7 @@ toolbar is hard-coded. M8 builds a layout layer first, then gives it to the agen
 beside the report, and hide the buttons I've never pressed." Watch it happen live, undo
 it in one step, then save it as a profile and load it again.
 
-## Clean-up before M9 (the next session starts here)
+## Clean-up before M9 (done)
 
 The loose ends from M7, M8 and launch, in a sensible order.
 
@@ -218,20 +218,214 @@ docs/HANDOFF.md (M9) and docs/demos/m9.md.
   headless output can be parsed, each with its own built-in-tool lockdown, verified
   before it's offered.
 
-## M10: Mac and Windows (the post's wishlist)
+## v1.7.0: feedback batch (the next session starts here)
 
-- **Audit what's Omarchy-specific.**
-  - Theme following: Omarchy's theme files, with a fallback to the OS's light or dark.
-  - `omarchy-default-agent` and the account homes: fall back to whichever agents are
-    on PATH.
-  - The Hyprland IPC for animations.
-  - Paths: XDG, with Tauri path APIs on other platforms.
-  - The control socket: a Unix socket on Mac; a named pipe on Windows.
-  - Process groups for Stop: a job object on Windows.
-- **Build and test.** CI builds for macOS (universal) and Windows (MSI). The DuckDB
-  prebuilt library exists for both. Run e2e on each.
-- **Distribution.** Signing and notarisation need the user's Apple developer and Windows
-  code-signing decisions. **(go-ahead)**
+Planned 2026-10-31 with the user. Progress is marked in each stage's heading.
+
+The user installed v1.6.0 and tried the M9 agent: "able to whip up some excellent reports
+from a single prompt". Their feedback, with the open project (Harbor & Pine checkpoint,
+agent chat in `.cache/agent/chat.json`) as evidence:
+
+1. Markdown (bold, italics, …) in the agent chat and in the text objects it builds.
+2. Fonts: 10–15 common fonts, plus installing your own. The agent itself told the user
+   "I can't change the font to Helvetica… tools set colours but not font".
+3. Slicers repeat their name ("Store Store").
+4. Also from that chat: "There's no layer-order control, so I'll … re-create the slicers
+   last so they sit on top". Add z-order.
+5. A GIF of the agent building a dashboard, for the README and a LinkedIn post.
+6. Then release v1.7.0 (M9 + this batch), then M10 (Mac and Windows).
+
+User's answers: fixes go into 1.7.0; update omarchy-pkgs #1879 to 1.7.0 too (AUR only if
+the key is registered); user fonts live in their charted font library *and* get copied
+into the project when used; GIF = the agent building a dashboard (GIF + MP4).
+
+Each stage ends green on `bin/heavy bin/test` and is committed.
+
+### Stage 1: slicer name shown once (and layer order for the agent)
+
+Cause: `set_title` (`crates/agent/src/tools/report.rs:467`) always writes
+`title={show:true,text}`; the slicer also draws its own header with the field name
+(`ui/src/report/visuals/Slicer.tsx:31-46`, header on by default in `registry.ts:389`).
+So "Store" appears twice.
+
+- Registry: slicer `header` gains `text` and `fontSize` (Power BI's slicer header has
+  them). `Slicer.tsx` shows `header.text ?? field name`.
+- Agent: for slicers, `set_title` writes `header.text` and leaves the container title
+  off (`add_visual`, `update_visual`, `format_visuals` all go through it). Regenerate
+  `catalog.json` (parity test).
+- Existing reports (like the user's): when a slicer's container title is shown and its
+  header would show the same text, draw the header without the text (keep the clear
+  button). No migration needed.
+- PBIR (`crates/tmdl/src/pbir.rs` ~485 / ~920): export and import slicer
+  `objects.header.show/text`, so Power BI files keep it.
+- Layer order: `update_visual` takes `layer: "front"|"back"|"forward"|"backward"`;
+  `describe_report` prints z (`tools/read.rs:325`); `arrange_page` keeps the existing
+  relative z instead of renumbering by band (`layout.rs:125`). Prompt line.
+- Tests: Rust test that an agent-made slicer has no container title and header text;
+  e2e: a slicer with title+header shows the name once; Vitest for the dedupe.
+
+### Stage 2: markdown
+
+No markdown library exists; write a small safe renderer, `ui/src/kit/Markdown.tsx`,
+that parses a subset into React nodes (never `innerHTML`): paragraphs, line breaks,
+`**bold**`, `*italic*`/`_italic_`, `~~strike~~`, `` `code` ``, `[link](https://…)`
+(opens externally via the existing opener path), `- `/`1. ` lists, `#`–`###` headings.
+Vitest for the parser (including escapes and unclosed markers).
+
+- Agent pane: `AgentPane.tsx:253` renders text items with it (`agent.css:20`). Relax
+  `prompt.md:42-45`: bold for names and short lists are fine; still no headings or
+  tables in chat.
+- Text box: `objects.text.content` is markdown (plain text stays valid). `Decor.tsx`
+  renders through `Markdown`, the textarea editing stays; the format pane's text field
+  becomes a multi-line textarea (`VisualizationsPane.tsx:273`). Headings take sizes
+  relative to `text.fontSize`.
+- PBIR round trip: export splits markdown into paragraphs and `textRuns` with
+  `textStyle` (`fontWeight: bold`, `fontStyle: italic`, `textDecoration`, `url`);
+  import turns styled runs back into markdown (`pbir.rs:507`, `:938`). Rust tests.
+- Agent: prompt says text boxes take markdown; `add_visual type:"textbox"` documented.
+- Titles stay plain text (Power BI titles are plain).
+
+### Stage 3: fonts
+
+- **Bundled (15, all OFL, from `@fontsource`/`@fontsource-variable`, latin subset,
+  400/700 or variable):** Inter (already), Roboto, Open Sans, Lato, Montserrat,
+  Poppins, Source Sans 3, Noto Sans, Nunito, IBM Plex Sans, Oswald, Merriweather, Lora,
+  Playfair Display, Roboto Mono. Imported in a new `ui/src/design/fonts.ts`, offline.
+  Power BI names (Segoe UI, Arial, Helvetica, DIN, Georgia, …) stay selectable and get
+  sensible fallbacks to a bundled font in a `FONT_FALLBACKS` map.
+- **Your fonts:** "Add a font…" (theme editor and font pickers) picks .ttf/.otf/.woff2.
+  Core (`crates/core/src/fonts.rs`, new): copy into the user font library
+  (`<data dir>/charted/fonts`), read the family name (`ttf-parser`), `Request::ListFonts`
+  / `AddFont` / `RemoveFont`, `DataRequest::ReadFont` (bytes, like `ReadImage` at
+  `api.rs:1034`). UI registers each as an injected `@font-face` with a data: URL (allowed
+  by the CSP `font-src 'self' data:`, and html-to-image embeds stylesheet fonts, so
+  agent screenshots see them).
+- **Travels with the project:** on save, any library font the report uses (theme text
+  classes or a visual's `fontFamily`) is copied to `<project>/fonts/`; on open, project
+  fonts are registered too (and offered to add to the library).
+- **Where fonts are set:** the theme editor's list (`ThemeEditor.tsx:31`) becomes
+  bundled + yours + Power BI names; new `fontFamily` prop on title, slicer header, text
+  box, data labels, card callout and table grid in `registry.ts`, with a font picker
+  editor in `formatEditors.tsx`; `textTokens` also maps `callout.fontFace`.
+  ECharts reads the visual's or theme's font instead of the root `--font-ui`
+  (`echart.ts:69`, pass the element to `token`).
+- **PBIR:** export/import `fontFamily` on titles, data labels and text-run `textStyle`.
+- **Agent:** catalog gains `fontFamily`; `set_theme` custom accepts `fonts:{title,
+  label,callout}`; `list_visual_types` (or describe_report) lists the available fonts;
+  prompt line. The user's Helvetica request then works (Helvetica → fallback when not
+  installed is reported in the tool result).
+- Tests: Rust (`fonts.rs` add/list/family name, project copy on save), Vitest (font
+  fallback map), e2e (pick a bundled font for a title; add a font file fixture and use
+  it in a text box; reopen the project elsewhere and it still renders).
+
+### Stage 4: the demo GIF
+
+- `bin/demo` (new): starts `charted-headless serve` with the real HOME (so Claude Code
+  is signed in) but throwaway docs/state dirs, and Vite; runs a Playwright script in
+  `ui/demo/agent.demo.ts` with its own config (not part of `bin/test`), recording video
+  at 1600×1000: open the sample, open the Agent pane, type one prompt (an overview
+  dashboard: cards, trend, category split, region slicer, a markdown text box header in
+  a bundled font), wait for the build, then click a slicer value to cross-filter.
+- The script logs timestamps; ffmpeg speeds the waiting stretches (≈3×), then writes
+  `docs/media/agent.gif` (1200 px wide, ~12 fps, palettegen, under 10 MB) and
+  `docs/media/agent.mp4` (H.264, for LinkedIn). Real Claude Code (sonnet), ~$0.10–0.30
+  per take; up to three takes, keep the best. Check frames visually before using.
+- README: the GIF becomes the hero image above the screenshots. Send both files to the
+  user.
+
+### Stage 5: release v1.7.0 (user said go)
+
+Same pattern as 1.6.0 (`2467912`, `83a43f4`, `c901696`):
+1. Full `bin/heavy bin/test`; `bin/eval` once more (≈$0.20) to check the prompt edits.
+2. Bump 1.7.0 in `Cargo.toml`, `ui/package.json`, `pkgbuild/{PKGBUILD,PKGBUILD-bin,
+   local/PKGBUILD}`, Cargo.lock; README "what's new"; commit "Release 1.7.0: …".
+3. Push `main` and tag `v1.7.0`; `.github/workflows/release.yml` builds the draft
+   release with tarballs; check CI, then publish the draft with notes (M9 + this batch).
+4. Fill the PKGBUILD checksums from SHA256SUMS; commit and push.
+5. Update omarchy-pkgs PR #1879 to 1.7.0. Run `bin/aur-publish` only if
+   `ssh -i ~/.ssh/aur aur@aur.archlinux.org help` shows the key is registered.
+6. HANDOFF/PLAN/memory: v1.7.0 released.
+
+### Verification (batch and M10)
+
+- After each stage: `bin/heavy bin/test` (Rust, Vitest, Playwright) green, plus the new
+  tests listed in each stage.
+- Fonts and markdown: open the user's Harbor & Pine copy in the dev server. Check that
+  the slicer shows its name once, then change the title fonts and a markdown text box.
+  Take a screenshot with `screenshot_page` and confirm the fonts come through.
+- GIF: inspect sample frames, the duration, and that the file is under 10 MB.
+- Release: CI green on the tag, a downloadable tarball, the checksums match.
+- M10: CI builds on all three platforms, then the user tries them on the Mac and in the
+  Windows VM.
+
+## M10: Mac and Windows (after v1.7.0)
+
+The audit found 9 blockers, and nothing has been gated: there are no `cfg(unix)` or
+`cfg(windows)` blocks in the codebase. This machine is aarch64 Linux, so macOS and
+Windows are built and tested on CI runners (`macos-14`, `windows-latest`). The user can
+run the builds on their Mac host and their Windows VM.
+
+**M10.1: it compiles everywhere** (`cargo check` on all three platforms in CI first)
+- In `src-tauri/Cargo.toml`, move gtk, webkit2gtk, glib, cairo and ashpd under
+  `cfg(target_os="linux")`. Gate `set_prgname`, `screenshot.rs` and `pdf.rs`.
+- Gate the agent control socket:
+  - Unix keeps its Unix socket.
+  - Windows uses loopback TCP on an ephemeral port, with the existing per-turn token.
+    The address is written to the MCP config.
+  - Make `charted mcp --socket` take that address.
+- Stop: Unix keeps process groups. Windows uses a job object (`windows-sys`) or
+  `taskkill /T /F`.
+- Gate the Hyprland watcher. Copy the skill instead of symlinking it on Windows. Gate the
+  0600 test.
+- Add `.ico` and `.icns` icons (`bin/icons`). Rewrite `bin/wasm`'s staleness check in
+  node, so `pnpm build` works on all three.
+
+**M10.2: it runs properly**
+- Paths:
+  - State and data from `dirs` (`~/Library/Application Support`, `%APPDATA%`), and
+    Documents from the Known Folder.
+  - Use `dunce::canonicalize`.
+  - In `steps.rs:637`, use `Path::is_absolute`. In `NewSource.tsx` and `FileMenu.tsx`,
+    split paths on both `/` and `\`.
+- Dialogs: tauri-plugin-dialog off Linux (the portal stays on Linux). Opening links and
+  files: tauri-plugin-opener instead of `xdg-open`.
+- Window chrome: native decorations off Linux (macOS uses `titleBarStyle: Overlay` with
+  a drag region in the toolbar).
+- Theme: follow the OS light or dark setting (`prefers-color-scheme` plus Tauri's theme
+  event) when there is no Omarchy theme. Language falls back to the OS locale. Skip the
+  `hyprctl` and `omarchy-*` lookups off Linux. Neutral wording ("Follow the system").
+- Agents:
+  - `on_path` honours PATHEXT, and `.cmd` shims run through `cmd /c` with
+    `CREATE_NO_WINDOW`.
+  - On macOS, import the login shell's PATH.
+  - Open in terminal: Terminal.app through `osascript`; `wt.exe` falling back to
+    `cmd /c start` on Windows.
+- Keyring: add the `apple-native` and `windows-native` backends.
+- Project lock: replace the `/proc` check with a cross-platform process check
+  (`sysinfo`, or `kill(0)` and OpenProcess).
+- Shortcuts:
+  - Show ⌘ on macOS (`Kbd.tsx` and the help text).
+  - Match on `e.code` for Alt combinations.
+  - Tell Ctrl and Cmd apart on macOS.
+- PDF export:
+  - macOS: WKWebView `createPDF`.
+  - Windows: WebView2 `PrintToPdf`.
+  - Until then, fall back to `window.print()` on those platforms.
+- DuckDB:
+  - macOS: bundle `libduckdb.dylib` through `bundle.macOS.frameworks`, with
+    `@executable_path/../Frameworks` as the rpath.
+  - Windows: `duckdb.dll` next to the exe, through resources.
+
+**M10.3: packaging and CI**
+- `bundle.active` with `dmg`/`app` (universal) and `msi`/`nsis`, plus file associations
+  for `.charted`, `.chartedz` and `.pbip`.
+- `ci.yml`: add a macOS and a Windows matrix (Rust tests, and Playwright e2e on macOS).
+  `release.yml` uploads the dmg and the msi.
+- Windows e2e: make the webServer command a node script, not POSIX shell.
+- Signing and notarisation wait on the user's Apple Developer and Windows code-signing
+  decisions **(go-ahead)**. Unsigned builds go out as "preview" assets until then.
+- The user checks the builds on their Mac and in their Windows VM; that is the visual
+  checkpoint (`bin/checkpoint m10`).
 
 ## Alongside: the v1.x quality track
 

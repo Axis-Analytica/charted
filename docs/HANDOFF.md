@@ -6,7 +6,7 @@ release below.
 
 ## Where things stand
 
-*Updated 2026-10-31 (clean-up and M9 session).* **The clean-up before M9 and M9 itself are done on `main`, not pushed or released (would be v1.7.0).** Next: the user's agent feedback, then M10 (docs/PLAN.md). **v1.6.0 is released** (M8, reshape charted; M7's in-app agent came in v1.5.0): https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0. The next work is in docs/PLAN.md.
+*Updated 2026-10-31 (feedback session).* **Next: the "v1.7.0: feedback batch" in docs/PLAN.md** (slicer name once + agent layer order, markdown, fonts, demo GIF, then release v1.7.0 — the user said go, including the omarchy-pkgs PR update), then M10 (Mac and Windows, plan in docs/PLAN.md). The clean-up before M9 and M9 itself are done on `main`, not yet pushed. **v1.6.0 is released**: https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0.
 
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
   `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The
