@@ -151,7 +151,8 @@ test("format several visuals at once, and the format painter", async ({ page }) 
   await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
   const setText = async (text: string) => {
     await fmt.getByRole("textbox", { name: "Text", exact: true }).fill(text);
-    await fmt.getByRole("textbox", { name: "Text", exact: true }).press("Enter");
+    // A text box's text is several lines: Enter is a new line, so leave the field.
+    await fmt.getByRole("textbox", { name: "Text", exact: true }).press("Tab");
   };
   await setText("Alpha");
   await fmt.getByRole("spinbutton", { name: "Text size" }).fill("30");

@@ -284,7 +284,10 @@ function Control({ p, value: shown, onChange }: { p: PropDef; value: unknown; on
               placeholder={mixed ? t("Mixed") : undefined}
               title={t("Markdown: **bold**, *italic*, # heading, - list")}
               onBlur={(e) => (mixed ? e.target.value !== "" : e.target.value !== (value ?? "")) && onChange(e.target.value)}
-              onKeyDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) (e.target as HTMLTextAreaElement).blur();
+              }}
             />
           </label>
         );
