@@ -12,7 +12,7 @@ const tmp = process.env.CHARTED_DEMO_TMP ?? "/tmp/charted-demo";
 const BUILD =
   process.env.CHARTED_DEMO_REQUEST ??
   "Build an in-depth customer analysis page: a title and a one-line description at the top, slicers for year, segment, region and channel, headline cards for sales, customers, orders, sales per customer and average order value, sales by segment, sales by country, monthly sales by segment, a segment by product category matrix, and a table of the top 20 customers by sales.";
-const RESTYLE = process.env.CHARTED_DEMO_RESTYLE ?? "Make it purple please, with Helvetica for the fonts.";
+const RESTYLE = process.env.CHARTED_DEMO_RESTYLE ?? "Make it purple please, with Playfair Display for the titles.";
 
 type Stretch = {
   from: number;
