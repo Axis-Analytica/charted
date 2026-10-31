@@ -241,7 +241,7 @@ into the project when used; GIF = the agent building a dashboard (GIF + MP4).
 
 Each stage ends green on `bin/heavy bin/test` and is committed.
 
-### Stage 1: slicer name shown once (and layer order for the agent)
+### Stage 1: slicer name shown once (and layer order for the agent) — done
 
 Cause: `set_title` (`crates/agent/src/tools/report.rs:467`) always writes
 `title={show:true,text}`; the slicer also draws its own header with the field name

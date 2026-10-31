@@ -811,14 +811,18 @@ pub fn projection_name(model: &Model, p: &Projection) -> String {
 
 /// A visual's title: its own, or "Values by Groups" from its fields.
 pub fn visual_title(model: &Model, v: &charted_model::Visual) -> String {
-    if let Some(t) = v
-        .objects
-        .get("title")
-        .and_then(|o| o.get("text"))
-        .and_then(Value::as_str)
-        .filter(|t| !t.trim().is_empty())
-    {
-        return t.to_string();
+    // A slicer may be named in its header instead (as in Power BI).
+    for (object, of) in [("title", ""), ("header", "slicer")] {
+        if let Some(t) = v
+            .objects
+            .get(object)
+            .filter(|_| of.is_empty() || v.visual_type == of)
+            .and_then(|o| o.get("text"))
+            .and_then(Value::as_str)
+            .filter(|t| !t.trim().is_empty())
+        {
+            return t.to_string();
+        }
     }
     let mut groups = Vec::new();
     let mut values = Vec::new();

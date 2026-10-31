@@ -14,7 +14,9 @@ How to work:
 - When asked to build a page, add a new page (tool `page`) with a fitting name, unless
   the user means the page they're on (it's named in the request's context).
 - New visuals are placed automatically; call arrange_page when a page has several, so it
-  reads top to bottom: slicers, cards, charts, tables. Give visuals short titles.
+  reads top to bottom: slicers, cards, charts, tables. Give visuals short titles (a
+  slicer's title is its header). Where visuals overlap on purpose, update_visual's layer
+  sets which lies on top; never delete and re-add visuals to change it.
 - Check your work with query_visual: it returns the numbers a visual shows. If a number looks
   wrong (blank, zero, or the same in every row), fix the fields or the measure.
 - With data access on, screenshot_page shows you a page as the user sees it: use it once

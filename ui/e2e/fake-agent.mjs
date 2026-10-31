@@ -69,7 +69,7 @@ if (/\bbuild\b/i.test(prompt)) {
   // A misspelt field first, put right on the next try (the pane shows it as retried).
   await tool("add_visual", { page: "Agent e2e", type: "donutChart", title: "Sales by category", fields: { legend: ["'Product'[Categry]"], values: ["[Total Sales]"] } });
   await tool("add_visual", { page: "Agent e2e", type: "donutChart", title: "Sales by category", fields: { legend: ["'Product'[Category]"], values: ["[Total Sales]"] } });
-  await tool("add_visual", { page: "Agent e2e", type: "slicer", fields: { field: ["'Store'[Region]"] } });
+  await tool("add_visual", { page: "Agent e2e", type: "slicer", title: "Region", fields: { field: ["'Store'[Region]"] } });
   await tool("arrange_page", { page: "Agent e2e" });
   await tool("query_visual", { visual: "Sales by category" });
   said = "Built the page Agent e2e with sales by month, by category and a region slicer.";

@@ -607,3 +607,49 @@ fn remember_adds_to_the_projects_instructions_when_the_user_agrees() {
     );
     assert!(!charted_agent::settings::instructions(&dir).contains("capitals"));
 }
+
+#[test]
+fn a_slicer_is_named_in_its_header_and_layers_can_be_moved() {
+    let (_d, app) = sample();
+    let turn = Fake::new("s1");
+    ok(&app, &turn, "page", json!({ "action": "add", "name": "Layers" }));
+    ok(
+        &app,
+        &turn,
+        "add_visual",
+        json!({ "page": "Layers", "type": "slicer", "title": "Store", "fields": { "field": ["'Store'[Region]"] } }),
+    );
+    ok(
+        &app,
+        &turn,
+        "add_visual",
+        json!({ "page": "Layers", "type": "card", "title": "Sales", "fields": { "values": ["[Total Sales]"] } }),
+    );
+    let page = |app: &Mutex<App>| {
+        model(app)
+            .report
+            .pages
+            .into_iter()
+            .find(|p| p.settings.name == "Layers")
+            .unwrap()
+    };
+    let p = page(&app);
+    let slicer = p.visuals.iter().find(|v| v.visual_type == "slicer").unwrap();
+    // Only the header names it: a title as well would show "Store Store".
+    assert_eq!(slicer.objects["header"]["text"], "Store");
+    assert!(slicer.objects.get("title").is_none());
+    let card = p.visuals.iter().find(|v| v.visual_type == "card").unwrap();
+    assert!(card.position.z > slicer.position.z);
+    ok(&app, &turn, "update_visual", json!({ "visual": "Store", "layer": "front" }));
+    let p = page(&app);
+    let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
+    assert!(z("slicer") > z("card"));
+    let o = ok(&app, &turn, "describe_report", json!({ "page": "Layers" }));
+    assert!(o.text.contains("layer "), "{}", o.text);
+    // Arranging keeps slicers on top, so their dropdowns open over the cards.
+    ok(&app, &turn, "update_visual", json!({ "visual": "Store", "layer": "back" }));
+    ok(&app, &turn, "arrange_page", json!({ "page": "Layers" }));
+    let p = page(&app);
+    let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
+    assert!(z("slicer") > z("card"));
+}

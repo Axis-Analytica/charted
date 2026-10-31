@@ -325,7 +325,7 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
         let pos = &v.position;
         let _ = writeln!(
             out,
-            "- {} \"{}\" id {} at x{} y{} w{} h{}{}",
+            "- {} \"{}\" id {} at x{} y{} w{} h{} layer {}{}",
             v.visual_type,
             visualq::visual_title(m, v),
             v.id,
@@ -333,6 +333,7 @@ pub fn describe_report(m: &Model, page: Option<&str>) -> Res<String> {
             pos.y,
             pos.width,
             pos.height,
+            pos.z,
             if v.hidden { " hidden" } else { "" }
         );
         for (role, ps) in &v.roles {

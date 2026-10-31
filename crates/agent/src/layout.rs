@@ -145,6 +145,8 @@ pub fn arrange(
             let w = snap((inner - (across - 1.0) * GAP) / across);
             for (i, id) in row.iter().enumerate() {
                 z += 1;
+                // Slicers lie on top, so an open dropdown isn't under the cards below it.
+                let z = if b == Band::Slicer { z + ordered.len() as i32 } else { z };
                 out.push((
                     (*id).clone(),
                     Position {

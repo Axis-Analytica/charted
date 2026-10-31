@@ -386,7 +386,16 @@ VISUALS.push(
           { name: "search", label: "Search", type: "bool", default: true },
         ],
       },
-      { name: "header", label: "Slicer header", toggle: "show", props: [{ name: "show", label: "Show", type: "bool", default: true }] },
+      {
+        name: "header",
+        label: "Slicer header",
+        toggle: "show",
+        props: [
+          { name: "show", label: "Show", type: "bool", default: true },
+          { name: "text", label: "Text", type: "text", default: "", placeholder: msg("Automatic") },
+          { name: "fontSize", label: "Text size", type: "number", default: 12, min: 8, max: 40 },
+        ],
+      },
       { ...title, props: title.props.map((p) => (p.name === "show" ? { ...p, default: false } : p)) } as ObjectDef,
       background,
     ],

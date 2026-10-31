@@ -243,3 +243,26 @@ fn buttons_and_page_navigators() {
     );
     assert_eq!(p.visual("pages1").unwrap().visual_type, "pageNavigator");
 }
+
+#[test]
+fn a_slicers_header_comes_across() {
+    let mut s = visual("slicerA", "slicer", 1);
+    s.objects = serde_json::from_value(
+        json!({ "header": { "show": true, "text": "Store", "fontSize": 14.0 }, "title": { "show": false } }),
+    )
+    .unwrap();
+    let m = model(vec![Page {
+        id: "p1".into(),
+        settings: PageSettings::named("One"),
+        visuals: vec![s],
+    }]);
+    let files = as_power_bi(&m);
+    let header = &file(&files, "slicerA/visual.json")["visual"]["objects"]["header"][0]["properties"];
+    assert_eq!(header["text"]["expr"]["Literal"]["Value"], "'Store'");
+    assert_eq!(header["fontSize"]["expr"]["Literal"]["Value"], "14D");
+    let (back, _) = read(&files);
+    assert_eq!(
+        back.pages[0].visuals[0].objects["header"],
+        json!({ "show": true, "text": "Store", "fontSize": 14.0 })
+    );
+}

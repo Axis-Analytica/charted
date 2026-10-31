@@ -118,8 +118,11 @@ export const isGrouping = (p: Projection) => p.field.kind === "column" && !p.agg
 
 /** A visual's title: its own, or "Values by Groups" (matches the core's). */
 export function visualTitle(model: Model, v: Visual, translate?: (s: string, ...a: (string | number)[]) => string): string {
-  const own = (v.objects?.title as Record<string, unknown> | undefined)?.text;
-  if (typeof own === "string" && own.trim()) return own;
+  // A slicer may be named in its header instead (as in Power BI).
+  for (const o of v.visualType === "slicer" ? ["title", "header"] : ["title"]) {
+    const own = (v.objects?.[o] as Record<string, unknown> | undefined)?.text;
+    if (typeof own === "string" && own.trim()) return own;
+  }
   const t = translate ?? ((s: string, ...a: (string | number)[]) => s.replace(/%(\d)/g, (_, i) => String(a[Number(i) - 1])));
   const groups: string[] = [];
   const values: string[] = [];

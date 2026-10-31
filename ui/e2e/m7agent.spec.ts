@@ -65,6 +65,10 @@ test("the agent builds a page live, and the request undoes in one step", async (
   // The canvas followed the agent to its page.
   await expect(page.getByRole("tab", { name: "Agent e2e" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByTestId("visual")).toHaveCount(3);
+  // A slicer's title is its header, shown once (not "Region Region").
+  const slicer = page.getByTestId("visual").filter({ has: page.locator(".slicer") });
+  await expect(slicer.locator(".slicer-title")).toHaveText("Region");
+  await expect(slicer.locator(".visual-title")).toHaveCount(0);
   const steps = turn.locator(".agent-step");
   await expect(steps).toHaveCount(6);
   await expect(steps.nth(1)).toContainText('Added line chart "Sales by month"');

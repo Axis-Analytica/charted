@@ -288,6 +288,8 @@
 .slicer-search { display: flex; align-items: center; gap: 6px; height: 26px; padding-inline: 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--fg-faint); }
 .slicer-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: inherit; outline: none; }
 .slicer-dropdown { position: relative; }
+/* An open dropdown lies over the visuals around it, whatever the layer order. */
+.visual:has(.slicer-dropdown-btn[aria-expanded="true"]) { z-index: 10000 !important; }
 .slicer-dropdown-btn { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 28px; padding-inline: 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg); color: var(--fg); font: inherit; }
 .slicer-popover { position: absolute; top: calc(100% + 4px); inset-inline: 0; z-index: 8; display: flex; flex-direction: column; gap: 6px; max-height: 260px; padding: 6px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-overlay); box-shadow: var(--shadow); }
 .slicer-range { display: grid; gap: 10px; }

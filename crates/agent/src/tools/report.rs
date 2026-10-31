@@ -62,7 +62,8 @@ pub fn defs() -> Vec<ToolDef> {
                     "remove_fields": { "type": "array", "items": { "type": "string" } },
                     "title": { "type": "string" }, "position": position, "format": format,
                     "sort": { "type": "object", "description": "{\"field\": a field on the visual, \"descending\": true}", "properties": { "field": {"type": "string"}, "descending": {"type": "boolean"} } },
-                    "hidden": { "type": "boolean" }
+                    "hidden": { "type": "boolean" },
+                    "layer": { "type": "string", "enum": ["front", "back", "forward", "backward"], "description": "Moves the visual in the page's layer order (what lies on top where visuals overlap)" }
                 }),
                 &["visual"],
             ),
@@ -464,15 +465,40 @@ fn set_fields(
     Ok(shown)
 }
 
+/// A slicer names itself in its header (as in Power BI), so its title goes there and the
+/// container title stays off: both on would show the name twice.
 fn set_title(v: &mut Visual, title: &str) {
+    let slicer = v.visual_type == "slicer";
+    if slicer {
+        if let Some(t) = v.objects.get_mut("title").and_then(Value::as_object_mut) {
+            t.insert("show".into(), Value::Bool(false));
+        }
+    }
     let o = v
         .objects
-        .entry("title")
+        .entry(if slicer { "header" } else { "title" })
         .or_insert_with(|| Value::Object(Map::new()));
     if let Some(o) = o.as_object_mut() {
         o.insert("text".into(), Value::String(title.into()));
         o.insert("show".into(), Value::Bool(true));
     }
+}
+
+/// The name a visual shows above itself, if it shows one: a slicer's header, otherwise
+/// the title.
+fn shown_title(m: &Model, v: &Visual) -> Option<String> {
+    let get = |o: &str, p: &str| v.objects.get(o).and_then(|t| t.get(p));
+    if v.visual_type == "slicer" {
+        let title_on = get("title", "show").and_then(Value::as_bool) == Some(true);
+        if get("header", "show").and_then(Value::as_bool) == Some(false) && !title_on {
+            return None;
+        }
+        return Some(match get("header", "text").and_then(Value::as_str) {
+            Some(t) if !t.is_empty() => t.to_string(),
+            _ => visualq::visual_title(m, v),
+        });
+    }
+    (get("title", "show").and_then(Value::as_bool) != Some(false)).then(|| visualq::visual_title(m, v))
 }
 
 fn merge_format(v: &mut Visual, def: &VisualDef, format: &Value) -> Res<()> {
@@ -608,6 +634,13 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
         if let Some(h) = opt_bool(args, "hidden") {
             v.hidden = h;
         }
+        let mut relayered = vec![];
+        if let Some(how) = opt_str(args, "layer") {
+            relayered = layer(p, &v.id, how)?;
+            if let Some((_, z)) = relayered.iter().find(|(id, _)| *id == v.id) {
+                v.position.z = *z;
+            }
+        }
         if let Some(s) = args.get("sort").and_then(Value::as_object) {
             let f = s
                 .get("field")
@@ -641,11 +674,22 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
         }
         let title = visualq::visual_title(m, &v);
         let id = v.id.clone();
+        let mut changes = vec![Change::UpdateVisual {
+            page: p.id.clone(),
+            visual: v,
+        }];
+        for o in &p.visuals {
+            match relayered.iter().find(|(id, _)| *id == o.id) {
+                Some((_, z)) if o.id != id && *z != o.position.z => {
+                    let mut o = o.clone();
+                    o.position.z = *z;
+                    changes.push(Change::UpdateVisual { page: p.id.clone(), visual: o });
+                }
+                _ => {}
+            }
+        }
         Ok((
-            vec![Change::UpdateVisual {
-                page: p.id.clone(),
-                visual: v,
-            }],
+            changes,
             Done {
                 text: format!("Updated {} \"{title}\" (id {id}).", def.ty),
                 step: Some(
@@ -657,6 +701,24 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
             },
         ))
     })
+}
+
+/// The page's layer order after moving one visual, as new z values (1 at the back),
+/// like the Selection pane.
+fn layer(p: &Page, id: &str, how: &str) -> Res<Vec<(String, i32)>> {
+    let mut order: Vec<&Visual> = p.visuals.iter().collect();
+    order.sort_by_key(|v| v.position.z);
+    let at = order.iter().position(|v| v.id == id).ok_or_else(|| Fail("no such visual".into()))?;
+    let v = order.remove(at);
+    let to = match how {
+        "front" => order.len(),
+        "back" => 0,
+        "forward" => (at + 1).min(order.len()),
+        "backward" => at.saturating_sub(1),
+        _ => return fail(format!("layer is front, back, forward or backward, not {how}")),
+    };
+    order.insert(to, v);
+    Ok(order.iter().enumerate().map(|(i, v)| (v.id.clone(), i as i32 + 1)).collect())
 }
 
 /// Recases a title: sentence case keeps words that are already capitalised after the first
@@ -740,16 +802,9 @@ fn format_visuals(cx: &Cx, args: &Value) -> Res<Done> {
                     }
                     merge_format(&mut next, def, &Value::Object(mine))?;
                 }
-                let shown = next
-                    .objects
-                    .get("title")
-                    .and_then(|t| t.get("show"))
-                    .and_then(Value::as_bool)
-                    != Some(false);
-                if let Some(how) =
-                    case.filter(|_| shown && def.objects.iter().any(|o| o.name == "title"))
-                {
-                    let title = visualq::visual_title(m, &next);
+                let title = shown_title(m, &next)
+                    .filter(|_| def.objects.iter().any(|o| o.name == "title"));
+                if let (Some(how), Some(title)) = (case, title) {
                     let cased = recase(&title, how);
                     if cased != title {
                         set_title(&mut next, &cased);

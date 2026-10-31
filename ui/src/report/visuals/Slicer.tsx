@@ -29,14 +29,23 @@ export function Slicer({ visual, page, model, data }: { visual: Visual; page: Pa
   const field = visual.roles.field?.[0];
   const style = prop<string>(visual.objects, def, "slicer", "style");
   const showHeader = prop<boolean>(visual.objects, def, "header", "show");
+  const headerText = prop<string>(visual.objects, def, "header", "text");
+  const headerSize = prop<number>(visual.objects, def, "header", "fontSize");
+  // With the visual's own title on as well, the header would repeat the name ("Store
+  // Store"), so it keeps only its button, unless it was given text of its own.
+  const titled = prop<boolean>(visual.objects, def, "title", "show");
+  const name = field ? projectionName(model, field, t) : "";
+  const own = visual.objects?.title?.text;
+  const titleText = (typeof own === "string" && own.trim()) || name;
+  const label = titled ? (headerText && headerText !== titleText ? headerText : "") : headerText || name;
   const sel = visual.selection ?? null;
   const active = !!sel && sel.kind !== "all";
   if (!field) return null;
   return (
     <div className="slicer" data-style={style}>
-      {showHeader && (
+      {showHeader && (label || active) && (
         <div className="slicer-head">
-          <span className="slicer-title">{projectionName(model, field, t)}</span>
+          <span className="slicer-title" style={{ fontSize: headerSize }}>{label}</span>
           {active && (
             <button type="button" className="slicer-clear" aria-label={t("Clear selections")} title={t("Clear selections")} onClick={() => setSelection(page, visual, null, "Clear slicer")}>
               <Eraser size={13} />

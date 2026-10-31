@@ -504,6 +504,24 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     if v.visual_type == "actionButton" {
         button_json(v, &mut visual);
     }
+    // A slicer's header (its name, size and whether it shows), in its visual objects.
+    if v.visual_type == "slicer"
+        && let Some(h) = v.objects.get("header").and_then(Value::as_object)
+    {
+        let mut props = serde_json::Map::new();
+        if let Some(show) = h.get("show").and_then(Value::as_bool) {
+            props.insert("show".into(), json!({ "expr": { "Literal": { "Value": show.to_string() } } }));
+        }
+        if let Some(text) = h.get("text").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) {
+            props.insert("text".into(), json!({ "expr": text_literal(text) }));
+        }
+        if let Some(size) = h.get("fontSize").and_then(Value::as_f64) {
+            props.insert("fontSize".into(), json!({ "expr": { "Literal": { "Value": format!("{size}D") } } }));
+        }
+        if !props.is_empty() {
+            visual["objects"] = json!({ "header": [{ "properties": props }] });
+        }
+    }
     if v.visual_type == "textbox"
         && let Some(text) = v
             .objects
@@ -957,6 +975,27 @@ fn import_visual(
     }
     if ours == "actionButton" {
         button_objects(vis, &mut objects);
+    }
+    if ours == "slicer"
+        && let Some(h) = vis.pointer("/objects/header/0/properties")
+    {
+        let mut header = serde_json::Map::new();
+        if let Some(show) = h.get("show").and_then(lit) {
+            header.insert("show".into(), json!(show == "true"));
+        }
+        if let Some(text) = h.get("text").and_then(lit) {
+            header.insert("text".into(), json!(text));
+        }
+        if let Some(size) = h
+            .get("fontSize")
+            .and_then(lit)
+            .and_then(|n| n.trim_end_matches(['D', 'L']).parse::<f64>().ok())
+        {
+            header.insert("fontSize".into(), json!(size));
+        }
+        if !header.is_empty() {
+            objects.insert("header".into(), Value::Object(header));
+        }
     }
     if ours == "slicer"
         && let Some(g) = vis.pointer("/syncGroup/groupName").and_then(Value::as_str)
