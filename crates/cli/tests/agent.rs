@@ -88,8 +88,10 @@ fn a_stand_in_agent_builds_a_page_through_the_socket() {
             _ => None,
         })
         .collect();
-    assert_eq!(steps.len(), 5, "{steps:?}");
+    // Six: one a misspelt field, tried again.
+    assert_eq!(steps.len(), 6, "{steps:?}");
     assert!(steps[1].contains("Sales by month"), "{steps:?}");
+    assert!(steps[2].starts_with("Not done"), "{steps:?}");
     assert!(matches!(turn.items.last(), Some(Item::Text { text }) if text.contains("Agent e2e")));
     assert!(pushed.lock().unwrap().0 >= 5);
     // One undo entry for the request, and the follow-up resumes the session.
