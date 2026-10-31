@@ -135,16 +135,37 @@ pub enum AgentRequest {
 const AGENTS: &[(&str, &str, bool)] = &[
     ("claude", "Claude Code", true),
     ("codex", "Codex", true),
+    // These open in a terminal (terminal_command): only agents whose MCP set-up from a
+    // working directory is known, so they start with charted's tools.
     ("opencode", "OpenCode", false),
-    ("crush", "Crush", false),
     ("cursor-agent", "Cursor CLI", false),
     ("copilot", "GitHub Copilot", false),
     ("gemini", "Gemini CLI", false),
-    ("agy", "Antigravity", false),
-    ("kimi", "Kimi", false),
-    ("pi", "Pi", false),
-    ("grok", "Grok", false),
 ];
+
+/// How a terminal agent starts in charted's working directory with the request, its MCP
+/// settings read from there (written by `open_terminal`). No permission-skipping flags:
+/// the agent asks in its terminal as usual.
+fn terminal_command(agent: &str, prompt: &str) -> Option<Vec<String>> {
+    let p = prompt.to_string();
+    Some(match agent {
+        // opencode.json in the working directory.
+        "opencode" => vec!["opencode".into(), "--prompt".into(), p],
+        // .cursor/mcp.json.
+        "cursor-agent" => vec!["cursor-agent".into(), "agent".into(), "--".into(), p],
+        // A workspace .mcp.json loads only once the folder is trusted, so it's named.
+        "copilot" => vec![
+            "copilot".into(),
+            "--additional-mcp-config".into(),
+            "@.mcp.json".into(),
+            "--interactive".into(),
+            p,
+        ],
+        // .gemini/settings.json.
+        "gemini" => vec!["gemini".into(), "--prompt-interactive".into(), p],
+        _ => return None,
+    })
+}
 
 fn on_path(cmd: &str) -> bool {
     std::env::var_os("PATH")
@@ -960,14 +981,33 @@ impl Host {
             work.join("opencode.json"),
             json!({ "mcp": { "charted": { "type": "local", "command": [exe, "mcp", "--socket", self.socket], "environment": { "CHARTED_AGENT_TOKEN": tok } } } }).to_string(),
         );
+        let _ = std::fs::create_dir_all(work.join(".gemini"));
+        let _ = std::fs::write(
+            work.join(".gemini/settings.json"),
+            json!({ "mcpServers": { "charted": server } }).to_string(),
+        );
         let _ = std::fs::write(work.join("AGENTS.md"), include_str!("prompt.md"));
+        let _ = std::fs::write(work.join("GEMINI.md"), include_str!("prompt.md"));
         let prompt = if text.trim().is_empty() {
             "Use charted's tools to help me with my report.".to_string()
         } else {
             text.to_string()
         };
-        Command::new("omarchy-agent-prompt")
-            .arg(prompt)
+        let cmd = terminal_command(&agent, &prompt)
+            .ok_or_else(|| format!("{agent} can't be opened from charted"))?;
+        // The agent picked in the pane, in Omarchy's terminal for agents (not Omarchy's
+        // default agent, which omarchy-agent-prompt would start).
+        let mut launch = if on_path("omarchy-launch-tui") {
+            let mut c = Command::new("omarchy-launch-tui");
+            c.arg("--app-id=org.omarchy.agent");
+            c
+        } else {
+            let mut c = Command::new("xdg-terminal-exec");
+            c.arg("-e");
+            c
+        };
+        launch
+            .args(&cmd)
             .current_dir(&work)
             .spawn()
             .map_err(|e| format!("couldn't open a terminal: {e}"))?;
