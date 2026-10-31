@@ -830,7 +830,14 @@ pub fn visual_title(model: &Model, v: &charted_model::Visual) -> String {
         .get("text")
         .and_then(|o| o.get("content"))
         .and_then(Value::as_str)
-        .and_then(|t| t.lines().map(|l| l.trim_start_matches(['#', '-', ' ']).replace(['*', '_', '`'], "")).find(|l| !l.trim().is_empty()))
+        .and_then(|t| {
+            t.lines()
+                .map(|l| {
+                    l.trim_start_matches(['#', '-', ' '])
+                        .replace(['*', '_', '`'], "")
+                })
+                .find(|l| !l.trim().is_empty())
+        })
     {
         let line = line.trim();
         return match line.char_indices().nth(40) {

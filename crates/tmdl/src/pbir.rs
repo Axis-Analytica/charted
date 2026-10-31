@@ -517,15 +517,29 @@ fn visual_json(model: &Model, page: &Page, v: &Visual) -> Value {
     {
         let mut props = serde_json::Map::new();
         if let Some(show) = h.get("show").and_then(Value::as_bool) {
-            props.insert("show".into(), json!({ "expr": { "Literal": { "Value": show.to_string() } } }));
+            props.insert(
+                "show".into(),
+                json!({ "expr": { "Literal": { "Value": show.to_string() } } }),
+            );
         }
-        if let Some(text) = h.get("text").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) {
+        if let Some(text) = h
+            .get("text")
+            .and_then(Value::as_str)
+            .filter(|t| !t.trim().is_empty())
+        {
             props.insert("text".into(), json!({ "expr": text_literal(text) }));
         }
         if let Some(size) = h.get("fontSize").and_then(Value::as_f64) {
-            props.insert("fontSize".into(), json!({ "expr": { "Literal": { "Value": format!("{size}D") } } }));
+            props.insert(
+                "fontSize".into(),
+                json!({ "expr": { "Literal": { "Value": format!("{size}D") } } }),
+            );
         }
-        if let Some(font) = h.get("fontFamily").and_then(Value::as_str).filter(|t| !t.trim().is_empty()) {
+        if let Some(font) = h
+            .get("fontFamily")
+            .and_then(Value::as_str)
+            .filter(|t| !t.trim().is_empty())
+        {
             props.insert("fontFamily".into(), json!({ "expr": text_literal(font) }));
         }
         if !props.is_empty() {
@@ -997,7 +1011,12 @@ fn import_visual(
         let mut t = json!({ "content": text.join("\n") });
         if let Some(f) = ps
             .iter()
-            .flat_map(|p| p.get("textRuns").and_then(Value::as_array).into_iter().flatten())
+            .flat_map(|p| {
+                p.get("textRuns")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+            })
             .find_map(|r| r.pointer("/textStyle/fontFamily").and_then(Value::as_str))
         {
             t["fontFamily"] = json!(f);
@@ -1356,11 +1375,20 @@ fn resolve_aliases(v: &Value, aliases: &BTreeMap<String, String>) -> Value {
 /// textStyle, a link its url, and a heading a bold run (Power BI has no headings).
 fn markdown_runs(line: &str) -> Vec<Value> {
     let (line, heading) = match line.trim_start().split_once(' ') {
-        Some((h, rest)) if !h.is_empty() && h.len() <= 3 && h.chars().all(|c| c == '#') => (rest, true),
+        Some((h, rest)) if !h.is_empty() && h.len() <= 3 && h.chars().all(|c| c == '#') => {
+            (rest, true)
+        }
         _ => (line, false),
     };
     let mut runs = vec![];
-    inline_runs(line, Style { bold: heading, ..Style::default() }, &mut runs);
+    inline_runs(
+        line,
+        Style {
+            bold: heading,
+            ..Style::default()
+        },
+        &mut runs,
+    );
     if runs.is_empty() {
         runs.push(json!({ "value": "" }));
     }
@@ -1426,9 +1454,9 @@ fn inline_runs(s: &str, st: Style, out: &mut Vec<Value>) {
             i += 1 + close + 2 + end + 1;
             continue;
         }
-        let mark = ["**", "__", "~~", "*", "_", "`"]
-            .into_iter()
-            .find(|m| rest.starts_with(m) && rest[m.len()..].chars().next().is_some_and(|c| c != ' '));
+        let mark = ["**", "__", "~~", "*", "_", "`"].into_iter().find(|m| {
+            rest.starts_with(m) && rest[m.len()..].chars().next().is_some_and(|c| c != ' ')
+        });
         if let Some(m) = mark
             && let Some(end) = rest[m.len()..].find(m).filter(|e| *e > 0)
         {
@@ -1470,7 +1498,10 @@ fn run_markdown(run: &Value) -> String {
     };
     // Markers go inside the run's own spaces ("**bold** ", not "**bold **").
     let core = value.trim();
-    let (lead, trail) = (&value[..value.len() - value.trim_start().len()], &value[value.trim_end().len()..]);
+    let (lead, trail) = (
+        &value[..value.len() - value.trim_start().len()],
+        &value[value.trim_end().len()..],
+    );
     let mut out = core.replace('*', "\\*").replace('_', "\\_");
     if has("textDecoration", &["line-through"]) {
         out = format!("~~{out}~~");

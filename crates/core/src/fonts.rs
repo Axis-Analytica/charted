@@ -94,7 +94,10 @@ pub fn list(state_dir: &Path, project: Option<&Path>) -> Vec<FontFile> {
             in_project: false,
         })
         .collect();
-    for (file, (family, weight, italic)) in project.map(|p| scan(&p.join(PROJECT_DIR))).unwrap_or_default() {
+    for (file, (family, weight, italic)) in project
+        .map(|p| scan(&p.join(PROJECT_DIR)))
+        .unwrap_or_default()
+    {
         match out.iter_mut().find(|f| f.file == file) {
             Some(f) => f.in_project = true,
             None => out.push(FontFile {
@@ -121,13 +124,14 @@ pub fn add(state_dir: &Path, path: &Path) -> Result<String, CoreError> {
     if size > MAX_BYTES {
         return Err(invalid("that font file is over 20 MB"));
     }
-    let (family, ..) = describe(path).ok_or_else(|| {
-        invalid(format!("{} isn't a font charted can read", path.display()))
-    })?;
+    let (family, ..) = describe(path)
+        .ok_or_else(|| invalid(format!("{} isn't a font charted can read", path.display())))?;
     let dir = library_dir(state_dir);
-    std::fs::create_dir_all(&dir).map_err(|e| invalid(format!("couldn't create {}: {e}", dir.display())))?;
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| invalid(format!("couldn't create {}: {e}", dir.display())))?;
     let name = path.file_name().ok_or_else(|| invalid("no file name"))?;
-    std::fs::copy(path, dir.join(name)).map_err(|e| invalid(format!("couldn't copy the font: {e}")))?;
+    std::fs::copy(path, dir.join(name))
+        .map_err(|e| invalid(format!("couldn't copy the font: {e}")))?;
     Ok(family)
 }
 
@@ -190,7 +194,11 @@ pub fn used(report: &serde_json::Value) -> Vec<String> {
 }
 
 /// Copies each library font the report uses into the project's fonts folder.
-pub fn bundle(state_dir: &Path, project: &Path, report: &serde_json::Value) -> Result<(), CoreError> {
+pub fn bundle(
+    state_dir: &Path,
+    project: &Path,
+    report: &serde_json::Value,
+) -> Result<(), CoreError> {
     let used = used(report);
     if used.is_empty() {
         return Ok(());
@@ -198,7 +206,8 @@ pub fn bundle(state_dir: &Path, project: &Path, report: &serde_json::Value) -> R
     let to = project.join(PROJECT_DIR);
     for f in list(state_dir, Some(project)) {
         if f.in_library && !f.in_project && used.iter().any(|u| u.eq_ignore_ascii_case(&f.family)) {
-            std::fs::create_dir_all(&to).map_err(|e| invalid(format!("couldn't create {}: {e}", to.display())))?;
+            std::fs::create_dir_all(&to)
+                .map_err(|e| invalid(format!("couldn't create {}: {e}", to.display())))?;
             std::fs::copy(library_dir(state_dir).join(&f.file), to.join(&f.file))
                 .map_err(|e| invalid(format!("couldn't copy {} into the project: {e}", f.file)))?;
         }

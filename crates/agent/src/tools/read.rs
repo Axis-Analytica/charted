@@ -399,7 +399,11 @@ fn list_visual_types(cx: &Cx, ty: Option<&str>) -> Res<Done> {
     let _ = write!(
         out,
         "\nfonts (fontFamily, set_theme fonts): {BUNDLED_FONTS}{}; Power BI names like Segoe UI, Arial, Helvetica or Georgia also work (a similar bundled font shows where they aren't installed)",
-        if yours.is_empty() { String::new() } else { format!("; the user's own: {}", yours.join(", ")) }
+        if yours.is_empty() {
+            String::new()
+        } else {
+            format!("; the user's own: {}", yours.join(", "))
+        }
     );
     Done::read(out)
 }

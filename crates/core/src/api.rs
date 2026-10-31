@@ -898,7 +898,11 @@ impl App {
     pub fn data_job(&self, request: DataRequest) -> Result<DataJob, ApiError> {
         if let DataRequest::ReadFont { file } = &request {
             let project = self.session.as_ref().map(|s| s.project.dir.as_path());
-            return Ok(DataJob::Ready(crate::fonts::read(&self.state_dir, project, file)?));
+            return Ok(DataJob::Ready(crate::fonts::read(
+                &self.state_dir,
+                project,
+                file,
+            )?));
         }
         let s = self.session.as_ref().ok_or(CoreError::NoProject)?;
         let model = &s.project.model;

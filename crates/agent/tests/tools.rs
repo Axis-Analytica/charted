@@ -612,7 +612,12 @@ fn remember_adds_to_the_projects_instructions_when_the_user_agrees() {
 fn a_slicer_is_named_in_its_header_and_layers_can_be_moved() {
     let (_d, app) = sample();
     let turn = Fake::new("s1");
-    ok(&app, &turn, "page", json!({ "action": "add", "name": "Layers" }));
+    ok(
+        &app,
+        &turn,
+        "page",
+        json!({ "action": "add", "name": "Layers" }),
+    );
     ok(
         &app,
         &turn,
@@ -634,26 +639,58 @@ fn a_slicer_is_named_in_its_header_and_layers_can_be_moved() {
             .unwrap()
     };
     let p = page(&app);
-    let slicer = p.visuals.iter().find(|v| v.visual_type == "slicer").unwrap();
+    let slicer = p
+        .visuals
+        .iter()
+        .find(|v| v.visual_type == "slicer")
+        .unwrap();
     // Only the header names it: a title as well would show "Store Store".
     assert_eq!(slicer.objects["header"]["text"], "Store");
     assert!(slicer.objects.get("title").is_none());
     let card = p.visuals.iter().find(|v| v.visual_type == "card").unwrap();
     assert!(card.position.z > slicer.position.z);
-    ok(&app, &turn, "update_visual", json!({ "visual": "Store", "layer": "front" }));
+    ok(
+        &app,
+        &turn,
+        "update_visual",
+        json!({ "visual": "Store", "layer": "front" }),
+    );
     let p = page(&app);
-    let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
+    let z = |ty: &str| {
+        p.visuals
+            .iter()
+            .find(|v| v.visual_type == ty)
+            .unwrap()
+            .position
+            .z
+    };
     assert!(z("slicer") > z("card"));
     let o = ok(&app, &turn, "describe_report", json!({ "page": "Layers" }));
     assert!(o.text.contains("layer "), "{}", o.text);
     // Arranging keeps slicers on top, so their dropdowns open over the cards.
-    ok(&app, &turn, "update_visual", json!({ "visual": "Store", "layer": "back" }));
+    ok(
+        &app,
+        &turn,
+        "update_visual",
+        json!({ "visual": "Store", "layer": "back" }),
+    );
     ok(&app, &turn, "arrange_page", json!({ "page": "Layers" }));
     let p = page(&app);
     // Its short band fits a dropdown, not a list.
-    let slicer = p.visuals.iter().find(|v| v.visual_type == "slicer").unwrap();
+    let slicer = p
+        .visuals
+        .iter()
+        .find(|v| v.visual_type == "slicer")
+        .unwrap();
     assert_eq!(slicer.objects["slicer"]["style"], "dropdown");
-    let z = |ty: &str| p.visuals.iter().find(|v| v.visual_type == ty).unwrap().position.z;
+    let z = |ty: &str| {
+        p.visuals
+            .iter()
+            .find(|v| v.visual_type == ty)
+            .unwrap()
+            .position
+            .z
+    };
     assert!(z("slicer") > z("card"));
 }
 
@@ -665,13 +702,28 @@ fn fonts_for_the_report_and_for_one_visual() {
     assert!(o.text.contains("Playfair Display"), "{}", o.text);
     // Following the desktop, fonts alone keep its colours.
     ok(&app, &turn, "set_theme", json!({ "builtin": "desktop" }));
-    ok(&app, &turn, "set_theme", json!({ "fonts": { "title": "Helvetica", "label": "Inter" } }));
+    ok(
+        &app,
+        &turn,
+        "set_theme",
+        json!({ "fonts": { "title": "Helvetica", "label": "Inter" } }),
+    );
     let t = model(&app).report.theme.unwrap();
     assert_eq!(t.json["followDesktop"], true);
     assert_eq!(t.json["textClasses"]["title"]["fontFace"], "Helvetica");
     assert_eq!(t.json["textClasses"]["label"]["fontFace"], "Inter");
-    err(&app, &turn, "set_theme", json!({ "fonts": { "body": "Inter" } }));
-    ok(&app, &turn, "page", json!({ "action": "add", "name": "Fonts" }));
+    err(
+        &app,
+        &turn,
+        "set_theme",
+        json!({ "fonts": { "body": "Inter" } }),
+    );
+    ok(
+        &app,
+        &turn,
+        "page",
+        json!({ "action": "add", "name": "Fonts" }),
+    );
     ok(
         &app,
         &turn,

@@ -470,10 +470,8 @@ fn set_fields(
 /// container title stays off: both on would show the name twice.
 fn set_title(v: &mut Visual, title: &str) {
     let slicer = v.visual_type == "slicer";
-    if slicer {
-        if let Some(t) = v.objects.get_mut("title").and_then(Value::as_object_mut) {
-            t.insert("show".into(), Value::Bool(false));
-        }
+    if slicer && let Some(t) = v.objects.get_mut("title").and_then(Value::as_object_mut) {
+        t.insert("show".into(), Value::Bool(false));
     }
     let o = v
         .objects
@@ -499,7 +497,8 @@ fn shown_title(m: &Model, v: &Visual) -> Option<String> {
             _ => visualq::visual_title(m, v),
         });
     }
-    (get("title", "show").and_then(Value::as_bool) != Some(false)).then(|| visualq::visual_title(m, v))
+    (get("title", "show").and_then(Value::as_bool) != Some(false))
+        .then(|| visualq::visual_title(m, v))
 }
 
 fn merge_format(v: &mut Visual, def: &VisualDef, format: &Value) -> Res<()> {
@@ -684,7 +683,10 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
                 Some((_, z)) if o.id != id && *z != o.position.z => {
                     let mut o = o.clone();
                     o.position.z = *z;
-                    changes.push(Change::UpdateVisual { page: p.id.clone(), visual: o });
+                    changes.push(Change::UpdateVisual {
+                        page: p.id.clone(),
+                        visual: o,
+                    });
                 }
                 _ => {}
             }
@@ -709,17 +711,28 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
 fn layer(p: &Page, id: &str, how: &str) -> Res<Vec<(String, i32)>> {
     let mut order: Vec<&Visual> = p.visuals.iter().collect();
     order.sort_by_key(|v| v.position.z);
-    let at = order.iter().position(|v| v.id == id).ok_or_else(|| Fail("no such visual".into()))?;
+    let at = order
+        .iter()
+        .position(|v| v.id == id)
+        .ok_or_else(|| Fail("no such visual".into()))?;
     let v = order.remove(at);
     let to = match how {
         "front" => order.len(),
         "back" => 0,
         "forward" => (at + 1).min(order.len()),
         "backward" => at.saturating_sub(1),
-        _ => return fail(format!("layer is front, back, forward or backward, not {how}")),
+        _ => {
+            return fail(format!(
+                "layer is front, back, forward or backward, not {how}"
+            ));
+        }
     };
     order.insert(to, v);
-    Ok(order.iter().enumerate().map(|(i, v)| (v.id.clone(), i as i32 + 1)).collect())
+    Ok(order
+        .iter()
+        .enumerate()
+        .map(|(i, v)| (v.id.clone(), i as i32 + 1))
+        .collect())
 }
 
 /// Recases a title: sentence case keeps words that are already capitalised after the first
@@ -803,8 +816,8 @@ fn format_visuals(cx: &Cx, args: &Value) -> Res<Done> {
                     }
                     merge_format(&mut next, def, &Value::Object(mine))?;
                 }
-                let title = shown_title(m, &next)
-                    .filter(|_| def.objects.iter().any(|o| o.name == "title"));
+                let title =
+                    shown_title(m, &next).filter(|_| def.objects.iter().any(|o| o.name == "title"));
                 if let (Some(how), Some(title)) = (case, title) {
                     let cased = recase(&title, how);
                     if cased != title {
@@ -907,15 +920,25 @@ fn arrange_page(cx: &Cx, args: &Value) -> Res<Done> {
         let mut changes: Vec<Change> = placed
             .into_iter()
             .filter_map(|(id, pos)| {
-                let mut v = Visual { position: pos, ..p.visual(&id)?.clone() };
+                let mut v = Visual {
+                    position: pos,
+                    ..p.visual(&id)?.clone()
+                };
                 // A slicer in the short band at the top lists its values as a dropdown;
                 // a list wouldn't fit.
-                let style = v.objects.get("slicer").and_then(|o| o.get("style")).and_then(Value::as_str);
+                let style = v
+                    .objects
+                    .get("slicer")
+                    .and_then(|o| o.get("style"))
+                    .and_then(Value::as_str);
                 if v.visual_type == "slicer" && matches!(style, None | Some("list")) {
                     let o = v.objects.entry("slicer").or_insert_with(|| json!({}));
                     o["style"] = json!("dropdown");
                 }
-                Some(Change::UpdateVisual { page: p.id.clone(), visual: v })
+                Some(Change::UpdateVisual {
+                    page: p.id.clone(),
+                    visual: v,
+                })
             })
             .collect();
         if need > p.settings.height as f64 {

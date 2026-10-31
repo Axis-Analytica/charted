@@ -127,7 +127,13 @@ pub fn arrange(
     let mut out = Vec::new();
     let mut y = MARGIN;
     let mut z = 0;
-    for b in [Band::Header, Band::Slicer, Band::Card, Band::Chart, Band::Table] {
+    for b in [
+        Band::Header,
+        Band::Slicer,
+        Band::Card,
+        Band::Chart,
+        Band::Table,
+    ] {
         let items: Vec<&String> = ordered
             .iter()
             .filter(|(_, (_, t))| band(t) == b)
@@ -151,7 +157,11 @@ pub fn arrange(
             for (i, id) in row.iter().enumerate() {
                 z += 1;
                 // Slicers lie on top, so an open dropdown isn't under the cards below it.
-                let z = if b == Band::Slicer { z + ordered.len() as i32 } else { z };
+                let z = if b == Band::Slicer {
+                    z + ordered.len() as i32
+                } else {
+                    z
+                };
                 out.push((
                     (*id).clone(),
                     Position {
