@@ -6,7 +6,7 @@ release below.
 
 ## Where things stand
 
-*Updated 2026-10-31 (feedback session).* **Next: the "v1.7.0: feedback batch" in docs/PLAN.md** (slicer name once + agent layer order, markdown, fonts, demo GIF, then release v1.7.0 — the user said go, including the omarchy-pkgs PR update), then M10 (Mac and Windows, plan in docs/PLAN.md). The clean-up before M9 and M9 itself are done on `main`, not yet pushed. **v1.6.0 is released**: https://github.com/Axis-Analytica/charted/releases/tag/v1.6.0.
+*Updated 2026-10-31 (feedback session).* **v1.7.0 is released** (M9 + the feedback batch: slicer/card names once, agent layer order, markdown, fonts, demo GIF): https://github.com/Axis-Analytica/charted/releases/tag/v1.7.0. **Next: M10 (Mac and Windows), planned in docs/PLAN.md** from an audit of every Linux-only spot. The AUR key still isn't on the user's AUR account (`ssh -i ~/.ssh/aur aur@aur.archlinux.org help` says permission denied), so `bin/aur-publish` waits.
 
 - **Code:** v1.0 (M0–M6 and the pre-release batch) was pushed at `332c6bb`. Since then
   `main` has about 55 local commits, **not pushed**, carrying most of v1.1–v1.5. The

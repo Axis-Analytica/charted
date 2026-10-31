@@ -218,7 +218,7 @@ docs/HANDOFF.md (M9) and docs/demos/m9.md.
   headless output can be parsed, each with its own built-in-tool lockdown, verified
   before it's offered.
 
-## v1.7.0: feedback batch (the next session starts here)
+## v1.7.0: feedback batch (released 2026-10-31)
 
 Planned 2026-10-31 with the user. Progress is marked in each stage's heading.
 
@@ -333,7 +333,7 @@ Vitest for the parser (including escapes and unclosed markers).
 - README: the GIF becomes the hero image above the screenshots. Send both files to the
   user.
 
-### Stage 5: release v1.7.0 (user said go)
+### Stage 5: release v1.7.0 (user said go) — done; AUR waits on the key
 
 Same pattern as 1.6.0 (`2467912`, `83a43f4`, `c901696`):
 1. Full `bin/heavy bin/test`; `bin/eval` once more (≈$0.20) to check the prompt edits.
@@ -358,7 +358,7 @@ Same pattern as 1.6.0 (`2467912`, `83a43f4`, `c901696`):
 - M10: CI builds on all three platforms, then the user tries them on the Mac and in the
   Windows VM.
 
-## M10: Mac and Windows (after v1.7.0)
+## M10: Mac and Windows (the next session starts here)
 
 The audit found 9 blockers, and nothing has been gated: there are no `cfg(unix)` or
 `cfg(windows)` blocks in the codebase. This machine is aarch64 Linux, so macOS and
