@@ -2,7 +2,7 @@
 // report and model, and watch it work. Its changes land live and each request undoes in
 // one step; its steps are listed as it goes, and Stop ends it. What it may see is set
 // here too (Let the agent see data), and asked once per agent (AgentConsent).
-import { Check, ChevronDown, ChevronRight, Database, FileCog, MessageSquarePlus, RotateCcw, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Database, FileCog, MessageSquarePlus, NotebookPen, RotateCcw, Send, Sparkles, Square, SquareTerminal, Undo2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { AgentInfo } from "../bridge/generated/AgentInfo";
 import type { Item } from "../bridge/generated/Item";
@@ -12,7 +12,7 @@ import type { AgentStep as Step } from "../bridge/generated/AgentStep";
 import type { TurnRecord } from "../bridge/generated/TurnRecord";
 import { formatNumber, msg, useT } from "../i18n";
 import { Button, IconButton } from "../kit/Button";
-import { ConfirmDialog } from "../kit/Dialog";
+import { ConfirmDialog, Dialog } from "../kit/Dialog";
 import { Menu } from "../kit/Menu";
 import { Banner, EmptyState, Spinner } from "../kit/misc";
 import { useAgent } from "../state/agent";
@@ -33,6 +33,7 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
   const consent = useAgent((s) => s.consent);
   const request = useAgent((s) => s.request);
   const end = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     void request({ type: "status" });
@@ -55,6 +56,12 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
             pressed={!!status?.data}
             onPress={() => void request({ type: "setData", on: !status?.data })}
           />
+          <IconButton
+            label={status?.instructions.trim() ? t("Project instructions (the agent follows them)") : t("Project instructions")}
+            icon={<NotebookPen size={14} />}
+            pressed={!!status?.instructions.trim()}
+            onPress={() => setEditing(true)}
+          />
           <IconButton label={t("New chat")} icon={<MessageSquarePlus size={14} />} isDisabled={!turns.length || !!status?.running} onPress={() => void request({ type: "newChat" })} />
         </span>
       </div>
@@ -75,6 +82,7 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
           <Composer model={model} page={page} agent={agent} running={!!status?.running} />
         </>
       )}
+      {editing && <InstructionsDialog text={status?.instructions ?? ""} onClose={() => setEditing(false)} />}
       {consent && agent && (
         <AgentConsent
           agent={agent.label}
@@ -87,6 +95,42 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
         />
       )}
     </section>
+  );
+}
+
+/** The project's instructions for the agent (agent.md in the project folder). */
+function InstructionsDialog({ text, onClose }: { text: string; onClose(): void }) {
+  const { t } = useT();
+  const request = useAgent((s) => s.request);
+  const [draft, setDraft] = useState(text);
+  return (
+    <Dialog
+      open
+      modal
+      onOpenChange={(o) => !o && onClose()}
+      title={t("Project instructions")}
+      width={560}
+      footer={
+        <>
+          <Button variant="ghost" onPress={onClose}>
+            {t("Cancel")}
+          </Button>
+          <Button variant="primary" onPress={() => void request({ type: "setInstructions", text: draft }).then((ok) => ok && onClose())}>
+            {t("Save")}
+          </Button>
+        </>
+      }
+    >
+      <p className="field-hint">{t("The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.")}</p>
+      <textarea
+        className="input agent-instructions"
+        aria-label={t("Project instructions")}
+        value={draft}
+        rows={12}
+        placeholder={t("- Use the Date table for anything over time\n- Titles in sentence case\n- Money in thousands, no decimals")}
+        onChange={(e) => setDraft(e.target.value)}
+      />
+    </Dialog>
   );
 }
 

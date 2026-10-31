@@ -9,6 +9,7 @@
 //   draft  — drafts sorting the Store query (a step that changes nothing else)
 //   undraft — drafts taking that step out again
 //   layout — floats the Fields pane, puts the model beside the report, hides Align left
+//   rules  — says which project instructions it was given, and remembers one more
 //   fail   — exits with an error
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -93,6 +94,10 @@ if (/\bbuild\b/i.test(prompt)) {
 } else if (/\bdraft\b/i.test(prompt)) {
   await tool("draft_query", { action: "add_step", query: "Store", step: { op: "sortRows", columns: [["Region", false]] } });
   said = "Drafted sorting Store by region; press Apply in the Agent pane.";
+} else if (/\brules\b/i.test(prompt)) {
+  const given = /The project's instructions[^\n]*\n([\s\S]*)$/.exec(prompt)?.[1]?.trim();
+  await tool("remember", { instruction: "Money in thousands" });
+  said = given ? `I was given: ${given.split("\n")[0]}` : "I was given no instructions.";
 } else if (/\bdelete\b/i.test(prompt)) {
   const r = await tool("page", { action: "remove", page: "Agent e2e" });
   said = r.error ? "I left the page." : "Removed the page.";

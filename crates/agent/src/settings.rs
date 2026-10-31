@@ -56,3 +56,46 @@ impl ProjectSettings {
         write(&crate::transcript::dir(project).join("settings.json"), self)
     }
 }
+
+/// The project's instructions for the agent (naming rules, colours, "always use the Date
+/// table"): `agent.md` in the project folder, kept with the project. The agent reads them
+/// with every request.
+pub const INSTRUCTIONS: &str = "agent.md";
+
+/// The most of them sent with a request.
+const INSTRUCTIONS_MAX: usize = 8000;
+
+pub fn instructions(project: &Path) -> String {
+    let text = std::fs::read_to_string(project.join(INSTRUCTIONS)).unwrap_or_default();
+    match text.char_indices().nth(INSTRUCTIONS_MAX) {
+        Some((at, _)) => text[..at].to_string(),
+        None => text,
+    }
+}
+
+/// Writes the instructions (removes the file when they're empty).
+pub fn set_instructions(project: &Path, text: &str) -> Result<(), String> {
+    let path = project.join(INSTRUCTIONS);
+    if text.trim().is_empty() {
+        return match std::fs::remove_file(&path) {
+            Err(e) if e.kind() != std::io::ErrorKind::NotFound => Err(e.to_string()),
+            _ => Ok(()),
+        };
+    }
+    let text = if text.ends_with('\n') {
+        text.to_string()
+    } else {
+        format!("{text}\n")
+    };
+    std::fs::write(&path, text).map_err(|e| format!("couldn't write {}: {e}", path.display()))
+}
+
+/// Adds one instruction as a bullet at the end.
+pub fn add_instruction(project: &Path, line: &str) -> Result<(), String> {
+    let mut text = std::fs::read_to_string(project.join(INSTRUCTIONS)).unwrap_or_default();
+    if !text.is_empty() && !text.ends_with('\n') {
+        text.push('\n');
+    }
+    text.push_str(&format!("- {}\n", line.trim().trim_start_matches("- ")));
+    set_instructions(project, &text)
+}

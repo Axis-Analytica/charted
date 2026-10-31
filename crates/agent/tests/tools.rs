@@ -523,3 +523,87 @@ fn the_agent_reshapes_the_layout_and_it_undoes_as_one() {
         "Mine"
     );
 }
+
+#[test]
+fn report_wide_formatting_is_one_step_and_skips_what_a_type_lacks() {
+    let (_d, app) = sample();
+    let turn = Fake::new("f1");
+    ok(
+        &app,
+        &turn,
+        "page",
+        json!({ "action": "add", "name": "Fmt" }),
+    );
+    ok(
+        &app,
+        &turn,
+        "add_visual",
+        json!({ "page": "Fmt", "type": "columnChart", "title": "Sales By Region YoY",
+                "fields": { "category": ["'Store'[Region]"], "values": ["[Total Sales]"] } }),
+    );
+    ok(
+        &app,
+        &turn,
+        "add_visual",
+        json!({ "page": "Fmt", "type": "slicer", "fields": { "field": ["'Store'[Region]"] } }),
+    );
+    let o = ok(
+        &app,
+        &turn,
+        "format_visuals",
+        json!({ "page": "Fmt", "title_case": "sentence", "format": { "title": { "fontSize": 14 }, "dataLabels": { "show": true } } }),
+    );
+    assert!(o.text.starts_with("Formatted 2 visuals."), "{}", o.text);
+    assert!(o.text.contains("slicer has no dataLabels"), "{}", o.text);
+    let m = model(&app);
+    let p = m
+        .report
+        .pages
+        .iter()
+        .find(|p| p.settings.name == "Fmt")
+        .unwrap();
+    let chart = p
+        .visuals
+        .iter()
+        .find(|v| v.visual_type == "columnChart")
+        .unwrap();
+    assert_eq!(chart.objects["title"]["text"], "Sales by region YoY");
+    assert_eq!(chart.objects["title"]["fontSize"], 14);
+    assert_eq!(chart.objects["dataLabels"]["show"], true);
+    // Nothing left to change is an error, so the agent doesn't think it did something.
+    err(
+        &app,
+        &turn,
+        "format_visuals",
+        json!({ "page": "Fmt", "title_case": "sentence", "format": { "title": { "fontSize": 14 } } }),
+    );
+}
+
+#[test]
+fn remember_adds_to_the_projects_instructions_when_the_user_agrees() {
+    let (_d, app) = sample();
+    let dir = app.lock().unwrap().session().unwrap().project.dir.clone();
+    let turn = Fake::new("r1");
+    ok(
+        &app,
+        &turn,
+        "remember",
+        json!({ "instruction": "Always use the Date table" }),
+    );
+    assert_eq!(
+        charted_agent::settings::instructions(&dir),
+        "- Always use the Date table\n"
+    );
+    assert!(turn.asked.lock().unwrap()[0].contains("Always use the Date table"));
+    let no = Fake {
+        allow: false,
+        ..Fake::new("r2")
+    };
+    err(
+        &app,
+        &no,
+        "remember",
+        json!({ "instruction": "Titles in capitals" }),
+    );
+    assert!(!charted_agent::settings::instructions(&dir).contains("capitals"));
+}

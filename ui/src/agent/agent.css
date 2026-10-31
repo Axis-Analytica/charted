@@ -52,3 +52,4 @@
   70% { box-shadow: 0 0 0 2px var(--accent); }
   100% { box-shadow: 0 0 0 2px transparent; }
 }
+.agent-instructions { width: 100%; min-height: 220px; resize: vertical; font-family: var(--font-mono, monospace); font-size: var(--text-sm); line-height: 1.5; }

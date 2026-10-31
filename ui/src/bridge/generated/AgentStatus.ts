@@ -22,4 +22,8 @@ data: boolean, running: boolean, turns: Array<TurnRecord>,
 /**
  * Queries the agent has drafted changes to, waiting for the user to apply them.
  */
-draft: Array<string>, };
+draft: Array<string>, 
+/**
+ * The project's instructions for the agent (agent.md).
+ */
+instructions: string, };

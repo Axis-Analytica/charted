@@ -61,5 +61,7 @@ export const STEP_MESSAGES = [
   msg("Renamed the layout \"%1\""),
   msg("Deleted the layout \"%1\""),
   msg("Reset the layout \"%1\""),
+  msg("Remembered \"%1\""),
+  msg("Formatted %1 visuals"),
 ];
 

@@ -1349,5 +1349,11 @@
   "Report toolbar": "Rapportens værktøjslinje",
   "Transform data toolbar": "Værktøjslinjen i Transformér data",
   "Zoom": "Zoom",
-  "Retried: it worked on a later try": "Prøvet igen: det lykkedes ved et senere forsøg"
+  "Retried: it worked on a later try": "Prøvet igen: det lykkedes ved et senere forsøg",
+  "- Use the Date table for anything over time\n- Titles in sentence case\n- Money in thousands, no decimals": "- Brug Date-tabellen til alt over tid\n- Titler med stort begyndelsesbogstav\n- Beløb i tusinder, uden decimaler",
+  "Formatted %1 visuals": "Formaterede %1 visualiseringer",
+  "Project instructions (the agent follows them)": "Projektinstruktioner (agenten følger dem)",
+  "Project instructions": "Projektinstruktioner",
+  "Remembered \"%1\"": "Huskede \"%1\"",
+  "The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.": "Agenten læser dem ved hver anmodning: navngivningsregler, farver, hvilke tabeller der skal bruges. De gemmes i agent.md i projektmappen."
 }

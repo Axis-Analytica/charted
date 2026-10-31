@@ -1389,5 +1389,11 @@
   "Report toolbar": "شريط أدوات التقرير",
   "Transform data toolbar": "شريط أدوات تحويل البيانات",
   "Zoom": "تكبير/تصغير",
-  "Retried: it worked on a later try": "أُعيدت المحاولة: نجحت في محاولة لاحقة"
+  "Retried: it worked on a later try": "أُعيدت المحاولة: نجحت في محاولة لاحقة",
+  "- Use the Date table for anything over time\n- Titles in sentence case\n- Money in thousands, no decimals": "- استخدم جدول Date لكل ما يتعلق بالزمن\n- العناوين بحرف كبير في البداية فقط\n- المبالغ بالآلاف، بلا كسور عشرية",
+  "Formatted %1 visuals": "نُسّقت %1 من المرئيات",
+  "Project instructions (the agent follows them)": "تعليمات المشروع (يتبعها الوكيل)",
+  "Project instructions": "تعليمات المشروع",
+  "Remembered \"%1\"": "تذكّر \"%1\"",
+  "The agent reads these with every request: naming rules, colours, which tables to use. They're kept in agent.md in the project folder.": "يقرأ الوكيل هذه التعليمات مع كل طلب: قواعد التسمية والألوان والجداول التي يستخدمها. تُحفظ في agent.md في مجلد المشروع."
 }

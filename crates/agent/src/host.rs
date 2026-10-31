@@ -88,6 +88,8 @@ pub struct AgentStatus {
     pub turns: Vec<TurnRecord>,
     /// Queries the agent has drafted changes to, waiting for the user to apply them.
     pub draft: Vec<String>,
+    /// The project's instructions for the agent (agent.md).
+    pub instructions: String,
 }
 
 /// What the window asks of the agent.
@@ -130,6 +132,10 @@ pub enum AgentRequest {
     /// Applies the agent's query draft: the data reloads, and undo starts afresh.
     ApplyDraft,
     DiscardDraft,
+    /// Replaces the project's instructions for the agent (agent.md).
+    SetInstructions {
+        text: String,
+    },
 }
 
 const AGENTS: &[(&str, &str, bool)] = &[
@@ -441,6 +447,10 @@ impl Host {
             .is_some_and(|d| ProjectSettings::load(&d).data);
         let running = self.lock().running.is_some();
         let draft = self.drafted();
+        let instructions = self
+            .project_dir()
+            .map(|d| crate::settings::instructions(&d))
+            .unwrap_or_default();
         let turns = self.with_chat(|c| c.turns.clone()).unwrap_or_default();
         AgentStatus {
             model: agent
@@ -454,6 +464,7 @@ impl Host {
             running,
             turns,
             draft,
+            instructions,
         }
     }
 
@@ -546,6 +557,10 @@ impl Host {
                 (self.emit)(Push::State(Box::new(state)));
             }
             AgentRequest::DiscardDraft => self.lock().draft = None,
+            AgentRequest::SetInstructions { text } => {
+                let dir = self.project_dir().ok_or("open a project first")?;
+                crate::settings::set_instructions(&dir, &text)?;
+            }
         }
         Ok(self.push_status())
     }
@@ -649,10 +664,18 @@ impl Host {
             c.sessions.get(&agent).cloned()
         });
         let (tok, _) = self.new_turn(&label, status.data, &turn_id);
-        let prompt = match &ctx {
+        let mut prompt = match &ctx {
             Some((c, _)) => format!("{text}\n\n({c})"),
             None => text.to_string(),
         };
+        // Read every request, so edits apply to a resumed conversation too.
+        let instructions = crate::settings::instructions(&dir);
+        if !instructions.trim().is_empty() {
+            prompt.push_str(&format!(
+                "\n\nThe project's instructions (agent.md, from the user; follow them):\n{}",
+                instructions.trim()
+            ));
+        }
         let mut cmd = self.command(&agent, &status.model, session.flatten(), &tok, &dir)?;
         cmd.stdin(Stdio::piped())
             .stdout(Stdio::piped())

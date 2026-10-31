@@ -68,6 +68,20 @@ pub fn defs() -> Vec<ToolDef> {
             ),
         },
         ToolDef {
+            name: "format_visuals",
+            description: "Formats many visuals at once, for report-wide standards (\"all titles in sentence case at 14 px\"): format is merged into each (objects a type doesn't have are skipped), title_case recases the titles shown. Which visuals: page (else every page), types, or visuals (ids or titles). One step for the user.".into(),
+            input_schema: schema(
+                json!({
+                    "page": { "type": "string" },
+                    "types": { "type": "array", "items": { "type": "string" } },
+                    "visuals": { "type": "array", "items": { "type": "string" } },
+                    "format": format,
+                    "title_case": { "type": "string", "enum": ["sentence", "title", "upper", "lower"] }
+                }),
+                &[],
+            ),
+        },
+        ToolDef {
             name: "remove_visual",
             description: "Removes visuals (ids or titles).".into(),
             input_schema: schema(
@@ -124,6 +138,7 @@ pub fn call(cx: &Cx, name: &str, args: &Value) -> Option<Res<Done>> {
         "add_visual" => add_visual(cx, args),
         "update_visual" => update_visual(cx, args),
         "remove_visual" => remove_visual(cx, args),
+        "format_visuals" => format_visuals(cx, args),
         "arrange_page" => arrange_page(cx, args),
         "set_filter" => set_filter(cx, args),
         "set_theme" => set_theme(cx, args),
@@ -638,6 +653,141 @@ fn update_visual(cx: &Cx, args: &Value) -> Res<Done> {
                         .page(&p.id)
                         .visuals(vec![id])
                         .detail(shown.join("\n")),
+                ),
+            },
+        ))
+    })
+}
+
+/// Recases a title: sentence case keeps words that are already capitalised after the first
+/// (names, acronyms like YoY) as they are.
+fn recase(title: &str, how: &str) -> String {
+    match how {
+        "upper" => title.to_uppercase(),
+        "lower" => title.to_lowercase(),
+        "title" => title
+            .split(' ')
+            .map(|w| {
+                let mut c = w.chars();
+                c.next()
+                    .map_or(String::new(), |f| f.to_uppercase().chain(c).collect())
+            })
+            .collect::<Vec<_>>()
+            .join(" "),
+        _ => {
+            let mut out = String::new();
+            for (i, w) in title.split(' ').enumerate() {
+                if i > 0 {
+                    out.push(' ');
+                }
+                let mut c = w.chars();
+                match c.next() {
+                    Some(f) if i == 0 => out.extend(f.to_uppercase().chain(c)),
+                    // "Sales By Month" → "Sales by month"; "YoY" and "EMEA" stay.
+                    Some(f) if f.is_uppercase() && c.clone().all(|x| !x.is_uppercase()) => {
+                        out.extend(f.to_lowercase().chain(c))
+                    }
+                    _ => out.push_str(w),
+                }
+            }
+            out
+        }
+    }
+}
+
+fn format_visuals(cx: &Cx, args: &Value) -> Res<Done> {
+    let format = args.get("format").filter(|f| !f.is_null());
+    let case = opt_str(args, "title_case");
+    if format.is_none() && case.is_none() {
+        return fail("give format, title_case or both");
+    }
+    let types = str_list(args, "types");
+    let keys = str_list(args, "visuals");
+    cx.change(|m, _| {
+        let page = opt_str(args, "page")
+            .map(|k| names::find_page(m, k))
+            .transpose()?;
+        let wanted: Vec<String> = keys
+            .iter()
+            .map(|k| names::find_visual(m, None, k).map(|(_, v)| v.id.clone()))
+            .collect::<Result<_, _>>()?;
+        let mut changes = vec![];
+        let mut ids = vec![];
+        let mut skipped = std::collections::BTreeSet::new();
+        for p in &m.report.pages {
+            if page.is_some_and(|x| x.id != p.id) {
+                continue;
+            }
+            for v in &p.visuals {
+                if (!wanted.is_empty() && !wanted.contains(&v.id))
+                    || (!types.is_empty() && !types.contains(&v.visual_type))
+                {
+                    continue;
+                }
+                let Some(def) = catalog::visual(&v.visual_type) else {
+                    continue;
+                };
+                let mut next = v.clone();
+                if let Some(f) = format.and_then(Value::as_object) {
+                    // Only the objects this type has.
+                    let mine: Map<String, Value> = f
+                        .iter()
+                        .filter(|(k, _)| def.objects.iter().any(|o| &o.name == *k))
+                        .map(|(k, x)| (k.clone(), x.clone()))
+                        .collect();
+                    for k in f.keys().filter(|k| !mine.contains_key(*k)) {
+                        skipped.insert(format!("{} has no {k}", v.visual_type));
+                    }
+                    merge_format(&mut next, def, &Value::Object(mine))?;
+                }
+                let shown = next
+                    .objects
+                    .get("title")
+                    .and_then(|t| t.get("show"))
+                    .and_then(Value::as_bool)
+                    != Some(false);
+                if let Some(how) =
+                    case.filter(|_| shown && def.objects.iter().any(|o| o.name == "title"))
+                {
+                    let title = visualq::visual_title(m, &next);
+                    let cased = recase(&title, how);
+                    if cased != title {
+                        set_title(&mut next, &cased);
+                    }
+                }
+                if next != *v {
+                    ids.push(next.id.clone());
+                    changes.push(Change::UpdateVisual {
+                        page: p.id.clone(),
+                        visual: next,
+                    });
+                }
+            }
+        }
+        if changes.is_empty() {
+            return fail("no visual changed: none matched, or they already look like that");
+        }
+        let n = changes.len();
+        let mut text = format!("Formatted {n} visuals.");
+        if !skipped.is_empty() {
+            text.push_str(&format!(
+                " Skipped: {}.",
+                skipped.into_iter().collect::<Vec<_>>().join("; ")
+            ));
+        }
+        Ok((
+            changes,
+            Done {
+                text,
+                step: Some(
+                    Step::new("Formatted %1 visuals", &[&n.to_string()])
+                        .visuals(ids)
+                        .detail(
+                            serde_json::to_string_pretty(
+                                &json!({ "format": format, "title_case": case }),
+                            )
+                            .unwrap_or_default(),
+                        ),
                 ),
             },
         ))

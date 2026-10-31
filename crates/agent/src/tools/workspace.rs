@@ -52,6 +52,11 @@ pub fn defs() -> Vec<ToolDef> {
             ),
         },
         ToolDef {
+            name: "remember",
+            description: "Adds a line to the project's instructions (agent.md), which you get with every request: for rules the user wants kept (\"always use the Date table\", \"titles in sentence case\"). The user is asked first. Only when the user asks you to remember something, or agrees to it.".into(),
+            input_schema: schema(json!({ "instruction": { "type": "string" } }), &["instruction"]),
+        },
+        ToolDef {
             name: "profile",
             description: "Layout profiles: create (a copy of the active one, made active), switch, rename (new_name), delete, or reset (a built-in back as it ships). Built-ins: Standard, Report + model, Two report pages.".into(),
             input_schema: schema(
@@ -68,6 +73,7 @@ pub fn call(cx: &Cx, name: &str, args: &Value) -> Option<Res<Done>> {
         "set_pane" => set_pane(cx, args),
         "split_view" => split_view(cx, args),
         "list_commands" => list_commands(cx),
+        "remember" => remember(cx, args),
         "hide_commands" => hide_commands(cx, args),
         "profile" => profile(cx, args),
         _ => return None,
@@ -304,6 +310,29 @@ fn hide_commands(cx: &Cx, args: &Value) -> Res<Done> {
         },
         Step::new(if show { "Showed %1" } else { "Hid %1" }, &[&list]),
     )
+}
+
+fn remember(cx: &Cx, args: &Value) -> Res<Done> {
+    let line = str_arg(args, "instruction")?.trim();
+    if line.is_empty() || line.contains('\n') {
+        return fail("instruction is one line");
+    }
+    let dir = cx
+        .lock()
+        .session()
+        .map(|s| s.project.dir.clone())
+        .ok_or_else(|| Fail("no project is open".into()))?;
+    if !cx
+        .turn
+        .confirm(&format!("Add to the project's instructions: \"{line}\""))
+    {
+        return fail("the user didn't want that remembered; carry on without it");
+    }
+    crate::settings::add_instruction(&dir, line).map_err(Fail)?;
+    Ok(Done {
+        text: "Added to agent.md.".into(),
+        step: Some(Step::new("Remembered \"%1\"", &[line])),
+    })
 }
 
 fn profile(cx: &Cx, args: &Value) -> Res<Done> {

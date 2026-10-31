@@ -172,3 +172,26 @@ test("query changes are drafted, and applied only when the user says", async ({ 
   await page.getByRole("dialog").getByRole("button", { name: "Apply" }).click();
   await expect(card).toHaveCount(0);
 });
+
+test("project instructions go with every request, and the agent can add one when allowed", async ({ page }) => {
+  await openSample(page);
+  await openPane(page);
+  await newChat(page);
+  await pane(page).getByRole("button", { name: "Project instructions", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox", { name: "Project instructions" }).fill("- Titles in sentence case");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(dialog).toHaveCount(0);
+  const turn = await ask(page, "what are the rules");
+  await turn.getByRole("button", { name: "Allow" }).click();
+  await done(turn);
+  await expect(turn.locator(".agent-text")).toContainText("I was given: - Titles in sentence case");
+  await expect(turn.locator(".agent-step")).toContainText('Remembered "Money in thousands"');
+  // Both are in the file now; clear them for the specs after this one.
+  await pane(page).getByRole("button", { name: "Project instructions (the agent follows them)" }).click();
+  const box = dialog.getByRole("textbox", { name: "Project instructions" });
+  await expect(box).toHaveValue("- Titles in sentence case\n- Money in thousands\n");
+  await box.fill("");
+  await dialog.getByRole("button", { name: "Save" }).click();
+  await expect(pane(page).getByRole("button", { name: "Project instructions", exact: true })).toBeVisible();
+});
