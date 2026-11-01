@@ -427,6 +427,320 @@ run the builds on their Mac host and their Windows VM.
 - The user checks the builds on their Mac and in their Windows VM; that is the visual
   checkpoint (`bin/checkpoint m10`).
 
+**M10 additions (planned 2026-11-01):**
+
+- **Omarchy-only paths, gated on Linux with a fallback elsewhere:**
+  - Default agent: `omarchy-default-agent` → first of claude, codex, opencode, gemini
+    found on PATH, plus a setting.
+  - Open in terminal: `omarchy agent prompt` → Terminal.app or wt.exe.
+  - Themes: follow the OS light/dark setting, and accent colour where available.
+  - `omarchy-*` and `hyprctl` lookups: Linux only.
+  - Wording: replace "Omarchy" where it describes a general behaviour.
+- **Agent on Windows:**
+  - The MCP server config the agent receives must use the TCP address and token.
+  - The e2e stand-in agent (`ui/e2e/fake-agent.mjs`) must run on Windows (no shebang
+    reliance).
+- **Release v1.8.0:**
+  - Linux as before, plus unsigned `.dmg` and `.msi` assets marked "preview".
+  - The README gets per-OS install lines.
+  - Signing and notarisation wait on the user's decision.
+- **Checkpoint:** the user installs on the Mac and in the Windows VM and runs the sample,
+  a PBIP import, the agent and PDF export.
+
+
+## After M10: M11 and M12 (planned 2026-11-01)
+
+The goal is "real projects come across", not parity with Power BI (`docs/GAPS.md`,
+which also holds the backlog). Releases: M10 → v1.8.0, M11 → v1.9.0, M12 → v1.10.0,
+each on the user's go-ahead. Every stage ends green on `bin/heavy bin/test` and is
+committed; each milestone ends with `bin/checkpoint`.
+
+### M11: the DAX real models use (v1.9.0)
+
+#### M11.0 Spike (DuckDB 2.0; `duckdb` crate 1.20000.0, half a day)
+
+Check in a scratch test:
+- `TRY(CAST('a' AS INT))` and `TRY(error('x'))`.
+- `1.0/0`, `0.0/0` and the `ieee_floating_point_ops` setting.
+- A `vscalar` UDF (enable the feature in `Cargo.toml`) registered on one connection,
+  seen through `try_clone()` (`crates/engine/src/db.rs:87`).
+- `now()` / `current_timestamp` without ICU autoload (`db.rs:61`).
+
+Record the answers in HANDOFF "Gotchas"; they decide C, D and F.
+
+#### M11.1 Conformance harness (L; needs the user's Windows VM once per batch)
+
+**Fixture as a PBIP** (`bin/conformance export`):
+- Write the golden fixture (`crates/core/tests/dax_golden.rs` `fixture()`) as a PBIP
+  through `charted_tmdl::pbip` (`crates/tmdl/src/lib.rs:466`).
+- Each table gets an *Enter data* M partition:
+  `Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText(…))))` plus an
+  explicit `Table.TransformColumnTypes`.
+- No files, paths or locale. This also fixes the empty-partition gap for any
+  query-less table on export.
+- Culture is pinned to en-US. Avoid the Currency type.
+
+**Queries** (`conformance/queries.json`):
+- One per (measure, shape), written the way Power BI visuals query:
+  `DEFINE VAR __DS0FilterTable = TREATAS({…}, 'T'[c])` filters, then
+  `EVALUATE TOPN(1002, SUMMARIZECOLUMNS(groups…, filters…, "M", [M]))`. The card
+  shape is `SUMMARIZECOLUMNS("M", [M])`.
+- One measure per query, so blank-row removal doesn't depend on neighbours.
+- Include two-table groupings explicitly (auto-exist, the likeliest difference).
+
+**`conformance/run.ps1`, run by the user on the VM with the PBIP open:**
+- Finds the local Analysis Services port (`msmdsrv.port.txt` under both the MSI and
+  Microsoft Store `AnalysisServicesWorkspaces`).
+- Refreshes (TOM).
+- Runs each query through AdomdClient (Desktop's `bin`, else the NuGet package).
+- Writes `expected.json`:
+  - per query, rows or `{"error": msg}`
+  - ISO dates
+  - DBNull → blank
+  - a fixture hash, each measure's text hash, and the Power BI version
+
+**Test** (`crates/core/tests/conformance.rs`):
+- Charted's SQL result is compared with `expected.json`:
+  - canonical row order
+  - relative tolerance 1e-9
+  - an empty card result means blank
+  - "both error" counts as a match
+  - volatile functions (NOW, RAND) skipped
+- A changed hash reports "re-run needed" instead of comparing.
+- Known differences live in `conformance/known.json`: listed, not failing, and shrunk
+  over time.
+- When Power BI disagrees with the reference interpreter, fix the interpreter first
+  (it's the oracle for the random tests).
+
+#### M11.2 Fix what the harness finds (M; size unknown)
+
+Expected:
+- Blank handling (e.g. ROUND(BLANK())).
+- The card's blank result.
+- Auto-exist across tables.
+- **x/0:** Power BI gives ±Infinity or NaN, not blank. If confirmed, change both SQL
+  (`visual.rs:863` `nullif`) and interp (`interp.rs:1426`). Handle NaN through
+  serde/bridge paths (not just Arrow), the UI formatter's `∞`/`NaN`, and sorting.
+
+#### M11.3 A function table (M)
+
+- **`crates/dax`** (also built to wasm, so no DuckDB or Value types there):
+  - A `macro_rules!` table makes `enum LibFn` with name, arity and each argument's
+    kind: `Num`, `Text`, `Bool`, `Date`, `Any`.
+  - `ScalarFunc::Lib(LibFn)` is dispatched from `Binder::call` (`bind.rs:2213`).
+  - The table also feeds SUPPORTED/KNOWN, `catalog.rs` and the editor completions.
+- **`crates/compiler`:** one exhaustive `match LibFn` each in `call_sql`
+  (`visual.rs:616`), interp `scalar` (`interp.rs:1496`) and `ossie.rs`.
+  - Blank coercion is shared per argument kind (blank → 0 or ""), the same in SQL and
+    interp.
+  - An argument used twice in a template is bound once (subquery or `let`), never
+    pasted twice.
+- Move about 10 existing functions onto it first (LEFT, RIGHT, MID, UPPER, LOWER, LEN,
+  ABS, INT, MOD, ROUND) and prove the golden tests are unchanged.
+
+#### M11.4 DateTime (L; riskiest; before any time function)
+
+- DAX has one date-time type: Date means midnight. Add `ValueType::DateTime`
+  (`visual.rs:139`), with `unify(Date, DateTime) = DateTime` and number + date-time
+  adding fractional days.
+- `date_sql` stops casting to DATE where a time matters.
+- The interp `cal::parse` (`interp.rs:2174`) reads times.
+- Also fix `pbir.rs:241` (`&v[..10]`), filter and slicer keys, and date hierarchies on
+  DateTime columns.
+- NOW, UTCNOW and TODAY read an injectable clock in tests.
+
+#### M11.5 Aggregates (M)
+
+- `Bound::Aggregate` gains `param: Option<Box<Bound>>` (PERCENTILE's k may be a what-if
+  parameter); `AggFunc` stays `Copy`. One `agg_sql` arm per function (`visual.rs:451`)
+  and its interp arm (`interp.rs:1026`).
+- Mappings:
+  - MEDIAN(X) and PERCENTILE(X).INC → `quantile_cont`.
+  - .EXC: interpolation over a sorted list, with the out-of-range error.
+  - STDEV(X).S/.P and VAR(X).S/.P → `stddev_samp`/`stddev_pop` and the `var_`
+    equivalents.
+  - PRODUCT(X).
+  - GEOMEAN(X) → `exp(avg(ln x))`, with an error for x ≤ 0.
+  - AVERAGEA, MAXA, MINA, COUNTAX.
+  - DISTINCTCOUNTNOBLANK.
+  - APPROXIMATEDISTINCTCOUNT → exact (Import mode is exact too).
+
+#### M11.6 Functions in batches through the table (L; harness re-run per batch)
+
+1. **Math:**
+   - The 11 recognised ones: CEILING, FLOOR, ROUNDUP, ROUNDDOWN, TRUNC, SQRT, POWER, EXP,
+     LN, LOG, SIGN.
+   - Plus LOG10, MROUND, QUOTIENT, EVEN, ODD, FACT, GCD, LCM, ISO.CEILING, DEGREES,
+     RADIANS, SQRTPI, trigonometry, RAND, RANDBETWEEN, CONVERT, CURRENCY.
+2. **Text:** FIND, SEARCH, REPLACE, VALUE, EXACT, REPT, FIXED, UNICHAR, UNICODE,
+   COMBINEVALUES, CONTAINSSTRING, CONTAINSSTRINGEXACT.
+3. **Date and time** (after M11.4): TIME, HOUR, MINUTE, SECOND, NOW, UTCNOW, UTCTODAY,
+   DATEVALUE, TIMEVALUE, WEEKNUM, YEARFRAC, NETWORKDAYS, CALENDARAUTO.
+4. **Information:** ISNUMBER, ISTEXT, ISNONTEXT, ISLOGICAL, ISEVEN, ISODD, ISEMPTY,
+   HASONEFILTER, ISINSCOPE edge cases; BITAND, BITOR, BITXOR, BITLSHIFT, BITRSHIFT.
+
+For each batch:
+- Add golden MEASURES and calculated-column cases, and `random_expr` fragments.
+- Regenerate `docs/dax-support.md` (`CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`).
+- Rebuild the editor's wasm with `bin/wasm`.
+
+#### M11.7 Errors (M)
+
+- Errors stay **aborting by default**: a measure that errors fails the visual, as in
+  Power BI. This keeps the existing `error()` path (LOOKUPVALUE, `visual.rs:3664`).
+- A lazy `err_sql(&Bound) -> Option<String>` is called only under IFERROR and ISERROR:
+  - Error sources: conversion (VALUE, DATEVALUE, text → number), FIND/SEARCH not
+    found, ERROR(), LOOKUPVALUE multiples, GEOMEAN and .EXC domain errors.
+  - Iterators use `bool_or` of the row flags; referenced measures expand theirs.
+  - DuckDB `TRY()` is used only for conversions if the spike shows it handles them.
+- Interp: `Value::Error(String)` propagates.
+- Functions: IFERROR, ISERROR, ERROR.
+
+#### M11.8 FORMAT, one engine (L)
+
+- Port the full TS grammar (`ui/src/format/index.ts`: sections, scaling commas,
+  quoted literals, time codes, named formats) to Rust, replacing
+  `crates/dax/src/format.rs`.
+- It's used by the interp, and by SQL as a `vscalar` UDF `dax_format(value, fmt,
+  culture)` registered on every connection: app, CLI/headless, samplegen, tests.
+- `ossie.rs` returns None for it. Non-literal format strings become possible. The
+  locale (third) argument is supported.
+- Shared test vectors `crates/dax/tests/format_vectors.json` are run by both cargo test
+  and vitest (the TS display engine stays for now), and checked once in Power BI
+  through the harness (FORMAT measures).
+
+#### M11.9 Dynamic format strings (M; checked in Power BI)
+
+- `Measure.format_string_expression` (`crates/model/src/types.rs:239`).
+- The visual query adds a `fmt:<measure>` column only for measures that have one.
+- `common.ts` `fmt` uses the per-row format.
+- Charts use the total's (or first row's) format for an axis.
+- The same path replaces the constant-only calc-item formats
+  (`crates/core/src/calcgroups.rs:155`).
+- Import and export `formatStringDefinition` (`tmdl/src/read.rs:423,780,1129`; write
+  in `lib.rs`).
+- Edited in the Fields pane next to the static format.
+- Bridge types and the agent's tools (`add_measure`) learn about it.
+
+#### M11.10 DATATABLE and CROSSJOIN (S)
+
+- DATATABLE lowers to `TableExpr::List` with declared names and types; ROW does the
+  same.
+- CROSSJOIN as an iterated or calculated table.
+- The corpus's DATATABLE uses must import.
+
+**M11 checkpoint:**
+- The corpus re-imported with no unsupported-DAX lines for these functions.
+- The harness green apart from `known.json`.
+- The agent writing a measure with PERCENTILEX.INC and IFERROR.
+
+### M12: formatting depth (v1.10.0)
+
+#### M12.1 One mapping, both directions (M; every row checked in Power BI)
+
+- `crates/tmdl/src/formatting.json`: rows keyed by (Power BI visual type or `*`,
+  object, property) ↔ charted (object, prop). Each row has a flag for `objects` vs
+  `visualContainerObjects` and a codec name.
+  - Codecs, written in both Rust and TS with shared vectors: `bool`, `int` (`1L`),
+    `double` (`12D`), `text` (`'x'`), `color` (solid or `ThemeDataColor`), `enum`.
+- **Rust** (`pbir.rs` export ~431, import ~894):
+  - Writes the mapped properties natively.
+  - On import, **loads the `chartedVisual` annotation first, then overlays the native
+    properties**, so edits made in Power BI aren't lost (today `pbir.rs:900` returns
+    the annotation as is).
+  - Unmapped Power BI formatting is listed in the import report (today it's silent).
+- **TS:** `themeStyles.ts` replaces COMMON/BY_TYPE with the same file, so themes,
+  visuals and the agent agree.
+- **Checks:**
+  - The vendored schema checks structure only, so each mapping row is confirmed once by
+    opening an export in Power BI Desktop (VM).
+  - A round-trip test per row in `crates/tmdl/tests/pbir_report.rs`.
+
+#### M12.2 Shared chart option helpers (M; no behaviour change)
+
+- `axisOption`, `legendOption`, `labelOption` and `seriesStyle` in
+  `ui/src/report/visuals/common.ts`.
+- Adopted by `Cartesian.tsx` first, then Pie, Scatter, Waterfall, Funnel, Treemap and
+  Gauge.
+- Title and effects are done once in `VisualContainer.tsx`.
+- The existing e2e (`v12.spec.ts` `getOption()` checks) must pass unchanged.
+
+#### M12.3 Settings, object by object (L; each batch with its mapping rows, catalog regen and a Power BI round trip)
+
+1. **Axes:**
+   - Range min and max; log scale.
+   - Display units and decimals, through a shared `withUnits` extension
+     (`ui/src/format`).
+   - Label size, colour and rotation.
+   - Title text.
+   - Gridline colour, width and style.
+   - Continuous or categorical for dates.
+2. **Data labels:** position, display units, decimals, colour, font, background.
+3. **Legend:** all of Power BI's positions, title, font size, colour.
+4. **Title:** bold, italic, underline, colour, background.
+5. **Effects:** background colour and transparency; border colour, width and radius;
+   padding.
+6. **Lines:** width, dashed or dotted, markers.
+7. **Area charts:** area, stacked area and 100% stacked area. These are a variant in
+   `Cartesian.tsx` `variant()` :57, `lineSeries` :519 with `areaStyle`/`stack`, and the
+   type lists in `VisualContainer.tsx:76`, `drill.ts:14`, `moreVisuals.ts`,
+   `themeStyles.ts:12` and `visualq.rs:352`. The `areaChart` aliases in `pbir.rs:160`
+   become real types.
+
+The agent's `check_format` (`crates/agent/src/catalog.rs:158`) learns each new prop
+type.
+
+#### M12.4 Per-series and per-point colours (M–L; selector encoding checked in Power BI)
+
+- **Storage:** generic scoped entries on `Visual`:
+  `scoped: [{object, selector: {field: id, value?: typed}, props}]` (Rust
+  `crates/model/src/report.rs`, through `Change::UpdateVisual`).
+  - Keyed by measure or column id, so renames survive.
+  - Values are matched by the query's text keys.
+  - Colours may be `{theme: i, percent}` as well as hex, so they keep following the
+    live theme.
+- **Rendering:** `seriesStyle` uses the scoped entries before the palette.
+- **Format pane:** a Colors section listing the current series, or the points of a
+  single-series chart, each with the colour picker.
+- **PBIR:** `dataPoint` with `{"metadata": queryRef}` for measures and
+  `{"data":[{"scopeId":{"Comparison":…}}]}` for values (typed literals as
+  `literal_for`), plus `showAllDataPoints`.
+- **Agent:** `update_visual` accepts series colours ("make Consumer purple").
+
+#### M12.5 Finishing pieces (S each)
+
+- A free colour picker (hex input plus theme colours) for every `color` prop. Today
+  it's swatches only (`VisualizationsPane.tsx:371`).
+- Chart colour fx, by gradient or rules on a value or field:
+  - reuses `conditional.ts` (`gradientColor`, `ruleFor`, `stats`) and the hidden-column
+    path (`crates/core/src/visualq.rs:467`);
+  - goes to PBIR with the `dataViewWildcard` selector.
+- A search box in the Format pane.
+
+**M12 checkpoint:**
+- A heavily formatted report made in Power BI Desktop (user, on the VM) imports into
+  charted looking the same.
+- Charted's export of it opens in Power BI looking the same.
+- A screenshot pair for each.
+
+### Verification for M10–M12
+
+- **Every stage:** `bin/heavy bin/test` (Rust, Vitest, Playwright) green.
+  - DAX stages add golden and random cases, so interp and SQL agree.
+  - Formatting stages add Vitest for the mapping and codecs, e2e `getOption()` checks
+    and pbir round-trip tests.
+- **Against Power BI (user's Windows VM):**
+  - `conformance/run.ps1` after M11.1 and after each function batch; `cargo test
+    --test conformance`.
+  - M12: each mapping batch exported and opened in Power BI Desktop, and a Power
+    BI-formatted report imported.
+- **Real projects:** `bin/corpus` and
+  `cargo test -p charted-core --test corpus -- --ignored` before and after each
+  milestone. The count of unsupported items must fall. Grow the corpus with any project
+  the user can share.
+- **Agent:** `bin/eval` once per milestone.
+- **Checkpoints:** `bin/checkpoint m10|m11|m12`, with the user.
+
 ## Alongside: the v1.x quality track
 
 - DAX coverage from what users report, with golden cases and a regenerated

@@ -225,6 +225,9 @@ import today).
 
 ## Milestones (after M10)
 
+**Planned in detail (docs/PLAN.md): M11 and M12 below. M13 onwards is the backlog,
+in priority order, to be planned when M12 is done.**
+
 Each is measured by what real projects need, and checked against Power BI where it can
 be. Difficulty out of 10 in brackets.
 
