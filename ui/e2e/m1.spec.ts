@@ -109,8 +109,13 @@ test("find, type checks and the frame readout", async ({ page }) => {
   await tableItem(page, "Store").click();
   await expect(page.getByRole("heading", { name: "Store" })).toBeVisible();
 
-  await page.keyboard.press("ControlOrMeta+f");
   const find = page.getByRole("searchbox", { name: "Find in table" }).or(page.getByRole("textbox", { name: "Find in table" }));
+  // The view registers its shortcuts as it finishes loading: on a slow machine the
+  // first press can come too early.
+  await expect(async () => {
+    await page.keyboard.press("ControlOrMeta+f");
+    await expect(find).toBeVisible({ timeout: 1000 });
+  }).toPass();
   await find.fill("north");
   await find.press("Enter");
   await expect(page.locator(".findbar-status")).toContainText(/\d+ matching rows?/);
