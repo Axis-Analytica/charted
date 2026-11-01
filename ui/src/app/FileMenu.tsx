@@ -136,7 +136,7 @@ export function FileMenu({ project, onSave, onClose }: { project: ProjectSnapsho
               <input
                 className="input"
                 value={exporting.folder}
-                placeholder={exporting.withData ? exporting.dir : project.path.slice(0, project.path.lastIndexOf("/"))}
+                placeholder={exporting.withData ? exporting.dir : project.path.slice(0, Math.max(project.path.lastIndexOf("/"), project.path.lastIndexOf("\\")))}
                 aria-label={t("Folder Power BI reads the data from")}
                 onChange={(e) => setExporting({ ...exporting, folder: e.target.value })}
               />
