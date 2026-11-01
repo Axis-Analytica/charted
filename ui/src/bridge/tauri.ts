@@ -30,6 +30,7 @@ export const tauriTransport: Transport & { printPdf?(path: string, width: number
   onAgent: (callback) => subscribe<AgentEvent>("agent-event", callback),
   pick: (options: PickOptions) => invoke<string | null>("pick", { options }),
   initialPath: () => invoke<string | null>("initial_path"),
+  onOpenFile: (callback) => subscribe<null>("open-file", () => callback()),
   quit: () => invoke("quit"),
   openIssue: (url) => invoke("open_issue", { url }),
   ...(/Linux/.test(navigator.userAgent) ? { printPdf: (path: string, width: number, height: number) => invoke<void>("print_pdf", { path, width, height }) } : {}),

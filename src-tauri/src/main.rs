@@ -256,6 +256,19 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         .build(tauri::generate_context!())
         .expect("error while building charted")
         .run(|app_handle, event| {
+            // macOS hands files opened from the Finder to the running app, not as
+            // arguments; the UI opens the next one it takes from initial_path.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &event
+                && let Some(path) = urls.iter().find_map(|u| u.to_file_path().ok())
+            {
+                *app_handle
+                    .state::<Shared>()
+                    .initial
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner()) = Some(path.display().to_string());
+                let _ = app_handle.emit("open-file", ());
+            }
             // Let queries still running on other threads finish (or stop) before the
             // process exits and DuckDB's static data goes away.
             if let tauri::RunEvent::Exit = event {

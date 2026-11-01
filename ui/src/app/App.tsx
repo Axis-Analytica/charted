@@ -71,6 +71,10 @@ export function App() {
       const path = await transport.initialPath();
       if (path) await rpc({ type: "openProject", path }, t("Opening project…"));
     })();
+    return transport.onOpenFile?.(async () => {
+      const path = await transport.initialPath();
+      if (path) await rpc({ type: "openProject", path }, t("Opening project…"));
+    });
   }, [rpc, t]);
 
   const quit = () => (useApp.getState().state?.project?.dirty ? setQuitAsk(true) : transport.quit());
