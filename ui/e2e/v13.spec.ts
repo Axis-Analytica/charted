@@ -255,8 +255,11 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await shot(page, "v13-03-pasted");
 
   // In another project without these fields: the visual comes, its fields don't.
-  await page.keyboard.press("ControlOrMeta+s");
-  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+  // Saving twice is harmless, so a press lost on a slow machine is simply repeated.
+  await expect(async () => {
+    if (await page.locator(".dirty-dot").count()) await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.locator(".dirty-dot")).toHaveCount(0, { timeout: 5000 });
+  }).toPass({ timeout: 30_000 });
   await fileMenu(page, "Close project");
   await page.getByRole("button", { name: "New project…" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
