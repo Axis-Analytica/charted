@@ -57,9 +57,16 @@ jobs:
       - name: DuckDB
         shell: bash
         run: |
+          find_lib() { find target/duckdb-download \( -name libduckdb.dylib -o -name duckdb.dll \) 2>/dev/null | head -1; }
           cargo build -p charted-engine
+          # The Rust cache can drop the downloaded library while keeping the build
+          # script's result; fetch it again if so.
+          if [ -z "$(find_lib)" ]; then
+            cargo clean -p libduckdb-sys
+            cargo build -p charted-engine
+          fi
           mkdir -p src-tauri/lib
-          cp target/duckdb-download/*/v2.0.0/{libduckdb.dylib,duckdb.dll} src-tauri/lib/ 2>/dev/null || true
+          cp "$(find_lib)" src-tauri/lib/
           ls src-tauri/lib
       - run: cargo clippy --workspace --all-targets -- -D warnings
       # Test binaries live in target/debug/deps, away from the rpath the app uses, so
@@ -67,7 +74,7 @@ jobs:
       - name: Tests
         shell: bash
         run: |
-          lib="$(dirname "$(find "$PWD/target/duckdb-download" -name 'libduckdb.dylib' -o -name 'duckdb.dll' | head -1)")"
+          lib="$(dirname "$(find "$PWD/target/duckdb-download" \( -name libduckdb.dylib -o -name duckdb.dll \) | head -1)")"
           if [ "$RUNNER_OS" = Windows ]; then export PATH="$(cygpath -u "$lib"):$PATH"; else export DYLD_FALLBACK_LIBRARY_PATH="$lib"; fi
           cargo test --workspace --no-fail-fast
 
@@ -164,8 +171,13 @@ jobs:
         working-directory: ui
       - name: Build the dev server
         run: |
+          find_lib() { find "$PWD/target/duckdb-download" \( -name libduckdb.dylib -o -name duckdb.dll \) 2>/dev/null | head -1; }
           cargo build -p charted-cli
-          lib="$(dirname "$(find "$PWD/target/duckdb-download" -name 'libduckdb.dylib' -o -name 'duckdb.dll' | head -1)")"
+          if [ -z "$(find_lib)" ]; then
+            cargo clean -p libduckdb-sys
+            cargo build -p charted-cli
+          fi
+          lib="$(dirname "$(find_lib)")"
           if [ "$RUNNER_OS" = Windows ]; then
             cp "$lib/duckdb.dll" target/debug/
           else
