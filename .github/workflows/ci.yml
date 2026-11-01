@@ -52,6 +52,15 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+      # The app bundles DuckDB's library (tauri.macos/windows.conf.json), and Tauri's
+      # build checks the file is there; the engine's build downloads it.
+      - name: DuckDB
+        shell: bash
+        run: |
+          cargo build -p charted-engine
+          mkdir -p src-tauri/lib
+          cp target/duckdb-download/*/v2.0.0/{libduckdb.dylib,duckdb.dll} src-tauri/lib/ 2>/dev/null || true
+          ls src-tauri/lib
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
   ui:

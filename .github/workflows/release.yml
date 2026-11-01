@@ -92,7 +92,7 @@ jobs:
       - name: Build
         run: |
           pnpm -C ui install --frozen-lockfile
-          pnpm -C ui tauri build
+          cd src-tauri && ../ui/node_modules/.bin/tauri build
       - name: Check the app finds DuckDB
         if: runner.os == 'macOS'
         run: |
