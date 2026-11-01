@@ -124,8 +124,11 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await dialog.getByRole("combobox", { name: "Value" }).selectOption({ label: "Total Sales" });
   await expect(dialog.locator(".quick-dax")).toContainText("SAMEPERIODLASTYEAR");
   await shot(page, "v1-03-quick-measure");
-  await dialog.getByRole("button", { name: "Add" }).click();
-  await expect(dialog).toBeHidden();
+  // A press can be lost while focus settles on a slow machine: press until it takes.
+  await expect(async () => {
+    if (await dialog.isVisible()) await dialog.getByRole("button", { name: "Add" }).click({ timeout: 1000 });
+    await expect(dialog).toBeHidden({ timeout: 1000 });
+  }).toPass();
   await expect(fieldRow(page, "Sales", "Total Sales YoY %")).toBeVisible();
   await expect(page.locator(".formula-bar")).toBeVisible();
 

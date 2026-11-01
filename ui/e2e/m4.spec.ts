@@ -82,7 +82,11 @@ async function clickBar(page: Page, visual: Locator, index: number, modifiers: (
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const v = c.getOption().series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       // Chart pixels are before the canvas zoom; the bounding box is after it.
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       const px = c.convertToPixel({ seriesIndex: 0 }, [i, v / 2]);

@@ -105,8 +105,11 @@ async function barAt(visual: Locator, index: number): Promise<{ x: number; y: nu
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const o = c.getOption();
-      const v = o.series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       // Bar charts put the categories on the y axis.
       const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];

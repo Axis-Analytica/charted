@@ -57,9 +57,17 @@ test("build the Overview page: card, column, line, table, a DIVIDE measure, a pa
   await page.keyboard.press("ControlOrMeta+m");
   const formula = page.getByRole("textbox", { name: "Measure formula" });
   await expect(formula).toBeVisible();
-  await formula.fill("Margin % = DIVIDE ( [Total Sales] - [Total Cost, [Total Sales] )");
+  // Set the text the way a paste does (select all, then insert), so the editor's
+  // bracket closing and its late-arriving starting text don't mix in.
+  const setFormula = async (text: string) => {
+    await formula.focus();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Delete");
+    await page.keyboard.insertText(text);
+  };
+  await setFormula("Margin % = DIVIDE ( [Total Sales] - [Total Cost, [Total Sales] )");
   await expect(page.locator(".formula-problem")).toBeVisible();
-  await formula.fill("Margin % = DIVIDE ( [Total Sales] - [Total Cost], [Total Sales] )");
+  await setFormula("Margin % = DIVIDE ( [Total Sales] - [Total Cost], [Total Sales] )");
   await expect(page.locator(".formula-problem")).toBeHidden();
   await formula.press("Enter");
   await expect(fieldsPane(page).locator(".field-name", { hasText: /^Margin %$/ })).toBeVisible();

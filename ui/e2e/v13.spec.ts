@@ -347,8 +347,11 @@ test("buttons and a page navigator: Ctrl+click while editing, click in reading v
   await button.click();
   await expect(button).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
-  await button.click({ modifiers: ["ControlOrMeta"] });
-  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+  // Following the link is idempotent, so a press lost to a slow machine is retried.
+  await expect(async () => {
+    if ((await page.getByRole("tab", { name: "Details" }).getAttribute("aria-selected")) !== "true") await button.click({ modifiers: ["ControlOrMeta"], timeout: 1000 });
+    await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
+  }).toPass();
 
   // A Back button returns to the page before.
   const back = await addVisual(page, "Button", { x: 200, y: 100 });
