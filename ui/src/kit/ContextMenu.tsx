@@ -1,6 +1,7 @@
 // A menu opened at the pointer (right-click), or under the focused item (Shift+F10 or
 // the Menu key). Arrow keys move, Enter runs, Escape or a click elsewhere closes.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { keyLabel } from "./Kbd";
 import type { MenuEntry } from "./Menu";
 
 export interface ContextMenuState {
@@ -69,7 +70,7 @@ export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose
           >
             {i.icon}
             <span className="menu-label">{i.label}</span>
-            {i.shortcut && <kbd className="context-menu-key">{i.shortcut}</kbd>}
+            {i.shortcut && <kbd className="context-menu-key">{keyLabel(i.shortcut)}</kbd>}
           </button>
         ) : (
           <div key={`sep-${n}`} className="menu-sep" role="separator" />

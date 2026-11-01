@@ -18,8 +18,9 @@ function subscribe<T>(event: string, callback: (payload: T) => void): () => void
   };
 }
 
-/** The desktop app also prints the report to PDF (WebKitGTK) and can exit with a code. */
-export const tauriTransport: Transport & { printPdf(path: string, width: number, height: number): Promise<void>; exitWith(code: number): Promise<void> } = {
+/** The desktop app also prints the report: to a PDF file on Linux (WebKitGTK), through
+ * the system's print dialog elsewhere; and it can exit with a code. */
+export const tauriTransport: Transport & { printPdf?(path: string, width: number, height: number): Promise<void>; print(): Promise<void>; exitWith(code: number): Promise<void> } = {
   rpc: (request) => invoke("rpc", { request }),
   data: (request) => invoke<ArrayBuffer>("data", { request }),
   env: () => invoke("env"),
@@ -31,6 +32,7 @@ export const tauriTransport: Transport & { printPdf(path: string, width: number,
   initialPath: () => invoke<string | null>("initial_path"),
   quit: () => invoke("quit"),
   openIssue: (url) => invoke("open_issue", { url }),
-  printPdf: (path, width, height) => invoke("print_pdf", { path, width, height }),
+  ...(/Linux/.test(navigator.userAgent) ? { printPdf: (path: string, width: number, height: number) => invoke<void>("print_pdf", { path, width, height }) } : {}),
+  print: () => invoke("print_dialog"),
   exitWith: (code) => invoke("exit_with", { code }),
 };

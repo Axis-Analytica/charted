@@ -106,8 +106,8 @@ fn print_to(
         .map_err(|e| failed(e.to_string()))
 }
 
-/// WKWebView and WebView2 have their own PDF printing, not wired up yet; the UI falls
-/// back to the print dialog on this error.
+/// WKWebView and WebView2 have their own PDF printing, not wired up yet; there the UI
+/// shows the print layout and the system's print dialog, which saves PDFs.
 #[cfg(not(target_os = "linux"))]
 fn print_to(
     _window: &tauri::WebviewWindow,
@@ -121,6 +121,13 @@ fn print_to(
         message: "PDF export isn't available on this platform yet".into(),
         detail: None,
     })
+}
+
+/// Opens the system's print dialog for the window (macOS and Windows, where the UI
+/// doesn't write PDFs itself; "Save as PDF" is in the dialog).
+#[tauri::command]
+pub fn print_dialog(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|e| e.to_string())
 }
 
 /// Exits with a code (the command line's PDF export when it is done).

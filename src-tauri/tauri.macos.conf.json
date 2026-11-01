@@ -1,0 +1,15 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "charted",
+        "width": 1600,
+        "height": 1000,
+        "minWidth": 900,
+        "minHeight": 600,
+        "decorations": true
+      }
+    ]
+  }
+}

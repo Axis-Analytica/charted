@@ -208,6 +208,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
             open_issue,
             spike_arrow,
             pdf::print_pdf,
+            pdf::print_dialog,
             pdf::exit_with
         ])
         .setup(move |tauri_app| {

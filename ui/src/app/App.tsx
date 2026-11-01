@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CrashNotice } from "./CrashNotice";
 import { NewProjectDialog, useNewProject } from "./NewProject";
 import { transport } from "../bridge";
-import { applyTokens, deriveTokens } from "../design/theme";
+import { applyTokens, deriveTokens, followsSystem, systemTheme } from "../design/theme";
 import { useLanguage, useT } from "../i18n";
 import { ConfirmDialog } from "../kit/Dialog";
 import { Spinner } from "../kit/misc";
@@ -21,14 +21,28 @@ import { Welcome } from "../views/Welcome";
 function useEnvironment() {
   const setEnv = useApp((s) => s.setEnv);
   useEffect(() => {
-    const apply = (env: Awaited<ReturnType<typeof transport.env>>) => {
+    let last: Awaited<ReturnType<typeof transport.env>> | null = null;
+    const apply = (raw: Awaited<ReturnType<typeof transport.env>>) => {
+      last = raw;
+      const env = { ...raw, theme: systemTheme(raw.theme) };
       setEnv(env);
       applyTokens(deriveTokens(env.theme, env.desktop), env.theme.mode, env.desktop.animations);
       if (env.monoFont) document.documentElement.style.setProperty("--omarchy-mono", `"${env.monoFont}"`);
-      useLanguage.getState().set(env.language.code, env.language.formatLocale, env.language.rtl);
+      if (followsSystem()) {
+        const locale = navigator.language || "en-US";
+        useLanguage.getState().set(locale.split("-")[0]!, locale, ["ar", "he", "fa", "ur"].includes(locale.split("-")[0]!));
+      } else useLanguage.getState().set(env.language.code, env.language.formatLocale, env.language.rtl);
     };
     transport.env().then(apply);
-    return transport.onEnv(apply);
+    // Off Linux the theme follows the system's light or dark setting live.
+    const scheme = matchMedia("(prefers-color-scheme: light)");
+    const onScheme = () => last && apply(last);
+    scheme.addEventListener("change", onScheme);
+    const off = transport.onEnv(apply);
+    return () => {
+      scheme.removeEventListener("change", onScheme);
+      off();
+    };
   }, [setEnv]);
   useEffect(() => transport.onState(applyState), []);
   useEffect(() => initAgent(), []);

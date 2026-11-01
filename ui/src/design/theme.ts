@@ -88,6 +88,30 @@ export function chartPalette(theme: Theme, bg: string): string[] {
   return out;
 }
 
+/** macOS and Windows: there is no Omarchy theme or language to follow, so the system's. */
+export const followsSystem = () => !/Linux/.test(navigator.userAgent);
+
+const LIGHT: Record<string, string> = {
+  accent: "#ea580c",
+  background: "#fafafa",
+  foreground: "#18181b",
+  selection: "#e4e4e7",
+  muted: "#d4d4d8",
+  red: "#dc2626",
+  yellow: "#ca8a04",
+  green: "#16a34a",
+  cyan: "#0891b2",
+  blue: "#2563eb",
+  magenta: "#9333ea",
+  orange: "#ea580c",
+};
+
+/** The theme to show: Omarchy's, or off Linux the default one in the system's light or dark mode. */
+export function systemTheme(theme: Theme): Theme {
+  if (theme.fromOmarchy || !followsSystem() || !matchMedia("(prefers-color-scheme: light)").matches) return theme;
+  return { ...theme, mode: "light", colors: LIGHT };
+}
+
 export function applyTokens(tokens: Tokens, mode: string, animations: boolean) {
   const root = document.documentElement;
   for (const [k, v] of Object.entries(tokens)) root.style.setProperty(k, v);
