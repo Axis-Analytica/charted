@@ -56,14 +56,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # One app for Apple silicon and Intel Macs (DuckDB's library is universal).
           - os: macos-14
             triple: aarch64-apple-darwin
             lib: libduckdb.dylib
-            bundle: dmg/*.dmg
+            target: universal-apple-darwin
+            bundle: universal-apple-darwin/release/bundle/dmg/*.dmg
           - os: windows-latest
             triple: x86_64-pc-windows-msvc
             lib: duckdb.dll
-            bundle: msi/*.msi
+            bundle: release/bundle/msi/*.msi
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -72,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32-unknown-unknown${{ matrix.target && ',aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: taiki-e/install-action@v2
         with:
           tool: wasm-bindgen-cli@0.2.129
@@ -92,11 +94,12 @@ jobs:
       - name: Build
         run: |
           pnpm -C ui install --frozen-lockfile
-          cd src-tauri && ../ui/node_modules/.bin/tauri build
+          cd src-tauri && ../ui/node_modules/.bin/tauri build ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
       - name: Check the app finds DuckDB
         if: runner.os == 'macOS'
         run: |
-          app=target/release/bundle/macos/charted.app
+          app=target/universal-apple-darwin/release/bundle/macos/charted.app
+          lipo -info "$app/Contents/MacOS/charted" "$app/Contents/Frameworks/libduckdb.dylib"
           otool -L "$app/Contents/MacOS/charted" | grep -i duckdb
           otool -l "$app/Contents/MacOS/charted" | grep -A2 LC_RPATH
           ls "$app/Contents/Frameworks"
@@ -109,7 +112,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: installer-${{ matrix.os }}
-          path: target/release/bundle/${{ matrix.bundle }}
+          path: target/${{ matrix.bundle }}
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
