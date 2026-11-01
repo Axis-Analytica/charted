@@ -47,6 +47,7 @@ fn a_stand_in_agent_builds_a_page_through_the_socket() {
         }
     })
     .unwrap();
+    #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let mode = std::fs::metadata(host.socket())
@@ -133,7 +134,7 @@ fn a_stand_in_agent_builds_a_page_through_the_socket() {
             || chat.contains("\"claude\"")
     );
     host.shutdown();
-    assert!(!host.socket().exists());
+    assert!(!std::path::Path::new(host.socket()).exists());
 }
 
 /// The checkpoint with Claude Code itself (it uses the user's account):

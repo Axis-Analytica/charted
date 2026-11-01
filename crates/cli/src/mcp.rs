@@ -11,7 +11,6 @@ use charted_agent::tools::{self, Turn};
 use charted_core::api::{App, AppState, Request};
 use serde_json::{Value, json};
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::UnixStream;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -65,10 +64,10 @@ fn run(mut tools: impl FnMut(&str, &Value) -> Option<Value>) -> i32 {
 }
 
 /// Passes the tools through to the running window.
-pub fn serve(socket: &Path, token: &str) -> i32 {
-    let conn = match UnixStream::connect(socket) {
+pub fn serve(socket: &str, token: &str) -> i32 {
+    let conn = match charted_agent::transport::connect(socket) {
         Ok(c) => c,
-        Err(e) => return super::fail(format!("can't reach charted at {}: {e}", socket.display())),
+        Err(e) => return super::fail(format!("can't reach charted at {socket}: {e}")),
     };
     let mut to_app = conn.try_clone().expect("a socket clones");
     let mut from_app = BufReader::new(conn).lines();

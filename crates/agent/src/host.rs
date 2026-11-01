@@ -1,5 +1,6 @@
 //! The agent's side of the running app. It owns the control socket the agent's tools are
-//! served on (`$XDG_RUNTIME_DIR/charted/<pid>.sock`, for this user only), starts the
+//! served on (`$XDG_RUNTIME_DIR/charted/<pid>.sock`, for this user only; loopback TCP on
+//! Windows, see `transport`), starts the
 //! desktop's agent for each request, and keeps the conversation. The desktop shell and the
 //! development server each make one and pass on what it pushes to the window.
 
@@ -8,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{Sender, channel};
@@ -19,6 +19,7 @@ use crate::settings::{ProjectSettings, UserSettings};
 use crate::stream::{self, Event};
 use crate::tools::{self, Step, Turn};
 use crate::transcript::{Item, Transcript, TurnRecord, TurnStatus};
+use crate::transport::{self, Listener};
 
 /// The agent's refusals as API errors; `consent` asks the window for the user's consent.
 pub fn api_error(message: String) -> charted_core::ApiError {
@@ -237,7 +238,7 @@ struct Inner {
 pub struct Host {
     app: Arc<Mutex<App>>,
     emit: Box<dyn Fn(Push) + Send + Sync>,
-    socket: PathBuf,
+    socket: String,
     inner: Mutex<Inner>,
     me: Weak<Host>,
 }
@@ -346,45 +347,19 @@ fn token() -> String {
     )
 }
 
-fn alive(pid: i32) -> bool {
-    // SAFETY: signal 0 only checks that the process exists.
-    unsafe { libc::kill(pid, 0) == 0 }
-}
-
 impl Host {
     /// Starts the control socket. `emit` passes what the host pushes to the window.
     pub fn start(
         app: Arc<Mutex<App>>,
         emit: impl Fn(Push) + Send + Sync + 'static,
     ) -> std::io::Result<Arc<Host>> {
-        use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
         let state_dir = app
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .state_dir()
             .to_path_buf();
-        let dir = runtime_dir(&state_dir);
-        std::fs::DirBuilder::new()
-            .recursive(true)
-            .mode(0o700)
-            .create(&dir)?;
-        // Sockets of charted windows that have gone.
-        for e in std::fs::read_dir(&dir)?.flatten() {
-            let p = e.path();
-            if let Some(pid) = p
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .and_then(|s| s.parse::<i32>().ok())
-                && p.extension().is_some_and(|x| x == "sock")
-                && !alive(pid)
-            {
-                let _ = std::fs::remove_file(&p);
-            }
-        }
-        let socket = dir.join(format!("{}.sock", std::process::id()));
-        let _ = std::fs::remove_file(&socket);
-        let listener = UnixListener::bind(&socket)?;
-        std::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))?;
+        let listener = Listener::bind(&runtime_dir(&state_dir))?;
+        let socket = listener.address.clone();
         let host = Arc::new_cyclic(|me| Host {
             app,
             emit: Box::new(emit),
@@ -401,7 +376,7 @@ impl Host {
         });
         let weak = Arc::downgrade(&host);
         std::thread::spawn(move || {
-            for conn in listener.incoming().flatten() {
+            for conn in listener.incoming() {
                 let Some(h) = weak.upgrade() else { break };
                 std::thread::spawn(move || h.serve(conn));
             }
@@ -409,14 +384,15 @@ impl Host {
         Ok(host)
     }
 
-    pub fn socket(&self) -> &Path {
+    /// Where `charted mcp --socket` connects: a socket path, or `127.0.0.1:port`.
+    pub fn socket(&self) -> &str {
         &self.socket
     }
 
     /// Stops the agent and removes the socket (the app is closing).
     pub fn shutdown(&self) {
         self.stop();
-        let _ = std::fs::remove_file(&self.socket);
+        transport::remove(&self.socket);
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -841,7 +817,7 @@ impl Host {
         let mcp_args = vec![
             "mcp".to_string(),
             "--socket".to_string(),
-            self.socket.display().to_string(),
+            self.socket.clone(),
         ];
         let prompt = include_str!("prompt.md");
         let fake = std::env::var("CHARTED_AGENT_CMD")
@@ -967,11 +943,32 @@ impl Host {
             }
         }
         // Its own process group, so Stop reaches everything it started.
-        use std::os::unix::process::CommandExt;
-        cmd.process_group(0);
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW: no console window flashes up.
+            cmd.creation_flags(0x0000_0200 | 0x0800_0000);
+        }
         Ok(cmd)
     }
 
+    #[cfg(windows)]
+    fn kill(&self, child: &Arc<Mutex<Child>>) {
+        use std::os::windows::process::CommandExt;
+        let pid = child.lock().unwrap_or_else(|p| p.into_inner()).id();
+        // The whole tree: the agent and the tools it started.
+        let _ = Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &pid.to_string()])
+            .creation_flags(0x0800_0000)
+            .status();
+    }
+
+    #[cfg(unix)]
     fn kill(&self, child: &Arc<Mutex<Child>>) {
         let pid = child.lock().unwrap_or_else(|p| p.into_inner()).id() as i32;
         // SAFETY: signals the agent's own process group.
@@ -1078,7 +1075,7 @@ impl Host {
     }
 
     /// Serves one connection of `charted mcp`: `{"hello": token}`, then tool calls.
-    fn serve(self: Arc<Self>, conn: UnixStream) {
+    fn serve(self: Arc<Self>, conn: transport::Stream) {
         let Ok(read) = conn.try_clone() else { return };
         let mut out = conn;
         let mut lines = BufReader::new(read).lines();

@@ -101,8 +101,9 @@ pub enum Command {
     /// pane starts), the running window's tools; with --project, the tools on a project with
     /// no window open (saved after every change; the app can't open it meanwhile).
     Mcp {
+        /// The window's control socket: a path, or `127.0.0.1:port` on Windows.
         #[arg(long, env = "CHARTED_SOCKET", conflicts_with = "project")]
-        socket: Option<PathBuf>,
+        socket: Option<String>,
         #[arg(long)]
         project: Option<PathBuf>,
         /// Let the agent see rows and values (--project).
@@ -455,7 +456,14 @@ fn install_skill() -> std::io::Result<PathBuf> {
     std::fs::create_dir_all(&claude)?;
     let link = claude.join("charted");
     if link.symlink_metadata().is_err() {
+        // Windows needs developer mode for symlinks; a copy does as well there.
+        #[cfg(unix)]
         std::os::unix::fs::symlink(&dir, &link)?;
+        #[cfg(not(unix))]
+        {
+            std::fs::create_dir_all(&link)?;
+            std::fs::write(link.join("SKILL.md"), SKILL)?;
+        }
     }
     Ok(dir)
 }

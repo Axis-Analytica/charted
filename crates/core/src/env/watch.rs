@@ -6,9 +6,7 @@
 //! event, so they are polled through Hyprland's request socket (no process spawn).
 
 use notify::{RecursiveMode, Watcher};
-use std::io::{Read, Write};
-use std::os::unix::net::UnixStream;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -62,7 +60,17 @@ impl Drop for WatchHandle {
     }
 }
 
+/// Hyprland exists only on Linux; elsewhere there's nothing to ask.
+#[cfg(not(unix))]
+fn hypr_request(_cmd: &str) -> Option<serde_json::Value> {
+    None
+}
+
+#[cfg(unix)]
 fn hypr_request(cmd: &str) -> Option<serde_json::Value> {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+    use std::path::Path;
     let runtime = std::env::var_os("XDG_RUNTIME_DIR")?;
     let sig = std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE")?;
     let path = Path::new(&runtime)

@@ -92,8 +92,11 @@ fn initial_path(state: tauri::State<'_, Shared>) -> Option<String> {
 }
 
 #[tauri::command]
-async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
-    pick::pick(options).await.map_err(|message| ApiError {
+async fn pick(
+    app: tauri::AppHandle,
+    options: pick::PickOptions,
+) -> Result<Option<String>, ApiError> {
+    pick::pick(app, options).await.map_err(|message| ApiError {
         code: "portal".into(),
         message,
         detail: None,
@@ -111,15 +114,25 @@ fn open_issue(url: String) -> Result<(), ApiError> {
             detail: None,
         });
     }
+    open_url(&url).map_err(|e| ApiError {
+        code: "invalid".into(),
+        message: format!("couldn't open the browser: {e}"),
+        detail: None,
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn open_url(url: &str) -> Result<(), String> {
     std::process::Command::new("xdg-open")
-        .arg(&url)
+        .arg(url)
         .spawn()
         .map(|_| ())
-        .map_err(|e| ApiError {
-            code: "invalid".into(),
-            message: format!("couldn't open the browser: {e}"),
-            detail: None,
-        })
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn open_url(url: &str) -> Result<(), String> {
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -161,6 +174,7 @@ fn state_dir() -> PathBuf {
 fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<PathBuf>) {
     // The Wayland app id and X11 class come from the program name; it must match the
     // .desktop file so Hyprland and the launcher associate the window with charted.
+    #[cfg(target_os = "linux")]
     glib::set_prgname(Some("charted"));
     let initial = path.map(|p| std::fs::canonicalize(&p).unwrap_or(p).display().to_string());
     charted_core::crash::install_hook(state_dir());
@@ -172,7 +186,13 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         env: EnvPaths::from_env(),
     };
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Linux uses the desktop portal and xdg-open instead.
+    #[cfg(not(target_os = "linux"))]
+    let builder = builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init());
+    builder
         .manage(shared)
         .invoke_handler(tauri::generate_handler![
             rpc,

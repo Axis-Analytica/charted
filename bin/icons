@@ -11,4 +11,9 @@ r 64 src-tauri/icons/64x64.png
 r 128 src-tauri/icons/128x128.png
 r 256 src-tauri/icons/128x128@2x.png
 r 512 src-tauri/icons/icon.png
+# Windows (.ico) and macOS (.icns) from the largest PNG, through the Tauri CLI.
+tmp="$(mktemp -d)"
+ui/node_modules/.bin/tauri icon src-tauri/icons/icon.png -o "$tmp" >/dev/null
+cp "$tmp/icon.ico" "$tmp/icon.icns" src-tauri/icons/
+rm -rf "$tmp"
 echo "icons rendered from $svg"

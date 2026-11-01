@@ -26,6 +26,20 @@ pub fn schedule(handle: AppHandle, file: PathBuf) {
                 .unwrap_or(3000);
             std::thread::sleep(Duration::from_millis(after));
         }
+        snapshot(handle, file);
+    });
+}
+
+/// WKWebView and WebView2 snapshots aren't wired up yet.
+#[cfg(not(target_os = "linux"))]
+fn snapshot(handle: AppHandle, _file: PathBuf) {
+    eprintln!("charted: --screenshot is only available on Linux for now");
+    handle.exit(1);
+}
+
+#[cfg(target_os = "linux")]
+fn snapshot(handle: AppHandle, file: PathBuf) {
+    {
         let h = handle.clone();
         let _ = handle.run_on_main_thread(move || {
             let Some(window) = h.get_webview_window("main") else {
@@ -63,5 +77,5 @@ pub fn schedule(handle: AppHandle, file: PathBuf) {
                 );
             });
         });
-    });
+    }
 }
