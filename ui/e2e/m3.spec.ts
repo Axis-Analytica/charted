@@ -153,6 +153,8 @@ test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and A
   const rows = table.locator("tbody tr");
   await expect(rows.first()).toBeVisible();
   const cells = async (col: number) => (await rows.locator(`td:nth-child(${col})`).allTextContents()).map((s) => s.trim());
+  // Every column's numbers in (the table fills in as its query answers).
+  await expect.poll(async () => (await Promise.all([2, 3, 4].map(cells))).every((c) => c.length > 1 && c.every((v) => v !== ""))).toBe(true);
   const all = await cells(4);
   expect(new Set(all).size, "ALL ( 'Date' ) ignores the year").toBe(1);
   expect(await cells(3)).not.toEqual(await cells(2));
