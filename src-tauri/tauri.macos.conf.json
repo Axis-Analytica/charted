@@ -57,7 +57,8 @@
       "minimumSystemVersion": "11.0",
       "frameworks": [
         "lib/libduckdb.dylib"
-      ]
+      ],
+      "signingIdentity": "-"
     }
   }
 }
