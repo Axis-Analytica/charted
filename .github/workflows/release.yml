@@ -57,7 +57,7 @@ jobs:
       matrix:
         include:
           # One app for Apple silicon and Intel Macs (DuckDB's library is universal).
-          - os: macos-14
+          - os: macos-15
             triple: aarch64-apple-darwin
             lib: libduckdb.dylib
             target: universal-apple-darwin

@@ -61,6 +61,8 @@ test("clean stores_raw.csv, split and add a conditional column, merge into Store
   const pageBox = (await page.getByTestId("report-page").boundingBox())!;
   await page.mouse.click(pageBox.x + 100, pageBox.y + 100);
   await page.locator(".viz-gallery").getByRole("button", { name: "Slicer", exact: true }).click();
+  // Fields ticked before the new slicer is selected would make a table instead.
+  await expect(page.getByTestId("visual").and(page.locator(".is-selected"))).toHaveCount(1);
   const fields = page.locator(".fields-pane");
   const storeBtn = fields.locator(".field-table-btn", { hasText: /^Store$/ });
   if ((await storeBtn.locator("xpath=ancestor::li[1]").getAttribute("aria-expanded")) !== "true") await storeBtn.click();

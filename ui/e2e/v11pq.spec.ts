@@ -97,6 +97,8 @@ test("reference a query, transform it and apply", async ({ page }) => {
   const pageBox = (await page.getByTestId("report-page").boundingBox())!;
   await page.mouse.click(pageBox.x + 100, pageBox.y + 100);
   await page.locator(".viz-gallery").getByRole("button", { name: "Slicer", exact: true }).click();
+  // Fields ticked before the new slicer is selected would make a table instead.
+  await expect(page.getByTestId("visual").and(page.locator(".is-selected"))).toHaveCount(1);
   await tick(page, "Regions", "Region");
   const slicer = page.getByTestId("visual").filter({ has: page.locator(".slicer") });
   await expect(slicer.locator(".slicer-item", { hasText: "Americas" })).toBeVisible();

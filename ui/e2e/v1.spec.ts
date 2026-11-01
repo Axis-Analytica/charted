@@ -153,8 +153,7 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await expect(page.getByRole("menu", { name: "Sales growth" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await expect(fieldRow(page, "Sales", "Sales growth")).toHaveCount(0);
-  await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("ControlOrMeta+z");
+  await page.getByRole("button", { name: "Undo Delete measure" }).click();
   await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible();
 
   // New column goes to the Data view with the formula open.
