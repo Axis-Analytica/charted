@@ -32,7 +32,7 @@ test("welcome screen, shortcuts and command palette", async ({ page }) => {
   if (shots) await page.screenshot({ path: `${shots}/m0-shortcuts.png` });
   await page.keyboard.press("Escape");
 
-  await page.keyboard.press("Control+k");
+  await page.keyboard.press("ControlOrMeta+k");
   await expect(page.getByRole("dialog", { name: "Commands" })).toBeVisible();
   await page.keyboard.type("sample");
   await expect(page.getByRole("option", { name: /Open the sample project/ })).toBeVisible();
@@ -55,12 +55,12 @@ test("open the sample, preview tables, rename with undo/redo, save", async ({ pa
   await expect(table(page, "Clients")).toBeVisible();
   await expect(page.getByText("Unsaved changes").first()).toBeVisible();
 
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(table(page, "Customer")).toBeVisible();
-  await page.keyboard.press("Control+Shift+Z");
+  await page.keyboard.press("ControlOrMeta+Shift+Z");
   await expect(table(page, "Clients")).toBeVisible();
 
-  await page.keyboard.press("Control+s");
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText("All changes saved")).toBeVisible();
   const yaml = readFileSync(`${tmp}/docs/charted/Harbor & Pine/model.ossie.yaml`, "utf8");
   // Datasets are top-level list items; the table's own "Customer" column stays.

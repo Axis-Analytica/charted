@@ -32,6 +32,8 @@ export interface Transport {
   pick(options: PickOptions): Promise<string | null>;
   /** Paths passed on the command line (`charted open <path>`), consumed once. */
   initialPath(): Promise<string | null>;
+  /** A file to open arrived while running (macOS's Finder); read it with initialPath. */
+  onOpenFile?(callback: () => void): () => void;
   quit(): Promise<void>;
   /** Opens a new GitHub issue for charted (a crash report) in the browser. */
   openIssue(url: string): Promise<void>;

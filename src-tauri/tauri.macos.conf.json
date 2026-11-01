@@ -1,0 +1,64 @@
+{
+  "build": {
+    "beforeBuildCommand": {
+      "script": "pnpm build:any",
+      "cwd": "../ui"
+    }
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "charted",
+        "width": 1600,
+        "height": 1000,
+        "minWidth": 900,
+        "minHeight": 600,
+        "decorations": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "charted"
+        ],
+        "name": "charted project",
+        "description": "charted project",
+        "role": "Editor",
+        "mimeType": "application/x-charted"
+      },
+      {
+        "ext": [
+          "chartedz"
+        ],
+        "name": "charted bundle",
+        "description": "charted bundle",
+        "role": "Editor",
+        "mimeType": "application/x-charted-bundle"
+      },
+      {
+        "ext": [
+          "pbip"
+        ],
+        "name": "Power BI project",
+        "description": "Power BI project",
+        "role": "Editor",
+        "mimeType": "application/x-powerbi-project"
+      }
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "frameworks": [
+        "lib/libduckdb.dylib"
+      ],
+      "signingIdentity": "-"
+    }
+  }
+}

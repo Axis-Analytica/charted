@@ -15,3 +15,11 @@ rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN/../duckdb-download/aarch64-unkno
 
 [target.x86_64-unknown-linux-gnu]
 rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN/../duckdb-download/x86_64-unknown-linux-gnu/v2.0.0:$ORIGIN/../lib/charted"]
+
+# macOS: the same from target/{debug,release}, and the app bundle's Frameworks folder
+# where the .app carries libduckdb.dylib.
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-rpath,@executable_path/../duckdb-download/aarch64-apple-darwin/v2.0.0", "-C", "link-arg=-Wl,-rpath,@executable_path/../Frameworks"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-Wl,-rpath,@executable_path/../duckdb-download/x86_64-apple-darwin/v2.0.0", "-C", "link-arg=-Wl,-rpath,@executable_path/../Frameworks"]

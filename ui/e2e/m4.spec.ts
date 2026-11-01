@@ -72,7 +72,7 @@ async function dropInWell(page: Page, table: string, field: string, role: string
 }
 
 /** Clicks a bar (by category index) of a column chart, through the chart's own geometry. */
-async function clickBar(page: Page, visual: Locator, index: number, modifiers: ("Control" | "Shift")[] = []) {
+async function clickBar(page: Page, visual: Locator, index: number, modifiers: ("ControlOrMeta" | "Shift")[] = []) {
   const chart = visual.locator(".cartesian");
   const probe = () =>
     chart.evaluate((el, i) => {
@@ -82,7 +82,11 @@ async function clickBar(page: Page, visual: Locator, index: number, modifiers: (
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const v = c.getOption().series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       // Chart pixels are before the canvas zoom; the bounding box is after it.
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       const px = c.convertToPixel({ seriesIndex: 0 }, [i, v / 2]);
@@ -155,7 +159,7 @@ test("cross-filter, highlight, Ctrl-click, slicers and edit interactions", async
   await shot(page, "m4-02-cross-filter");
 
   // Ctrl-click a second column: the selection grows.
-  await clickBar(page, column, 1, ["Control"]);
+  await clickBar(page, column, 1, ["ControlOrMeta"]);
   await expect.poll(() => cardMillions(card)).toBeGreaterThan(one);
   await expect(matrix.locator(".matrix-row-head")).toHaveCount(3);
   await shot(page, "m4-03-ctrl-click");
@@ -198,7 +202,7 @@ test("cross-filter, highlight, Ctrl-click, slicers and edit interactions", async
   expect(sliced).toBeLessThan(total);
 
   // Undo brings the interaction back; the slicer choice is undoable too.
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => cardMillions(card)).toBeCloseTo(sliced, 1);
   await slicer.getByRole("button", { name: "Clear selections" }).click();
   await expect.poll(() => cardMillions(card)).toBeCloseTo(total, 1);

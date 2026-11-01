@@ -146,12 +146,12 @@ test("a calculation group: each item applied to a measure", async ({ page }) => 
   const editor = dialog.locator(".dax-editor");
   await expect(dialog.locator(".monaco-editor .view-lines")).toContainText("SELECTEDMEASURE");
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   // SELECTEDMEASURE works here; a misspelt function is underlined.
   await page.keyboard.type("SELECTEDMEASURES ( ) * 2");
   await expect(dialog.locator(".squiggly-error")).toBeVisible({ timeout: 15_000 });
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   await page.keyboard.type("SELECTEDMEASURE ( ) * 2");
   await expect(dialog.locator(".squiggly-error")).toHaveCount(0, { timeout: 15_000 });
@@ -169,8 +169,9 @@ test("a calculation group: each item applied to a measure", async ({ page }) => 
   await expect(rows).toHaveCount(2, { timeout: 15_000 });
   await expect(rows.locator("td:first-child")).toHaveText(["Base", "Double"]);
   const num = async (cell: Locator) => Number((await cell.textContent())!.replace(/[^\d.-]/g, ""));
+  // The Units column arrives after the names on a slow machine.
+  await expect.poll(() => num(rows.nth(0).locator("td").nth(1)), { timeout: 15_000 }).toBeGreaterThan(0);
   const base = await num(rows.nth(0).locator("td").nth(1));
-  expect(base).toBeGreaterThan(0);
   expect(await num(rows.nth(1).locator("td").nth(1))).toBe(base * 2);
   expect(await num(table.locator("tfoot td").nth(1))).toBe(base);
   if (shots) await page.screenshot({ path: `${shots}/v14-06-calculation-group.png` });

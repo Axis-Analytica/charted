@@ -66,6 +66,24 @@ charted then appears in the launcher (Super+Space) and opens `.charted` projects
 `.chartedz` bundles and Power BI `.pbip` files. The release tarballs and their checksums
 are on the [releases page](https://github.com/Axis-Analytica/charted/releases).
 
+### macOS and Windows (preview)
+
+charted also runs on macOS (Apple silicon and Intel) and Windows 10/11. Download the
+`.dmg` or the `.msi` from the [latest release](https://github.com/Axis-Analytica/charted/releases/latest).
+These builds aren't signed yet, so the system warns the first time:
+
+- **macOS:** open the `.dmg` and drag charted into Applications. If macOS says it
+  can't verify the developer, open System Settings → Privacy & Security and choose
+  **Open Anyway**. If it says charted "is damaged", run
+  `xattr -dr com.apple.quarantine /Applications/charted.app` in Terminal once.
+- **Windows:** run the `.msi`. If SmartScreen stops it, choose **More info → Run
+  anyway**.
+
+On macOS and Windows, charted follows the system's light or dark mode and language,
+and PDF export goes through the system's print dialog (choose "Save as PDF"). The
+agent needs [Claude Code](https://claude.com/claude-code) or Codex installed and signed
+in once from a terminal.
+
 ## What works today
 
 **The app**

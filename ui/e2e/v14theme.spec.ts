@@ -53,7 +53,7 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
 const seriesColor = (chart: Locator) =>
   chart
     .locator(".cartesian")
-    .evaluate((el) => String((el as unknown as { chart: { getOption(): { series: { data?: { itemStyle?: { color?: unknown } }[] }[] } } }).chart.getOption().series[0]?.data?.[0]?.itemStyle?.color ?? "").toLowerCase());
+    .evaluate((el) => String((el as unknown as { chart?: { getOption(): { series: { data?: { itemStyle?: { color?: unknown } }[] }[] } } }).chart?.getOption().series[0]?.data?.[0]?.itemStyle?.color ?? "").toLowerCase());
 const titleSize = (chart: Locator) => chart.locator(".visual-title").evaluate((el) => getComputedStyle(el).fontSize);
 
 test.setTimeout(180_000);
@@ -97,7 +97,7 @@ test("theme editor: live preview of colours and title size, one undo step", asyn
 
   // One undo step brings the old theme back.
   await page.locator(".report-center").click({ position: { x: 5, y: 5 } });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => seriesColor(chart)).toBe(before);
   await expect.poll(() => titleSize(chart)).toBe(beforeSize);
 

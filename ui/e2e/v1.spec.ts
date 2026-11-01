@@ -73,6 +73,7 @@ test.setTimeout(240_000);
 test.use({ actionTimeout: 15_000 });
 
 test("search visuals and slicers, and the Fields pane's menu: quick measures, rename, hide, delete", async ({ page }) => {
+  test.setTimeout(120_000);
   await openSample(page);
   await newPage(page, "Search");
 
@@ -99,13 +100,26 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   const items = slicer.locator(".slicer-item[role=option] span");
   await expect(items.first()).toBeVisible();
   await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
+  // Wait for the core's answer (and the visual's reload): until then only matches among
+  // the first 5,000 are listed.
+  await expect(slicer.locator("[data-search-pending]")).toHaveCount(0);
+  await expect(slicer).not.toHaveAttribute("data-loading");
+  await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
   const found = await items.count();
   await slicer.getByText("Select all results").click();
-  await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found);
+  // Selecting thousands of values redraws the whole list: slow on a slow machine.
+  await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found, { timeout: 30_000 });
   await expect(slicer.getByRole("button", { name: "Clear selections" })).toBeVisible();
   await shot(page, "v1-01-slicer-search");
   await box.fill("");
   await expect(slicer.getByText("Select all", { exact: true })).toBeVisible();
+  // Done with it: a slicer holding thousands of values makes every later change re-run
+  // the page's queries under that filter, which slows the rest of the test a lot.
+  await slicer.getByRole("button", { name: "Clear selections" }).click();
+  await slicer.hover();
+  await slicer.getByRole("button", { name: "More options" }).click();
+  await slicer.getByRole("menuitem", { name: "Remove" }).click();
+  await expect(page.getByTestId("visual").filter({ has: page.locator(".slicer") })).toHaveCount(0);
 
   // Right-click a table: a quick measure.
   await expandTable(page, "Sales");
@@ -119,8 +133,11 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await dialog.getByRole("combobox", { name: "Value" }).selectOption({ label: "Total Sales" });
   await expect(dialog.locator(".quick-dax")).toContainText("SAMEPERIODLASTYEAR");
   await shot(page, "v1-03-quick-measure");
-  await dialog.getByRole("button", { name: "Add" }).click();
-  await expect(dialog).toBeHidden();
+  // Pressed once only (a second press would add a second measure), once it's ready.
+  const add = dialog.getByRole("button", { name: "Add" });
+  await expect(add).toBeEnabled();
+  await add.click();
+  await expect(dialog).toBeHidden({ timeout: 15_000 });
   await expect(fieldRow(page, "Sales", "Total Sales YoY %")).toBeVisible();
   await expect(page.locator(".formula-bar")).toBeVisible();
 
@@ -145,9 +162,13 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await expect(page.getByRole("menu", { name: "Sales growth" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await expect(fieldRow(page, "Sales", "Sales growth")).toHaveCount(0);
-  await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+z");
-  await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible();
+  // A press can be lost while the closing menu hands back focus (seen on Windows):
+  // press again until it takes, which the button's own name shows.
+  await expect(async () => {
+    const undo = page.getByRole("button", { name: "Undo Delete measure" });
+    if (await undo.count()) await undo.click({ timeout: 1000 });
+    await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible({ timeout: 1000 });
+  }).toPass();
 
   // New column goes to the Data view with the formula open.
   await fieldsPane(page).locator(".field-table-btn", { hasText: /^Product$/ }).click({ button: "right" });
@@ -162,7 +183,7 @@ test("a Western European, semicolon-separated CSV reads right, and its settings 
   const file = `${tmpdir()}/charted-e2e-prices.csv`;
   writeFileSync(file, Buffer.from("Produit;Prix\nCafé crème;2,50\nThé glacé;1.234,75\n", "latin1"));
   await openSample(page);
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await expect(page.locator(".qe")).toBeVisible();
   await pick(page, file);
   await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();

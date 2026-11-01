@@ -92,8 +92,11 @@ fn initial_path(state: tauri::State<'_, Shared>) -> Option<String> {
 }
 
 #[tauri::command]
-async fn pick(options: pick::PickOptions) -> Result<Option<String>, ApiError> {
-    pick::pick(options).await.map_err(|message| ApiError {
+async fn pick(
+    app: tauri::AppHandle,
+    options: pick::PickOptions,
+) -> Result<Option<String>, ApiError> {
+    pick::pick(app, options).await.map_err(|message| ApiError {
         code: "portal".into(),
         message,
         detail: None,
@@ -111,15 +114,25 @@ fn open_issue(url: String) -> Result<(), ApiError> {
             detail: None,
         });
     }
+    open_url(&url).map_err(|e| ApiError {
+        code: "invalid".into(),
+        message: format!("couldn't open the browser: {e}"),
+        detail: None,
+    })
+}
+
+#[cfg(target_os = "linux")]
+fn open_url(url: &str) -> Result<(), String> {
     std::process::Command::new("xdg-open")
-        .arg(&url)
+        .arg(url)
         .spawn()
         .map(|_| ())
-        .map_err(|e| ApiError {
-            code: "invalid".into(),
-            message: format!("couldn't open the browser: {e}"),
-            detail: None,
-        })
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(not(target_os = "linux"))]
+fn open_url(url: &str) -> Result<(), String> {
+    tauri_plugin_opener::open_url(url, None::<&str>).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -151,18 +164,22 @@ async fn spike_arrow(rows: u64) -> Result<Response, String> {
 }
 
 fn state_dir() -> PathBuf {
-    std::env::var_os("XDG_STATE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/state")))
-        .unwrap_or_else(std::env::temp_dir)
-        .join("charted")
+    charted_core::os::state_dir()
 }
 
 fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<PathBuf>) {
     // The Wayland app id and X11 class come from the program name; it must match the
     // .desktop file so Hyprland and the launcher associate the window with charted.
+    #[cfg(target_os = "linux")]
     glib::set_prgname(Some("charted"));
-    let initial = path.map(|p| std::fs::canonicalize(&p).unwrap_or(p).display().to_string());
+    #[cfg(target_os = "macos")]
+    login_path();
+    let initial = path.map(|p| {
+        charted_core::os::canonicalize(&p)
+            .unwrap_or(p)
+            .display()
+            .to_string()
+    });
     charted_core::crash::install_hook(state_dir());
     let app = Arc::new(Mutex::new(App::new(state_dir())));
     let shared = Shared {
@@ -172,7 +189,13 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         env: EnvPaths::from_env(),
     };
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // Linux uses the desktop portal and xdg-open instead.
+    #[cfg(not(target_os = "linux"))]
+    let builder = builder
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init());
+    builder
         .manage(shared)
         .invoke_handler(tauri::generate_handler![
             rpc,
@@ -185,6 +208,7 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
             open_issue,
             spike_arrow,
             pdf::print_pdf,
+            pdf::print_dialog,
             pdf::exit_with
         ])
         .setup(move |tauri_app| {
@@ -232,6 +256,19 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
         .build(tauri::generate_context!())
         .expect("error while building charted")
         .run(|app_handle, event| {
+            // macOS hands files opened from the Finder to the running app, not as
+            // arguments; the UI opens the next one it takes from initial_path.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Opened { urls } = &event
+                && let Some(path) = urls.iter().find_map(|u| u.to_file_path().ok())
+            {
+                *app_handle
+                    .state::<Shared>()
+                    .initial
+                    .lock()
+                    .unwrap_or_else(|p| p.into_inner()) = Some(path.display().to_string());
+                let _ = app_handle.emit("open-file", ());
+            }
             // Let queries still running on other threads finish (or stop) before the
             // process exits and DuckDB's static data goes away.
             if let tauri::RunEvent::Exit = event {
@@ -247,6 +284,66 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
                 charted_core::api::shutdown(std::time::Duration::from_secs(3));
             }
         });
+}
+
+/// Apps opened from the Finder get launchd's short PATH, without Homebrew or
+/// `~/.local/bin` where the agents are installed. Take the one an interactive login
+/// shell has (installers add to `~/.zshrc`, which a non-interactive shell skips), and
+/// add the usual install folders in case the shell's setup fails or is slow.
+#[cfg(target_os = "macos")]
+fn login_path() {
+    use std::io::Read;
+    use std::time::{Duration, Instant};
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
+    let mut from_shell = None;
+    // Markers, since an interactive shell's setup may print its own text.
+    if let Ok(mut child) = std::process::Command::new(&shell)
+        .args(["-l", "-i", "-c", "printf '__PATH__%s__PATH__' \"$PATH\""])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    {
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_secs(3) {
+            if let Ok(Some(_)) = child.try_wait() {
+                let mut out = String::new();
+                if let Some(mut s) = child.stdout.take() {
+                    let _ = s.read_to_string(&mut out);
+                }
+                from_shell = out.split("__PATH__").nth(1).map(str::to_string);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let _ = child.kill();
+    }
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    for p in [from_shell, std::env::var("PATH").ok()]
+        .into_iter()
+        .flatten()
+    {
+        dirs.extend(std::env::split_paths(&p));
+    }
+    if let Some(home) = charted_core::os::home_dir() {
+        for d in [
+            ".local/bin",
+            ".claude/local",
+            ".npm-global/bin",
+            ".bun/bin",
+            ".volta/bin",
+            ".cargo/bin",
+        ] {
+            dirs.push(home.join(d));
+        }
+    }
+    dirs.extend(["/opt/homebrew/bin", "/usr/local/bin"].map(std::path::PathBuf::from));
+    let mut seen = std::collections::HashSet::new();
+    dirs.retain(|d| !d.as_os_str().is_empty() && seen.insert(d.clone()));
+    if let Ok(path) = std::env::join_paths(dirs) {
+        // SAFETY: still single-threaded, before Tauri starts.
+        unsafe { std::env::set_var("PATH", path) };
+    }
 }
 
 fn main() {

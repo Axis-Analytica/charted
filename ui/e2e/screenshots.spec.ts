@@ -1,6 +1,7 @@
 // The README's screenshots (bin/screenshots): the projects the checkpoint tests built,
 // opened in Chromium against the real core with the desktop's Omarchy theme. Skipped
 // unless CHARTED_README_SHOTS names the folder to write them to.
+import { fileURLToPath } from "node:url";
 import { cpSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { expect, type Page, test } from "@playwright/test";
@@ -69,13 +70,13 @@ test("README screenshots", async ({ page }) => {
   await shot(page, "dax");
   await page.keyboard.press("Escape");
 
-  await page.keyboard.press("Control+3");
+  await page.keyboard.press("ControlOrMeta+3");
   await page.waitForTimeout(2500);
   await shot(page, "model");
 
   // Transform data: cleaning a messy file.
   await open(page, "m5");
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await expect(page.locator(".qe")).toBeVisible();
   await page.locator(".qe-query", { hasText: "stores_raw" }).first().click();
   await page.waitForTimeout(2500);
@@ -83,10 +84,10 @@ test("README screenshots", async ({ page }) => {
 
   // Importing a Power BI project, with its report of what didn't come across (from a
   // copy, so the paths shown are neutral).
-  await page.keyboard.press("Control+1");
+  await page.keyboard.press("ControlOrMeta+1");
   await closeProject(page);
   const contoso = `${mkdtempSync(`${tmpdir()}/charted-shots-`)}/Contoso`;
-  cpSync(new URL("../../crates/core/tests/fixtures/Contoso", import.meta.url).pathname, contoso, { recursive: true });
+  cpSync(fileURLToPath(new URL("../../crates/core/tests/fixtures/Contoso", import.meta.url)), contoso, { recursive: true });
   await pick(page, `${contoso}/Contoso.pbip`);
   await page.getByRole("button", { name: "Open a bundle or Power BI project…" }).click();
   await expect(page.getByRole("dialog", { name: /^Imported/ })).toBeVisible({ timeout: 60_000 });

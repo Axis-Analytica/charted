@@ -61,6 +61,8 @@ test("clean stores_raw.csv, split and add a conditional column, merge into Store
   const pageBox = (await page.getByTestId("report-page").boundingBox())!;
   await page.mouse.click(pageBox.x + 100, pageBox.y + 100);
   await page.locator(".viz-gallery").getByRole("button", { name: "Slicer", exact: true }).click();
+  // Fields ticked before the new slicer is selected would make a table instead.
+  await expect(page.getByTestId("visual").and(page.locator(".is-selected"))).toHaveCount(1);
   const fields = page.locator(".fields-pane");
   const storeBtn = fields.locator(".field-table-btn", { hasText: /^Store$/ });
   if ((await storeBtn.locator("xpath=ancestor::li[1]").getAttribute("aria-expanded")) !== "true") await storeBtn.click();
@@ -69,7 +71,7 @@ test("clean stores_raw.csv, split and add a conditional column, merge into Store
   await expect(slicer.locator(".slicer-item", { hasText: "North America" })).toBeVisible();
 
   // Transform data.
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await expect(page.locator(".qe-query")).toHaveCount(6);
   await shot(page, "m5-01-editor");
 
@@ -131,9 +133,9 @@ test("clean stores_raw.csv, split and add a conditional column, merge into Store
   await shot(page, "m5-03-cleaned");
 
   // Undo and redo the last step; select an earlier step; drag a step up.
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(header(page, "size band")).toHaveCount(0);
-  await page.keyboard.press("Control+Shift+z");
+  await page.keyboard.press("ControlOrMeta+Shift+z");
   await expect(header(page, "size band")).toBeVisible();
   await steps(page).filter({ hasText: "Removed Duplicates" }).click();
   await expect(header(page, "location.1")).toHaveCount(0);
@@ -179,7 +181,7 @@ test("clean stores_raw.csv, split and add a conditional column, merge into Store
 
 test("Get Data from Excel, see a source change and refresh", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await pick(page, `${project}/data/targets.xlsx`);
   await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();
   await page.getByRole("menuitem", { name: "Excel workbook" }).click();

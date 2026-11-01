@@ -1,5 +1,6 @@
 //! The agent's side of the running app. It owns the control socket the agent's tools are
-//! served on (`$XDG_RUNTIME_DIR/charted/<pid>.sock`, for this user only), starts the
+//! served on (`$XDG_RUNTIME_DIR/charted/<pid>.sock`, for this user only; loopback TCP on
+//! Windows, see `transport`), starts the
 //! desktop's agent for each request, and keeps the conversation. The desktop shell and the
 //! development server each make one and pass on what it pushes to the window.
 
@@ -8,7 +9,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{Sender, channel};
@@ -19,6 +19,7 @@ use crate::settings::{ProjectSettings, UserSettings};
 use crate::stream::{self, Event};
 use crate::tools::{self, Step, Turn};
 use crate::transcript::{Item, Transcript, TurnRecord, TurnStatus};
+use crate::transport::{self, Listener};
 
 /// The agent's refusals as API errors; `consent` asks the window for the user's consent.
 pub fn api_error(message: String) -> charted_core::ApiError {
@@ -183,9 +184,92 @@ fn terminal_command(agent: &str, prompt: &str) -> Option<Vec<String>> {
     })
 }
 
+/// Runs `cmd` in a new terminal window, in `dir`. On Linux in Omarchy's terminal for
+/// agents (not Omarchy's default agent, which omarchy-agent-prompt would start), else the
+/// desktop's default terminal.
+#[cfg(target_os = "linux")]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    let mut launch = if on_path("omarchy-launch-tui") {
+        let mut c = Command::new("omarchy-launch-tui");
+        c.arg("--app-id=org.omarchy.agent");
+        c
+    } else {
+        let mut c = Command::new("xdg-terminal-exec");
+        c.arg("-e");
+        c
+    };
+    launch.args(cmd).current_dir(dir).spawn().map(drop)
+}
+
+/// On macOS in Terminal, through a script it opens (Terminal takes no command line).
+#[cfg(target_os = "macos")]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let quote = |s: &str| format!("'{}'", s.replace('\'', "'\\''"));
+    let line: Vec<String> = cmd.iter().map(|a| quote(a)).collect();
+    let script = dir.join("charted-agent.command");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\ncd {} && exec {}\n",
+            quote(&dir.display().to_string()),
+            line.join(" ")
+        ),
+    )?;
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755))?;
+    Command::new("open")
+        .args(["-a", "Terminal"])
+        .arg(&script)
+        .spawn()
+        .map(drop)
+}
+
+/// On Windows in a console window of its own (Windows Terminal, where it is the default).
+#[cfg(windows)]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+    let (first, rest) = cmd
+        .split_first()
+        .ok_or_else(|| std::io::Error::other("no command"))?;
+    program(first)
+        .args(rest)
+        .current_dir(dir)
+        .creation_flags(CREATE_NEW_CONSOLE)
+        .spawn()
+        .map(drop)
+}
+
 fn on_path(cmd: &str) -> bool {
-    std::env::var_os("PATH")
-        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(cmd).is_file()))
+    charted_core::os::find_program(cmd).is_some()
+}
+
+/// Starts `cmd` from PATH, by its full path. On Windows an npm `.cmd` shim is skipped
+/// for the node script it runs, since cmd.exe mangles arguments with line breaks (the
+/// agent's instructions).
+fn program(cmd: &str) -> Command {
+    let Some(path) = charted_core::os::find_program(cmd) else {
+        return Command::new(cmd);
+    };
+    if cfg!(windows)
+        && path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("cmd"))
+        && let Some(dir) = path.parent()
+        && let Ok(shim) = std::fs::read_to_string(&path)
+        && let Some(script) = charted_core::os::npm_shim_script(&shim, dir)
+        && script.is_file()
+    {
+        let node = Some(dir.join("node.exe"))
+            .filter(|n| n.is_file())
+            .or_else(|| charted_core::os::find_program("node"));
+        if let Some(node) = node {
+            let mut c = Command::new(node);
+            c.arg(script);
+            return c;
+        }
+    }
+    Command::new(path)
 }
 
 /// The agents installed. `CHARTED_AGENT_CMD` (the tests' stand-in) is Claude Code.
@@ -208,10 +292,16 @@ pub fn installed() -> Vec<AgentInfo> {
 }
 
 /// Omarchy's default agent, when one is set.
+#[cfg(target_os = "linux")]
 fn omarchy_default() -> Option<String> {
     let out = Command::new("omarchy-default-agent").output().ok()?;
     let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
     (!s.is_empty()).then_some(s)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn omarchy_default() -> Option<String> {
+    None
 }
 
 struct Running {
@@ -237,7 +327,7 @@ struct Inner {
 pub struct Host {
     app: Arc<Mutex<App>>,
     emit: Box<dyn Fn(Push) + Send + Sync>,
-    socket: PathBuf,
+    socket: String,
     inner: Mutex<Inner>,
     me: Weak<Host>,
 }
@@ -346,45 +436,19 @@ fn token() -> String {
     )
 }
 
-fn alive(pid: i32) -> bool {
-    // SAFETY: signal 0 only checks that the process exists.
-    unsafe { libc::kill(pid, 0) == 0 }
-}
-
 impl Host {
     /// Starts the control socket. `emit` passes what the host pushes to the window.
     pub fn start(
         app: Arc<Mutex<App>>,
         emit: impl Fn(Push) + Send + Sync + 'static,
     ) -> std::io::Result<Arc<Host>> {
-        use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
         let state_dir = app
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .state_dir()
             .to_path_buf();
-        let dir = runtime_dir(&state_dir);
-        std::fs::DirBuilder::new()
-            .recursive(true)
-            .mode(0o700)
-            .create(&dir)?;
-        // Sockets of charted windows that have gone.
-        for e in std::fs::read_dir(&dir)?.flatten() {
-            let p = e.path();
-            if let Some(pid) = p
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .and_then(|s| s.parse::<i32>().ok())
-                && p.extension().is_some_and(|x| x == "sock")
-                && !alive(pid)
-            {
-                let _ = std::fs::remove_file(&p);
-            }
-        }
-        let socket = dir.join(format!("{}.sock", std::process::id()));
-        let _ = std::fs::remove_file(&socket);
-        let listener = UnixListener::bind(&socket)?;
-        std::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))?;
+        let listener = Listener::bind(&runtime_dir(&state_dir))?;
+        let socket = listener.address.clone();
         let host = Arc::new_cyclic(|me| Host {
             app,
             emit: Box::new(emit),
@@ -401,7 +465,7 @@ impl Host {
         });
         let weak = Arc::downgrade(&host);
         std::thread::spawn(move || {
-            for conn in listener.incoming().flatten() {
+            for conn in listener.incoming() {
                 let Some(h) = weak.upgrade() else { break };
                 std::thread::spawn(move || h.serve(conn));
             }
@@ -409,14 +473,15 @@ impl Host {
         Ok(host)
     }
 
-    pub fn socket(&self) -> &Path {
+    /// Where `charted mcp --socket` connects: a socket path, or `127.0.0.1:port`.
+    pub fn socket(&self) -> &str {
         &self.socket
     }
 
     /// Stops the agent and removes the socket (the app is closing).
     pub fn shutdown(&self) {
         self.stop();
-        let _ = std::fs::remove_file(&self.socket);
+        transport::remove(&self.socket);
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -841,7 +906,7 @@ impl Host {
         let mcp_args = vec![
             "mcp".to_string(),
             "--socket".to_string(),
-            self.socket.display().to_string(),
+            self.socket.clone(),
         ];
         let prompt = include_str!("prompt.md");
         let fake = std::env::var("CHARTED_AGENT_CMD")
@@ -857,7 +922,7 @@ impl Host {
                         c.args(parts);
                         c
                     }
-                    None => Command::new("claude"),
+                    None => program("claude"),
                 };
                 c.args(["-p", "--output-format", "stream-json", "--verbose"])
                     .arg("--mcp-config")
@@ -889,7 +954,7 @@ impl Host {
                 c
             }
             ("codex", _) => {
-                let mut c = Command::new("codex");
+                let mut c = program("codex");
                 c.arg("exec");
                 if let Some(s) = &session {
                     c.args(["resume", s]);
@@ -956,7 +1021,8 @@ impl Host {
         } else {
             "CLAUDE_CONFIG_DIR"
         };
-        if std::env::var_os(home_env).is_none()
+        if cfg!(target_os = "linux")
+            && std::env::var_os(home_env).is_none()
             && let Ok(out) = Command::new("omarchy-agent-account-home")
                 .arg(agent)
                 .output()
@@ -967,11 +1033,32 @@ impl Host {
             }
         }
         // Its own process group, so Stop reaches everything it started.
-        use std::os::unix::process::CommandExt;
-        cmd.process_group(0);
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0);
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            // CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW: no console window flashes up.
+            cmd.creation_flags(0x0000_0200 | 0x0800_0000);
+        }
         Ok(cmd)
     }
 
+    #[cfg(windows)]
+    fn kill(&self, child: &Arc<Mutex<Child>>) {
+        use std::os::windows::process::CommandExt;
+        let pid = child.lock().unwrap_or_else(|p| p.into_inner()).id();
+        // The whole tree: the agent and the tools it started.
+        let _ = Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &pid.to_string()])
+            .creation_flags(0x0800_0000)
+            .status();
+    }
+
+    #[cfg(unix)]
     fn kill(&self, child: &Arc<Mutex<Child>>) {
         let pid = child.lock().unwrap_or_else(|p| p.into_inner()).id() as i32;
         // SAFETY: signals the agent's own process group.
@@ -1058,27 +1145,11 @@ impl Host {
         };
         let cmd = terminal_command(&agent, &prompt)
             .ok_or_else(|| format!("{agent} can't be opened from charted"))?;
-        // The agent picked in the pane, in Omarchy's terminal for agents (not Omarchy's
-        // default agent, which omarchy-agent-prompt would start).
-        let mut launch = if on_path("omarchy-launch-tui") {
-            let mut c = Command::new("omarchy-launch-tui");
-            c.arg("--app-id=org.omarchy.agent");
-            c
-        } else {
-            let mut c = Command::new("xdg-terminal-exec");
-            c.arg("-e");
-            c
-        };
-        launch
-            .args(&cmd)
-            .current_dir(&work)
-            .spawn()
-            .map_err(|e| format!("couldn't open a terminal: {e}"))?;
-        Ok(())
+        open_terminal(&cmd, &work).map_err(|e| format!("couldn't open a terminal: {e}"))
     }
 
     /// Serves one connection of `charted mcp`: `{"hello": token}`, then tool calls.
-    fn serve(self: Arc<Self>, conn: UnixStream) {
+    fn serve(self: Arc<Self>, conn: transport::Stream) {
         let Ok(read) = conn.try_clone() else { return };
         let mut out = conn;
         let mut lines = BufReader::new(read).lines();

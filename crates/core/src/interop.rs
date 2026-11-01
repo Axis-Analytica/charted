@@ -77,7 +77,10 @@ pub struct PbipOptions {
 fn copy_data(project: &Project, dir: &Path) -> Result<(), ProjectError> {
     for q in &project.queries {
         let path = q.source.path();
-        if !q.source.is_file() || path.is_empty() || path.starts_with('/') {
+        if !q.source.is_file()
+            || path.is_empty()
+            || charted_compiler::steps::is_absolute_path(&path)
+        {
             continue;
         }
         let from = project.dir.join(&path);

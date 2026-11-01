@@ -102,8 +102,11 @@ async function barAt(visual: Locator, index: number): Promise<{ x: number; y: nu
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const o = c.getOption();
-      const v = o.series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];
       const px = c.convertToPixel({ seriesIndex: 0 }, point);
@@ -157,11 +160,12 @@ test("new chart types: 100% stacked, combo, waterfall, funnel, treemap, gauge, K
   const comboOpt = await option(combo);
   expect(comboOpt.yAxis.length).toBe(2);
   expect(comboOpt.series[1]!.yAxisIndex).toBe(1);
+  // Read the line once its numbers are in, and again once the split has redrawn.
+  await expect.poll(async () => (await values(combo, 1)).length > 0 && (await values(combo, 1)).every((v) => v !== null)).toBe(true);
   const units = await values(combo, 1);
   await dropInWell(page, "Store", "Channel", "series");
   await expect.poll(async () => (await option(combo)).series.filter((s) => s.type === "bar").length).toBeGreaterThan(1);
-  const split = await option(combo);
-  expect(split.series.find((s) => s.type === "line")!.data.map(num)).toEqual(units);
+  await expect.poll(async () => (await option(combo)).series.find((s) => s.type === "line")?.data.map(num)).toEqual(units);
   await shot(page, "v12-02-combo");
   // Converting keeps the line: to line and stacked column.
   await page.locator(".viz-gallery").getByRole("button", { name: "Line and stacked column chart", exact: true }).click();

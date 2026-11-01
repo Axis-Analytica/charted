@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
@@ -72,11 +73,11 @@ async function dropInWell(page: Page, table: string, field: string, role: string
 
 async function newMeasure(page: Page, formula: string, name: string) {
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+m");
+  await page.keyboard.press("ControlOrMeta+m");
   const editor = page.locator(".formula-bar .dax-editor");
   await expect(editor).toBeVisible();
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   await page.keyboard.insertText(formula);
   await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();
@@ -104,8 +105,11 @@ async function barAt(visual: Locator, index: number): Promise<{ x: number; y: nu
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const o = c.getOption();
-      const v = o.series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       // Bar charts put the categories on the y axis.
       const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];
@@ -242,10 +246,10 @@ test("a Trends page: last year and year to date, drill down and up, drill throug
   await expect(pane.locator(".bookmark-name").nth(1)).toHaveText("2024 by quarter");
 
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+Alt+ArrowLeft");
+  await page.keyboard.press("ControlOrMeta+Alt+ArrowLeft");
   await expect.poll(() => categories(column)).toEqual(["2022", "2023", "2024", "2025"]);
   await expect(pane.locator(".bookmark.is-on")).toHaveText("Bookmark 1");
-  await page.keyboard.press("Control+Alt+ArrowRight");
+  await page.keyboard.press("ControlOrMeta+Alt+ArrowRight");
   await expect.poll(async () => (await categories(column))[0]).toMatch(/^Q/);
   await expect(pane.locator(".bookmark.is-on")).toHaveText("2024 by quarter");
   await shot(page, "m6-04-bookmarks");
@@ -256,7 +260,7 @@ test("a Trends page: last year and year to date, drill down and up, drill throug
 
 const pick = (page: Page, path: string) => page.evaluate((p) => ((window as unknown as { __chartedPick: () => string }).__chartedPick = () => p), path);
 const tmp = process.env.CHARTED_E2E_TMP ?? "/tmp/charted-e2e";
-const contoso = new URL("../../crates/core/tests/fixtures/Contoso/Contoso.pbip", import.meta.url).pathname;
+const contoso = fileURLToPath(new URL("../../crates/core/tests/fixtures/Contoso/Contoso.pbip", import.meta.url));
 
 async function fileMenu(page: Page, item: string) {
   await page.getByRole("button", { name: "File", exact: true }).click();
@@ -328,7 +332,7 @@ test("a new project from scratch: name it, get data, build a visual", async ({ p
   await shot(page, "m6-07-new-project");
   await page.getByTestId("report-page").getByRole("button", { name: "Get data" }).click();
   await expect(page.locator(".qe")).toBeVisible();
-  await pick(page, new URL("../../crates/core/tests/fixtures/Contoso/data/orders.csv", import.meta.url).pathname);
+  await pick(page, fileURLToPath(new URL("../../crates/core/tests/fixtures/Contoso/data/orders.csv", import.meta.url)));
   await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();
   await page.getByRole("menuitem", { name: "Text/CSV" }).click();
   await expect(page.locator(".qe-query.is-on")).toContainText("orders");
@@ -337,6 +341,6 @@ test("a new project from scratch: name it, get data, build a visual", async ({ p
   const card = await addVisual(page, "Card", { x: 200, y: 120 });
   await tick(page, "orders", "Amount");
   await expect(card.locator(".card-value")).toHaveText(/\d/);
-  await page.keyboard.press("Control+s");
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.locator(".dirty-dot")).toHaveCount(0);
 });

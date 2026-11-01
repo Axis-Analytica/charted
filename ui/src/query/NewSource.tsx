@@ -22,17 +22,19 @@ export type SourceKind = "csv" | "excel" | "json" | "parquet" | "folder" | "sqli
 
 /** The project's folder (the snapshot's path is its `.charted` file). */
 export function projectDir(manifest: string): string {
-  return manifest.replace(/\/[^/]*\.charted$/, "");
+  return manifest.replace(/[\\/][^\\/]*\.charted$/, "");
 }
 
 /** A path inside the project folder is stored relative to it, so the project moves.
  * `project` is the project's `.charted` file or its folder. */
 export function projectPath(project: string, path: string): string {
-  const dir = projectDir(project).replace(/\/+$/, "");
-  return path.startsWith(`${dir}/`) ? path.slice(dir.length + 1) : path;
+  const dir = projectDir(project).replace(/[\\/]+$/, "");
+  // Stored with forward slashes, which every platform reads, so the project moves
+  // between Windows and the rest.
+  return path.startsWith(`${dir}/`) || path.startsWith(`${dir}\\`) ? path.slice(dir.length + 1).replace(/\\/g, "/") : path;
 }
 
-const stem = (p: string) => (p.split("/").pop() ?? p).replace(/\.[^.]+$/, "");
+const stem = (p: string) => (p.split(/[\\/]/).pop() ?? p).replace(/\.[^.]+$/, "");
 
 export function newQuery(name: string, source: Source, queries: Query[]): Query {
   const n = uniqueQueryName(name, queries);
@@ -147,7 +149,7 @@ function ExcelNavigator({ path, queries, onDone }: { path: string; queries: Quer
     >
       <div className="qe-navigator">
         <div className="qe-nav-list" role="listbox" aria-label={t("Sheets")}>
-          <div className="qe-nav-file">{path.split("/").pop()}</div>
+          <div className="qe-nav-file">{path.split(/[\\/]/).pop()}</div>
           {error && <p className="qe-error">{error}</p>}
           {!sheets && !error && <Spinner />}
           {sheets?.map((s) => (

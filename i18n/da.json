@@ -1364,5 +1364,6 @@
   "Power BI fonts (a similar font if not installed)": "Power BI-skrifttyper (en lignende skrifttype, hvis den ikke er installeret)",
   "Set the fonts: %1": "Skrifttyper sat: %1",
   "Theme font": "Temaets skrifttype",
-  "Your fonts": "Dine skrifttyper"
+  "Your fonts": "Dine skrifttyper",
+  "Install Claude Code or Codex, sign in to it once in a terminal, then restart charted.": "Installer Claude Code eller Codex, log ind én gang i en terminal, og genstart så charted."
 }

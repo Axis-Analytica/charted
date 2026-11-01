@@ -631,9 +631,22 @@ pub fn is_url(path: &str) -> bool {
     p.starts_with("https://") || p.starts_with("http://")
 }
 
+/// An absolute file path on any platform: `/data`, `C:\data`, `C:/data` or
+/// `\\server\share`. Plain string logic, since this crate also runs in the browser and
+/// projects move between machines.
+pub fn is_absolute_path(path: &str) -> bool {
+    let b = path.as_bytes();
+    path.starts_with('/')
+        || path.starts_with('\\')
+        || (b.len() >= 3
+            && b[0].is_ascii_alphabetic()
+            && b[1] == b':'
+            && matches!(b[2], b'/' | b'\\'))
+}
+
 /// Resolves a source path against the project folder (both as plain strings).
 pub fn resolve_path(project_dir: &str, path: &str) -> String {
-    if path.starts_with('/') || is_url(path) {
+    if is_absolute_path(path) || is_url(path) {
         path.to_string()
     } else {
         format!("{}/{}", project_dir.trim_end_matches('/'), path)
@@ -1526,7 +1539,7 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
     let file = |p: &str| {
         if is_url(p) {
             format!("Web.Contents({})", m_string(p))
-        } else if p.starts_with('/') {
+        } else if is_absolute_path(p) {
             format!("File.Contents({})", m_string(p))
         } else {
             format!("File.Contents(SourceFolder & {})", m_string(p))
@@ -1660,7 +1673,7 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
             pattern,
             header,
         } => {
-            let folder = if path.starts_with('/') {
+            let folder = if is_absolute_path(path) {
                 m_string(path)
             } else {
                 format!("SourceFolder & {}", m_string(path))
@@ -1693,7 +1706,7 @@ pub fn m_steps(q: &Query, queries: &[Query]) -> Vec<(String, String)> {
                 "Source".into(),
                 format!(
                     "Odbc.DataSource(\"database=\" & {})",
-                    if path.starts_with('/') {
+                    if is_absolute_path(path) {
                         m_string(path)
                     } else {
                         format!("SourceFolder & {}", m_string(path))
@@ -2148,6 +2161,26 @@ pub fn m_document(steps: &[(String, String)]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn absolute_paths_on_every_platform() {
+        for p in [
+            "/data/a.csv",
+            "C:\\data\\a.csv",
+            "c:/data/a.csv",
+            "\\\\server\\share\\a.csv",
+        ] {
+            assert!(is_absolute_path(p), "{p}");
+            assert_eq!(resolve_path("/project", p), p);
+        }
+        for p in ["data/a.csv", "data\\a.csv", "C:", "a.csv"] {
+            assert!(!is_absolute_path(p), "{p}");
+        }
+        assert_eq!(
+            resolve_path("/project/", "data/a.csv"),
+            "/project/data/a.csv"
+        );
+    }
 
     fn q(steps: Vec<Step>) -> Query {
         Query {

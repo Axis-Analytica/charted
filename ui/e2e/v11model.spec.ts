@@ -91,8 +91,11 @@ async function barAt(visual: Locator, index: number): Promise<{ x: number; y: nu
         getZr(): { handler: { findHover(x: number, y: number): { target?: unknown } } };
       };
       const c = (el as unknown as { chart: Chart }).chart;
-      const o = c.getOption();
-      const v = o.series[0]!.data[i]!.value;
+      const o = c?.getOption();
+      // Not drawn yet (a slow machine): ask again.
+      const d = o?.series[0]?.data[i];
+      if (!d) return { at: [0, 0], drawn: false };
+      const v = d.value;
       const zoom = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
       const point = o.yAxis[0]?.type === "category" ? [v / 2, i] : [i, v / 2];
       const px = c.convertToPixel({ seriesIndex: 0 }, point);
@@ -289,13 +292,13 @@ test("a calculated table: created in the formula bar, used in a visual, edited a
   await expect(editor).toBeVisible();
   await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Table = ");
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
 
   // A scalar isn't a table: the editor says so before committing.
   await page.keyboard.type("Category List = COUNTROWS ( Product )");
   await expect(page.locator(".formula-bar .squiggly-error")).toBeVisible({ timeout: 15_000 });
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   await page.keyboard.type("Category List = VALUES ( Product[Category] )");
   await expect(page.locator(".formula-bar .squiggly-error")).toHaveCount(0, { timeout: 15_000 });
@@ -316,7 +319,7 @@ test("a calculated table: created in the formula bar, used in a visual, edited a
   await page.getByRole("menuitem", { name: "Edit formula", exact: true }).click();
   await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Category List = VALUES");
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   await page.keyboard.type('Category List = FILTER ( VALUES ( Product[Category] ), Product[Category] <> "Camping" )');
   await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();

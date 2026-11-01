@@ -39,6 +39,45 @@ jobs:
       - name: TypeScript bindings are up to date
         run: git diff --exit-code -- ui/src/bridge/generated
 
+  other-platforms:
+    name: Build and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      # The app bundles DuckDB's library (tauri.macos/windows.conf.json), and Tauri's
+      # build checks the file is there; the engine's build downloads it.
+      - name: DuckDB
+        shell: bash
+        run: |
+          find_lib() { find target/duckdb-download \( -name libduckdb.dylib -o -name duckdb.dll \) 2>/dev/null | head -1; }
+          cargo build -p charted-engine
+          # The Rust cache can drop the downloaded library while keeping the build
+          # script's result; fetch it again if so.
+          if [ -z "$(find_lib)" ]; then
+            cargo clean -p libduckdb-sys
+            cargo build -p charted-engine
+          fi
+          mkdir -p src-tauri/lib
+          cp "$(find_lib)" src-tauri/lib/
+          ls src-tauri/lib
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      # Test binaries live in target/debug/deps, away from the rpath the app uses, so
+      # point the loader at DuckDB's library directly.
+      - name: Tests
+        shell: bash
+        run: |
+          lib="$(dirname "$(find "$PWD/target/duckdb-download" \( -name libduckdb.dylib -o -name duckdb.dll \) | head -1)")"
+          if [ "$RUNNER_OS" = Windows ]; then export PATH="$(cygpath -u "$lib"):$PATH"; else export DYLD_FALLBACK_LIBRARY_PATH="$lib"; fi
+          cargo test --workspace --no-fail-fast
+
   ui:
     name: UI and end-to-end
     runs-on: ubuntu-24.04
@@ -91,5 +130,70 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: e2e-results
+          path: ui/test-results
+          retention-days: 7
+
+  # The end-to-end tests against the core built for macOS and Windows. These machines
+  # are slower, so a failing test gets one retry (Playwright reports it as flaky).
+  e2e-other:
+    name: End-to-end (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@0.2.129
+      - name: Build the DAX language service
+        run: |
+          cargo build --release --target wasm32-unknown-unknown -p charted-wasm
+          wasm-bindgen --target web --out-dir ui/src/dax/pkg target/wasm32-unknown-unknown/release/charted_wasm.wasm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: ui
+      - name: Build the dev server
+        run: |
+          find_lib() { find "$PWD/target/duckdb-download" \( -name libduckdb.dylib -o -name duckdb.dll \) 2>/dev/null | head -1; }
+          # The Rust cache can drop DuckDB's downloaded files (the library, or Windows'
+          # duckdb.lib for linking) while keeping the build script's result; fetch them
+          # again if so.
+          if ! cargo build -p charted-cli || [ -z "$(find_lib)" ]; then
+            cargo clean -p libduckdb-sys
+            cargo build -p charted-cli
+          fi
+          lib="$(dirname "$(find_lib)")"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp "$lib/duckdb.dll" target/debug/
+          else
+            echo "DYLD_FALLBACK_LIBRARY_PATH=$lib" >> "$GITHUB_ENV"
+          fi
+      - run: pnpm exec playwright install chromium
+        working-directory: ui
+      - run: pnpm exec playwright test
+        working-directory: ui
+        env:
+          CHARTED_E2E_RETRIES: 1
+      - name: Keep the end-to-end results of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.os }}
           path: ui/test-results
           retention-days: 7

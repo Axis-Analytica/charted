@@ -122,9 +122,9 @@ test("selection pane: layers, hide and show, select hidden visuals, reorder", as
   await page.locator(".viz-pane").getByRole("tab", { name: "Format" }).click();
   await expect(page.locator(".format-section", { hasText: "Callout value" })).toBeVisible();
   await shot(page, "v13-01-selection-pane");
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(visuals(page)).toHaveCount(3);
-  await page.keyboard.press("Control+Shift+z");
+  await page.keyboard.press("ControlOrMeta+Shift+z");
   await expect(visuals(page)).toHaveCount(2);
   await pane.getByRole("button", { name: "Show Total Sales" }).click();
   await expect(visuals(page)).toHaveCount(3);
@@ -164,7 +164,7 @@ test("format several visuals at once, and the format painter", async ({ page }) 
 
   // Both selected: the shared options, with differing values shown as mixed.
   await a.click({ position: { x: 30, y: 20 } });
-  await b.click({ position: { x: 30, y: 20 }, modifiers: ["Control"] });
+  await b.click({ position: { x: 30, y: 20 }, modifiers: ["ControlOrMeta"] });
   await expect(page.locator(".viz-pane").getByText("Formatting 2 visuals")).toBeVisible();
   await expect(fmt.getByRole("spinbutton", { name: "Text size" })).toHaveAttribute("placeholder", "Mixed");
   // One change formats both, in one undo step.
@@ -173,7 +173,7 @@ test("format several visuals at once, and the format painter", async ({ page }) 
   await expect(b.locator(".textbox")).toHaveCSS("font-weight", "700");
   await shot(page, "v13-02-multi-format");
   await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(a.locator(".textbox")).toHaveCSS("font-weight", "400");
   await expect(b.locator(".textbox")).toHaveCSS("font-weight", "400");
 
@@ -207,9 +207,9 @@ test("format several visuals at once, and the format painter", async ({ page }) 
   // Ctrl+Alt+C copies a look, Ctrl+Alt+V pastes it onto everything selected.
   const c = await addVisual(page, "Text box", { x: 200, y: 440 });
   await a.click({ position: { x: 30, y: 20 } });
-  await page.keyboard.press("Control+Alt+c");
+  await page.keyboard.press("ControlOrMeta+Alt+c");
   await c.click({ position: { x: 30, y: 20 } });
-  await page.keyboard.press("Control+Alt+v");
+  await page.keyboard.press("ControlOrMeta+Alt+v");
   await expect(c.locator(".textbox")).toHaveCSS("font-size", "30px");
 });
 
@@ -221,12 +221,12 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await expect(card.locator(".card-value")).toHaveText(/\$/);
   const text = await addVisual(page, "Text box", { x: 600, y: 120 });
   await card.click({ position: { x: 20, y: 60 } });
-  await text.click({ position: { x: 20, y: 20 }, modifiers: ["Control"] });
-  await page.keyboard.press("Control+c");
+  await text.click({ position: { x: 20, y: 20 }, modifiers: ["ControlOrMeta"] });
+  await page.keyboard.press("ControlOrMeta+c");
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("application/x-charted-visuals");
 
   // Pasted on the same page: offset, on top and selected.
-  await page.keyboard.press("Control+v");
+  await page.keyboard.press("ControlOrMeta+v");
   await expect(visuals(page)).toHaveCount(4);
   const box = async (l: Locator) => (await l.boundingBox())!;
   const [c0, c1] = [await box(card), await box(visuals(page).nth(2))];
@@ -237,17 +237,17 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await expect(visuals(page).nth(3)).toHaveAttribute("aria-selected", "true");
 
   // Cut them: they go, and paste back.
-  await page.keyboard.press("Control+x");
+  await page.keyboard.press("ControlOrMeta+x");
   await expect(visuals(page)).toHaveCount(2);
-  await page.keyboard.press("Control+v");
+  await page.keyboard.press("ControlOrMeta+v");
   await expect(visuals(page)).toHaveCount(4);
 
   // On another page, at the same place.
   await page.keyboard.press("Escape");
   await card.click({ position: { x: 6, y: 6 } });
-  await page.keyboard.press("Control+c");
+  await page.keyboard.press("ControlOrMeta+c");
   await newPage(page, "Elsewhere");
-  await page.keyboard.press("Control+v");
+  await page.keyboard.press("ControlOrMeta+v");
   await expect(visuals(page)).toHaveCount(1);
   const pasted = visuals(page).first();
   await expect(pasted.locator(".card-value")).toHaveText(/\$/);
@@ -255,8 +255,11 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await shot(page, "v13-03-pasted");
 
   // In another project without these fields: the visual comes, its fields don't.
-  await page.keyboard.press("Control+s");
-  await expect(page.locator(".dirty-dot")).toHaveCount(0);
+  // Saving twice is harmless, so a press lost on a slow machine is simply repeated.
+  await expect(async () => {
+    if (await page.locator(".dirty-dot").count()) await page.keyboard.press("ControlOrMeta+s");
+    await expect(page.locator(".dirty-dot")).toHaveCount(0, { timeout: 5000 });
+  }).toPass({ timeout: 30_000 });
   await fileMenu(page, "Close project");
   await page.getByRole("button", { name: "New project…" }).click();
   const dialog = page.getByRole("dialog", { name: "New project" });
@@ -264,11 +267,11 @@ test("copy, cut and paste visuals: on the page, on another page, in another proj
   await dialog.getByRole("button", { name: "Create" }).click();
   await expect(page.locator(".topbar")).toContainText("Paste target");
   await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Control+v");
+  await page.keyboard.press("ControlOrMeta+v");
   await expect(visuals(page)).toHaveCount(1);
   await expect(page.getByText("Some fields aren't in this model")).toBeVisible();
   await expect(visuals(page).first().locator(".visual-placeholder")).toBeVisible();
-  await page.keyboard.press("Control+s");
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.locator(".dirty-dot")).toHaveCount(0);
 });
 
@@ -323,7 +326,7 @@ test("sync slicers: one choice filters every synced page, hidden or visible", as
   await expect.poll(() => cardMillions(cardA)).toBeCloseTo(total, 1);
   // One undo step brings the choice back on both pages.
   await page.locator(".report-center").click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => cardMillions(cardA)).toBeCloseTo(sliced, 1);
   await page.getByRole("tab", { name: "Sync B" }).click();
   await expect.poll(() => cardMillions(cardB)).toBeCloseTo(sliced, 1);
@@ -347,15 +350,18 @@ test("buttons and a page navigator: Ctrl+click while editing, click in reading v
   await button.click();
   await expect(button).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
-  await button.click({ modifiers: ["Control"] });
-  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+  // Following the link is idempotent, so a press lost to a slow machine is retried.
+  await expect(async () => {
+    if ((await page.getByRole("tab", { name: "Details" }).getAttribute("aria-selected")) !== "true") await button.click({ modifiers: ["ControlOrMeta"], timeout: 1000 });
+    await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true", { timeout: 1000 });
+  }).toPass();
 
   // A Back button returns to the page before.
   const back = await addVisual(page, "Button", { x: 200, y: 100 });
   await fmt.getByRole("combobox", { name: "Icon" }).selectOption("back");
   // The icon (and with it the Back action) is saved before the click follows it.
   await expect(back.locator("svg.lucide-arrow-left")).toBeVisible();
-  await back.click({ modifiers: ["Control"] });
+  await back.click({ modifiers: ["ControlOrMeta"] });
   await expect(page.getByRole("tab", { name: "Buttons" })).toHaveAttribute("aria-selected", "true");
 
   // A page navigator lists the pages; hidden ones drop out.

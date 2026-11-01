@@ -1,8 +1,8 @@
 // Export to PDF: every page not hidden, one per sheet at the page's size, with its
 // current filters and slicers. The print layout stacks the pages (CSS `@page` sized to
 // the report page, a page break after each), waits until every visual has loaded, then
-// the desktop app prints it to a PDF file through WebKitGTK; in a browser it offers the
-// browser's print dialog. `charted open <project> --export-pdf FILE` runs the same.
+// the desktop app prints it to a PDF file through WebKitGTK on Linux; on macOS and
+// Windows, and in a browser, it offers the system's print dialog. `charted open <project> --export-pdf FILE` runs the same.
 import { Printer, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -29,7 +29,7 @@ export interface PrintJob {
 
 export const usePrint = create<{ job: PrintJob | null; set(job: PrintJob | null): void }>((set) => ({ job: null, set: (job) => set({ job }) }));
 
-type Desktop = { printPdf?(path: string, width: number, height: number): Promise<void>; exitWith?(code: number): Promise<void> };
+type Desktop = { printPdf?(path: string, width: number, height: number): Promise<void>; print?(): Promise<void>; exitWith?(code: number): Promise<void> };
 const desktop = () => transport as unknown as Desktop;
 
 /** Whether this window can write PDFs itself (the desktop app). */
@@ -133,7 +133,7 @@ export function PrintLayout({ model }: { model: Model }) {
         <span>{ready ? t("%1 pages ready", pages.length) : t("Preparing the PDF…")}</span>
         <span className="status-fill" />
         {!job.path && (
-          <Button variant="primary" size="sm" icon={<Printer size={14} />} isDisabled={!ready} onPress={() => window.print()}>
+          <Button variant="primary" size="sm" icon={<Printer size={14} />} isDisabled={!ready} onPress={() => void (desktop().print?.() ?? window.print())}>
             {t("Print…")}
           </Button>
         )}

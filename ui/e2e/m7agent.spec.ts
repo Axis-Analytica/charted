@@ -30,7 +30,7 @@ const pane = (page: Page) => page.locator(".agent-pane");
 const turns = (page: Page) => pane(page).locator(".agent-turn");
 
 async function openPane(page: Page) {
-  if (!(await pane(page).isVisible())) await page.keyboard.press("Control+i");
+  if (!(await pane(page).isVisible())) await page.keyboard.press("ControlOrMeta+i");
   await expect(pane(page).locator(".agent-picker")).toContainText("Claude Code");
 }
 
@@ -105,7 +105,7 @@ test("Stop ends a request, and an edit made meanwhile keeps its own undo step", 
   await done(turn);
   await expect(turn.getByRole("button", { name: "Undo this request" })).toBeDisabled();
   await expect(turn.locator(".agent-note")).toBeVisible();
-  for (let i = 0; i < 3; i++) await page.keyboard.press("Control+z");
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ControlOrMeta+z");
   await page.getByRole("tab", { name: start, exact: true }).click();
   await expect(page.getByTestId("visual")).toHaveCount(before);
   // Stop.

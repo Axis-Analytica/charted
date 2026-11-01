@@ -16,9 +16,11 @@ serde.workspace = true
 serde_json.workspace = true
 ts-rs.workspace = true
 uuid = { version = "1", features = ["v4"] }
-libc = "0.2"
 
 [dev-dependencies]
 insta.workspace = true
 proptest.workspace = true
 tempfile = "3"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

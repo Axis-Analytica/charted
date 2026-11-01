@@ -1,0 +1,10 @@
+# Plain LF everywhere, Windows checkouts included: tests compare generated files and
+# fixtures byte for byte.
+* text=auto eol=lf
+*.xlsx binary
+*.png binary
+*.gif binary
+*.mp4 binary
+*.woff2 binary
+*.ico binary
+*.icns binary

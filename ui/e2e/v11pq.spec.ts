@@ -39,7 +39,7 @@ test.use({ actionTimeout: 15_000 });
 
 test("reference a query, transform it and apply", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await expect(page.locator(".qe-query").first()).toBeVisible();
 
   // Reference Store: a new query starting from Store's result.
@@ -79,7 +79,7 @@ test("reference a query, transform it and apply", async ({ page }) => {
   await expect(page.locator(".fields-pane .field-table-btn", { hasText: /^Regions$/ })).toBeVisible();
 
   // A change to Store reaches the query referencing it.
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await page.locator(".qe-query", { hasText: /^Store$/ }).click();
   await page.getByRole("button", { name: "Column options for Region" }).click();
   await page.getByRole("menuitem", { name: "Replace values…" }).click();
@@ -97,6 +97,8 @@ test("reference a query, transform it and apply", async ({ page }) => {
   const pageBox = (await page.getByTestId("report-page").boundingBox())!;
   await page.mouse.click(pageBox.x + 100, pageBox.y + 100);
   await page.locator(".viz-gallery").getByRole("button", { name: "Slicer", exact: true }).click();
+  // Fields ticked before the new slicer is selected would make a table instead.
+  await expect(page.getByTestId("visual").and(page.locator(".is-selected"))).toHaveCount(1);
   await tick(page, "Regions", "Region");
   const slicer = page.getByTestId("visual").filter({ has: page.locator(".slicer") });
   await expect(slicer.locator(".slicer-item", { hasText: "Americas" })).toBeVisible();
@@ -105,7 +107,7 @@ test("reference a query, transform it and apply", async ({ page }) => {
 
 test("enter data, apply and use the table in a visual", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();
   await page.getByRole("menuitem", { name: "Enter data…" }).click();
   const d = page.getByRole("dialog", { name: "Enter data" });
