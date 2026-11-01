@@ -184,9 +184,69 @@ fn terminal_command(agent: &str, prompt: &str) -> Option<Vec<String>> {
     })
 }
 
+/// Runs `cmd` in a new terminal window, in `dir`. On Linux in Omarchy's terminal for
+/// agents (not Omarchy's default agent, which omarchy-agent-prompt would start), else the
+/// desktop's default terminal.
+#[cfg(target_os = "linux")]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    let mut launch = if on_path("omarchy-launch-tui") {
+        let mut c = Command::new("omarchy-launch-tui");
+        c.arg("--app-id=org.omarchy.agent");
+        c
+    } else {
+        let mut c = Command::new("xdg-terminal-exec");
+        c.arg("-e");
+        c
+    };
+    launch.args(cmd).current_dir(dir).spawn().map(drop)
+}
+
+/// On macOS in Terminal, through a script it opens (Terminal takes no command line).
+#[cfg(target_os = "macos")]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let quote = |s: &str| format!("'{}'", s.replace('\'', "'\\''"));
+    let line: Vec<String> = cmd.iter().map(|a| quote(a)).collect();
+    let script = dir.join("charted-agent.command");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\ncd {} && exec {}\n",
+            quote(&dir.display().to_string()),
+            line.join(" ")
+        ),
+    )?;
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755))?;
+    Command::new("open")
+        .args(["-a", "Terminal"])
+        .arg(&script)
+        .spawn()
+        .map(drop)
+}
+
+/// On Windows in a console window of its own (Windows Terminal, where it is the default).
+#[cfg(windows)]
+fn open_terminal(cmd: &[String], dir: &Path) -> std::io::Result<()> {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+    let (first, rest) = cmd
+        .split_first()
+        .ok_or_else(|| std::io::Error::other("no command"))?;
+    program(first)
+        .args(rest)
+        .current_dir(dir)
+        .creation_flags(CREATE_NEW_CONSOLE)
+        .spawn()
+        .map(drop)
+}
+
 fn on_path(cmd: &str) -> bool {
-    std::env::var_os("PATH")
-        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(cmd).is_file()))
+    charted_core::os::find_program(cmd).is_some()
+}
+
+/// Starts `cmd` from PATH. Its full path, so Windows runs npm's `.cmd` shims too.
+fn program(cmd: &str) -> Command {
+    Command::new(charted_core::os::find_program(cmd).unwrap_or_else(|| cmd.into()))
 }
 
 /// The agents installed. `CHARTED_AGENT_CMD` (the tests' stand-in) is Claude Code.
@@ -209,10 +269,16 @@ pub fn installed() -> Vec<AgentInfo> {
 }
 
 /// Omarchy's default agent, when one is set.
+#[cfg(target_os = "linux")]
 fn omarchy_default() -> Option<String> {
     let out = Command::new("omarchy-default-agent").output().ok()?;
     let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
     (!s.is_empty()).then_some(s)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn omarchy_default() -> Option<String> {
+    None
 }
 
 struct Running {
@@ -833,7 +899,7 @@ impl Host {
                         c.args(parts);
                         c
                     }
-                    None => Command::new("claude"),
+                    None => program("claude"),
                 };
                 c.args(["-p", "--output-format", "stream-json", "--verbose"])
                     .arg("--mcp-config")
@@ -865,7 +931,7 @@ impl Host {
                 c
             }
             ("codex", _) => {
-                let mut c = Command::new("codex");
+                let mut c = program("codex");
                 c.arg("exec");
                 if let Some(s) = &session {
                     c.args(["resume", s]);
@@ -932,7 +998,8 @@ impl Host {
         } else {
             "CLAUDE_CONFIG_DIR"
         };
-        if std::env::var_os(home_env).is_none()
+        if cfg!(target_os = "linux")
+            && std::env::var_os(home_env).is_none()
             && let Ok(out) = Command::new("omarchy-agent-account-home")
                 .arg(agent)
                 .output()
@@ -1055,23 +1122,7 @@ impl Host {
         };
         let cmd = terminal_command(&agent, &prompt)
             .ok_or_else(|| format!("{agent} can't be opened from charted"))?;
-        // The agent picked in the pane, in Omarchy's terminal for agents (not Omarchy's
-        // default agent, which omarchy-agent-prompt would start).
-        let mut launch = if on_path("omarchy-launch-tui") {
-            let mut c = Command::new("omarchy-launch-tui");
-            c.arg("--app-id=org.omarchy.agent");
-            c
-        } else {
-            let mut c = Command::new("xdg-terminal-exec");
-            c.arg("-e");
-            c
-        };
-        launch
-            .args(&cmd)
-            .current_dir(&work)
-            .spawn()
-            .map_err(|e| format!("couldn't open a terminal: {e}"))?;
-        Ok(())
+        open_terminal(&cmd, &work).map_err(|e| format!("couldn't open a terminal: {e}"))
     }
 
     /// Serves one connection of `charted mcp`: `{"hello": token}`, then tool calls.

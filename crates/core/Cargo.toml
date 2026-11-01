@@ -28,8 +28,24 @@ calamine = "0.37"
 zip = { version = "9", default-features = false, features = ["deflate"] }
 # The family names of fonts the user adds.
 ttf-parser = "0.25"
-# PostgreSQL passwords live in the desktop keyring (Secret Service), not in projects.
+dirs = "7"
+# Canonical paths without Windows' \\?\ prefix, which DuckDB and users don't expect.
+dunce = "1"
+
+# PostgreSQL passwords live in the system keyring, not in projects: Secret Service on
+# Linux, the Keychain on macOS, the Credential Manager on Windows.
+[target.'cfg(target_os = "linux")'.dependencies]
 keyring = { version = "3", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3", default-features = false, features = ["apple-native"] }
+
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3", default-features = false, features = ["windows-native"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [dev-dependencies]
 arrow-ipc.workspace = true

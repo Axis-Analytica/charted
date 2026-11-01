@@ -1103,23 +1103,12 @@ pub fn projects_dir() -> PathBuf {
         .unwrap_or_default()
 }
 
-/// `$XDG_DOCUMENTS_DIR/charted/Harbor & Pine`, falling back to `~/Documents`.
+/// `Documents/charted/Harbor & Pine`: `$XDG_DOCUMENTS_DIR`, else the system's documents
+/// folder (user-dirs.dirs on Linux), else `~/Documents`.
 pub fn default_sample_dir() -> PathBuf {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_default();
     let docs = std::env::var_os("XDG_DOCUMENTS_DIR")
         .map(PathBuf::from)
-        .or_else(|| {
-            let dirs = std::fs::read_to_string(home.join(".config/user-dirs.dirs")).ok()?;
-            let line = dirs.lines().find(|l| l.starts_with("XDG_DOCUMENTS_DIR="))?;
-            let v = line
-                .split_once('=')?
-                .1
-                .trim_matches('"')
-                .replace("$HOME", &home.display().to_string());
-            Some(PathBuf::from(v))
-        })
-        .unwrap_or_else(|| home.join("Documents"));
+        .or_else(dirs::document_dir)
+        .unwrap_or_else(|| crate::os::home_dir().unwrap_or_default().join("Documents"));
     docs.join("charted").join(crate::sample::SAMPLE_NAME)
 }

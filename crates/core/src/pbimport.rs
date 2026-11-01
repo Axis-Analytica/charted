@@ -181,7 +181,7 @@ fn find_near(path: &str, near: &Path) -> Option<PathBuf> {
 /// Imports the Power BI project at `input` as a new charted project in a new folder
 /// under `parent`. Returns the project folder and the import report.
 pub fn import(input: &Path, parent: &Path) -> Result<(PathBuf, ImportReport), CoreError> {
-    let input = &std::fs::canonicalize(input)
+    let input = &crate::os::canonicalize(input)
         .map_err(|e| invalid(format!("couldn't open {}: {e}", input.display())))?;
     let parts = locate(input)?;
     let Imported {

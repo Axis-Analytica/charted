@@ -17,6 +17,7 @@ pub mod fieldparams;
 pub mod fonts;
 pub mod ids;
 pub mod interop;
+pub mod os;
 pub mod pbimport;
 pub mod project;
 pub mod queryedit;

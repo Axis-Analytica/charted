@@ -148,7 +148,7 @@ impl Lock {
         if let Ok(text) = std::fs::read_to_string(&path)
             && let Ok(pid) = text.trim().parse::<u32>()
             && pid != std::process::id()
-            && Path::new(&format!("/proc/{pid}")).exists()
+            && crate::os::pid_alive(pid)
         {
             return Err(CoreError::Locked { pid });
         }

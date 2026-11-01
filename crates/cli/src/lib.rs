@@ -446,9 +446,8 @@ fn query_visual(
 
 /// Copies the skill to ~/.agents/skills/charted and links it into ~/.claude/skills.
 fn install_skill() -> std::io::Result<PathBuf> {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .ok_or_else(|| std::io::Error::other("HOME is not set"))?;
+    let home = charted_core::os::home_dir()
+        .ok_or_else(|| std::io::Error::other("couldn't find your home folder"))?;
     let dir = home.join(".agents/skills/charted");
     std::fs::create_dir_all(&dir)?;
     std::fs::write(dir.join("SKILL.md"), SKILL)?;

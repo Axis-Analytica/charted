@@ -164,11 +164,7 @@ async fn spike_arrow(rows: u64) -> Result<Response, String> {
 }
 
 fn state_dir() -> PathBuf {
-    std::env::var_os("XDG_STATE_HOME")
-        .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".local/state")))
-        .unwrap_or_else(std::env::temp_dir)
-        .join("charted")
+    charted_core::os::state_dir()
 }
 
 fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<PathBuf>) {
@@ -176,7 +172,14 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
     // .desktop file so Hyprland and the launcher associate the window with charted.
     #[cfg(target_os = "linux")]
     glib::set_prgname(Some("charted"));
-    let initial = path.map(|p| std::fs::canonicalize(&p).unwrap_or(p).display().to_string());
+    #[cfg(target_os = "macos")]
+    login_path();
+    let initial = path.map(|p| {
+        charted_core::os::canonicalize(&p)
+            .unwrap_or(p)
+            .display()
+            .to_string()
+    });
     charted_core::crash::install_hook(state_dir());
     let app = Arc::new(Mutex::new(App::new(state_dir())));
     let shared = Shared {
@@ -267,6 +270,22 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
                 charted_core::api::shutdown(std::time::Duration::from_secs(3));
             }
         });
+}
+
+/// Apps opened from the Finder get launchd's short PATH, without Homebrew or
+/// `~/.local/bin` where the agents are installed; take the one a login shell has.
+#[cfg(target_os = "macos")]
+fn login_path() {
+    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
+    if let Ok(out) = std::process::Command::new(shell)
+        .args(["-l", "-c", "printf %s \"$PATH\""])
+        .output()
+        && out.status.success()
+        && !out.stdout.is_empty()
+    {
+        // SAFETY: still single-threaded, before Tauri starts.
+        unsafe { std::env::set_var("PATH", String::from_utf8_lossy(&out.stdout).as_ref()) };
+    }
 }
 
 fn main() {
