@@ -13,7 +13,7 @@ rust-version = "1.90"
 # DuckDB 2.0. How it is linked is chosen by charted-engine's features: development
 # builds download DuckDB's official prebuilt library (which includes the Parquet and
 # JSON readers); `duckdb-bundled` compiles DuckDB from source instead.
-duckdb = { version = "1.20000.0" }
+duckdb = { version = "1.20000.0", features = ["vscalar", "vscalar-arrow"] }
 # Must match the arrow major version duckdb re-exports as `duckdb::arrow`.
 arrow-ipc = "60"
 arrow-cast = "60"

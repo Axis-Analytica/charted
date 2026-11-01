@@ -494,6 +494,22 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 ## Gotchas learned the hard way
 
+- **DuckDB 2.0 behaviour the DAX work relies on (M11.0 spike, 2026-11-02).** These are
+  asserted in `crates/engine/tests/duckdb_behaviour.rs`.
+  - `TRY(CAST('a' AS INT))` and bad dates give NULL. `TRY(error('x'))` is refused at
+    bind time ("TRY can not be used in combination with a volatile function"), so
+    IFERROR can't wrap ERROR() or LOOKUPVALUE's `error()` in TRY. Those need their own
+    error flags (M11.7).
+  - `ieee_floating_point_ops` is on by default, so `1/0` gives `inf`, `-1.0/0` gives
+    `-inf`, and `0.0/0`, `sqrt(-1)` and `ln(-1)` give `nan`. Integer `//` by zero
+    errors. Charted's `/` currently wraps the divisor in `nullif(…, 0)` (blank); the
+    harness decides whether that changes (M11.2).
+  - `now()`, `current_timestamp` and `current_date` work with extension autoload off.
+  - The workspace `duckdb` dependency has `vscalar` and `vscalar-arrow` features. An
+    arrow UDF registered on the `Db`'s main connection is seen by every `try_clone()`
+    of it, but not by another database. So register once in `Db::open`.
+  - `quantile_cont` doesn't accept a list; use `list_aggregate(l, 'quantile_cont', k)`.
+
 - **Run builds and tests through `bin/heavy`.** On this 8 GB machine systemd-oomd kills the
   largest app.slice scope once RAM and swap both pass 90%. A cargo or Playwright run
   started from a terminal lives in that terminal's scope, so oomd killed the whole terminal
