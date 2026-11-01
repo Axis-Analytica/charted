@@ -77,7 +77,7 @@ test("two views side by side; two report pages keep their own page", async ({ pa
   await expect(pageTab(second, { selected: true })).toHaveText(added);
   await expect(pageTab(first, { selected: true })).toHaveText(firstOn);
   if (shots) await page.screenshot({ path: `${shots}/m8-two-reports.png` });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(tabs).toHaveCount(before);
 
   // F6 reaches the second view's canvas too.
@@ -107,7 +107,7 @@ test("two views side by side; two report pages keep their own page", async ({ pa
   await expect(pageTab(second, { selected: true })).toHaveText(pa!);
   await expect(pageTab(first, { selected: true })).toHaveText(firstOn);
   // Undo the bookmark and the two pages.
-  for (let i = 0; i < 3; i++) await page.keyboard.press("Control+z");
+  for (let i = 0; i < 3; i++) await page.keyboard.press("ControlOrMeta+z");
   await expect(tabs).toHaveCount(before);
   await expect(bookmarks.locator(".bookmark-name")).toHaveCount(count);
   await page.getByRole("button", { name: "Bookmarks pane" }).click();
@@ -140,7 +140,7 @@ test("a toolbar button hides, and comes back from the Layout menu", async ({ pag
   await page.getByRole("menuitem", { name: /Hide Reading view/ }).click();
   await expect(reading).toHaveCount(0);
   // Still in the command palette.
-  await page.keyboard.press("Control+k");
+  await page.keyboard.press("ControlOrMeta+k");
   await page.locator(".palette-input").fill("Reading view");
   await expect(page.locator(".palette")).toContainText("Reading view");
   await page.keyboard.press("Escape");
@@ -172,7 +172,7 @@ test("a toolbar button hides, and comes back from the Layout menu", async ({ pag
 
 test("the agent reshapes the layout, and one undo takes it back", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+i");
+  await page.keyboard.press("ControlOrMeta+i");
   const pane = page.locator(".agent-pane");
   await expect(pane.locator(".agent-picker")).toContainText("Claude Code");
   await pane.getByRole("textbox", { name: "Ask the agent" }).fill("change my layout");

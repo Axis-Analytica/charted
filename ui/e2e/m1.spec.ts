@@ -50,9 +50,9 @@ test("data view: filter, multi-sort, copy, statistics, format with undo", async 
   await expect(page.getByTestId("status-rows")).toContainText(/of 245,387 rows/);
 
   // Copy the filtered column: every row is Online.
-  await page.keyboard.press("Control+c");
+  await page.keyboard.press("ControlOrMeta+c");
   await expect(page.getByRole("status").filter({ hasText: /Copied [\d,]+ rows/ })).toBeVisible();
-  const lines = (await clipboard(page)).split("\n");
+  const lines = (await clipboard(page)).split(/\r?\n/);
   expect(lines[0]).toBe("Channel");
   expect(lines.length).toBeGreaterThan(1000);
   expect(new Set(lines.slice(1))).toEqual(new Set(["Online"]));
@@ -69,15 +69,15 @@ test("data view: filter, multi-sort, copy, statistics, format with undo", async 
   await expect(chips.nth(0)).toContainText("Quantity ↓");
   await expect(chips.nth(1)).toContainText("UnitPrice ↑");
   await selectColumn(page, "Sales", "Quantity");
-  await page.keyboard.press("Control+c");
-  await expect.poll(async () => (await clipboard(page)).split("\n")[0]).toBe("Quantity");
-  const qty = (await clipboard(page)).split("\n").slice(1).map(Number);
+  await page.keyboard.press("ControlOrMeta+c");
+  await expect.poll(async () => (await clipboard(page)).split(/\r?\n/)[0]).toBe("Quantity");
+  const qty = (await clipboard(page)).split(/\r?\n/).slice(1).map(Number);
   expect(qty.every((q, i) => i === 0 || qty[i - 1]! >= q)).toBe(true);
   if (shots) await page.screenshot({ path: `${shots}/m1-multisort.png` });
 
   // Statistics drawer for UnitPrice.
   await selectColumn(page, "Sales", "UnitPrice");
-  await page.keyboard.press("Control+i");
+  await page.keyboard.press("ControlOrMeta+i");
   const stats = page.getByRole("region", { name: "Column statistics" });
   await expect(stats.locator(".stats-title")).toHaveText("UnitPrice");
   for (const label of ["Values", "Distinct", "Mean", "Median", "Std. deviation"]) await expect(stats.getByText(label, { exact: true })).toBeVisible();
@@ -96,7 +96,7 @@ test("data view: filter, multi-sort, copy, statistics, format with undo", async 
   await expect(props.getByRole("textbox", { name: "Format string" })).toHaveValue("#,0.0");
   if (shots) await page.screenshot({ path: `${shots}/m1-format.png` });
   await page.locator(".tree").focus();
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(props.getByRole("textbox", { name: "Format string" })).toHaveValue(original);
 
   // Clearing filters restores the full row count.
@@ -109,7 +109,7 @@ test("find, type checks and the frame readout", async ({ page }) => {
   await tableItem(page, "Store").click();
   await expect(page.getByRole("heading", { name: "Store" })).toBeVisible();
 
-  await page.keyboard.press("Control+f");
+  await page.keyboard.press("ControlOrMeta+f");
   const find = page.getByRole("searchbox", { name: "Find in table" }).or(page.getByRole("textbox", { name: "Find in table" }));
   await find.fill("north");
   await find.press("Enter");
@@ -123,6 +123,6 @@ test("find, type checks and the frame readout", async ({ page }) => {
   await page.getByRole("complementary", { name: "Column properties" }).getByRole("combobox", { name: "Data type" }).selectOption("Int64");
   await expect(page.getByRole("alert")).toContainText("don't convert");
 
-  await page.keyboard.press("Control+Alt+p");
+  await page.keyboard.press("ControlOrMeta+Alt+p");
   await expect(page.getByTestId("frame-hud")).toContainText("fps");
 });

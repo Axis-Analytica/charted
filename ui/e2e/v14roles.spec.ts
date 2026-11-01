@@ -117,7 +117,7 @@ test("roles: create one, view the report as it, stop viewing", async ({ page }) 
   await expect(slicer.locator(".slicer-item", { hasText: "Europe" })).toBeVisible();
 
   // The role is part of the model: undo removes it.
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await page.getByRole("button", { name: "Security" }).click();
   await expect(page.getByRole("menuitem", { name: "View as…" })).toBeDisabled();
   await page.keyboard.press("Escape");

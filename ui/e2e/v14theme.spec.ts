@@ -97,7 +97,7 @@ test("theme editor: live preview of colours and title size, one undo step", asyn
 
   // One undo step brings the old theme back.
   await page.locator(".report-center").click({ position: { x: 5, y: 5 } });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => seriesColor(chart)).toBe(before);
   await expect.poll(() => titleSize(chart)).toBe(beforeSize);
 

@@ -241,7 +241,7 @@ pub fn import(input: &Path, parent: &Path) -> Result<(PathBuf, ImportReport), Co
         if charted_compiler::steps::is_url(path) {
             continue;
         }
-        let absolute = path.starts_with('/') || path.chars().nth(1) == Some(':');
+        let absolute = charted_compiler::steps::is_absolute_path(path);
         if !absolute && let Some(f) = &folder {
             *path = format!("{}/{}", f.trim_end_matches(['/', '\\']), path);
         }

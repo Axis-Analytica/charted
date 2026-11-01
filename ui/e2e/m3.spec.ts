@@ -48,12 +48,12 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
 /** Starts a new measure and returns its editor (focused). */
 async function newMeasure(page: Page) {
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+m");
+  await page.keyboard.press("ControlOrMeta+m");
   const editor = page.locator(".formula-bar .dax-editor");
   await expect(editor).toBeVisible();
   // Replace the suggested "Measure = " with our own text.
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   return editor;
 }
@@ -69,7 +69,7 @@ test.setTimeout(120_000);
 
 test("model view: the star, a new relationship, Both refused as ambiguous", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+3");
+  await page.keyboard.press("ControlOrMeta+3");
   await expect(page.locator(".model-card")).toHaveCount(6);
   await expect(page.locator(".model-edge")).toHaveCount(6);
   await expect(page.locator(".model-edge.is-inactive")).toHaveCount(1);
@@ -126,7 +126,7 @@ test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and A
   await expect(page.locator(".parameter-hints-widget")).toContainText("ColumnName2");
   await shot(page, "05-signature-help");
   await page.keyboard.press("Escape");
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText("Ship Sales = CALCULATE ( [Total Sales], USERELATIONSHIP ( Sales[ShipDateKey], 'Date'[DateKey] ) )");
   await commitFormula(page, "Ship Sales");
   await expect(page.locator(".formula-bar .monaco-editor .view-lines")).toContainText("Ship Sales = CALCULATE");
@@ -162,7 +162,7 @@ test("DAX editor: autocomplete, signature help, squiggles; USERELATIONSHIP and A
 
 test("a RELATED calculated column, PBIP export and an Ossie round trip", async ({ page }) => {
   await openSample(page);
-  await page.keyboard.press("Control+2");
+  await page.keyboard.press("ControlOrMeta+2");
   await page.getByRole("tree", { name: "Tables" }).locator(".tree-label").getByText("Sales", { exact: true }).click();
   await expect(page.getByRole("heading", { name: "Sales" })).toBeVisible();
   const columns = await page.locator(".preview-sub").textContent();
@@ -171,7 +171,7 @@ test("a RELATED calculated column, PBIP export and an Ossie round trip", async (
   const editor = page.locator(".formula-bar .dax-editor");
   await expect(editor).toBeVisible();
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.insertText("List Value = Sales[Quantity] * RELATED ( Product[ListPrice] )");
   await page.locator(".formula-bar").getByRole("button", { name: "Commit" }).click();
   await expect(page.locator(".preview-sub")).not.toHaveText(columns ?? "");

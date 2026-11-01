@@ -54,7 +54,7 @@ test("build the Overview page: card, column, line, table, a DIVIDE measure, a pa
 
   // A new measure with DIVIDE, typed in the formula bar.
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+m");
+  await page.keyboard.press("ControlOrMeta+m");
   const formula = page.getByRole("textbox", { name: "Measure formula" });
   await expect(formula).toBeVisible();
   await formula.fill("Margin % = DIVIDE ( [Total Sales] - [Total Cost, [Total Sales] )");
@@ -128,12 +128,12 @@ test("build the Overview page: card, column, line, table, a DIVIDE measure, a pa
   await page.mouse.move(box.x + 80, box.y + 90, { steps: 8 });
   await page.mouse.up();
   await expect.poll(async () => (await column.boundingBox())!.x).toBeGreaterThan(box.x + 20);
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(async () => Math.round((await column.boundingBox())!.x)).toBe(Math.round(box.x));
   if (shots) await page.screenshot({ path: `${shots}/m2-overview.png` });
 
   // Save, close and reopen: the report is identical.
-  await page.keyboard.press("Control+s");
+  await page.keyboard.press("ControlOrMeta+s");
   await expect(page.getByText("All changes saved")).toBeVisible();
   const pagesDir = `${project}/report/pages`;
   const snapshot = () => readdirSync(pagesDir, { recursive: true }).sort().map(String);
@@ -146,7 +146,7 @@ test("build the Overview page: card, column, line, table, a DIVIDE measure, a pa
 
   const titles = async () => (await page.locator(".visual-title").allTextContents()).sort();
   const before = { titles: await titles(), card: await card.locator(".card-value").textContent() };
-  await page.keyboard.press("Control+w");
+  await page.keyboard.press("ControlOrMeta+w");
   await expect(page.getByRole("button", { name: "Explore the sample" })).toBeVisible();
   await page.getByRole("button", { name: /Harbor & Pine/ }).first().click();
   await expect(page.getByRole("tab", { name: "Overview" })).toBeVisible({ timeout: 30_000 });

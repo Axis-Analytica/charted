@@ -146,7 +146,7 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await expect(fieldRow(page, "Sales", "Sales growth")).toHaveCount(0);
   await page.locator(".report-center").click({ position: { x: 10, y: 10 } });
-  await page.keyboard.press("Control+z");
+  await page.keyboard.press("ControlOrMeta+z");
   await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible();
 
   // New column goes to the Data view with the formula open.
@@ -162,7 +162,7 @@ test("a Western European, semicolon-separated CSV reads right, and its settings 
   const file = `${tmpdir()}/charted-e2e-prices.csv`;
   writeFileSync(file, Buffer.from("Produit;Prix\nCafé crème;2,50\nThé glacé;1.234,75\n", "latin1"));
   await openSample(page);
-  await page.keyboard.press("Control+4");
+  await page.keyboard.press("ControlOrMeta+4");
   await expect(page.locator(".qe")).toBeVisible();
   await pick(page, file);
   await page.locator(".qe-ribbon").getByRole("button", { name: "New source" }).click();

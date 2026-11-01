@@ -146,12 +146,12 @@ test("a calculation group: each item applied to a measure", async ({ page }) => 
   const editor = dialog.locator(".dax-editor");
   await expect(dialog.locator(".monaco-editor .view-lines")).toContainText("SELECTEDMEASURE");
   await editor.click();
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   // SELECTEDMEASURE works here; a misspelt function is underlined.
   await page.keyboard.type("SELECTEDMEASURES ( ) * 2");
   await expect(dialog.locator(".squiggly-error")).toBeVisible({ timeout: 15_000 });
-  await page.keyboard.press("Control+a");
+  await page.keyboard.press("ControlOrMeta+a");
   await page.keyboard.press("Delete");
   await page.keyboard.type("SELECTEDMEASURE ( ) * 2");
   await expect(dialog.locator(".squiggly-error")).toHaveCount(0, { timeout: 15_000 });
