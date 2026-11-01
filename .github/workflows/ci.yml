@@ -171,8 +171,10 @@ jobs:
       - name: Build the dev server
         run: |
           find_lib() { find "$PWD/target/duckdb-download" \( -name libduckdb.dylib -o -name duckdb.dll \) 2>/dev/null | head -1; }
-          cargo build -p charted-cli
-          if [ -z "$(find_lib)" ]; then
+          # The Rust cache can drop DuckDB's downloaded files (the library, or Windows'
+          # duckdb.lib for linking) while keeping the build script's result; fetch them
+          # again if so.
+          if ! cargo build -p charted-cli || [ -z "$(find_lib)" ]; then
             cargo clean -p libduckdb-sys
             cargo build -p charted-cli
           fi
