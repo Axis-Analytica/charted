@@ -304,6 +304,9 @@ table Sales
 	measure 'Negative Mod' = MOD ( -[Quantity], 4 )
 		lineageTag: m:Negative Mod
 
+	measure 'Nested Mod' = MOD ( MOD ( [Quantity] * 3, 17 ), -5 ) + ABS ( MOD ( BLANK (), 3 ) )
+		lineageTag: m:Nested Mod
+
 	measure 'Latest Weekday' = MAXX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date], 2 ) )
 		lineageTag: m:Latest Weekday
 

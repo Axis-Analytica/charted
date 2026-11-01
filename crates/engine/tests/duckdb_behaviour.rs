@@ -101,3 +101,23 @@ fn a_udf_registered_once_is_seen_by_cloned_connections_only() {
     );
     assert!(val(&conn(), "shout('hi')").is_err());
 }
+
+#[test]
+fn a_lambda_binds_aggregates_once() {
+    // Arguments used twice in a template go through a one-element list, so they're
+    // written (and computed) once. The arrow syntax (`s -> …`) is refused.
+    let c = conn();
+    c.execute_batch(
+        "CREATE TABLE t AS SELECT * FROM (VALUES (1, 10.0), (1, 20.0), (2, 7.0)) v(g, x)",
+    )
+    .unwrap();
+    let got: Vec<f64> = c
+        .prepare("SELECT list_transform([struct_pack(a := sum(x), b := 4)], lambda s: s.a - s.b * floor(s.a / s.b))[1] FROM t GROUP BY g ORDER BY g")
+        .unwrap()
+        .query_map([], |r| r.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect();
+    assert_eq!(got, vec![2.0, 3.0]);
+    assert!(val(&c, "list_transform([1], x -> x)[1]").is_err());
+}

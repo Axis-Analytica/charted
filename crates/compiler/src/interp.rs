@@ -17,8 +17,8 @@
 //!   columns, cross joined, minus rows where every value is blank.
 
 use charted_dax::{
-    AggFunc, Anchor, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc, Period,
-    ScalarFunc, TableExpr, UnaryOp,
+    AggFunc, Anchor, ArgKind, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc,
+    LibFn, Period, ScalarFunc, TableExpr, UnaryOp,
 };
 use charted_model::{
     Aggregation, Cardinality, Condition, FieldRef, FilterKind, FilterOp, Id, Model, Projection,
@@ -1257,6 +1257,7 @@ impl<'a> Interp<'a> {
                     .map(|x| self.eval(x, ctx, rows))
                     .collect::<Result<Vec<_>>>()?;
                 match func {
+                    ScalarFunc::Lib(f) => lib_fn(*f, &a),
                     ScalarFunc::Divide => match (a[0].num(), a[1].num()) {
                         (_, None) | (_, Some(0.0)) => a.get(2).cloned().unwrap_or(Value::Blank),
                         (None, _) => Value::Blank,
@@ -1269,17 +1270,6 @@ impl<'a> Interp<'a> {
                             a.get(2).cloned().unwrap_or(Value::Blank)
                         }
                     }
-                    ScalarFunc::Abs => a[0]
-                        .num()
-                        .map(|x| Value::Num(x.abs()))
-                        .unwrap_or(Value::Blank),
-                    ScalarFunc::Round => match (a[0].num(), a[1].num()) {
-                        (Some(x), Some(d)) => {
-                            let m = 10f64.powi(d as i32);
-                            Value::Num((x * m).round() / m)
-                        }
-                        _ => Value::Blank,
-                    },
                     ScalarFunc::Coalesce => a
                         .into_iter()
                         .find(|v| !v.is_blank())
@@ -1493,13 +1483,77 @@ fn today() -> i64 {
     }
 }
 
+/// Arguments read as their kinds say (see `charted_dax::ArgKind`), the way the SQL
+/// compiler's `lib_arg` reads them. None when a `NumOrBlank` argument is blank (or
+/// isn't a number), which makes the result blank.
+fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
+    a.iter()
+        .enumerate()
+        .map(|(i, v)| match f.kind(i) {
+            ArgKind::Num => Some(Value::Num(v.num().unwrap_or(0.0))),
+            ArgKind::NumOrBlank => v.num().map(Value::Num),
+            ArgKind::Int => Some(Value::Num(whole(v) as f64)),
+            ArgKind::Text => Some(Value::Text(text(v))),
+        })
+        .collect()
+}
+
+/// Each library function, its arguments read by `lib_args`.
+fn lib_fn(f: LibFn, a: &[Value]) -> Value {
+    let Some(a) = lib_args(f, a) else {
+        return Value::Blank;
+    };
+    let num = |i: usize| a[i].num().unwrap_or(0.0);
+    let int = |i: usize| num(i) as i64;
+    let txt = |i: usize| text(&a[i]);
+    match f {
+        LibFn::Abs => Value::Num(num(0).abs()),
+        LibFn::Int => Value::Num(num(0).floor()),
+        LibFn::Round => {
+            let m = 10f64.powi(num(1) as i32);
+            Value::Num((num(0) * m).round() / m)
+        }
+        LibFn::Mod => {
+            let (x, d) = (num(0), num(1));
+            if d == 0.0 {
+                Value::Blank
+            } else {
+                Value::Num(x - d * (x / d).floor())
+            }
+        }
+        LibFn::Upper => Value::Text(txt(0).to_uppercase()),
+        LibFn::Lower => Value::Text(txt(0).to_lowercase()),
+        LibFn::Len => Value::Num(txt(0).chars().count() as f64),
+        // Leading and trailing spaces go; runs of spaces inside become one.
+        LibFn::Trim => Value::Text(
+            txt(0)
+                .split(' ')
+                .filter(|p| !p.is_empty())
+                .collect::<Vec<_>>()
+                .join(" "),
+        ),
+        LibFn::Left | LibFn::Right => {
+            let n = if a.len() > 1 { int(1) } else { 1 }.max(0) as usize;
+            let chars: Vec<char> = txt(0).chars().collect();
+            let cut = if f == LibFn::Left {
+                &chars[..n.min(chars.len())]
+            } else {
+                &chars[chars.len().saturating_sub(n)..]
+            };
+            Value::Text(cut.iter().collect())
+        }
+        LibFn::Mid => {
+            let start = int(1).max(1) as usize;
+            let n = int(2).max(0) as usize;
+            Value::Text(txt(0).chars().skip(start - 1).take(n).collect())
+        }
+    }
+}
+
 fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
     let date = |z: i64| Value::Text(cal::format(z));
     Ok(match func {
-        ScalarFunc::Int => a[0]
-            .num()
-            .map(|x| Value::Num(x.floor()))
-            .unwrap_or(Value::Blank),
+        ScalarFunc::Lib(f) => lib_fn(*f, a),
         ScalarFunc::Min | ScalarFunc::Max => {
             let max = matches!(func, ScalarFunc::Max);
             let text_like = |v: &Value| matches!(v, Value::Text(_));
@@ -1521,32 +1575,6 @@ fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
             } else {
                 a[0].clone()
             }
-        }
-        ScalarFunc::Upper => Value::Text(text(&a[0]).to_uppercase()),
-        ScalarFunc::Lower => Value::Text(text(&a[0]).to_lowercase()),
-        ScalarFunc::Len => Value::Num(text(&a[0]).chars().count() as f64),
-        // Leading and trailing spaces go; runs of spaces inside become one.
-        ScalarFunc::Trim => Value::Text(
-            text(&a[0])
-                .split(' ')
-                .filter(|p| !p.is_empty())
-                .collect::<Vec<_>>()
-                .join(" "),
-        ),
-        ScalarFunc::Left | ScalarFunc::Right => {
-            let n = a.get(1).map(whole).unwrap_or(1).max(0) as usize;
-            let chars: Vec<char> = text(&a[0]).chars().collect();
-            let cut = if matches!(func, ScalarFunc::Left) {
-                &chars[..n.min(chars.len())]
-            } else {
-                &chars[chars.len().saturating_sub(n)..]
-            };
-            Value::Text(cut.iter().collect())
-        }
-        ScalarFunc::Mid => {
-            let start = whole(&a[1]).max(1) as usize;
-            let n = whole(&a[2]).max(0) as usize;
-            Value::Text(text(&a[0]).chars().skip(start - 1).take(n).collect())
         }
         ScalarFunc::Substitute => {
             let (s, old, new) = (text(&a[0]), text(&a[1]), text(&a[2]));
@@ -1586,15 +1614,6 @@ fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
         },
         ScalarFunc::Date => date(cal::date(whole(&a[0]), whole(&a[1]), whole(&a[2]))),
         ScalarFunc::Today => date(today()),
-        ScalarFunc::Mod => {
-            let x = a[0].num().unwrap_or(0.0);
-            let d = a[1].num().unwrap_or(0.0);
-            if d == 0.0 {
-                Value::Blank
-            } else {
-                Value::Num(x - d * (x / d).floor())
-            }
-        }
         ScalarFunc::Weekday => match day(&a[0]) {
             // 1970-01-01 was a Thursday.
             Some(z) => {
@@ -2288,11 +2307,17 @@ mod tests {
     fn text_functions_treat_blank_as_empty() {
         let t = |s: &str| Value::Text(s.into());
         let run = |f: ScalarFunc, a: &[Value]| scalar(&f, a).unwrap();
-        assert_eq!(run(ScalarFunc::Len, &[Value::Blank]), Value::Num(0.0));
-        assert_eq!(run(ScalarFunc::Upper, &[Value::Blank]), t(""));
-        assert_eq!(run(ScalarFunc::Trim, &[t("  a   b ")]), t("a b"));
         assert_eq!(
-            run(ScalarFunc::Right, &[t("abc"), Value::Num(5.0)]),
+            run(ScalarFunc::Lib(LibFn::Len), &[Value::Blank]),
+            Value::Num(0.0)
+        );
+        assert_eq!(run(ScalarFunc::Lib(LibFn::Upper), &[Value::Blank]), t(""));
+        assert_eq!(
+            run(ScalarFunc::Lib(LibFn::Trim), &[t("  a   b ")]),
+            t("a b")
+        );
+        assert_eq!(
+            run(ScalarFunc::Lib(LibFn::Right), &[t("abc"), Value::Num(5.0)]),
             t("abc")
         );
         assert_eq!(
@@ -2302,7 +2327,10 @@ mod tests {
             ),
             t("a-b+c")
         );
-        assert_eq!(run(ScalarFunc::Int, &[Value::Num(-2.5)]), Value::Num(-3.0));
+        assert_eq!(
+            run(ScalarFunc::Lib(LibFn::Int), &[Value::Num(-2.5)]),
+            Value::Num(-3.0)
+        );
         assert_eq!(
             run(ScalarFunc::Min, &[Value::Num(1.0), Value::Blank]),
             Value::Num(0.0)

@@ -3,7 +3,7 @@
 //! referenced measures are expanded inline (Ossie metrics cannot refer to each other).
 //! Measures that cannot be expressed this way get no generated expression.
 
-use charted_dax::{AggFunc, BinaryOp, Bound, ScalarFunc, TableExpr, UnaryOp};
+use charted_dax::{AggFunc, BinaryOp, Bound, LibFn, ScalarFunc, TableExpr, UnaryOp};
 use charted_model::{Id, Model};
 
 use crate::quote::{ident, string};
@@ -80,8 +80,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                     a[1],
                     a.get(2).map(String::as_str).unwrap_or("NULL")
                 ),
-                ScalarFunc::Abs => format!("ABS({})", a[0]),
-                ScalarFunc::Round => format!("ROUND({}, {})", a[0], a[1]),
+                ScalarFunc::Lib(f) => lib(*f, &a)?,
                 ScalarFunc::Coalesce => format!("COALESCE({})", a.join(", ")),
                 ScalarFunc::And => format!("({} AND {})", a[0], a[1]),
                 ScalarFunc::Or => format!("({} OR {})", a[0], a[1]),
@@ -91,13 +90,6 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 ScalarFunc::Month => format!("EXTRACT(MONTH FROM {})", a[0]),
                 ScalarFunc::Day => format!("EXTRACT(DAY FROM {})", a[0]),
                 ScalarFunc::Quarter => format!("EXTRACT(QUARTER FROM {})", a[0]),
-                ScalarFunc::Int => format!("FLOOR({})", a[0]),
-                ScalarFunc::Upper => format!("UPPER({})", a[0]),
-                ScalarFunc::Lower => format!("LOWER({})", a[0]),
-                ScalarFunc::Len => format!("CHAR_LENGTH({})", a[0]),
-                ScalarFunc::Left => format!("LEFT({}, {})", a[0], a.get(1).map_or("1", |n| n)),
-                ScalarFunc::Right => format!("RIGHT({}, {})", a[0], a.get(1).map_or("1", |n| n)),
-                ScalarFunc::Mid => format!("SUBSTRING({}, {}, {})", a[0], a[1], a[2]),
                 ScalarFunc::Substitute if a.len() == 3 => {
                     format!("REPLACE({}, {}, {})", a[0], a[1], a[2])
                 }
@@ -105,13 +97,11 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 // format strings have no portable SQL spelling: no generated expression.
                 ScalarFunc::Min
                 | ScalarFunc::Max
-                | ScalarFunc::Trim
                 | ScalarFunc::Substitute
                 | ScalarFunc::Format(_)
                 | ScalarFunc::Date
                 | ScalarFunc::EoMonth
                 | ScalarFunc::Today
-                | ScalarFunc::Mod
                 | ScalarFunc::Weekday
                 | ScalarFunc::EDate
                 | ScalarFunc::DateDiff(_) => return None,
@@ -158,5 +148,23 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
             };
             format!("({l} {sym} {r})")
         }
+    })
+}
+
+/// A library function in Ossie's SQL, or None when it has no portable spelling (space
+/// collapsing in TRIM, MOD's sign rule).
+fn lib(f: LibFn, a: &[String]) -> Option<String> {
+    let n = || a.get(1).map_or("1", |n| n.as_str());
+    Some(match f {
+        LibFn::Abs => format!("ABS({})", a[0]),
+        LibFn::Round => format!("ROUND({}, {})", a[0], a[1]),
+        LibFn::Int => format!("FLOOR({})", a[0]),
+        LibFn::Upper => format!("UPPER({})", a[0]),
+        LibFn::Lower => format!("LOWER({})", a[0]),
+        LibFn::Len => format!("CHAR_LENGTH({})", a[0]),
+        LibFn::Left => format!("LEFT({}, {})", a[0], n()),
+        LibFn::Right => format!("RIGHT({}, {})", a[0], n()),
+        LibFn::Mid => format!("SUBSTRING({}, {}, {})", a[0], a[1], a[2]),
+        LibFn::Trim | LibFn::Mod => return None,
     })
 }

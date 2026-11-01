@@ -494,6 +494,20 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 ## Gotchas learned the hard way
 
+- **Adding a plain DAX function (M11.3):** functions of their arguments alone (no
+  filter context, no tables) go in the `library!` table in `crates/dax/src/library.rs`:
+  name, argument kinds (`Num`, `NumOrBlank`, `Int`, `Text`) and return type. The build
+  then fails until there's an arm in `lib_template` (`crates/compiler/src/visual.rs`),
+  `lib_fn` (`interp.rs`) and `lib` (`ossie.rs`; return None when there's no portable
+  SQL). Both sides read arguments by kind before the arm sees them (`lib_arg` and
+  `lib_args`), so blanks are handled the same way in each.
+  - `lib_template` may use an argument several times. `lib_sql` then computes it once
+    through `list_transform([struct_pack(a0 := …)], lambda _l: …)[1]`.
+  - Its placeholders are `\u{2}libN\u{2}`, because `\u{1}N\u{1}` already stands for
+    measure CTE values.
+  - Remove the name from `KNOWN` in `bind.rs`. The catalog test fails on duplicates.
+  - Add a golden measure, regenerate the conformance files, and run
+    `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
 - **The Power BI conformance harness (M11.1)** is in `conformance/` (see its README) and
   `crates/core/tests/conformance.rs`. The golden fixture, measures and shapes moved to
   `crates/core/tests/golden/mod.rs`, which both test files share. After changing a golden

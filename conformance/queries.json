@@ -7072,6 +7072,76 @@
       "shape": "by product, camping"
     },
     {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Nested Mod])\n",
+      "hash": "0a30d7479d159d67",
+      "id": "Nested Mod / card",
+      "measure": "Nested Mod",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Nested Mod])\n",
+      "hash": "29ea462806178388",
+      "id": "Nested Mod / by category",
+      "measure": "Nested Mod",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Nested Mod])\n",
+      "hash": "5b7db943570594fa",
+      "id": "Nested Mod / by year",
+      "measure": "Nested Mod",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Nested Mod])\n",
+      "hash": "2a8f977161c0b819",
+      "id": "Nested Mod / by category and year",
+      "measure": "Nested Mod",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Nested Mod])\n",
+      "hash": "62da706791f0311f",
+      "id": "Nested Mod / by region in 2025",
+      "measure": "Nested Mod",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Nested Mod])\n",
+      "hash": "e515efbaf6b7659b",
+      "id": "Nested Mod / by year and month",
+      "measure": "Nested Mod",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Nested Mod])\n",
+      "hash": "d358d8a8a6efe04e",
+      "id": "Nested Mod / by month name",
+      "measure": "Nested Mod",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Nested Mod])\n",
+      "hash": "5a13763dc8a83dcb",
+      "id": "Nested Mod / by color, apparel and camping",
+      "measure": "Nested Mod",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Nested Mod])\n",
+      "hash": "a867b8fa001234eb",
+      "id": "Nested Mod / by month in 2025, camping",
+      "measure": "Nested Mod",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Nested Mod])\n",
+      "hash": "d450a39ee9452dcc",
+      "id": "Nested Mod / by product, camping",
+      "measure": "Nested Mod",
+      "shape": "by product, camping"
+    },
+    {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Latest Weekday])\n",
       "hash": "036417fc12b9df5b",
       "id": "Latest Weekday / card",

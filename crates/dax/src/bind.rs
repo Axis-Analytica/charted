@@ -6,6 +6,7 @@
 use charted_model::{Cardinality, DataType, Id, Model, Table};
 
 use crate::format::FormatSpec;
+use crate::library::LibFn;
 use crate::parser::{BinaryOp, Expr, ExprKind, UnaryOp};
 use crate::{Diagnostic, Span};
 
@@ -24,10 +25,10 @@ pub enum AggFunc {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ScalarFunc {
+    /// A plain function of its arguments, from the library table (library.rs).
+    Lib(LibFn),
     Divide,
     If,
-    Abs,
-    Round,
     Coalesce,
     And,
     Or,
@@ -38,19 +39,9 @@ pub enum ScalarFunc {
     Month,
     Day,
     Quarter,
-    /// INT: rounds down, towards negative infinity.
-    Int,
     /// MIN and MAX of two values: blank counts as zero unless both are blank.
     Min,
     Max,
-    /// Text functions. A blank argument counts as empty text.
-    Upper,
-    Lower,
-    Len,
-    Trim,
-    Left,
-    Right,
-    Mid,
     /// SUBSTITUTE ( text, old, new, [instance] ).
     Substitute,
     /// FORMAT ( value, "literal format string" ), the format parsed by the binder.
@@ -61,8 +52,6 @@ pub enum ScalarFunc {
     EoMonth,
     /// TODAY: the current date.
     Today,
-    /// MOD: the remainder, with the divisor's sign.
-    Mod,
     /// WEEKDAY: the day of the week (return type 1: Sunday 1…, 2: Monday 1…, 3: Monday 0…).
     Weekday,
     /// EDATE ( date, months ): the same day `months` away (clamped to the month's end).
@@ -533,9 +522,14 @@ pub const KNOWN: &[&str] = &[
     "YEARFRAC",
 ];
 
-/// Functions charted evaluates, for docs/dax-support.md.
+/// Whether charted evaluates the function `name` (in capitals).
+pub fn supported(name: &str) -> bool {
+    SUPPORTED.contains(&name) || crate::library::LibFn::by_name(name).is_some()
+}
+
+/// Functions charted evaluates, for docs/dax-support.md, besides the library
+/// functions (library.rs).
 pub const SUPPORTED: &[&str] = &[
-    "ABS",
     "ADDCOLUMNS",
     "ALL",
     "ALLEXCEPT",
@@ -577,23 +571,17 @@ pub const SUPPORTED: &[&str] = &[
     "GENERATESERIES",
     "HASONEVALUE",
     "IF",
-    "INT",
     "ISBLANK",
     "ISFILTERED",
     "ISINSCOPE",
     "ISSELECTEDMEASURE",
     "KEEPFILTERS",
     "LASTDATE",
-    "LEFT",
-    "LEN",
     "LOOKUPVALUE",
-    "LOWER",
     "MAX",
     "MAXX",
-    "MID",
     "MIN",
     "MINX",
-    "MOD",
     "MONTH",
     "NAMEOF",
     "NEXTDAY",
@@ -613,8 +601,6 @@ pub const SUPPORTED: &[&str] = &[
     "RELATED",
     "RELATEDTABLE",
     "REMOVEFILTERS",
-    "RIGHT",
-    "ROUND",
     "SAMEPERIODLASTYEAR",
     "SELECTCOLUMNS",
     "SELECTEDMEASURE",
@@ -632,9 +618,7 @@ pub const SUPPORTED: &[&str] = &[
     "TOTALMTD",
     "TOTALQTD",
     "TOTALYTD",
-    "TRIM",
     "TRUE",
-    "UPPER",
     "USERELATIONSHIP",
     "VALUES",
     "WEEKDAY",
@@ -2210,12 +2194,22 @@ impl<'a> Binder<'a> {
                 span,
                 format!("{upper} returns a table; use it inside CALCULATE, an iterator such as SUMX, or COUNTROWS"),
             ),
+            _ if LibFn::by_name(&upper).is_some() => {
+                let func = LibFn::by_name(&upper)?;
+                let (min, max) = func.arity();
+                if !self.arity(&upper, args, span, min, max) {
+                    return None;
+                }
+                let bound: Vec<Option<Bound>> = args.iter().map(|a| self.expr(a, rows)).collect();
+                Some(Bound::Call {
+                    func: ScalarFunc::Lib(func),
+                    args: bound.into_iter().collect::<Option<Vec<_>>>()?,
+                })
+            }
             _ => {
                 let (func, min, max) = match upper.as_str() {
                     "DIVIDE" => (ScalarFunc::Divide, 2, 3),
                     "IF" => (ScalarFunc::If, 2, 3),
-                    "ABS" => (ScalarFunc::Abs, 1, 1),
-                    "ROUND" => (ScalarFunc::Round, 2, 2),
                     "COALESCE" => (ScalarFunc::Coalesce, 2, usize::MAX),
                     "AND" => (ScalarFunc::And, 2, 2),
                     "OR" => (ScalarFunc::Or, 2, 2),
@@ -2227,19 +2221,10 @@ impl<'a> Binder<'a> {
                     "QUARTER" => (ScalarFunc::Quarter, 1, 1),
                     "MIN" => (ScalarFunc::Min, 2, 2),
                     "MAX" => (ScalarFunc::Max, 2, 2),
-                    "INT" => (ScalarFunc::Int, 1, 1),
-                    "UPPER" => (ScalarFunc::Upper, 1, 1),
-                    "LOWER" => (ScalarFunc::Lower, 1, 1),
-                    "LEN" => (ScalarFunc::Len, 1, 1),
-                    "TRIM" => (ScalarFunc::Trim, 1, 1),
-                    "LEFT" => (ScalarFunc::Left, 1, 2),
-                    "RIGHT" => (ScalarFunc::Right, 1, 2),
-                    "MID" => (ScalarFunc::Mid, 3, 3),
                     "SUBSTITUTE" => (ScalarFunc::Substitute, 3, 4),
                     "DATE" => (ScalarFunc::Date, 3, 3),
                     "EOMONTH" => (ScalarFunc::EoMonth, 2, 2),
                     "TODAY" => (ScalarFunc::Today, 0, 0),
-                    "MOD" => (ScalarFunc::Mod, 2, 2),
                     "WEEKDAY" => (ScalarFunc::Weekday, 1, 2),
                     "EDATE" => (ScalarFunc::EDate, 2, 2),
                     _ if KNOWN.contains(&upper.as_str()) => {

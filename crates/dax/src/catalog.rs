@@ -184,7 +184,7 @@ pub fn functions() -> Vec<FunctionDoc> {
                     .collect(),
                 category: p.next()?,
                 description: p.next()?,
-                supported: crate::bind::SUPPORTED.contains(&name),
+                supported: crate::bind::supported(name),
             })
         })
         .collect();
@@ -310,16 +310,21 @@ mod tests {
     #[test]
     fn every_known_function_is_documented() {
         let docs = super::functions();
-        for name in crate::bind::SUPPORTED.iter().chain(crate::bind::KNOWN) {
+        let library = crate::library::LibFn::ALL.iter().map(|f| f.name());
+        let names: Vec<&str> = crate::bind::SUPPORTED
+            .iter()
+            .chain(crate::bind::KNOWN)
+            .copied()
+            .chain(library)
+            .collect();
+        for (i, name) in names.iter().enumerate() {
+            assert!(!names[..i].contains(name), "{name} is listed twice");
             assert!(
                 docs.iter().any(|d| d.name == *name),
                 "{name} has no entry in the catalog"
             );
         }
-        assert_eq!(
-            docs.len(),
-            crate::bind::SUPPORTED.len() + crate::bind::KNOWN.len()
-        );
+        assert_eq!(docs.len(), names.len());
     }
 
     #[test]

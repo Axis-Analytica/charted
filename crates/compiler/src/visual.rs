@@ -25,8 +25,8 @@
 //!   zero or blank gives the alternate result, counts of nothing are blank.
 
 use charted_dax::{
-    AggFunc, Anchor, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc, Period,
-    ScalarFunc, TableExpr, UnaryOp,
+    AggFunc, Anchor, ArgKind, BinaryOp, Bound, DateOp, DatePart, FilterArg, FormatSpec, InfoFunc,
+    LibFn, Period, Returns, ScalarFunc, TableExpr, UnaryOp,
 };
 use charted_model::{
     Aggregation, ColumnKind, Condition, DataType, DateUnit, FieldRef, FilterKind, FilterOp, Id,
@@ -613,9 +613,102 @@ fn format_sql(spec: &FormatSpec, x: &(String, ValueType)) -> Result<String> {
     Ok(format!("coalesce({body}, '')"))
 }
 
+/// An argument read as its kind says (see `charted_dax::ArgKind`); the interpreter's
+/// `lib_args` reads them the same way.
+fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
+    match kind {
+        ArgKind::Num => format!("coalesce(CAST({} AS DOUBLE), 0)", x.0),
+        ArgKind::NumOrBlank => format!("CAST({} AS DOUBLE)", x.0),
+        ArgKind::Int => whole_sql(x),
+        ArgKind::Text => text_sql(x),
+    }
+}
+
+/// SQL that is cheap and safe to write more than once: a literal or a column.
+fn trivial_sql(x: &str) -> bool {
+    let x = x.trim();
+    let quoted = |q: char| {
+        x.len() >= 2 && x.starts_with(q) && x.ends_with(q) && !x[1..x.len() - 1].contains(q)
+    };
+    x == "NULL"
+        || x == "TRUE"
+        || x == "FALSE"
+        || x.parse::<f64>().is_ok()
+        || quoted('\'')
+        || x.split('.').all(|p| {
+            p.len() >= 2
+                && p.starts_with('"')
+                && p.ends_with('"')
+                && !p[1..p.len() - 1].contains('"')
+        })
+}
+
+/// A library function's SQL. Its template (`lib_template`) is written with each
+/// argument in place; an argument the template uses more than once, unless trivial, is
+/// computed once and passed through a one-element list and a lambda, so nesting can't
+/// grow the SQL exponentially or compute a subquery twice.
+fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
+    // Not \u{1}…\u{1}: the measure placeholders use those.
+    let marker = |i: usize| format!("\u{2}lib{i}\u{2}");
+    let markers: Vec<String> = (0..a.len()).map(marker).collect();
+    let mut body = lib_template(f, &markers);
+    let mut fields = Vec::new();
+    for (i, x) in a.iter().enumerate() {
+        let m = marker(i);
+        let arg = if body.matches(&m).count() > 1 && !trivial_sql(&x.0) {
+            fields.push(format!("a{i} := {}", x.0));
+            lib_arg(f.kind(i), &(format!("_l.a{i}"), x.1))
+        } else {
+            lib_arg(f.kind(i), x)
+        };
+        body = body.replace(&m, &arg);
+    }
+    if !fields.is_empty() {
+        body = format!(
+            "list_transform([struct_pack({})], lambda _l: {body})[1]",
+            fields.join(", ")
+        );
+    }
+    let ty = match f.returns() {
+        Returns::Num => ValueType::Number,
+        Returns::Text => ValueType::Text,
+        Returns::Bool => ValueType::Bool,
+        Returns::Date => ValueType::Date,
+    };
+    (body, ty)
+}
+
+/// Each library function in SQL, its arguments `a` already read as their kinds say.
+fn lib_template(f: LibFn, a: &[String]) -> String {
+    let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
+    match f {
+        LibFn::Abs => format!("abs({})", a[0]),
+        // TRUE and FALSE are 1 and 0 (INT ( x > 0 ) is a common idiom).
+        LibFn::Int => format!("floor({})", a[0]),
+        // DAX rounds halves away from zero, as DuckDB does.
+        LibFn::Round => format!("round({}, CAST({} AS INTEGER))", a[0], a[1]),
+        LibFn::Mod => format!(
+            "(CASE WHEN {d} = 0 THEN NULL ELSE {x} - {d} * floor({x} / {d}) END)",
+            x = a[0],
+            d = a[1]
+        ),
+        LibFn::Upper => format!("upper({})", a[0]),
+        LibFn::Lower => format!("lower({})", a[0]),
+        LibFn::Len => format!("length({})", a[0]),
+        LibFn::Trim => format!("trim(regexp_replace({}, ' +', ' ', 'g'))", a[0]),
+        LibFn::Left => format!("left({}, greatest({}, 0))", a[0], opt(1, "1")),
+        LibFn::Right => format!("right({}, greatest({}, 0))", a[0], opt(1, "1")),
+        LibFn::Mid => format!(
+            "substring({}, greatest({}, 1), greatest({}, 0))",
+            a[0], a[1], a[2]
+        ),
+    }
+}
+
 fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, ValueType)> {
     let num = ValueType::Number;
     Ok(match func {
+        ScalarFunc::Lib(f) => lib_sql(*f, a),
         ScalarFunc::Divide => {
             let alt = a.get(2).map(|x| x.0.as_str()).unwrap_or("NULL");
             (
@@ -641,15 +734,6 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 ty,
             )
         }
-        ScalarFunc::Abs => (format!("abs({})", a[0].0), num),
-        // DAX rounds halves away from zero.
-        ScalarFunc::Round => (
-            format!(
-                "round(CAST({} AS DOUBLE), CAST({} AS INTEGER))",
-                a[0].0, a[1].0
-            ),
-            num,
-        ),
         ScalarFunc::Coalesce => {
             let (b, ty) = unify(a);
             (format!("coalesce({})", b.join(", ")), ty)
@@ -687,8 +771,6 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 num,
             )
         }
-        // TRUE and FALSE are 1 and 0 (INT ( x > 0 ) is a common idiom).
-        ScalarFunc::Int => (format!("floor(CAST({} AS DOUBLE))", a[0].0), num),
         ScalarFunc::Min | ScalarFunc::Max => {
             let f = if matches!(func, ScalarFunc::Min) {
                 "least"
@@ -712,34 +794,6 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 (format!("{f}({}, {})", p[0], p[1]), ty)
             }
         }
-        ScalarFunc::Upper => (format!("upper({})", text_sql(&a[0])), ValueType::Text),
-        ScalarFunc::Lower => (format!("lower({})", text_sql(&a[0])), ValueType::Text),
-        ScalarFunc::Len => (format!("length({})", text_sql(&a[0])), num),
-        ScalarFunc::Trim => (
-            format!("trim(regexp_replace({}, ' +', ' ', 'g'))", text_sql(&a[0])),
-            ValueType::Text,
-        ),
-        ScalarFunc::Left | ScalarFunc::Right => {
-            let n = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());
-            let f = if matches!(func, ScalarFunc::Left) {
-                "left"
-            } else {
-                "right"
-            };
-            (
-                format!("{f}({}, greatest({n}, 0))", text_sql(&a[0])),
-                ValueType::Text,
-            )
-        }
-        ScalarFunc::Mid => (
-            format!(
-                "substring({}, greatest({}, 1), greatest({}, 0))",
-                text_sql(&a[0]),
-                whole_sql(&a[1]),
-                whole_sql(&a[2])
-            ),
-            ValueType::Text,
-        ),
         ScalarFunc::Substitute => {
             let (t, old, new) = (text_sql(&a[0]), text_sql(&a[1]), text_sql(&a[2]));
             let sql = match a.get(3) {
@@ -770,16 +824,6 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
             )
         }
         ScalarFunc::Today => ("current_date".into(), ValueType::Date),
-        ScalarFunc::Mod => {
-            let (x, d) = (
-                format!("coalesce(CAST({} AS DOUBLE), 0)", a[0].0),
-                format!("coalesce(CAST({} AS DOUBLE), 0)", a[1].0),
-            );
-            (
-                format!("(CASE WHEN {d} = 0 THEN NULL ELSE {x} - {d} * floor({x} / {d}) END)"),
-                num,
-            )
-        }
         ScalarFunc::Weekday => {
             let d = date_sql(&a[0]);
             let kind = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());

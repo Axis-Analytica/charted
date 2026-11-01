@@ -8,6 +8,7 @@ pub mod catalog;
 pub mod format;
 pub mod ide;
 pub mod lexer;
+pub mod library;
 pub mod parser;
 
 use serde::{Deserialize, Serialize};
@@ -18,6 +19,7 @@ pub use bind::{
     bind_in,
 };
 pub use format::{DatePart, FormatSpec};
+pub use library::{ArgKind, LibFn, Returns};
 pub use parser::{BinaryOp, Expr, ExprKind, Parsed, UnaryOp, parse};
 
 /// A byte range in the formula text.

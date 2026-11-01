@@ -654,6 +654,11 @@ pub const MEASURES: &[(&str, &str)] = &[
     ),
     ("Qty Mod 7", "MOD ( [Quantity], 7 )"),
     ("Negative Mod", "MOD ( -[Quantity], 4 )"),
+    // Nested, so MOD's twice-used arguments go through the bind-once lambda.
+    (
+        "Nested Mod",
+        "MOD ( MOD ( [Quantity] * 3, 17 ), -5 ) + ABS ( MOD ( BLANK (), 3 ) )",
+    ),
     (
         "Latest Weekday",
         "MAXX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date], 2 ) )",

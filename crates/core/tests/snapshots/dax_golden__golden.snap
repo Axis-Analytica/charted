@@ -875,6 +875,15 @@ expression: golden
 "Camping" | 2
 "Footwear" | 3
 
+## Nested Mod — card
+-2
+
+## Nested Mod — by category
+∅ | -1
+"Apparel" | 0
+"Camping" | -2
+"Footwear" | 0
+
 ## Latest Weekday — card
 7
 
