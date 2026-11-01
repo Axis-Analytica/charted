@@ -53,7 +53,7 @@ async function addVisual(page: Page, label: string, at: { x: number; y: number }
 const seriesColor = (chart: Locator) =>
   chart
     .locator(".cartesian")
-    .evaluate((el) => String((el as unknown as { chart: { getOption(): { series: { data?: { itemStyle?: { color?: unknown } }[] }[] } } }).chart.getOption().series[0]?.data?.[0]?.itemStyle?.color ?? "").toLowerCase());
+    .evaluate((el) => String((el as unknown as { chart?: { getOption(): { series: { data?: { itemStyle?: { color?: unknown } }[] }[] } } }).chart?.getOption().series[0]?.data?.[0]?.itemStyle?.color ?? "").toLowerCase());
 const titleSize = (chart: Locator) => chart.locator(".visual-title").evaluate((el) => getComputedStyle(el).fontSize);
 
 test.setTimeout(180_000);

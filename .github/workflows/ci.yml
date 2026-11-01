@@ -133,11 +133,10 @@ jobs:
           path: ui/test-results
           retention-days: 7
 
-  # The end-to-end tests against the core built for macOS and Windows. Not yet required
-  # (continue-on-error) while the specs' Linux assumptions are found and fixed.
+  # The end-to-end tests against the core built for macOS and Windows. These machines
+  # are slower, so a failing test gets one retry (Playwright reports it as flaky).
   e2e-other:
     name: End-to-end (${{ matrix.os }})
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -187,6 +186,8 @@ jobs:
         working-directory: ui
       - run: pnpm exec playwright test
         working-directory: ui
+        env:
+          CHARTED_E2E_RETRIES: 1
       - name: Keep the end-to-end results of a failed run
         if: failure()
         uses: actions/upload-artifact@v4

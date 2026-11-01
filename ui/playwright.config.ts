@@ -20,6 +20,9 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
+  // CI's macOS and Windows machines are slower; a test that fails there gets a second
+  // try (reported as flaky). Linux stays strict.
+  retries: Number(process.env.CHARTED_E2E_RETRIES ?? 0),
   reporter: [["list"]],
   use: {
     baseURL: `http://localhost:${web}`,
