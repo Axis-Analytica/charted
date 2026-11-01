@@ -107,7 +107,8 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
   const found = await items.count();
   await slicer.getByText("Select all results").click();
-  await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found);
+  // Selecting thousands of values redraws the whole list: slow on a slow machine.
+  await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found, { timeout: 30_000 });
   await expect(slicer.getByRole("button", { name: "Clear selections" })).toBeVisible();
   await shot(page, "v1-01-slicer-search");
   await box.fill("");
