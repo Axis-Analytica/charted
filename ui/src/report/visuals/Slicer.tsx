@@ -122,7 +122,9 @@ function ListSlicer({ visual, page, model, data, dropdown }: { visual: Visual; p
   };
 
   const list = (
-    <div className="slicer-list" role="listbox" aria-multiselectable={multi} aria-label={projectionName(model, field, t)}>
+    // data-search-pending: the core hasn't answered this search yet, so the values shown
+    // are only those among the first SLICER_LIMIT.
+    <div className="slicer-list" role="listbox" aria-multiselectable={multi} aria-label={projectionName(model, field, t)} data-search-pending={q && truncated && coreSearch !== q ? "" : undefined}>
       {selectAll && !q && (
         <label className="slicer-item">
           <input type="checkbox" checked={chosen.length === 0} onChange={() => setSelection(page, visual, null, "Clear slicer")} />

@@ -99,15 +99,12 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   const items = slicer.locator(".slicer-item[role=option] span");
   await expect(items.first()).toBeVisible();
   await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
-  // The results can still be arriving on a slow machine: count once they settle.
-  let found = -1;
-  await expect
-    .poll(async () => {
-      const before = found;
-      found = await items.count();
-      return found === before;
-    })
-    .toBe(true);
+  // Wait for the core's answer (and the visual's reload): until then only matches among
+  // the first 5,000 are listed.
+  await expect(slicer.locator("[data-search-pending]")).toHaveCount(0);
+  await expect(slicer).not.toHaveAttribute("data-loading");
+  await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
+  const found = await items.count();
   await slicer.getByText("Select all results").click();
   await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found);
   await expect(slicer.getByRole("button", { name: "Clear selections" })).toBeVisible();
@@ -153,8 +150,13 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await expect(page.getByRole("menu", { name: "Sales growth" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Delete" }).click();
   await expect(fieldRow(page, "Sales", "Sales growth")).toHaveCount(0);
-  await page.getByRole("button", { name: "Undo Delete measure" }).click();
-  await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible();
+  // A press can be lost while the closing menu hands back focus (seen on Windows):
+  // press again until it takes, which the button's own name shows.
+  await expect(async () => {
+    const undo = page.getByRole("button", { name: "Undo Delete measure" });
+    if (await undo.count()) await undo.click({ timeout: 1000 });
+    await expect(fieldRow(page, "Sales", "Sales growth")).toBeVisible({ timeout: 1000 });
+  }).toPass();
 
   // New column goes to the Data view with the formula open.
   await fieldsPane(page).locator(".field-table-btn", { hasText: /^Product$/ }).click({ button: "right" });

@@ -160,11 +160,12 @@ test("new chart types: 100% stacked, combo, waterfall, funnel, treemap, gauge, K
   const comboOpt = await option(combo);
   expect(comboOpt.yAxis.length).toBe(2);
   expect(comboOpt.series[1]!.yAxisIndex).toBe(1);
+  // Read the line once its numbers are in, and again once the split has redrawn.
+  await expect.poll(async () => (await values(combo, 1)).length > 0 && (await values(combo, 1)).every((v) => v !== null)).toBe(true);
   const units = await values(combo, 1);
   await dropInWell(page, "Store", "Channel", "series");
   await expect.poll(async () => (await option(combo)).series.filter((s) => s.type === "bar").length).toBeGreaterThan(1);
-  const split = await option(combo);
-  expect(split.series.find((s) => s.type === "line")!.data.map(num)).toEqual(units);
+  await expect.poll(async () => (await option(combo)).series.find((s) => s.type === "line")?.data.map(num)).toEqual(units);
   await shot(page, "v12-02-combo");
   // Converting keeps the line: to line and stacked column.
   await page.locator(".viz-gallery").getByRole("button", { name: "Line and stacked column chart", exact: true }).click();

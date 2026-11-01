@@ -1,5 +1,7 @@
 //! The environment watcher follows theme and language changes the way Omarchy makes them:
 //! a theme switch replaces the `current/theme` directory, a language switch rewrites a file.
+//! Omarchy is Linux only, and so is following it.
+#![cfg(target_os = "linux")]
 
 use charted_core::env::watch::{EnvChange, EnvPaths, spawn};
 use std::sync::mpsc;
