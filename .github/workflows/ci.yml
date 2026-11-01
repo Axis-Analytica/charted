@@ -48,6 +48,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+      # The Power BI conformance runner can only run for real next to Power BI Desktop;
+      # here its JSON writing is checked.
+      - name: Conformance runner (PowerShell)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File conformance/test.ps1
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy

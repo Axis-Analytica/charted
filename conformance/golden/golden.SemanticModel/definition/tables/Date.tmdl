@@ -1,0 +1,60 @@
+table Date
+	lineageTag: Date
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		formatString: Short Date
+		lineageTag: Date.Date
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+		annotation chartedDataType = Date
+		annotation chartedDefaultFormat = true
+
+	column DateKey
+		dataType: int64
+		lineageTag: Date.DateKey
+		sourceColumn: DateKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		lineageTag: Date.Year
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthNumber
+		dataType: int64
+		lineageTag: Date.MonthNumber
+		sourceColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column MonthName
+		dataType: string
+		lineageTag: Date.MonthName
+		sourceColumn: MonthName
+		sortByColumn: MonthNumber
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: int64
+		lineageTag: Date.Quarter
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q:Date","name":"Date","table":"date","source":{"kind":"table","columns":[["Date","Date"],["DateKey","Int64"],["Year","Int64"],["MonthNumber","Int64"],["MonthName","String"],["Quarter","Int64"]],"rows":[["2024-01-31","202401","2024","1","January","1"],["2024-02-29","202402","2024","2","February","1"],["2024-03-31","202403","2024","3","March","1"],["2024-04-30","202404","2024","4","April","2"],["2024-05-31","202405","2024","5","May","2"],["2024-06-30","202406","2024","6","June","2"],["2024-07-31","202407","2024","7","July","3"],["2024-08-31","202408","2024","8","August","3"],["2024-09-30","202409","2024","9","September","3"],["2024-10-31","202410","2024","10","October","4"],["2024-11-30","202411","2024","11","November","4"],["2024-12-31","202412","2024","12","December","4"],["2025-01-31","202501","2025","1","January","1"],["2025-02-28","202502","2025","2","February","1"],["2025-03-31","202503","2025","3","March","1"],["2025-04-30","202504","2025","4","April","2"],["2025-05-31","202505","2025","5","May","2"],["2025-06-30","202506","2025","6","June","2"],["2025-07-31","202507","2025","7","July","3"],["2025-08-31","202508","2025","8","August","3"],["2025-09-30","202509","2025","9","September","3"],["2025-10-31","202510","2025","10","October","4"],["2025-11-30","202511","2025","11","November","4"],["2025-12-31","202512","2025","12","December","4"]]},"steps":[]}
+
+	partition Date = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("fZLBasMwEET/JecYJNkT28dA6SHQ9tBjyMExoi2kSVDtgv++lcqyU8fKwXgEb7Q2+/b7lTOuKowtSrtap4OR8PuKcdedxy5M6XRYS8EVrpWC00KMj/4YFholjSi1EeNTF/r3GV4VpRG8Ujw+22v4OKVhioNuh+JIt08zeEN3bxSOcTee/Yyu6epa6TrRpyn9g9IN0Y3SMW7Ht/FrmPEtfUurfIyv/jr4z6MP/yvW6AhraFkxv/TD5a9RUcPqEMvrjfn58i1DuOJoCC045Qff31TAEkEkQl4iJIkaKTgt5CQCSwSRCDmJwBJBJEJOIrBEEImwLBFYIohEyEgElggiETISgSWCSISsRGCJIBLhnkRgiSAS4Y5EYIlgeb05icASwdKCFyQ6/AA=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Date = _t, DateKey = _t, Year = _t, MonthNumber = _t, MonthName = _t, Quarter = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source, {{"Date", type date}, {"DateKey", Int64.Type}, {"Year", Int64.Type}, {"MonthNumber", Int64.Type}, {"MonthName", type text}, {"Quarter", Int64.Type}})
+				in
+				    #"Changed Type"

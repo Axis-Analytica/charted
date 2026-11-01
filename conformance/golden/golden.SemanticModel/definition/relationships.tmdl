@@ -1,0 +1,25 @@
+relationship r-product
+	fromColumn: Sales.ProductKey
+	toColumn: Product.ProductKey
+
+relationship r-order
+	fromColumn: Sales.OrderDateKey
+	toColumn: Date.DateKey
+
+relationship r-ship
+	isActive: false
+	fromColumn: Sales.ShipDateKey
+	toColumn: Date.DateKey
+
+relationship r-store
+	fromColumn: Sales.StoreKey
+	toColumn: Store.StoreKey
+
+relationship r-tdate
+	fromColumn: Targets.DateKey
+	toColumn: Date.DateKey
+
+relationship r-tstore
+	fromColumn: Targets.StoreKey
+	toColumn: Store.StoreKey
+

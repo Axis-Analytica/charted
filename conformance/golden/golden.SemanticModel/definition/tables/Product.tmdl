@@ -1,0 +1,49 @@
+table Product
+	lineageTag: Product
+
+	column ProductKey
+		dataType: int64
+		isKey
+		lineageTag: Product.ProductKey
+		sourceColumn: ProductKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Product
+		dataType: string
+		lineageTag: Product.Product
+		sourceColumn: Product
+
+		annotation SummarizationSetBy = Automatic
+
+	column Category
+		dataType: string
+		lineageTag: Product.Category
+		sourceColumn: Category
+
+		annotation SummarizationSetBy = Automatic
+
+	column Color
+		dataType: string
+		lineageTag: Product.Color
+		sourceColumn: Color
+
+		annotation SummarizationSetBy = Automatic
+
+	column ListPrice
+		dataType: double
+		lineageTag: Product.ListPrice
+		sourceColumn: ListPrice
+
+		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q:Product","name":"Product","table":"product","source":{"kind":"table","columns":[["ProductKey","Int64"],["Product","String"],["Category","String"],["Color","String"],["ListPrice","Double"]],"rows":[["1","Tent","Camping","Green","300"],["2","Stove","Camping","Black","120"],["3","Lamp","Camping","Green","40"],["4","Boots","Footwear","Brown","150"],["5","Sandals","Footwear","Black","60"],["6","Jacket","Apparel","Red","200"],["7","Cap","Apparel",null,"25"],["8","Scarf","Apparel","Red","30"]]},"steps":[]}
+
+	partition Product = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("bY69DsIwDITfJXOH/qWwAhJIiAnYog5WaxAiJFEI9PW5NB0Adcmd7C++U0oUIhNnNgGyoYe7mSvczjMbaJXnos2UKOFPwb75h1pr6u7QokxUBX/AdvZUnZg6/rM2PKFb6MDk48jbIVKFTJiMgWR60v/glNkkroHdY8Kx/8o58qzhjtzjLaf2i7GQ+ybMS2sActwvY1hH/jJzo8KJ9gM=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [ProductKey = _t, Product = _t, Category = _t, Color = _t, ListPrice = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source, {{"ProductKey", Int64.Type}, {"Product", type text}, {"Category", type text}, {"Color", type text}, {"ListPrice", type number}})
+				in
+				    #"Changed Type"

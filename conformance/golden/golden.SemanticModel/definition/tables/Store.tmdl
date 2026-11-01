@@ -1,0 +1,34 @@
+table Store
+	lineageTag: Store
+
+	column StoreKey
+		dataType: int64
+		lineageTag: Store.StoreKey
+		sourceColumn: StoreKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: Store.Region
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column Channel
+		dataType: string
+		lineageTag: Store.Channel
+		sourceColumn: Channel
+
+		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q:Store","name":"Store","table":"store","source":{"kind":"table","columns":[["StoreKey","Int64"],["Region","String"],["Channel","String"]],"rows":[["1","North","Store"],["2","South","Store"],["3","Online","Web"]]},"steps":[]}
+
+	partition Store = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("XYg5CgAhDEXv8mubGe+hhYVFSCMEFMSA6P2NrdVbiPDBIehc1ZiWTgE7wn9L93O9VRy9DTHJUsB8AA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [StoreKey = _t, Region = _t, Channel = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source, {{"StoreKey", Int64.Type}, {"Region", type text}, {"Channel", type text}})
+				in
+				    #"Changed Type"

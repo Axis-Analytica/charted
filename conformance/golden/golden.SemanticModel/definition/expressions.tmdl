@@ -1,0 +1,3 @@
+/// The folder the data files are read from. Change it where the files live.
+expression SourceFolder = "/" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+	lineageTag: 6f1d3c2a-8b8e-4f3c-9a51-50757263654f

@@ -1,0 +1,34 @@
+table Targets
+	lineageTag: Targets
+
+	column DateKey
+		dataType: int64
+		lineageTag: Targets.DateKey
+		sourceColumn: DateKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column StoreKey
+		dataType: int64
+		lineageTag: Targets.StoreKey
+		sourceColumn: StoreKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Target
+		dataType: double
+		lineageTag: Targets.Target
+		sourceColumn: Target
+
+		annotation SummarizationSetBy = Automatic
+
+	annotation chartedQuery = {"id":"q:Targets","name":"Targets","table":"targets","source":{"kind":"table","columns":[["DateKey","Int64"],["StoreKey","Int64"],["Target","Double"]],"rows":[["202401","1","1110"],["202401","2","1210"],["202402","1","1120"],["202402","3","1320"],["202403","2","1230"],["202403","3","1330"],["202404","1","1140"],["202404","2","1240"],["202404","3","1340"],["202405","1","1150"],["202405","2","1250"],["202406","1","1160"],["202406","3","1360"],["202407","2","1270"],["202407","3","1370"],["202408","1","1180"],["202408","2","1280"],["202408","3","1380"],["202409","1","1190"],["202409","2","1290"],["202410","1","1200"],["202410","3","1400"],["202411","2","1310"],["202411","3","1410"],["202412","1","1220"],["202412","2","1320"],["202412","3","1420"],["202501","1","1110"],["202501","2","1210"],["202502","1","1120"],["202502","1","1210"],["202502","3","1320"],["202503","2","1230"],["202503","3","1330"],["202504","1","1140"],["202504","2","1240"],["202504","3","1340"],["202505","1","1150"],["202505","2","1250"],["202506","1","1160"],["202506","3","1360"],["202507","2","1270"],["202507","3","1370"],["202508","1","1180"],["202508","2","1280"],["202508","3","1380"],["202509","1","1190"],["202509","2","1290"],["202510","1","1200"],["202510","3","1400"],["202511","2","1310"],["202511","3","1410"],["202512","1","1220"],["202512","2","1320"],["202512","3","1420"]]},"steps":[]}
+
+	partition Targets = m
+		mode: import
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("bdK7DcMwEIPhXVynkE6iH7MY3n+NxL7gQjAs1Hw4sNF/nku0mK0vr+V5vbflepHGrcEadRui49bBOmphiOYt66zdKZoLqrnAilqAaC6wrnW7iuYu61YLm2jesu61u4vmgmousB61cIjmAunnW7630USf3clavzm6aN6y1h9HiIb+ca+fnz+FLQq2KNiiSP9utTPYzmA7g+0MtjPYzmA7g+0MtjPYzmA7g+0MtjPYzmA7g+0MtjPYzmA7g+0MtjPYzmA7g3R2vQE=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [DateKey = _t, StoreKey = _t, Target = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source, {{"DateKey", Int64.Type}, {"StoreKey", Int64.Type}, {"Target", type number}})
+				in
+				    #"Changed Type"

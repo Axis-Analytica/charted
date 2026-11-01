@@ -494,6 +494,13 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 ## Gotchas learned the hard way
 
+- **The Power BI conformance harness (M11.1)** is in `conformance/` (see its README) and
+  `crates/core/tests/conformance.rs`. The golden fixture, measures and shapes moved to
+  `crates/core/tests/golden/mod.rs`, which both test files share. After changing a golden
+  measure or the fixture, run
+  `CHARTED_UPDATE_CONFORMANCE=1 bin/heavy cargo test -p charted-core --test conformance`.
+  Otherwise `conformance_files_are_current` fails.
+
 - **DuckDB 2.0 behaviour the DAX work relies on (M11.0 spike, 2026-11-02).** These are
   asserted in `crates/engine/tests/duckdb_behaviour.rs`.
   - `TRY(CAST('a' AS INT))` and bad dates give NULL. `TRY(error('x'))` is refused at
