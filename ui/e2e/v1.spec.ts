@@ -73,6 +73,7 @@ test.setTimeout(240_000);
 test.use({ actionTimeout: 15_000 });
 
 test("search visuals and slicers, and the Fields pane's menu: quick measures, rename, hide, delete", async ({ page }) => {
+  test.setTimeout(120_000);
   await openSample(page);
   await newPage(page, "Search");
 
@@ -111,6 +112,13 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   await shot(page, "v1-01-slicer-search");
   await box.fill("");
   await expect(slicer.getByText("Select all", { exact: true })).toBeVisible();
+  // Done with it: a slicer holding thousands of values makes every later change re-run
+  // the page's queries under that filter, which slows the rest of the test a lot.
+  await slicer.getByRole("button", { name: "Clear selections" }).click();
+  await slicer.hover();
+  await slicer.getByRole("button", { name: "More options" }).click();
+  await slicer.getByRole("menuitem", { name: "Remove" }).click();
+  await expect(page.getByTestId("visual").filter({ has: page.locator(".slicer") })).toHaveCount(0);
 
   // Right-click a table: a quick measure.
   await expandTable(page, "Sales");
