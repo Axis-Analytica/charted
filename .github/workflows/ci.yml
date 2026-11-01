@@ -125,3 +125,60 @@ jobs:
           name: e2e-results
           path: ui/test-results
           retention-days: 7
+
+  # The end-to-end tests against the core built for macOS and Windows. Not yet required
+  # (continue-on-error) while the specs' Linux assumptions are found and fixed.
+  e2e-other:
+    name: End-to-end (${{ matrix.os }})
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@0.2.129
+      - name: Build the DAX language service
+        run: |
+          cargo build --release --target wasm32-unknown-unknown -p charted-wasm
+          wasm-bindgen --target web --out-dir ui/src/dax/pkg target/wasm32-unknown-unknown/release/charted_wasm.wasm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: ui
+      - name: Build the dev server
+        run: |
+          cargo build -p charted-cli
+          lib="$(dirname "$(find "$PWD/target/duckdb-download" -name 'libduckdb.dylib' -o -name 'duckdb.dll' | head -1)")"
+          if [ "$RUNNER_OS" = Windows ]; then
+            cp "$lib/duckdb.dll" target/debug/
+          else
+            echo "DYLD_FALLBACK_LIBRARY_PATH=$lib" >> "$GITHUB_ENV"
+          fi
+      - run: pnpm exec playwright install chromium
+        working-directory: ui
+      - run: pnpm exec playwright test
+        working-directory: ui
+      - name: Keep the end-to-end results of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: ui/test-results
+          retention-days: 7
