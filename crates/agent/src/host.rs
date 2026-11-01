@@ -244,9 +244,32 @@ fn on_path(cmd: &str) -> bool {
     charted_core::os::find_program(cmd).is_some()
 }
 
-/// Starts `cmd` from PATH. Its full path, so Windows runs npm's `.cmd` shims too.
+/// Starts `cmd` from PATH, by its full path. On Windows an npm `.cmd` shim is skipped
+/// for the node script it runs, since cmd.exe mangles arguments with line breaks (the
+/// agent's instructions).
 fn program(cmd: &str) -> Command {
-    Command::new(charted_core::os::find_program(cmd).unwrap_or_else(|| cmd.into()))
+    let Some(path) = charted_core::os::find_program(cmd) else {
+        return Command::new(cmd);
+    };
+    if cfg!(windows)
+        && path
+            .extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("cmd"))
+        && let Some(dir) = path.parent()
+        && let Ok(shim) = std::fs::read_to_string(&path)
+        && let Some(script) = charted_core::os::npm_shim_script(&shim, dir)
+        && script.is_file()
+    {
+        let node = Some(dir.join("node.exe"))
+            .filter(|n| n.is_file())
+            .or_else(|| charted_core::os::find_program("node"));
+        if let Some(node) = node {
+            let mut c = Command::new(node);
+            c.arg(script);
+            return c;
+        }
+    }
+    Command::new(path)
 }
 
 /// The agents installed. `CHARTED_AGENT_CMD` (the tests' stand-in) is Claude Code.

@@ -99,7 +99,15 @@ test("search visuals and slicers, and the Fields pane's menu: quick measures, re
   const items = slicer.locator(".slicer-item[role=option] span");
   await expect(items.first()).toBeVisible();
   await expect.poll(async () => (await items.allTextContents()).every((x) => x.includes("77"))).toBe(true);
-  const found = await items.count();
+  // The results can still be arriving on a slow machine: count once they settle.
+  let found = -1;
+  await expect
+    .poll(async () => {
+      const before = found;
+      found = await items.count();
+      return found === before;
+    })
+    .toBe(true);
   await slicer.getByText("Select all results").click();
   await expect(slicer.locator(".slicer-item.is-on")).toHaveCount(found);
   await expect(slicer.getByRole("button", { name: "Clear selections" })).toBeVisible();

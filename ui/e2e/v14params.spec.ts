@@ -169,8 +169,9 @@ test("a calculation group: each item applied to a measure", async ({ page }) => 
   await expect(rows).toHaveCount(2, { timeout: 15_000 });
   await expect(rows.locator("td:first-child")).toHaveText(["Base", "Double"]);
   const num = async (cell: Locator) => Number((await cell.textContent())!.replace(/[^\d.-]/g, ""));
+  // The Units column arrives after the names on a slow machine.
+  await expect.poll(() => num(rows.nth(0).locator("td").nth(1)), { timeout: 15_000 }).toBeGreaterThan(0);
   const base = await num(rows.nth(0).locator("td").nth(1));
-  expect(base).toBeGreaterThan(0);
   expect(await num(rows.nth(1).locator("td").nth(1))).toBe(base * 2);
   expect(await num(table.locator("tfoot td").nth(1))).toBe(base);
   if (shots) await page.screenshot({ path: `${shots}/v14-06-calculation-group.png` });

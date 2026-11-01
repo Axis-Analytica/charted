@@ -52,6 +52,19 @@ fn find_in(path: &std::ffi::OsStr, name: &str) -> Option<PathBuf> {
     })
 }
 
+/// The script an npm `.cmd` shim runs with node (`"%dp0%\\node_modules\\…\\cli.js"`),
+/// resolved against the shim's folder. Running `node script` directly avoids cmd.exe,
+/// which can't pass arguments with line breaks through a batch file.
+pub fn npm_shim_script(shim: &str, shim_dir: &std::path::Path) -> Option<PathBuf> {
+    let start = shim.rfind("\"%dp0%\\")? + "\"%dp0%\\".len();
+    let end = start + shim[start..].find('"')?;
+    let rel = &shim[start..end];
+    [".js", ".mjs", ".cjs"]
+        .iter()
+        .any(|e| rel.ends_with(e))
+        .then(|| shim_dir.join(rel.replace('\\', std::path::MAIN_SEPARATOR_STR)))
+}
+
 /// Whether the process `pid` is running.
 #[cfg(target_os = "linux")]
 pub fn pid_alive(pid: u32) -> bool {
@@ -98,6 +111,21 @@ mod tests {
     fn this_process_is_alive() {
         assert!(pid_alive(std::process::id()));
         assert!(!pid_alive(u32::MAX - 1));
+    }
+
+    #[test]
+    fn reads_npm_shims() {
+        let shim = "@ECHO off\r\nIF EXIST \"%dp0%\\node.exe\" (\r\n  SET \"_prog=%dp0%\\node.exe\"\r\n)\r\nendLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & \"%_prog%\"  \"%dp0%\\node_modules\\@openai\\codex\\bin\\codex.js\" %*\r\n";
+        let dir = std::path::Path::new("npm");
+        let sep = std::path::MAIN_SEPARATOR_STR;
+        assert_eq!(
+            npm_shim_script(shim, dir),
+            Some(dir.join(["node_modules", "@openai", "codex", "bin", "codex.js"].join(sep)))
+        );
+        assert_eq!(
+            npm_shim_script("@echo off\r\n\"%dp0%\\tool.exe\" %*", dir),
+            None
+        );
     }
 
     #[test]
