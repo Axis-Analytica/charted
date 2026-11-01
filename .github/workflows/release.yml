@@ -11,7 +11,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/release.yml
-      - src-tauri/tauri.*.json
+      - src-tauri/**
       - .cargo/config.toml
 
 permissions:

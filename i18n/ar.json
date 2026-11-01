@@ -1404,5 +1404,6 @@
   "Power BI fonts (a similar font if not installed)": "خطوط Power BI (خط مشابه إن لم يكن مثبتًا)",
   "Set the fonts: %1": "تم تعيين الخطوط: %1",
   "Theme font": "خط السمة",
-  "Your fonts": "خطوطك"
+  "Your fonts": "خطوطك",
+  "Install Claude Code or Codex, sign in to it once in a terminal, then restart charted.": "ثبّت Claude Code أو Codex، وسجّل الدخول إليه مرة واحدة في الطرفية، ثم أعد تشغيل charted."
 }

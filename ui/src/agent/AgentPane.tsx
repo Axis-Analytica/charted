@@ -69,7 +69,9 @@ export function AgentPane({ model, page }: { model: Model; page: Page }) {
       {status && !status.agents.length ? (
         <div className="pane-body">
           <EmptyState icon={<Sparkles size={22} />} title={t("No agent is installed")}>
-            {t("Install Claude Code or Codex (Omarchy menu → Install → AI), sign in to it once in a terminal, then come back.")}
+            {/Linux/.test(navigator.userAgent)
+              ? t("Install Claude Code or Codex (Omarchy menu → Install → AI), sign in to it once in a terminal, then come back.")
+              : t("Install Claude Code or Codex, sign in to it once in a terminal, then restart charted.")}
           </EmptyState>
         </div>
       ) : (

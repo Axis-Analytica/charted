@@ -287,18 +287,62 @@ fn gui(path: Option<PathBuf>, screenshot: Option<PathBuf>, export_pdf: Option<Pa
 }
 
 /// Apps opened from the Finder get launchd's short PATH, without Homebrew or
-/// `~/.local/bin` where the agents are installed; take the one a login shell has.
+/// `~/.local/bin` where the agents are installed. Take the one an interactive login
+/// shell has (installers add to `~/.zshrc`, which a non-interactive shell skips), and
+/// add the usual install folders in case the shell's setup fails or is slow.
 #[cfg(target_os = "macos")]
 fn login_path() {
+    use std::io::Read;
+    use std::time::{Duration, Instant};
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".into());
-    if let Ok(out) = std::process::Command::new(shell)
-        .args(["-l", "-c", "printf %s \"$PATH\""])
-        .output()
-        && out.status.success()
-        && !out.stdout.is_empty()
+    let mut from_shell = None;
+    // Markers, since an interactive shell's setup may print its own text.
+    if let Ok(mut child) = std::process::Command::new(&shell)
+        .args(["-l", "-i", "-c", "printf '__PATH__%s__PATH__' \"$PATH\""])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
     {
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_secs(3) {
+            if let Ok(Some(_)) = child.try_wait() {
+                let mut out = String::new();
+                if let Some(mut s) = child.stdout.take() {
+                    let _ = s.read_to_string(&mut out);
+                }
+                from_shell = out.split("__PATH__").nth(1).map(str::to_string);
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        let _ = child.kill();
+    }
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+    for p in [from_shell, std::env::var("PATH").ok()]
+        .into_iter()
+        .flatten()
+    {
+        dirs.extend(std::env::split_paths(&p));
+    }
+    if let Some(home) = charted_core::os::home_dir() {
+        for d in [
+            ".local/bin",
+            ".claude/local",
+            ".npm-global/bin",
+            ".bun/bin",
+            ".volta/bin",
+            ".cargo/bin",
+        ] {
+            dirs.push(home.join(d));
+        }
+    }
+    dirs.extend(["/opt/homebrew/bin", "/usr/local/bin"].map(std::path::PathBuf::from));
+    let mut seen = std::collections::HashSet::new();
+    dirs.retain(|d| !d.as_os_str().is_empty() && seen.insert(d.clone()));
+    if let Ok(path) = std::env::join_paths(dirs) {
         // SAFETY: still single-threaded, before Tauri starts.
-        unsafe { std::env::set_var("PATH", String::from_utf8_lossy(&out.stdout).as_ref()) };
+        unsafe { std::env::set_var("PATH", path) };
     }
 }
 
