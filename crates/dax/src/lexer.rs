@@ -49,6 +49,47 @@ pub fn lex(src: &str) -> Vec<Token> {
     lex_inner(src, &mut Vec::new())
 }
 
+/// `src` with every unquoted table reference quoted: `Date[Date]` becomes
+/// `'Date'[Date]`. Charted accepts both, but Power BI refuses an unquoted table whose
+/// name is also a function (`Date`, `Calendar`, …), and the quoted form is always
+/// valid, so it is what charted writes for Power BI. A name counts as a table only when
+/// a `[` follows it directly, and keywords (`RETURN[M]`) and the expression's own
+/// variables (`_t[Col]`) are left alone. Everything else, comments included, is kept.
+pub fn quote_tables(src: &str) -> String {
+    const KEYWORDS: &[&str] = &[
+        "VAR", "RETURN", "NOT", "IN", "AND", "OR", "TRUE", "FALSE", "ASC", "DESC", "BY", "DEFINE",
+        "EVALUATE", "MEASURE", "COLUMN", "TABLE", "ORDER", "START", "AT",
+    ];
+    let toks = lex(src);
+    let vars: Vec<&str> = toks
+        .windows(2)
+        .filter_map(|w| match (&w[0].tok, &w[1].tok) {
+            (Tok::Ident(k), Tok::Ident(v)) if k.eq_ignore_ascii_case("VAR") => Some(v.as_str()),
+            _ => None,
+        })
+        .collect();
+    let mut out = String::with_capacity(src.len() + 8);
+    let mut at = 0;
+    for w in toks.windows(2) {
+        let (Tok::Ident(name), Tok::Bracket(_)) = (&w[0].tok, &w[1].tok) else {
+            continue;
+        };
+        if w[0].span.end != w[1].span.start
+            || KEYWORDS.iter().any(|k| name.eq_ignore_ascii_case(k))
+            || vars.iter().any(|v| v.eq_ignore_ascii_case(name))
+        {
+            continue;
+        }
+        out.push_str(&src[at..w[0].span.start]);
+        out.push('\'');
+        out.push_str(&name.replace('\'', "''"));
+        out.push('\'');
+        at = w[0].span.end;
+    }
+    out.push_str(&src[at..]);
+    out
+}
+
 /// Like `lex`, also returning the spans of comments (for the formatter).
 pub fn lex_with_comments(src: &str) -> (Vec<Token>, Vec<Span>) {
     let mut comments = Vec::new();
@@ -203,6 +244,25 @@ mod tests {
 
     fn toks(s: &str) -> Vec<Tok> {
         lex(s).into_iter().map(|t| t.tok).collect()
+    }
+
+    #[test]
+    fn quote_tables_quotes_only_table_references() {
+        assert_eq!(
+            quote_tables("CALCULATE ( [Q], Date[Date] <= MAX ( Date[Date] ) ) // Date[x]"),
+            "CALCULATE ( [Q], 'Date'[Date] <= MAX ( 'Date'[Date] ) ) // Date[x]"
+        );
+        assert_eq!(
+            quote_tables("'Date'[Date] + Sales [Amount]"),
+            "'Date'[Date] + Sales [Amount]"
+        );
+        assert_eq!(
+            quote_tables(
+                "VAR _t = VALUES ( Product[Color] ) RETURN[M] + NOT[B] + COUNTROWS ( _t ) + _t[Color]"
+            ),
+            "VAR _t = VALUES ( 'Product'[Color] ) RETURN[M] + NOT[B] + COUNTROWS ( _t ) + _t[Color]"
+        );
+        assert_eq!(quote_tables("\"Date[x]\" & Date"), "\"Date[x]\" & Date");
     }
 
     #[test]

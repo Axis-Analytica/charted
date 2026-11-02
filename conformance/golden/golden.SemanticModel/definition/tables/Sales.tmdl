@@ -1,43 +1,43 @@
 table Sales
 	lineageTag: Sales
 
-	measure 'Sales Amount' = SUM ( Sales[Amount] )
+	measure 'Sales Amount' = SUM ( 'Sales'[Amount] )
 		lineageTag: m:Sales Amount
 
-	measure Quantity = SUM ( Sales[Qty] )
+	measure Quantity = SUM ( 'Sales'[Qty] )
 		lineageTag: m:Quantity
 
 	measure Orders = COUNTROWS ( Sales )
 		lineageTag: m:Orders
 
-	measure 'Avg Price' = AVERAGE ( Sales[Price] )
+	measure 'Avg Price' = AVERAGE ( 'Sales'[Price] )
 		lineageTag: m:Avg Price
 
-	measure 'Min Price' = MIN ( Sales[Price] )
+	measure 'Min Price' = MIN ( 'Sales'[Price] )
 		lineageTag: m:Min Price
 
-	measure 'Max Price' = MAX ( Sales[Price] )
+	measure 'Max Price' = MAX ( 'Sales'[Price] )
 		lineageTag: m:Max Price
 
-	measure 'Products Sold' = DISTINCTCOUNT ( Sales[ProductKey] )
+	measure 'Products Sold' = DISTINCTCOUNT ( 'Sales'[ProductKey] )
 		lineageTag: m:Products Sold
 
-	measure Amounts = COUNT ( Sales[Amount] )
+	measure Amounts = COUNT ( 'Sales'[Amount] )
 		lineageTag: m:Amounts
 
-	measure 'Missing Amounts' = COUNTBLANK ( Sales[Amount] )
+	measure 'Missing Amounts' = COUNTBLANK ( 'Sales'[Amount] )
 		lineageTag: m:Missing Amounts
 
-	measure Target = SUM ( Targets[Target] )
+	measure Target = SUM ( 'Targets'[Target] )
 		lineageTag: m:Target
 
 	measure 'Product Count' = COUNTROWS ( Product )
 		lineageTag: m:Product Count
 
-	measure Colors = DISTINCTCOUNT ( Product[Color] )
+	measure Colors = DISTINCTCOUNT ( 'Product'[Color] )
 		lineageTag: m:Colors
 
-	measure 'Max List Price' = MAX ( Product[ListPrice] )
+	measure 'Max List Price' = MAX ( 'Product'[ListPrice] )
 		lineageTag: m:Max List Price
 
 	measure Gap = [Sales Amount] - [Target]
@@ -91,46 +91,46 @@ table Sales
 	measure 'Var Ratio' = VAR s = [Sales Amount] VAR q = [Quantity] RETURN DIVIDE ( s, q ) * 100
 		lineageTag: m:Var Ratio
 
-	measure 'Line Total' = SUMX ( Sales, Sales[Qty] * Sales[Price] )
+	measure 'Line Total' = SUMX ( Sales, 'Sales'[Qty] * 'Sales'[Price] )
 		lineageTag: m:Line Total
 
-	measure 'Avg Line' = AVERAGEX ( Sales, Sales[Qty] * Sales[Price] )
+	measure 'Avg Line' = AVERAGEX ( Sales, 'Sales'[Qty] * 'Sales'[Price] )
 		lineageTag: m:Avg Line
 
-	measure 'Max Line' = MAXX ( Sales, Sales[Qty] * Sales[Price] )
+	measure 'Max Line' = MAXX ( Sales, 'Sales'[Qty] * 'Sales'[Price] )
 		lineageTag: m:Max Line
 
-	measure 'List Value' = SUMX ( Sales, Sales[Qty] * RELATED ( Product[ListPrice] ) )
+	measure 'List Value' = SUMX ( Sales, 'Sales'[Qty] * RELATED ( 'Product'[ListPrice] ) )
 		lineageTag: m:List Value
 
 	measure Discount = [List Value] - [Line Total]
 		lineageTag: m:Discount
 
-	measure 'Big Lines' = COUNTROWS ( FILTER ( Sales, Sales[Qty] >= 4 ) )
+	measure 'Big Lines' = COUNTROWS ( FILTER ( Sales, 'Sales'[Qty] >= 4 ) )
 		lineageTag: m:Big Lines
 
-	measure 'Green Qty' = SUMX ( FILTER ( Sales, RELATED ( Product[Color] ) = "Green" ), Sales[Qty] )
+	measure 'Green Qty' = SUMX ( FILTER ( Sales, RELATED ( 'Product'[Color] ) = "Green" ), 'Sales'[Qty] )
 		lineageTag: m:Green Qty
 
-	measure 'Counted Lines' = COUNTX ( Sales, Sales[Amount] )
+	measure 'Counted Lines' = COUNTX ( Sales, 'Sales'[Amount] )
 		lineageTag: m:Counted Lines
 
-	measure 'Avg Per Category' = AVERAGEX ( VALUES ( Product[Category] ), [Sales Amount] )
+	measure 'Avg Per Category' = AVERAGEX ( VALUES ( 'Product'[Category] ), [Sales Amount] )
 		lineageTag: m:Avg Per Category
 
-	measure 'Best Product' = MAXX ( VALUES ( Product[Product] ), [Quantity] )
+	measure 'Best Product' = MAXX ( VALUES ( 'Product'[Product] ), [Quantity] )
 		lineageTag: m:Best Product
 
-	measure 'Months With Sales' = COUNTROWS ( FILTER ( VALUES ( Date[MonthNumber] ), [Orders] > 0 ) )
+	measure 'Months With Sales' = COUNTROWS ( FILTER ( VALUES ( 'Date'[MonthNumber] ), [Orders] > 0 ) )
 		lineageTag: m:Months With Sales
 
-	measure 'Sum Of Max' = SUMX ( VALUES ( Store[Region] ), [Max Price] )
+	measure 'Sum Of Max' = SUMX ( VALUES ( 'Store'[Region] ), [Max Price] )
 		lineageTag: m:Sum Of Max
 
 	measure 'Per Product' = SUMX ( Product, [Quantity] )
 		lineageTag: m:Per Product
 
-	measure 'Listed Qty Value' = SUMX ( Product, Product[ListPrice] * [Quantity] )
+	measure 'Listed Qty Value' = SUMX ( Product, 'Product'[ListPrice] * [Quantity] )
 		lineageTag: m:Listed Qty Value
 
 	measure 'Per Target Row' = SUMX ( Targets, [Orders] )
@@ -142,142 +142,142 @@ table Sales
 	measure 'All Products Qty' = SUMX ( ALL ( Product ), [Quantity] )
 		lineageTag: m:All Products Qty
 
-	measure 'Lines Per Product' = SUMX ( Product, COUNTROWS ( FILTER ( Sales, Sales[ProductKey] = Product[ProductKey] ) ) )
+	measure 'Lines Per Product' = SUMX ( Product, COUNTROWS ( FILTER ( Sales, 'Sales'[ProductKey] = 'Product'[ProductKey] ) ) )
 		lineageTag: m:Lines Per Product
 
-	measure 'Selected Months' = COUNTROWS ( ALLSELECTED ( Date[MonthNumber] ) )
+	measure 'Selected Months' = COUNTROWS ( ALLSELECTED ( 'Date'[MonthNumber] ) )
 		lineageTag: m:Selected Months
 
-	measure 'Selected Color Qty' = SUMX ( ALLSELECTED ( Product[Color] ), [Quantity] )
+	measure 'Selected Color Qty' = SUMX ( ALLSELECTED ( 'Product'[Color] ), [Quantity] )
 		lineageTag: m:Selected Color Qty
 
 	measure 'Selected Products' = COUNTROWS ( ALLSELECTED ( Product ) )
 		lineageTag: m:Selected Products
 
-	measure 'Share Of Selected' = DIVIDE ( [Quantity], SUMX ( ALLSELECTED ( Product[Product] ), [Quantity] ) )
+	measure 'Share Of Selected' = DIVIDE ( [Quantity], SUMX ( ALLSELECTED ( 'Product'[Product] ), [Quantity] ) )
 		lineageTag: m:Share Of Selected
 
-	measure 'Running Qty' = CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) ) )
+	measure 'Running Qty' = CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) ) )
 		lineageTag: m:Running Qty
 
-	measure 'Running Qty In Year' = CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( Date[MonthNumber] ), Date[MonthNumber] <= MAX ( Date[MonthNumber] ) ) )
+	measure 'Running Qty In Year' = CALCULATE ( [Quantity], FILTER ( ALLSELECTED ( 'Date'[MonthNumber] ), 'Date'[MonthNumber] <= MAX ( 'Date'[MonthNumber] ) ) )
 		lineageTag: m:Running Qty In Year
 
-	measure 'Running Qty All Time' = CALCULATE ( [Quantity], FILTER ( ALL ( Date[Date] ), Date[Date] <= MAX ( Date[Date] ) ) )
+	measure 'Running Qty All Time' = CALCULATE ( [Quantity], FILTER ( ALL ( 'Date'[Date] ), 'Date'[Date] <= MAX ( 'Date'[Date] ) ) )
 		lineageTag: m:Running Qty All Time
 
-	measure 'Busy Products Sales' = CALCULATE ( [Sales Amount], FILTER ( VALUES ( Product[Product] ), [Quantity] > 10 ) )
+	measure 'Busy Products Sales' = CALCULATE ( [Sales Amount], FILTER ( VALUES ( 'Product'[Product] ), [Quantity] > 10 ) )
 		lineageTag: m:Busy Products Sales
 
-	measure 'Busy Colors Kept' = CALCULATE ( [Sales Amount], KEEPFILTERS ( FILTER ( ALL ( Product[Color] ), [Quantity] > 5 ) ) )
+	measure 'Busy Colors Kept' = CALCULATE ( [Sales Amount], KEEPFILTERS ( FILTER ( ALL ( 'Product'[Color] ), [Quantity] > 5 ) ) )
 		lineageTag: m:Busy Colors Kept
 
-	measure 'Cheaper Or Equal' = CALCULATE ( [Quantity], FILTER ( ALL ( Product ), Product[ListPrice] <= MAX ( Product[ListPrice] ) ) )
+	measure 'Cheaper Or Equal' = CALCULATE ( [Quantity], FILTER ( ALL ( Product ), 'Product'[ListPrice] <= MAX ( 'Product'[ListPrice] ) ) )
 		lineageTag: m:Cheaper Or Equal
 
-	measure 'Avg Qty Last 3 Months' = AVERAGEX ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ), [Quantity] )
+	measure 'Avg Qty Last 3 Months' = AVERAGEX ( DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -3, MONTH ), [Quantity] )
 		lineageTag: m:Avg Qty Last 3 Months
 
-	measure 'Best Month YTD' = MAXX ( DATESYTD ( Date[Date] ), [Quantity] )
+	measure 'Best Month YTD' = MAXX ( DATESYTD ( 'Date'[Date] ), [Quantity] )
 		lineageTag: m:Best Month YTD
 
-	measure 'Months In Half Year' = COUNTROWS ( DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -6, MONTH ) )
+	measure 'Months In Half Year' = COUNTROWS ( DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -6, MONTH ) )
 		lineageTag: m:Months In Half Year
 
-	measure 'Qty 3 Months To Last Month' = CALCULATE ( [Quantity], DATESINPERIOD ( Date[Date], EOMONTH ( MAX ( Date[Date] ), -1 ), -3, MONTH ) )
+	measure 'Qty 3 Months To Last Month' = CALCULATE ( [Quantity], DATESINPERIOD ( 'Date'[Date], EOMONTH ( MAX ( 'Date'[Date] ), -1 ), -3, MONTH ) )
 		lineageTag: m:Qty 3 Months To Last Month
 
-	measure 'Qty Since Today' = CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], TODAY (), BLANK () ) )
+	measure 'Qty Since Today' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], TODAY (), BLANK () ) )
 		lineageTag: m:Qty Since Today
 
-	measure 'Qty Until Today' = CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], BLANK (), TODAY () ) )
+	measure 'Qty Until Today' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], BLANK (), TODAY () ) )
 		lineageTag: m:Qty Until Today
 
-	measure 'Qty From Mid 2024' = VAR start = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( Store[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], start, MAX ( Date[Date] ) ) ) )
+	measure 'Qty From Mid 2024' = VAR start = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( 'Store'[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], start, MAX ( 'Date'[Date] ) ) ) )
 		lineageTag: m:Qty From Mid 2024
 
-	measure 'Qty Rank' = RANKX ( ALL ( Product[Product] ), [Quantity] )
+	measure 'Qty Rank' = RANKX ( ALL ( 'Product'[Product] ), [Quantity] )
 		lineageTag: m:Qty Rank
 
-	measure 'Qty Rank Asc Dense' = RANKX ( ALL ( Product[Product] ), [Quantity], , ASC, DENSE )
+	measure 'Qty Rank Asc Dense' = RANKX ( ALL ( 'Product'[Product] ), [Quantity], , ASC, DENSE )
 		lineageTag: m:Qty Rank Asc Dense
 
-	measure 'Selected Qty Rank' = RANKX ( ALLSELECTED ( Product[Product] ), [Quantity] )
+	measure 'Selected Qty Rank' = RANKX ( ALLSELECTED ( 'Product'[Product] ), [Quantity] )
 		lineageTag: m:Selected Qty Rank
 
-	measure 'Tens Rank Skip' = RANKX ( ALL ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ) )
+	measure 'Tens Rank Skip' = RANKX ( ALL ( 'Product'[Product] ), ROUND ( [Quantity] / 10, 0 ) )
 		lineageTag: m:Tens Rank Skip
 
-	measure 'Tens Rank Dense' = RANKX ( ALL ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ), , DESC, DENSE )
+	measure 'Tens Rank Dense' = RANKX ( ALL ( 'Product'[Product] ), ROUND ( [Quantity] / 10, 0 ), , DESC, DENSE )
 		lineageTag: m:Tens Rank Dense
 
-	measure 'List Price Rank' = RANKX ( ALL ( Product ), Product[ListPrice], MAX ( Product[ListPrice] ) )
+	measure 'List Price Rank' = RANKX ( ALL ( Product ), 'Product'[ListPrice], MAX ( 'Product'[ListPrice] ) )
 		lineageTag: m:List Price Rank
 
-	measure 'Category Rank' = RANKX ( ALL ( Product[Category] ), [Sales Amount] )
+	measure 'Category Rank' = RANKX ( ALL ( 'Product'[Category] ), [Sales Amount] )
 		lineageTag: m:Category Rank
 
-	measure 'Top 3 Products Sales' = CALCULATE ( [Sales Amount], TOPN ( 3, ALL ( Product[Product] ), [Sales Amount] ) )
+	measure 'Top 3 Products Sales' = CALCULATE ( [Sales Amount], TOPN ( 3, ALL ( 'Product'[Product] ), [Sales Amount] ) )
 		lineageTag: m:Top 3 Products Sales
 
-	measure 'Top 2 Products Qty' = SUMX ( TOPN ( 2, VALUES ( Product[Product] ), [Quantity] ), [Quantity] )
+	measure 'Top 2 Products Qty' = SUMX ( TOPN ( 2, VALUES ( 'Product'[Product] ), [Quantity] ), [Quantity] )
 		lineageTag: m:Top 2 Products Qty
 
-	measure 'Top Tens Count' = COUNTROWS ( TOPN ( 1, VALUES ( Product[Product] ), ROUND ( [Quantity] / 10, 0 ), DESC ) )
+	measure 'Top Tens Count' = COUNTROWS ( TOPN ( 1, VALUES ( 'Product'[Product] ), ROUND ( [Quantity] / 10, 0 ), DESC ) )
 		lineageTag: m:Top Tens Count
 
-	measure 'Cheapest Two' = SUMX ( TOPN ( 2, Product, Product[ListPrice], ASC ), Product[ListPrice] )
+	measure 'Cheapest Two' = SUMX ( TOPN ( 2, Product, 'Product'[ListPrice], ASC ), 'Product'[ListPrice] )
 		lineageTag: m:Cheapest Two
 
-	measure 'Colors List' = CONCATENATEX ( VALUES ( Product[Color] ), Product[Color], ", " )
+	measure 'Colors List' = CONCATENATEX ( VALUES ( 'Product'[Color] ), 'Product'[Color], ", " )
 		lineageTag: m:Colors List
 
-	measure 'Products By Qty' = CONCATENATEX ( VALUES ( Product[Product] ), Product[Product], ", ", [Quantity], DESC )
+	measure 'Products By Qty' = CONCATENATEX ( VALUES ( 'Product'[Product] ), 'Product'[Product], ", ", [Quantity], DESC )
 		lineageTag: m:Products By Qty
 
-	measure 'Region Quantities' = CONCATENATEX ( VALUES ( Store[Region] ), [Quantity], "|" )
+	measure 'Region Quantities' = CONCATENATEX ( VALUES ( 'Store'[Region] ), [Quantity], "|" )
 		lineageTag: m:Region Quantities
 
-	measure 'Red Sales Rows' = COUNTROWS ( CALCULATETABLE ( Sales, Product[Color] = "Red" ) )
+	measure 'Red Sales Rows' = COUNTROWS ( CALCULATETABLE ( Sales, 'Product'[Color] = "Red" ) )
 		lineageTag: m:Red Sales Rows
 
 	measure 'Lines Via Related Table' = SUMX ( Product, COUNTROWS ( RELATEDTABLE ( Sales ) ) )
 		lineageTag: m:Lines Via Related Table
 
-	measure 'Qty Of North Products' = SUMX ( CALCULATETABLE ( VALUES ( Product[Product] ), Store[Region] = "North" ), [Quantity] )
+	measure 'Qty Of North Products' = SUMX ( CALCULATETABLE ( VALUES ( 'Product'[Product] ), 'Store'[Region] = "North" ), [Quantity] )
 		lineageTag: m:Qty Of North Products
 
-	measure 'Qty For North Products' = CALCULATE ( [Quantity], CALCULATETABLE ( VALUES ( Product[Product] ), Store[Region] = "North" ) )
+	measure 'Qty For North Products' = CALCULATE ( [Quantity], CALCULATETABLE ( VALUES ( 'Product'[Product] ), 'Store'[Region] = "North" ) )
 		lineageTag: m:Qty For North Products
 
-	measure 'Tent List Price' = LOOKUPVALUE ( Product[ListPrice], Product[Product], "Tent" )
+	measure 'Tent List Price' = LOOKUPVALUE ( 'Product'[ListPrice], 'Product'[Product], "Tent" )
 		lineageTag: m:Tent List Price
 
-	measure 'Price Of Top Key' = LOOKUPVALUE ( Product[ListPrice], Product[ProductKey], MAX ( Sales[ProductKey] ), -1 )
+	measure 'Price Of Top Key' = LOOKUPVALUE ( 'Product'[ListPrice], 'Product'[ProductKey], MAX ( 'Sales'[ProductKey] ), -1 )
 		lineageTag: m:Price Of Top Key
 
-	measure 'Looked Up Value' = SUMX ( Sales, Sales[Qty] * LOOKUPVALUE ( Product[ListPrice], Product[ProductKey], Sales[ProductKey] ) )
+	measure 'Looked Up Value' = SUMX ( Sales, 'Sales'[Qty] * LOOKUPVALUE ( 'Product'[ListPrice], 'Product'[ProductKey], 'Sales'[ProductKey] ) )
 		lineageTag: m:Looked Up Value
 
-	measure 'Green Category' = LOOKUPVALUE ( Product[Category], Product[Color], "Green" )
+	measure 'Green Category' = LOOKUPVALUE ( 'Product'[Category], 'Product'[Color], "Green" )
 		lineageTag: m:Green Category
 
-	measure 'Best Category Sales' = MAXX ( ADDCOLUMNS ( VALUES ( Product[Category] ), "s", [Sales Amount] ), [s] )
+	measure 'Best Category Sales' = MAXX ( ADDCOLUMNS ( VALUES ( 'Product'[Category] ), "s", [Sales Amount] ), [s] )
 		lineageTag: m:Best Category Sales
 
-	measure 'Busy Categories' = COUNTROWS ( FILTER ( ADDCOLUMNS ( VALUES ( Product[Category] ), "q", [Quantity] ), [q] > 50 ) )
+	measure 'Busy Categories' = COUNTROWS ( FILTER ( ADDCOLUMNS ( VALUES ( 'Product'[Category] ), "q", [Quantity] ), [q] > 50 ) )
 		lineageTag: m:Busy Categories
 
-	measure 'Sold Colors' = COUNTROWS ( SUMMARIZE ( Sales, Product[Color] ) )
+	measure 'Sold Colors' = COUNTROWS ( SUMMARIZE ( Sales, 'Product'[Color] ) )
 		lineageTag: m:Sold Colors
 
-	measure 'Qty Over Category Regions' = SUMX ( SUMMARIZE ( Sales, Product[Category], Store[Region] ), [Quantity] )
+	measure 'Qty Over Category Regions' = SUMX ( SUMMARIZE ( Sales, 'Product'[Category], 'Store'[Region] ), [Quantity] )
 		lineageTag: m:Qty Over Category Regions
 
-	measure 'Selected Prices' = SUMX ( SELECTCOLUMNS ( Product, "p", Product[ListPrice] ), [p] )
+	measure 'Selected Prices' = SUMX ( SELECTCOLUMNS ( Product, "p", 'Product'[ListPrice] ), [p] )
 		lineageTag: m:Selected Prices
 
-	measure 'Best Category Qty' = MAXX ( SUMMARIZECOLUMNS ( Product[Category], "q", [Quantity] ), [q] )
+	measure 'Best Category Qty' = MAXX ( SUMMARIZECOLUMNS ( 'Product'[Category], "q", [Quantity] ), [q] )
 		lineageTag: m:Best Category Qty
 
 	measure 'Days In Q1 2024' = COUNTROWS ( CALENDAR ( DATE ( 2024, 1, 1 ), DATE ( 2024, 3, 31 ) ) )
@@ -286,16 +286,16 @@ table Sales
 	measure 'Odd Sum' = SUMX ( GENERATESERIES ( 1, 10, 2 ), [Value] )
 		lineageTag: m:Odd Sum
 
-	measure 'Best Category Units' = MAXX ( SUMMARIZE ( Sales, Product[Category], "q", SUM ( Sales[Qty] ) ), [q] )
+	measure 'Best Category Units' = MAXX ( SUMMARIZE ( Sales, 'Product'[Category], "q", SUM ( 'Sales'[Qty] ) ), [q] )
 		lineageTag: m:Best Category Units
 
-	measure 'Last 3 Months Via Var' = VAR p = DATESINPERIOD ( Date[Date], MAX ( Date[Date] ), -3, MONTH ) RETURN CALCULATE ( [Quantity], p )
+	measure 'Last 3 Months Via Var' = VAR p = DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -3, MONTH ) RETURN CALCULATE ( [Quantity], p )
 		lineageTag: m:Last 3 Months Via Var
 
-	measure 'Var Table Twice' = VAR t = ADDCOLUMNS ( VALUES ( Product[Category] ), "q", [Quantity] ) RETURN MAXX ( t, [q] ) + COUNTROWS ( t )
+	measure 'Var Table Twice' = VAR t = ADDCOLUMNS ( VALUES ( 'Product'[Category] ), "q", [Quantity] ) RETURN MAXX ( t, [q] ) + COUNTROWS ( t )
 		lineageTag: m:Var Table Twice
 
-	measure 'Average 12M Via Vars' = VAR d = MAX ( Date[Date] ) VAR p = DATESINPERIOD ( Date[Date], d, -12, MONTH ) RETURN CALCULATE ( AVERAGEX ( VALUES ( Date[Date] ), [Quantity] ), p )
+	measure 'Average 12M Via Vars' = VAR d = MAX ( 'Date'[Date] ) VAR p = DATESINPERIOD ( 'Date'[Date], d, -12, MONTH ) RETURN CALCULATE ( AVERAGEX ( VALUES ( 'Date'[Date] ), [Quantity] ), p )
 		lineageTag: m:Average 12M Via Vars
 
 	measure 'Qty Mod 7' = MOD ( [Quantity], 7 )
@@ -307,10 +307,10 @@ table Sales
 	measure 'Nested Mod' = MOD ( MOD ( [Quantity] * 3, 17 ), -5 ) + ABS ( MOD ( BLANK (), 3 ) )
 		lineageTag: m:Nested Mod
 
-	measure 'Latest Weekday' = MAXX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date], 2 ) )
+	measure 'Latest Weekday' = MAXX ( VALUES ( 'Date'[Date] ), WEEKDAY ( 'Date'[Date], 2 ) )
 		lineageTag: m:Latest Weekday
 
-	measure 'Weekday Sum' = SUMX ( VALUES ( Date[Date] ), WEEKDAY ( Date[Date] ) + WEEKDAY ( Date[Date], 3 ) )
+	measure 'Weekday Sum' = SUMX ( VALUES ( 'Date'[Date] ), WEEKDAY ( 'Date'[Date] ) + WEEKDAY ( 'Date'[Date], 3 ) )
 		lineageTag: m:Weekday Sum
 
 	measure 'List Sum' = SUMX ( { 1, 2, [Quantity] }, [Value] )
@@ -325,79 +325,79 @@ table Sales
 	measure 'Rows Filtered' = SUMX ( FILTER ( { ( "a", 1 ), ( "b", 2 ), ( "c", 3 ) }, [Value1] <> "b" ), [Value2] )
 		lineageTag: m:Rows Filtered
 
-	measure 'Field Names' = CONCATENATEX ( { ( "Q", NAMEOF ( [Quantity] ), 0 ), ( "C", NAMEOF ( Product[Category] ), 1 ) }, [Value2], ", ", [Value3] )
+	measure 'Field Names' = CONCATENATEX ( { ( "Q", NAMEOF ( [Quantity] ), 0 ), ( "C", NAMEOF ( 'Product'[Category] ), 1 ) }, [Value2], ", ", [Value3] )
 		lineageTag: m:Field Names
 
-	measure 'Calc Item Switch' = SWITCH ( SELECTEDVALUE ( Product[Category] ), "Apparel", CALCULATE ( ( 'Sales'[Quantity] ), SAMEPERIODLASTYEAR ( Date[Date] ) ), "Camping", ( 'Sales'[Quantity] ) * 2, 'Sales'[Quantity] )
+	measure 'Calc Item Switch' = SWITCH ( SELECTEDVALUE ( 'Product'[Category] ), "Apparel", CALCULATE ( ( 'Sales'[Quantity] ), SAMEPERIODLASTYEAR ( 'Date'[Date] ) ), "Camping", ( 'Sales'[Quantity] ) * 2, 'Sales'[Quantity] )
 		lineageTag: m:Calc Item Switch
 
-	measure 'Calc Items Nested' = SWITCH ( SELECTEDVALUE ( Date[Year] ), 2025, ( SWITCH ( SELECTEDVALUE ( Product[Category] ), "Apparel", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) ) + 1, SWITCH ( SELECTEDVALUE ( Product[Category] ), "Apparel", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) )
+	measure 'Calc Items Nested' = SWITCH ( SELECTEDVALUE ( 'Date'[Year] ), 2025, ( SWITCH ( SELECTEDVALUE ( 'Product'[Category] ), "Apparel", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) ) + 1, SWITCH ( SELECTEDVALUE ( 'Product'[Category] ), "Apparel", DIVIDE ( ( 'Sales'[Sales Amount] ), CALCULATE ( ( 'Sales'[Sales Amount] ), ALL ( Product ) ) ), 'Sales'[Sales Amount] ) )
 		lineageTag: m:Calc Items Nested
 
-	measure 'Neither Apparel Nor Camping' = CALCULATE ( [Quantity], Product[Category] <> "Apparel", Product[Category] <> "Camping" )
+	measure 'Neither Apparel Nor Camping' = CALCULATE ( [Quantity], 'Product'[Category] <> "Apparel", 'Product'[Category] <> "Camping" )
 		lineageTag: m:Neither Apparel Nor Camping
 
-	measure 'Camping If Busy' = CALCULATE ( [Sales Amount], Product[Category] = "Camping", FILTER ( VALUES ( Product[Category] ), [Orders] > 10 ) )
+	measure 'Camping If Busy' = CALCULATE ( [Sales Amount], 'Product'[Category] = "Camping", FILTER ( VALUES ( 'Product'[Category] ), [Orders] > 10 ) )
 		lineageTag: m:Camping If Busy
 
-	measure 'Since March 2025' = CALCULATE ( [Quantity], Date[Date] >= DATE ( 2025, 3, 1 ) )
+	measure 'Since March 2025' = CALCULATE ( [Quantity], 'Date'[Date] >= DATE ( 2025, 3, 1 ) )
 		lineageTag: m:Since March 2025
 
-	measure 'Camping Sales' = CALCULATE ( [Sales Amount], Product[Category] = "Camping" )
+	measure 'Camping Sales' = CALCULATE ( [Sales Amount], 'Product'[Category] = "Camping" )
 		lineageTag: m:Camping Sales
 
-	measure 'Not Camping' = CALCULATE ( [Sales Amount], Product[Category] <> "Camping" )
+	measure 'Not Camping' = CALCULATE ( [Sales Amount], 'Product'[Category] <> "Camping" )
 		lineageTag: m:Not Camping
 
 	measure 'All Products' = CALCULATE ( [Sales Amount], ALL ( Product ) )
 		lineageTag: m:All Products
 
-	measure 'Share Of Category' = DIVIDE ( [Sales Amount], CALCULATE ( [Sales Amount], ALL ( Product[Category] ) ) )
+	measure 'Share Of Category' = DIVIDE ( [Sales Amount], CALCULATE ( [Sales Amount], ALL ( 'Product'[Category] ) ) )
 		lineageTag: m:Share Of Category
 
 	measure 'All Sales' = CALCULATE ( [Sales Amount], REMOVEFILTERS ( Sales ) )
 		lineageTag: m:All Sales
 
-	measure 'All Years' = CALCULATE ( [Quantity], ALL ( Date[Year] ) )
+	measure 'All Years' = CALCULATE ( [Quantity], ALL ( 'Date'[Year] ) )
 		lineageTag: m:All Years
 
-	measure 'Year 2024' = CALCULATE ( [Quantity], Date[Year] = 2024 )
+	measure 'Year 2024' = CALCULATE ( [Quantity], 'Date'[Year] = 2024 )
 		lineageTag: m:Year 2024
 
-	measure 'Keep 2024' = CALCULATE ( [Quantity], KEEPFILTERS ( Date[Year] = 2024 ) )
+	measure 'Keep 2024' = CALCULATE ( [Quantity], KEEPFILTERS ( 'Date'[Year] = 2024 ) )
 		lineageTag: m:Keep 2024
 
-	measure 'Green Or Red' = CALCULATE ( [Quantity], Product[Color] IN { "Green", "Red" } )
+	measure 'Green Or Red' = CALCULATE ( [Quantity], 'Product'[Color] IN { "Green", "Red" } )
 		lineageTag: m:Green Or Red
 
-	measure 'Two Filters' = CALCULATE ( [Quantity], Product[Category] = "Apparel", Store[Region] = "Online" )
+	measure 'Two Filters' = CALCULATE ( [Quantity], 'Product'[Category] = "Apparel", 'Store'[Region] = "Online" )
 		lineageTag: m:Two Filters
 
-	measure 'Big Orders Sales' = CALCULATE ( [Sales Amount], Sales[Qty] >= 3 )
+	measure 'Big Orders Sales' = CALCULATE ( [Sales Amount], 'Sales'[Qty] >= 3 )
 		lineageTag: m:Big Orders Sales
 
-	measure 'Filter Table' = CALCULATE ( [Quantity], FILTER ( ALL ( Product[ListPrice] ), Product[ListPrice] > 100 ) )
+	measure 'Filter Table' = CALCULATE ( [Quantity], FILTER ( ALL ( 'Product'[ListPrice] ), 'Product'[ListPrice] > 100 ) )
 		lineageTag: m:Filter Table
 
-	measure 'Filter Rows' = CALCULATE ( [Quantity], FILTER ( Sales, Sales[Price] > 100 ) )
+	measure 'Filter Rows' = CALCULATE ( [Quantity], FILTER ( Sales, 'Sales'[Price] > 100 ) )
 		lineageTag: m:Filter Rows
 
-	measure 'Except Category' = CALCULATE ( [Quantity], ALLEXCEPT ( Product, Product[Category] ) )
+	measure 'Except Category' = CALCULATE ( [Quantity], ALLEXCEPT ( Product, 'Product'[Category] ) )
 		lineageTag: m:Except Category
 
-	measure 'By Ship Date' = CALCULATE ( [Quantity], USERELATIONSHIP ( Sales[ShipDateKey], Date[DateKey] ) )
+	measure 'By Ship Date' = CALCULATE ( [Quantity], USERELATIONSHIP ( 'Sales'[ShipDateKey], 'Date'[DateKey] ) )
 		lineageTag: m:By Ship Date
 
-	measure 'Ship Orders' = CALCULATE ( [Orders], USERELATIONSHIP ( Sales[ShipDateKey], Date[DateKey] ) )
+	measure 'Ship Orders' = CALCULATE ( [Orders], USERELATIONSHIP ( 'Sales'[ShipDateKey], 'Date'[DateKey] ) )
 		lineageTag: m:Ship Orders
 
-	measure 'Restore Values' = CALCULATE ( [Quantity], ALL ( Product ), VALUES ( Product[Category] ) )
+	measure 'Restore Values' = CALCULATE ( [Quantity], ALL ( Product ), VALUES ( 'Product'[Category] ) )
 		lineageTag: m:Restore Values
 
-	measure 'All Selected' = CALCULATE ( [Quantity], ALLSELECTED ( Product[Category] ) )
+	measure 'All Selected' = CALCULATE ( [Quantity], ALLSELECTED ( 'Product'[Category] ) )
 		lineageTag: m:All Selected
 
-	measure 'Nested Calc' = CALCULATE ( CALCULATE ( [Quantity], ALL ( Product ) ), Product[Category] = "Footwear" )
+	measure 'Nested Calc' = CALCULATE ( CALCULATE ( [Quantity], ALL ( Product ) ), 'Product'[Category] = "Footwear" )
 		lineageTag: m:Nested Calc
 
 	measure 'Target All Stores' = CALCULATE ( [Target], ALL ( Store ) )
@@ -406,64 +406,64 @@ table Sales
 	measure 'Calc Var' = VAR all = CALCULATE ( [Quantity], ALL ( Product ) ) RETURN DIVIDE ( [Quantity], all )
 		lineageTag: m:Calc Var
 
-	measure 'Transition Sum' = SUMX ( VALUES ( Product[Category] ), CALCULATE ( [Quantity] ) )
+	measure 'Transition Sum' = SUMX ( VALUES ( 'Product'[Category] ), CALCULATE ( [Quantity] ) )
 		lineageTag: m:Transition Sum
 
-	measure 'Iterate Calc' = SUMX ( VALUES ( Date[Year] ), CALCULATE ( [Sales Amount], ALL ( Product ) ) )
+	measure 'Iterate Calc' = SUMX ( VALUES ( 'Date'[Year] ), CALCULATE ( [Sales Amount], ALL ( Product ) ) )
 		lineageTag: m:Iterate Calc
 
-	measure 'Selected Category' = SELECTEDVALUE ( Product[Category], "Many" )
+	measure 'Selected Category' = SELECTEDVALUE ( 'Product'[Category], "Many" )
 		lineageTag: m:Selected Category
 
-	measure 'One Year' = IF ( HASONEVALUE ( Date[Year] ), "one", "many" )
+	measure 'One Year' = IF ( HASONEVALUE ( 'Date'[Year] ), "one", "many" )
 		lineageTag: m:One Year
 
-	measure 'Category In Scope' = IF ( ISINSCOPE ( Product[Category] ), 1, 0 )
+	measure 'Category In Scope' = IF ( ISINSCOPE ( 'Product'[Category] ), 1, 0 )
 		lineageTag: m:Category In Scope
 
-	measure 'Year Filtered' = IF ( ISFILTERED ( Date[Year] ), 1, 0 )
+	measure 'Year Filtered' = IF ( ISFILTERED ( 'Date'[Year] ), 1, 0 )
 		lineageTag: m:Year Filtered
 
-	measure 'Sales LY' = CALCULATE ( [Sales Amount], SAMEPERIODLASTYEAR ( Date[Date] ) )
+	measure 'Sales LY' = CALCULATE ( [Sales Amount], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
 		lineageTag: m:Sales LY
 
 	measure 'YoY %' = DIVIDE ( [Sales Amount] - [Sales LY], [Sales LY] )
 		lineageTag: m:YoY %
 
-	measure 'Qty Prev Month' = CALCULATE ( [Quantity], DATEADD ( Date[Date], -1, MONTH ) )
+	measure 'Qty Prev Month' = CALCULATE ( [Quantity], DATEADD ( 'Date'[Date], -1, MONTH ) )
 		lineageTag: m:Qty Prev Month
 
-	measure 'Qty Next Quarter' = CALCULATE ( [Quantity], DATEADD ( Date[Date], 1, QUARTER ) )
+	measure 'Qty Next Quarter' = CALCULATE ( [Quantity], DATEADD ( 'Date'[Date], 1, QUARTER ) )
 		lineageTag: m:Qty Next Quarter
 
-	measure 'Sales YTD' = TOTALYTD ( [Sales Amount], Date[Date] )
+	measure 'Sales YTD' = TOTALYTD ( [Sales Amount], 'Date'[Date] )
 		lineageTag: m:Sales YTD
 
-	measure 'Qty FYTD' = TOTALYTD ( [Quantity], Date[Date], "6/30" )
+	measure 'Qty FYTD' = TOTALYTD ( [Quantity], 'Date'[Date], "6/30" )
 		lineageTag: m:Qty FYTD
 
-	measure 'Qty QTD' = TOTALQTD ( [Quantity], Date[Date] )
+	measure 'Qty QTD' = TOTALQTD ( [Quantity], 'Date'[Date] )
 		lineageTag: m:Qty QTD
 
-	measure 'Qty MTD' = CALCULATE ( [Quantity], DATESMTD ( Date[Date] ) )
+	measure 'Qty MTD' = CALCULATE ( [Quantity], DATESMTD ( 'Date'[Date] ) )
 		lineageTag: m:Qty MTD
 
-	measure 'Camping YTD' = TOTALYTD ( [Quantity], Date[Date], Product[Category] = "Camping" )
+	measure 'Camping YTD' = TOTALYTD ( [Quantity], 'Date'[Date], 'Product'[Category] = "Camping" )
 		lineageTag: m:Camping YTD
 
-	measure 'Qty Parallel' = CALCULATE ( [Quantity], PARALLELPERIOD ( Date[Date], -1, YEAR ) )
+	measure 'Qty Parallel' = CALCULATE ( [Quantity], PARALLELPERIOD ( 'Date'[Date], -1, YEAR ) )
 		lineageTag: m:Qty Parallel
 
-	measure 'Qty Prev Year' = CALCULATE ( [Quantity], PREVIOUSYEAR ( Date[Date] ) )
+	measure 'Qty Prev Year' = CALCULATE ( [Quantity], PREVIOUSYEAR ( 'Date'[Date] ) )
 		lineageTag: m:Qty Prev Year
 
-	measure 'Qty Prev Quarter' = CALCULATE ( [Quantity], PREVIOUSQUARTER ( Date[Date] ) )
+	measure 'Qty Prev Quarter' = CALCULATE ( [Quantity], PREVIOUSQUARTER ( 'Date'[Date] ) )
 		lineageTag: m:Qty Prev Quarter
 
-	measure 'Qty Next Month' = CALCULATE ( [Quantity], NEXTMONTH ( Date[Date] ) )
+	measure 'Qty Next Month' = CALCULATE ( [Quantity], NEXTMONTH ( 'Date'[Date] ) )
 		lineageTag: m:Qty Next Month
 
-	measure 'Keep LY' = CALCULATE ( [Quantity], KEEPFILTERS ( SAMEPERIODLASTYEAR ( Date[Date] ) ) )
+	measure 'Keep LY' = CALCULATE ( [Quantity], KEEPFILTERS ( SAMEPERIODLASTYEAR ( 'Date'[Date] ) ) )
 		lineageTag: m:Keep LY
 
 	measure 'Latest Year' = MAXX ( 'Date', YEAR ( 'Date'[Date] ) )
@@ -472,10 +472,10 @@ table Sales
 	measure 'Quarter Days' = SUMX ( VALUES ( 'Date'[Date] ), QUARTER ( 'Date'[Date] ) * 100 + MONTH ( 'Date'[Date] ) + DAY ( 'Date'[Date] ) )
 		lineageTag: m:Quarter Days
 
-	measure 'Target LY' = CALCULATE ( [Target], SAMEPERIODLASTYEAR ( Date[Date] ) )
+	measure 'Target LY' = CALCULATE ( [Target], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
 		lineageTag: m:Target LY
 
-	measure 'Scoped Share' = IF ( ISINSCOPE ( Product[Category] ), [Share Of Category], BLANK () )
+	measure 'Scoped Share' = IF ( ISINSCOPE ( 'Product'[Category] ), [Share Of Category], BLANK () )
 		lineageTag: m:Scoped Share
 
 	measure 'Rolling 12M' = CALCULATE ( [Sales Amount], DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -12, MONTH ) )
@@ -496,8 +496,8 @@ table Sales
 	measure 'H1 2025' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], DATE ( 2025, 1, 1 ), DATE ( 2025, 6, 30 ) ) )
 		lineageTag: m:H1 2025
 
-	measure 'Running Qty' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], BLANK (), MAX ( 'Date'[Date] ) ) )
-		lineageTag: m:Running Qty
+	measure 'Running Qty To Date' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], BLANK (), MAX ( 'Date'[Date] ) ) )
+		lineageTag: m:Running Qty To Date
 
 	measure 'From First' = CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], FIRSTDATE ( 'Date'[Date] ), BLANK () ) )
 		lineageTag: m:From First
@@ -532,28 +532,28 @@ table Sales
 	measure 'Later Date' = MAX ( LASTDATE ( 'Date'[Date] ), DATE ( 2025, 6, 30 ) )
 		lineageTag: m:Later Date
 
-	measure 'Upper Category' = IF ( [Quantity] > 0, UPPER ( SELECTEDVALUE ( Product[Category] ) ) )
+	measure 'Upper Category' = IF ( [Quantity] > 0, UPPER ( SELECTEDVALUE ( 'Product'[Category] ) ) )
 		lineageTag: m:Upper Category
 
-	measure 'Category Code' = IF ( [Quantity] > 0, LEFT ( SELECTEDVALUE ( Product[Category] ) & "all", 3 ) & "-" & RIGHT ( SELECTEDVALUE ( Product[Category] ), 2 ) & LEFT ( "xyz" ) )
+	measure 'Category Code' = IF ( [Quantity] > 0, LEFT ( SELECTEDVALUE ( 'Product'[Category] ) & "all", 3 ) & "-" & RIGHT ( SELECTEDVALUE ( 'Product'[Category] ), 2 ) & LEFT ( "xyz" ) )
 		lineageTag: m:Category Code
 
-	measure 'Category Length' = IF ( [Quantity] > 0, LEN ( SELECTEDVALUE ( Product[Color] ) ) )
+	measure 'Category Length' = IF ( [Quantity] > 0, LEN ( SELECTEDVALUE ( 'Product'[Color] ) ) )
 		lineageTag: m:Category Length
 
-	measure 'Mid Lower' = IF ( [Quantity] > 0, LOWER ( MID ( SELECTEDVALUE ( Product[Category] ) & " Products", 2, 4 ) ) )
+	measure 'Mid Lower' = IF ( [Quantity] > 0, LOWER ( MID ( SELECTEDVALUE ( 'Product'[Category] ) & " Products", 2, 4 ) ) )
 		lineageTag: m:Mid Lower
 
-	measure Trimmed = IF ( [Quantity] > 0, TRIM ( "  big   " & SELECTEDVALUE ( Product[Category] ) & "  " ) )
+	measure Trimmed = IF ( [Quantity] > 0, TRIM ( "  big   " & SELECTEDVALUE ( 'Product'[Category] ) & "  " ) )
 		lineageTag: m:Trimmed
 
-	measure Substituted = IF ( [Quantity] > 0, SUBSTITUTE ( SELECTEDVALUE ( Product[Category] ) & " aaa", "a", "o" ) )
+	measure Substituted = IF ( [Quantity] > 0, SUBSTITUTE ( SELECTEDVALUE ( 'Product'[Category] ) & " aaa", "a", "o" ) )
 		lineageTag: m:Substituted
 
-	measure 'Second A' = IF ( [Quantity] > 0, SUBSTITUTE ( "banana " & SELECTEDVALUE ( Product[Category] ), "a", "_", 2 ) )
+	measure 'Second A' = IF ( [Quantity] > 0, SUBSTITUTE ( "banana " & SELECTEDVALUE ( 'Product'[Category] ), "a", "_", 2 ) )
 		lineageTag: m:Second A
 
-	measure Joined = IF ( [Quantity] > 0, CONCATENATE ( SELECTEDVALUE ( Product[Category] ) & "-", FORMAT ( [Quantity], "0" ) ) )
+	measure Joined = IF ( [Quantity] > 0, CONCATENATE ( SELECTEDVALUE ( 'Product'[Category] ) & "-", FORMAT ( [Quantity], "0" ) ) )
 		lineageTag: m:Joined
 
 	measure 'Blank Arguments' = IF ( [Quantity] > 0, LEN ( BLANK () ) + LEN ( UPPER ( BLANK () ) & LEFT ( BLANK (), 2 ) ) + LEN ( FORMAT ( BLANK (), "0" ) ) + MIN ( BLANK (), 3 ) + LEN ( SUBSTITUTE ( BLANK (), BLANK (), "x" ) ) )

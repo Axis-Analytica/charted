@@ -7,10 +7,26 @@ Charted's DAX is tested against its own reference interpreter
 | --- | --- | --- |
 | `golden/golden.pbip` | The golden fixture as a Power BI project. Each table's data is *Enter data*, so it needs no files. | `CHARTED_UPDATE_CONFORMANCE=1 bin/heavy cargo test -p charted-core --test conformance` |
 | `queries.json` | Every golden measure in every golden shape, as the DAX query a Power BI visual sends. | the same command |
-| `expected.json` | Power BI Desktop's answers. | `run.ps1`, on Windows |
+| `expected.json` | Power BI's answers. | `service.py` (any OS), or `run.ps1` on Windows |
 | `known.json` | Differences we know about: `{"<measure> / <shape>": "why"}`. | by hand; it should only shrink |
 
-## Recording Power BI's answers (Windows)
+## Recording Power BI's answers through the Power BI Service (any OS)
+
+1. `bin/pbi login` once. It's a device-code sign-in: open the link it prints in any
+   browser and sign in with a Power BI Pro or Premium Per User account. Microsoft shows
+   it as "Microsoft Azure CLI", whose public sign-in it borrows. The token is kept in
+   `~/.local/state/charted/powerbi-token.json`; `bin/pbi logout` removes it.
+2. `python3 conformance/service.py`. It publishes the model in `golden/` to My
+   workspace as `charted-conformance` (replacing the previous one), refreshes it, and
+   runs every query through the `executeQueries` API. The API allows 120 queries a
+   minute, so it takes about 17 minutes. It then writes `expected.json`.
+   - `--workspace NAME` publishes to a shared workspace instead.
+   - `--only "Sales Amount /"` runs only the queries whose id starts with that, into
+     `expected.partial.json`, for a quick check.
+   - `--no-publish` reuses the model already in the workspace.
+3. `bin/heavy cargo test -p charted-core --test conformance -- --nocapture`.
+
+## Recording Power BI's answers (Windows, Power BI Desktop)
 
 1. Open `conformance\golden\golden.pbip` in Power BI Desktop and leave it open. It
    doesn't matter if the tables look empty.

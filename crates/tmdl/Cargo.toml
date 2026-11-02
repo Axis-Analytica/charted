@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 charted-model.workspace = true
 charted-compiler.workspace = true
+charted-dax.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 ts-rs.workspace = true

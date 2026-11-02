@@ -65,8 +65,10 @@ fn summarize(c: &Column) -> Option<&'static str> {
 }
 
 /// A DAX expression after `=`: inline when it is one line, otherwise on the following
-/// lines, indented one level deeper than `indent`.
+/// lines, indented one level deeper than `indent`. Table references are quoted
+/// (`'Date'[Date]`), since Power BI refuses some unquoted ones.
 fn expression(out: &mut String, expr: &str, indent: usize) {
+    let expr = &charted_dax::lexer::quote_tables(expr);
     let lines: Vec<&str> = expr.trim().lines().collect();
     if lines.len() <= 1 {
         let _ = writeln!(out, " {}", expr.trim());

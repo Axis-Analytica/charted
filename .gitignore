@@ -13,3 +13,5 @@ ui/playwright-report/
 ui/*.tmp.mjs
 ui/src/dax/pkg/
 .claude/
+conformance/expected.partial.json
+conformance/*.progress

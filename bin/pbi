@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""Talk to the Power BI and Fabric REST APIs as you (for the conformance harness).
+
+  bin/pbi login              sign in once with a device code (any browser, any device)
+  bin/pbi get PATH           GET https://api.powerbi.com/v1.0/myorg/PATH, print JSON
+  bin/pbi post PATH [FILE]   POST a JSON body (from FILE or stdin)
+  bin/pbi fabric METHOD PATH [FILE]   the same against https://api.fabric.microsoft.com/v1/
+  bin/pbi logout             forget the sign-in
+
+conformance/service.py uses it to record Power BI's answers for the conformance test.
+
+It signs in as the Azure CLI's public client, so it needs no app registration. The
+refresh token is kept in $XDG_STATE_HOME/charted/powerbi-token.json (mode 600), never
+in the repository.
+"""
+import json, os, sys, time, urllib.error, urllib.parse, urllib.request
+
+CLIENT = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"  # Azure CLI (public, first-party)
+AUTHORITY = "https://login.microsoftonline.com/organizations/oauth2/v2.0"
+SCOPES = {
+    "powerbi": "https://analysis.windows.net/powerbi/api/.default",
+    "fabric": "https://api.fabric.microsoft.com/.default",
+}
+BASES = {
+    "powerbi": "https://api.powerbi.com/v1.0/myorg/",
+    "fabric": "https://api.fabric.microsoft.com/v1/",
+}
+STATE = os.path.join(
+    os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "charted"
+)
+CACHE = os.path.join(STATE, "powerbi-token.json")
+
+
+def form(url, fields):
+    req = urllib.request.Request(url, urllib.parse.urlencode(fields).encode())
+    try:
+        with urllib.request.urlopen(req) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        return json.load(e)
+
+
+def save(tok):
+    os.makedirs(STATE, exist_ok=True)
+    fd = os.open(CACHE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(tok, f)
+
+
+def login():
+    scope = SCOPES["powerbi"] + " offline_access"
+    dc = form(AUTHORITY + "/devicecode", {"client_id": CLIENT, "scope": scope})
+    if "device_code" not in dc:
+        sys.exit(f"sign-in failed: {dc.get('error_description', dc)}")
+    print(dc["message"], flush=True)
+    while True:
+        time.sleep(dc.get("interval", 5))
+        t = form(
+            AUTHORITY + "/token",
+            {
+                "client_id": CLIENT,
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "device_code": dc["device_code"],
+            },
+        )
+        if "access_token" in t:
+            save({"refresh_token": t["refresh_token"]})
+            print("Signed in.")
+            return
+        if t.get("error") not in ("authorization_pending", "slow_down"):
+            sys.exit(f"sign-in failed: {t.get('error_description', t)}")
+
+
+_TOKENS = {}
+
+
+def token(api):
+    """An access token for api, reused until a minute before it expires."""
+    tok, expires = _TOKENS.get(api, (None, 0))
+    if tok and time.time() < expires - 60:
+        return tok
+    try:
+        with open(CACHE) as f:
+            cached = json.load(f)
+    except FileNotFoundError:
+        sys.exit("not signed in: run bin/pbi login")
+    t = form(
+        AUTHORITY + "/token",
+        {
+            "client_id": CLIENT,
+            "grant_type": "refresh_token",
+            "refresh_token": cached["refresh_token"],
+            "scope": SCOPES[api] + " offline_access",
+        },
+    )
+    if "access_token" not in t:
+        sys.exit(f"the sign-in has expired ({t.get('error_description', t)}): run bin/pbi login")
+    if t.get("refresh_token"):
+        save({"refresh_token": t["refresh_token"]})
+    _TOKENS[api] = (t["access_token"], time.time() + int(t.get("expires_in", 300)))
+    return t["access_token"]
+
+
+def request(api, method, path, body=None):
+    """Returns (status, Location header, parsed JSON or None); raises HTTPError."""
+    url = path if path.startswith("https://") else BASES[api] + path.lstrip("/")
+    data = None if body is None else (body if isinstance(body, str) else json.dumps(body)).encode()
+    req = urllib.request.Request(url, data, method=method)
+    req.add_header("Authorization", "Bearer " + token(api))
+    if data is not None:
+        req.add_header("Content-Type", "application/json")
+    with urllib.request.urlopen(req) as r:
+        text = r.read().decode("utf-8-sig")
+        return r.status, r.headers.get("Location"), (json.loads(text) if text.strip() else None)
+
+
+def call(api, method, path, body=None):
+    try:
+        status, loc, doc = request(api, method, path, body)
+    except urllib.error.HTTPError as e:
+        sys.stderr.write(f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')}\n")
+        sys.exit(1)
+    if loc and status == 202:
+        print(json.dumps({"status": 202, "location": loc}))
+    elif doc is not None:
+        print(json.dumps(doc, indent=2))
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        return
+    cmd, rest = argv[0], argv[1:]
+    body = lambda i: (open(rest[i]).read() if len(rest) > i else sys.stdin.read())
+    if cmd == "login":
+        login()
+    elif cmd == "logout":
+        if os.path.exists(CACHE):
+            os.remove(CACHE)
+    elif cmd == "get":
+        call("powerbi", "GET", rest[0])
+    elif cmd == "post":
+        call("powerbi", "POST", rest[0], body(1))
+    elif cmd == "fabric":
+        method = rest[0].upper()
+        call("fabric", method, rest[1], body(2) if method in ("POST", "PATCH", "PUT") else None)
+    else:
+        sys.exit(__doc__)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

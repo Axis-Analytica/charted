@@ -893,7 +893,7 @@ pub const MEASURES: &[(&str, &str)] = &[
         "CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], DATE ( 2025, 1, 1 ), DATE ( 2025, 6, 30 ) ) )",
     ),
     (
-        "Running Qty",
+        "Running Qty To Date",
         "CALCULATE ( [Quantity], DATESBETWEEN ( 'Date'[Date], BLANK (), MAX ( 'Date'[Date] ) ) )",
     ),
     (

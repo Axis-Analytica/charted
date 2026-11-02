@@ -242,6 +242,15 @@ fn fixture_hash(f: &Fixture) -> String {
 #[test]
 fn conformance_files_are_current() {
     let f = fixture();
+    // Power BI refuses a model with two measures of the same name.
+    let mut names: Vec<&str> = MEASURES.iter().map(|(n, _)| *n).collect();
+    names.sort_unstable();
+    let dup: Vec<_> = names
+        .windows(2)
+        .filter(|w| w[0] == w[1])
+        .map(|w| w[0])
+        .collect();
+    assert!(dup.is_empty(), "golden measures share a name: {dup:?}");
     let mut files: Vec<(PathBuf, String)> =
         charted_tmdl::pbip("golden", &f.model, &queries(&f), "")
             .into_iter()
