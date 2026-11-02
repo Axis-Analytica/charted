@@ -549,6 +549,15 @@ Expected:
 
 #### M11.4 DateTime (L; riskiest; before any time function)
 
+*Status 2026-11-03: done.* `ValueType::DateTime` (SQL TIMESTAMP); date ± number,
+date − date and comparisons with numbers through serial numbers, adding in whole
+microseconds; blank is day 0 (1899-12-30) in arithmetic and comparisons; NOW, UTCNOW,
+UTCTODAY; a fixable clock (`charted_compiler::clock`); TMDL `dateTime` columns without
+a format keep their time when the query types them `datetime`; report filter literals
+keep times both ways. All checked against the Service (2124 of 2170 agree, the other 46
+known). Charted has no automatic date hierarchies, so there was nothing to do there.
+Time-of-day functions (HOUR, TIME…) and FORMAT's time codes stay in M11.6 and M11.8.
+
 - DAX has one date-time type: Date means midnight. Add `ValueType::DateTime`
   (`visual.rs:139`), with `unify(Date, DateTime) = DateTime` and number + date-time
   adding fractional days.

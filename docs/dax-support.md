@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (111 functions)
+## Evaluated (114 functions)
 
 ### Aggregation
 
@@ -34,8 +34,11 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `EDATE ( StartDate, Months )` | The date a number of months before or after. |
 | `EOMONTH ( StartDate, Months )` | The last day of the month a number of months away. |
 | `MONTH ( Date )` | The month, 1 to 12. |
+| `NOW (  )` | The current date and time. |
 | `QUARTER ( Date )` | The quarter, 1 to 4. |
 | `TODAY (  )` | The current date. |
+| `UTCNOW (  )` | The current date and time in UTC. |
+| `UTCTODAY (  )` | The current date in UTC. |
 | `WEEKDAY ( Date, [ReturnType] )` | The day of the week. |
 | `YEAR ( Date )` | The year of a date. |
 
@@ -198,8 +201,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (37)
+## Recognised, not yet evaluated (36)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TRUNC`, `WEEKNUM`, `YEARFRAC`
+`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TRUNC`, `WEEKNUM`, `YEARFRAC`

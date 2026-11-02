@@ -64,6 +64,8 @@ pub fn t(s: &str) -> Value {
 /// A small, irregular star: blanks, a sale of an unknown product, months without sales,
 /// an inactive ship-date relationship and a second fact table (targets).
 pub fn fixture() -> Fixture {
+    // NOW and TODAY read a fixed moment (after the data), the same in both engines.
+    charted_compiler::clock::fix("2026-01-15 10:30:00");
     let mut tables: Vec<FixtureTable> = Vec::new();
     let products = [
         (1, "Tent", "Camping", "Green", 300.0),
@@ -178,6 +180,17 @@ pub fn fixture() -> Fixture {
             n((qty as f64 * price * 100.0).round() / 100.0)
         };
         let ship_m = (m + next(2)).min(12);
+        // When the order was placed: a time of day, some blank.
+        let at = if i % 13 == 4 {
+            Value::Blank
+        } else {
+            t(&format!(
+                "{y}-{m:02}-{:02} {:02}:{:02}:00",
+                1 + (i * 7) % 28,
+                (i * 5) % 24,
+                (i * 13) % 60
+            ))
+        };
         sales.push(vec![
             n(i as f64 + 1.0),
             n(pk as f64),
@@ -187,6 +200,7 @@ pub fn fixture() -> Fixture {
             n(qty as f64),
             n(price),
             amount,
+            at,
         ]);
     }
     tables.push((
@@ -200,6 +214,7 @@ pub fn fixture() -> Fixture {
             ("Qty".into(), DataType::Int64),
             ("Price".into(), DataType::Double),
             ("Amount".into(), DataType::Double),
+            ("OrderedAt".into(), DataType::DateTime),
         ],
         sales,
     ));
@@ -263,6 +278,7 @@ pub fn fixture() -> Fixture {
             DataType::Int64 => "BIGINT",
             DataType::Double => "DOUBLE",
             DataType::Date => "DATE",
+            DataType::DateTime => "TIMESTAMP",
             _ => "VARCHAR",
         };
         let defs: Vec<String> = cols
@@ -493,6 +509,28 @@ pub const MEASURES: &[(&str, &str)] = &[
         "PATHITEM ( \"4|5|6\", MAX ( Store[StoreKey] ) ) & \"/\" & PATHITEMREVERSE ( \"4|5|6\", MIN ( Store[StoreKey] ), INTEGER ) & \"/\" & PATHLENGTH ( \"4|5|6\" ) & \"/\" & PATHCONTAINS ( \"4|5|6\", MAX ( Store[StoreKey] ) + 3 )",
     ),
     ("Target Rows", "SUMX ( Targets, [Orders] * 0 + 1 )"),
+    // Date/time arithmetic: a number of days added to a date gives a date/time.
+    ("Last Order Plus", "MAX ( Sales[OrderedAt] ) + 180.25"),
+    ("Month End Minus", "MAX ( 'Date'[Date] ) - 1.5"),
+    (
+        "Orders Late In Month",
+        "COUNTROWS ( FILTER ( Sales, Sales[OrderedAt] >= RELATED ( 'Date'[Date] ) - 10.5 ) )",
+    ),
+    (
+        "Days Spanned",
+        "INT ( MAX ( Sales[OrderedAt] ) - MIN ( Sales[OrderedAt] ) )",
+    ),
+    ("Date Serial", "MAX ( 'Date'[Date] ) * 1"),
+    (
+        "Before Serial",
+        "COUNTROWS ( FILTER ( Sales, Sales[OrderedAt] < 45500 ) )",
+    ),
+    (
+        "Hours Since Order",
+        "( NOW () - MAX ( Sales[OrderedAt] ) ) * 24",
+    ),
+    ("Days To Today", "UTCTODAY () - MAX ( 'Date'[Date] )"),
+    ("A Week From Now", "UTCNOW () + 7"),
     ("All Products Qty", "SUMX ( ALL ( Product ), [Quantity] )"),
     (
         "Lines Per Product",
@@ -1167,6 +1205,9 @@ pub fn arrow_values(bytes: Vec<u8>) -> Vec<Vec<Value>> {
                 let ty = c.data_type().to_string();
                 row.push(if ty.contains("Utf8") {
                     Value::Text(s)
+                } else if ty.starts_with("Timestamp") {
+                    // As DuckDB writes a TIMESTAMP as text (what the interpreter has).
+                    Value::Text(s.replacen('T', " ", 1))
                 } else if ty == "Boolean" {
                     Value::Bool(s == "true")
                 } else {

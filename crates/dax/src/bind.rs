@@ -52,6 +52,10 @@ pub enum ScalarFunc {
     EoMonth,
     /// TODAY: the current date.
     Today,
+    /// NOW: the current local date and time; UTCNOW and UTCTODAY in UTC.
+    Now,
+    UtcNow,
+    UtcToday,
     /// WEEKDAY: the day of the week (return type 1: Sunday 1…, 2: Monday 1…, 3: Monday 0…).
     Weekday,
     /// EDATE ( date, months ): the same day `months` away (clamped to the month's end).
@@ -509,7 +513,6 @@ pub const KNOWN: &[&str] = &[
     "MEDIANX",
     "MINA",
     "MINUTE",
-    "NOW",
     "PERCENTILE.INC",
     "POWER",
     "PRODUCT",
@@ -620,6 +623,9 @@ pub const SUPPORTED: &[&str] = &[
     "SUMX",
     "SWITCH",
     "TODAY",
+    "NOW",
+    "UTCNOW",
+    "UTCTODAY",
     "TOPN",
     "TREATAS",
     "TOTALMTD",
@@ -2413,6 +2419,9 @@ impl<'a> Binder<'a> {
                     "DATE" => (ScalarFunc::Date, 3, 3),
                     "EOMONTH" => (ScalarFunc::EoMonth, 2, 2),
                     "TODAY" => (ScalarFunc::Today, 0, 0),
+                    "NOW" => (ScalarFunc::Now, 0, 0),
+                    "UTCNOW" => (ScalarFunc::UtcNow, 0, 0),
+                    "UTCTODAY" => (ScalarFunc::UtcToday, 0, 0),
                     "WEEKDAY" => (ScalarFunc::Weekday, 1, 2),
                     "EDATE" => (ScalarFunc::EDate, 2, 2),
                     _ if KNOWN.contains(&upper.as_str()) => {

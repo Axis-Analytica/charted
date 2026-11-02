@@ -8,7 +8,7 @@
 //! charted's own exports carry each table's query as an annotation (`chartedQuery`),
 //! and the exact type of date columns (`chartedDataType`), so they come back exactly.
 
-use charted_compiler::steps::Query;
+use charted_compiler::steps::{Query, Step};
 use charted_model::*;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -1044,6 +1044,19 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
             }
             (None, None) => None,
         };
+        // Columns the query itself types as date/time (`type datetime`).
+        let timed: Vec<String> = query
+            .iter()
+            .flat_map(|q| &q.steps)
+            .flat_map(|s| match s {
+                Step::ChangeTypes { columns } => columns
+                    .iter()
+                    .filter(|(_, t)| matches!(t, DataType::DateTime | DataType::DateTimeTz))
+                    .map(|(c, _)| c.clone())
+                    .collect(),
+                _ => vec![],
+            })
+            .collect();
         let source = match (&query, &calculated) {
             (Some(q), _) => q.table.clone(),
             (None, Some(_)) => calculated_table_source(&id),
@@ -1065,7 +1078,16 @@ fn into_charted(sm: Sm, project_name: &str) -> Imported {
                     .annotations
                     .get("chartedDataType")
                     .and_then(|d| serde_json::from_value(serde_json::Value::String(d.clone())).ok())
-                    .unwrap_or_else(|| data_type(&c.data_type, c.format.as_deref())),
+                    .unwrap_or_else(|| match data_type(&c.data_type, c.format.as_deref()) {
+                        // Without a format, Power BI shows the time a query gives.
+                        DataType::Date
+                            if c.format.is_none()
+                                && timed.contains(c.source_column.as_ref().unwrap_or(&c.name)) =>
+                        {
+                            DataType::DateTime
+                        }
+                        t => t,
+                    }),
                 kind: match &c.expression {
                     Some(e) => ColumnKind::Calculated {
                         expression: e.clone(),

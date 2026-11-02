@@ -155,7 +155,7 @@ fn dax_query(m: &Model, measure: &str, q: &VisualQuery) -> String {
 /// Measures whose answer depends on when or how often they run.
 fn volatile(expr: &str) -> bool {
     let e = expr.to_uppercase();
-    ["NOW (", "NOW(", "UTCNOW", "RAND"]
+    ["NOW (", "NOW(", "UTCTODAY", "RAND"]
         .iter()
         .any(|f| e.contains(f))
 }

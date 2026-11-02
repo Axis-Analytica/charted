@@ -142,6 +142,9 @@ pub enum ValueType {
     Text,
     Bool,
     Date,
+    /// A date with a time (SQL TIMESTAMP). DAX has one date/time type; charted keeps
+    /// whole dates as DATE and uses this where a time can appear.
+    DateTime,
 }
 
 impl ValueType {
@@ -149,9 +152,8 @@ impl ValueType {
         match t {
             DataType::String | DataType::Binary | DataType::Unknown => ValueType::Text,
             DataType::Boolean => ValueType::Bool,
-            DataType::Date | DataType::DateTime | DataType::DateTimeTz | DataType::Time => {
-                ValueType::Date
-            }
+            DataType::DateTime | DataType::DateTimeTz => ValueType::DateTime,
+            DataType::Date | DataType::Time => ValueType::Date,
             _ => ValueType::Number,
         }
     }
@@ -478,6 +480,19 @@ fn unify(parts: &[(String, ValueType)]) -> (Vec<String>, ValueType) {
     if kinds.iter().all(|t| *t == ty) {
         return (parts.iter().map(|(s, _)| s.clone()).collect(), ty);
     }
+    // Dates and date/times: all date/times.
+    if kinds.iter().all(|t| t.is_date()) {
+        return (
+            parts
+                .iter()
+                .map(|(s, t)| match t {
+                    ValueType::Date => format!("CAST({s} AS TIMESTAMP)"),
+                    _ => s.clone(),
+                })
+                .collect(),
+            ValueType::DateTime,
+        );
+    }
     (
         parts
             .iter()
@@ -485,6 +500,35 @@ fn unify(parts: &[(String, ValueType)]) -> (Vec<String>, ValueType) {
             .collect(),
         ValueType::Text,
     )
+}
+
+impl ValueType {
+    pub fn is_date(self) -> bool {
+        matches!(self, ValueType::Date | ValueType::DateTime)
+    }
+}
+
+/// A value as a number: dates as DAX's serial numbers (days since 1899-12-30, the
+/// time a fraction of a day).
+fn serial_sql(x: &(String, ValueType)) -> String {
+    if x.1.is_date() {
+        format!("(epoch(CAST({} AS TIMESTAMP)) / 86400 + 25569)", x.0)
+    } else {
+        x.0.clone()
+    }
+}
+
+/// A value as microseconds since 1899-12-30 (day 0): exact for dates and times, so
+/// adding days doesn't drift by a microsecond.
+fn micros_sql(x: &(String, ValueType)) -> String {
+    if x.1.is_date() {
+        format!("(epoch_us(CAST({} AS TIMESTAMP)) + 2209161600000000)", x.0)
+    } else {
+        format!(
+            "CAST(round(CAST({} AS DOUBLE) * 86400000000) AS BIGINT)",
+            x.0
+        )
+    }
 }
 
 /// A value used as a condition: numbers are true when non-zero, as in DAX.
@@ -502,7 +546,9 @@ fn blank_as(x: &(String, ValueType), like: ValueType) -> String {
         ValueType::Number => format!("coalesce({}, 0)", x.0),
         ValueType::Text => format!("coalesce(CAST({} AS VARCHAR), '')", x.0),
         ValueType::Bool => format!("coalesce({}, FALSE)", x.0),
-        ValueType::Date => x.0.clone(),
+        // Blank is day 0, 1899-12-30, before any real date.
+        ValueType::Date => format!("coalesce({}, DATE '1899-12-30')", x.0),
+        ValueType::DateTime => format!("coalesce({}, TIMESTAMP '1899-12-30 00:00:00')", x.0),
     }
 }
 
@@ -547,7 +593,7 @@ fn text_or_null(x: &(String, ValueType)) -> String {
         ValueType::Number => general_number_sql(&x.0),
         // TRUE and FALSE in capitals, as Power BI writes them.
         ValueType::Bool => format!("upper(CAST({} AS VARCHAR))", x.0),
-        ValueType::Date => format!("CAST({} AS VARCHAR)", x.0),
+        ValueType::Date | ValueType::DateTime => format!("CAST({} AS VARCHAR)", x.0),
     }
 }
 
@@ -560,7 +606,7 @@ fn text_sql(x: &(String, ValueType)) -> String {
 fn whole_sql(x: &(String, ValueType)) -> String {
     format!(
         "CAST(trunc(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
-        x.0
+        serial_sql(x)
     )
 }
 
@@ -600,7 +646,7 @@ fn format_sql(spec: &FormatSpec, x: &(String, ValueType)) -> Result<String> {
                 string(if *percent { "%" } else { "" })
             )
         }
-        (FormatSpec::Date(parts), ValueType::Date | ValueType::Text) => {
+        (FormatSpec::Date(parts), ValueType::Date | ValueType::DateTime | ValueType::Text) => {
             let pattern: String = parts
                 .iter()
                 .map(|p| match p {
@@ -637,11 +683,11 @@ fn format_sql(spec: &FormatSpec, x: &(String, ValueType)) -> Result<String> {
 /// `lib_args` reads them the same way.
 fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
     match kind {
-        ArgKind::Num => format!("coalesce(CAST({} AS DOUBLE), 0)", x.0),
-        ArgKind::NumOrBlank => format!("CAST({} AS DOUBLE)", x.0),
+        ArgKind::Num => format!("coalesce(CAST({} AS DOUBLE), 0)", serial_sql(x)),
+        ArgKind::NumOrBlank => format!("CAST({} AS DOUBLE)", serial_sql(x)),
         ArgKind::Int => format!(
             "CAST(round(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
-            x.0
+            serial_sql(x)
         ),
         ArgKind::Text => text_sql(x),
         ArgKind::TextOrBlank => text_or_null(x),
@@ -783,8 +829,8 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
             (
                 format!(
                     "(CASE WHEN coalesce({b}, 0) = 0 THEN {alt} ELSE ({x}) / ({b}) END)",
-                    x = a[0].0,
-                    b = a[1].0
+                    x = serial_sql(&a[0]),
+                    b = serial_sql(&a[1])
                 ),
                 num,
             )
@@ -904,7 +950,23 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
                 ValueType::Date,
             )
         }
-        ScalarFunc::Today => ("current_date".into(), ValueType::Date),
+        // The local date and time, as Power BI Desktop's; tests fix the clock.
+        ScalarFunc::Today | ScalarFunc::UtcToday => (
+            match crate::clock::fixed() {
+                Some(at) => format!("DATE {}", string(&at[..10])),
+                None if *func == ScalarFunc::Today => "current_date".into(),
+                None => "CAST(timezone('UTC', now()) AS DATE)".into(),
+            },
+            ValueType::Date,
+        ),
+        ScalarFunc::Now | ScalarFunc::UtcNow => (
+            match crate::clock::fixed() {
+                Some(at) => format!("TIMESTAMP {}", string(&at)),
+                None if *func == ScalarFunc::Now => "current_localtimestamp()".into(),
+                None => "CAST(timezone('UTC', now()) AS TIMESTAMP)".into(),
+            },
+            ValueType::DateTime,
+        ),
         ScalarFunc::Weekday => {
             let d = date_sql(&a[0]);
             let kind = a.get(1).map(whole_sql).unwrap_or_else(|| "1".into());
@@ -946,7 +1008,7 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
 
 fn unary_sql(op: UnaryOp, x: &(String, ValueType)) -> (String, ValueType) {
     match op {
-        UnaryOp::Neg => (format!("(-({}))", x.0), ValueType::Number),
+        UnaryOp::Neg => (format!("(-({}))", serial_sql(x)), ValueType::Number),
         UnaryOp::Plus => x.clone(),
         UnaryOp::Not => (
             format!("(NOT coalesce({}, FALSE))", bool_of(x)),
@@ -960,21 +1022,55 @@ fn binary_sql(
     l: &(String, ValueType),
     r: &(String, ValueType),
 ) -> (String, ValueType) {
-    let (a, b) = (&l.0, &r.0);
+    let dated = l.1.is_date() || r.1.is_date();
+    // A date with a number: both as serial numbers.
+    let (ls, rs) = (serial_sql(l), serial_sql(r));
+    let (a, b) = if dated
+        && (!(l.1.is_date() && r.1.is_date())
+            || matches!(op, BinaryOp::Mul | BinaryOp::Div | BinaryOp::Pow))
+    {
+        (&ls, &rs)
+    } else {
+        (&l.0, &r.0)
+    };
     let like = if l.1 == ValueType::Text || r.1 == ValueType::Text {
         ValueType::Text
-    } else if l.1 == ValueType::Date || r.1 == ValueType::Date {
-        ValueType::Date
+    } else if l.1.is_date() && r.1.is_date() {
+        ValueType::DateTime
+    } else if dated {
+        ValueType::Number
     } else {
         l.1
     };
     let cmp = |sym: &str| {
+        let (l, r) = if like == ValueType::Number {
+            (
+                &(ls.clone(), ValueType::Number),
+                &(rs.clone(), ValueType::Number),
+            )
+        } else {
+            (l, r)
+        };
         (
             format!("({} {sym} {})", blank_as(l, like), blank_as(r, like)),
             ValueType::Bool,
         )
     };
     match op {
+        // Adding to or subtracting from a date gives a date/time (blank is day 0).
+        BinaryOp::Add | BinaryOp::Sub if dated => {
+            let sym = if op == BinaryOp::Add { "+" } else { "-" };
+            (
+                format!(
+                    "(CASE WHEN ({}) IS NULL AND ({}) IS NULL THEN NULL ELSE (TIMESTAMP '1899-12-30 00:00:00' + to_microseconds(coalesce({}, 0) {sym} coalesce({}, 0))) END)",
+                    l.0,
+                    r.0,
+                    micros_sql(l),
+                    micros_sql(r)
+                ),
+                ValueType::DateTime,
+            )
+        }
         BinaryOp::Add | BinaryOp::Sub => {
             let sym = if op == BinaryOp::Add { "+" } else { "-" };
             (
@@ -1044,7 +1140,17 @@ fn predicate(e: &str, t: DataType, kind: &FilterKind) -> Option<String> {
     match kind {
         FilterKind::All | FilterKind::TopN { .. } => None,
         FilterKind::Basic { values, exclude } => {
-            let listed: Vec<String> = values.iter().flatten().map(|v| string(v)).collect();
+            // A date/time column's keys have a time; a whole date (as Power BI's
+            // literals at midnight come in) means midnight.
+            let timed = matches!(t, DataType::DateTime | DataType::DateTimeTz);
+            let listed: Vec<String> = values
+                .iter()
+                .flatten()
+                .map(|v| match v.len() {
+                    10 if timed && v.as_bytes()[4] == b'-' => string(&format!("{v} 00:00:00")),
+                    _ => string(v),
+                })
+                .collect();
             let mut parts = Vec::new();
             if !listed.is_empty() {
                 parts.push(format!("{text} IN ({})", listed.join(", ")));
@@ -4476,5 +4582,6 @@ pub fn value_type_to_data_type(t: ValueType) -> DataType {
         ValueType::Text => DataType::String,
         ValueType::Bool => DataType::Boolean,
         ValueType::Date => DataType::Date,
+        ValueType::DateTime => DataType::DateTime,
     }
 }

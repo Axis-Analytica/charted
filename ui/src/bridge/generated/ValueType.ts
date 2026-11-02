@@ -3,4 +3,4 @@
 /**
  * The value kinds that matter for SQL generation.
  */
-export type ValueType = "Number" | "Text" | "Bool" | "Date";
+export type ValueType = "Number" | "Text" | "Bool" | "Date" | "DateTime";

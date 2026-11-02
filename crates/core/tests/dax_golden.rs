@@ -643,6 +643,18 @@ fn security_filters_agree_with_the_reference_interpreter() {
 
 /// Calculated columns that aggregate (v1.5): fixed cases on every kind of table.
 const COLUMNS: &[(&str, &str)] = &[
+    // Date/time arithmetic in a row.
+    ("Sales", "Sales[OrderedAt] + 3"),
+    ("Sales", "RELATED ( 'Date'[Date] ) - 0.25"),
+    (
+        "Sales",
+        "IF ( Sales[OrderedAt] < RELATED ( 'Date'[Date] ) - 14, 1, 0 )",
+    ),
+    ("Sales", "Sales[OrderedAt] - RELATED ( 'Date'[Date] )"),
+    (
+        "Sales",
+        "DATEDIFF ( Sales[OrderedAt], RELATED ( 'Date'[Date] ), DAY )",
+    ),
     // Parent-child paths.
     (
         "Account",

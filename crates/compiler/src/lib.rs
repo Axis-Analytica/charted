@@ -3,6 +3,7 @@
 //! This crate never touches a database or the file system, so it also builds for
 //! WebAssembly (the editor uses it to preview generated SQL).
 
+pub mod clock;
 pub mod graph;
 pub mod interp;
 pub mod mformula;

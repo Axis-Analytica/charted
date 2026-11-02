@@ -62,6 +62,20 @@ impl Value {
         }
     }
 
+    /// The value as a number, dates as their serial numbers (what arithmetic uses).
+    fn numeric(&self) -> Option<f64> {
+        self.num().or_else(|| self.serial())
+    }
+
+    /// A date or date/time (ISO text here, as DuckDB writes them) as DAX's serial
+    /// number: days since 1899-12-30, the time a fraction of a day.
+    fn serial(&self) -> Option<f64> {
+        match self {
+            Value::Text(t) => cal::serial(t),
+            _ => None,
+        }
+    }
+
     fn truthy(&self) -> bool {
         match self {
             Value::Blank => false,
@@ -78,7 +92,7 @@ fn cmp(a: &Value, b: &Value) -> std::cmp::Ordering {
         (Value::Blank, Value::Blank) => Ordering::Equal,
         (Value::Blank, _) => Ordering::Less,
         (_, Value::Blank) => Ordering::Greater,
-        _ => match (a.num(), b.num()) {
+        _ => match (a.numeric(), b.numeric()) {
             (Some(x), Some(y)) => x.partial_cmp(&y).unwrap_or(Ordering::Equal),
             _ => a
                 .key()
@@ -144,6 +158,8 @@ struct Interp<'a> {
     model: &'a Model,
     data: &'a Data,
     vars: Vec<(String, Value)>,
+    /// Which variables hold dates (by their expression's type), as `vars`.
+    dated_vars: Vec<(String, bool)>,
     /// Some aggregate of the current visual row saw rows (the row has data).
     touched: bool,
 }
@@ -1074,9 +1090,89 @@ impl<'a> Interp<'a> {
         let (b, d) = charted_dax::check(self.model, &m.expression);
         let b = b.ok_or_else(|| d.first().map(|d| d.message.clone()).unwrap_or_default())?;
         let saved = std::mem::take(&mut self.vars);
+        let saved_dated = std::mem::take(&mut self.dated_vars);
         let v = self.calculate(&b, &[], ctx, rows);
         self.vars = saved;
+        self.dated_vars = saved_dated;
         v
+    }
+
+    /// Whether an expression is a date by its type, as the SQL compiler types it (a
+    /// blank date plus 3 is still a date/time, 1900-01-02).
+    fn dated(&self, b: &Bound) -> bool {
+        let column = |table: &str, column: &str| {
+            self.model
+                .table(table)
+                .and_then(|t| t.column(column))
+                .is_some_and(|c| {
+                    matches!(
+                        c.data_type,
+                        charted_model::DataType::Date
+                            | charted_model::DataType::DateTime
+                            | charted_model::DataType::DateTimeTz
+                            | charted_model::DataType::Time
+                    )
+                })
+        };
+        match b {
+            Bound::Column { table, column: c }
+            | Bound::Related { table, column: c }
+            | Bound::Earlier {
+                table, column: c, ..
+            } => column(table, c),
+            Bound::Info {
+                func: InfoFunc::SelectedValue | InfoFunc::Lookup,
+                table,
+                column: Some(c),
+                ..
+            } => column(table, c),
+            Bound::Measure { measure, .. } => self
+                .model
+                .tables
+                .iter()
+                .flat_map(|t| &t.measures)
+                .find(|m| &m.id == measure)
+                .and_then(|m| charted_dax::check(self.model, &m.expression).0)
+                .is_some_and(|b| self.dated(&b)),
+            Bound::Var(name) => self
+                .dated_vars
+                .iter()
+                .rev()
+                .find(|(n, _)| n == name)
+                .is_some_and(|(_, d)| *d),
+            Bound::Let { body, .. } => self.dated(body),
+            Bound::Aggregate {
+                func: AggFunc::Min | AggFunc::Max,
+                arg: Some(a),
+                ..
+            } => self.dated(a),
+            Bound::Calculate { expr, .. } => self.dated(expr),
+            Bound::Call { func, args } => match func {
+                ScalarFunc::Date
+                | ScalarFunc::Today
+                | ScalarFunc::UtcToday
+                | ScalarFunc::Now
+                | ScalarFunc::UtcNow
+                | ScalarFunc::EoMonth
+                | ScalarFunc::EDate => true,
+                ScalarFunc::Lib(f) => f.returns() == charted_dax::Returns::Date,
+                ScalarFunc::If => args.iter().skip(1).any(|a| self.dated(a)),
+                ScalarFunc::Coalesce | ScalarFunc::Min | ScalarFunc::Max => {
+                    args.iter().any(|a| self.dated(a))
+                }
+                _ => false,
+            },
+            Bound::Switch { cases, default, .. } => {
+                cases.iter().any(|(_, t)| self.dated(t))
+                    || default.as_deref().is_some_and(|d| self.dated(d))
+            }
+            Bound::Binary {
+                op: BinaryOp::Add | BinaryOp::Sub,
+                left,
+                right,
+            } => self.dated(left) || self.dated(right),
+            _ => false,
+        }
     }
 
     fn aggregate(
@@ -1261,9 +1357,12 @@ impl<'a> Interp<'a> {
                 .ok_or_else(|| format!("unknown variable {name}"))?,
             Bound::Let { name, value, body } => {
                 let v = self.eval(value, ctx, rows)?;
+                let dated = self.dated(value);
                 self.vars.push((name.clone(), v));
+                self.dated_vars.push((name.clone(), dated));
                 let out = self.eval(body, ctx, rows);
                 self.vars.pop();
+                self.dated_vars.pop();
                 out?
             }
             Bound::Aggregate { func, source, arg } => {
@@ -1350,7 +1449,7 @@ impl<'a> Interp<'a> {
                     .collect::<Result<Vec<_>>>()?;
                 match func {
                     ScalarFunc::Lib(f) => lib_fn(*f, &a)?,
-                    ScalarFunc::Divide => match (a[0].num(), a[1].num()) {
+                    ScalarFunc::Divide => match (a[0].numeric(), a[1].numeric()) {
                         (_, None) | (_, Some(0.0)) => a.get(2).cloned().unwrap_or(Value::Blank),
                         (None, _) => Value::Blank,
                         (Some(x), Some(y)) => Value::Num(x / y),
@@ -1470,7 +1569,7 @@ impl<'a> Interp<'a> {
             Bound::Unary { op, expr } => {
                 let v = self.eval(expr, ctx, rows)?;
                 match op {
-                    UnaryOp::Neg => v.num().map(|x| Value::Num(-x)).unwrap_or(Value::Blank),
+                    UnaryOp::Neg => v.numeric().map(|x| Value::Num(-x)).unwrap_or(Value::Blank),
                     UnaryOp::Plus => v,
                     UnaryOp::Not => Value::Bool(!v.truthy()),
                 }
@@ -1478,15 +1577,41 @@ impl<'a> Interp<'a> {
             Bound::Binary { op, left, right } => {
                 let l = self.eval(left, ctx, rows)?;
                 let r = self.eval(right, ctx, rows)?;
-                binary(*op, &l, &r)
+                if matches!(op, BinaryOp::Add | BinaryOp::Sub)
+                    && (self.dated(left) || self.dated(right))
+                {
+                    date_add(*op, &l, &r)
+                } else {
+                    binary(*op, &l, &r)
+                }
             }
         })
     }
 }
 
+/// Adding to or subtracting from a date gives a date/time (blank is day 0), in whole
+/// microseconds as the SQL does.
+fn date_add(op: BinaryOp, l: &Value, r: &Value) -> Value {
+    if l.is_blank() && r.is_blank() {
+        return Value::Blank;
+    }
+    let us = |v: &Value| match v {
+        Value::Text(t) => cal::micros(t).unwrap_or(0),
+        _ => (v.numeric().unwrap_or(0.0) * 86_400_000_000.0).round() as i64,
+    };
+    Value::Text(cal::format_micros(if op == BinaryOp::Add {
+        us(l) + us(r)
+    } else {
+        us(l) - us(r)
+    }))
+}
+
 fn binary(op: BinaryOp, l: &Value, r: &Value) -> Value {
-    let n = |v: &Value| v.num().unwrap_or(0.0);
+    let n = |v: &Value| v.numeric().unwrap_or(0.0);
     match op {
+        BinaryOp::Add | BinaryOp::Sub if l.serial().is_some() || r.serial().is_some() => {
+            date_add(op, l, r)
+        }
         BinaryOp::Add | BinaryOp::Sub => {
             if l.is_blank() && r.is_blank() {
                 Value::Blank
@@ -1559,12 +1684,26 @@ fn text(v: &Value) -> String {
 
 /// A whole-number argument: blank counts as zero, decimals are truncated.
 fn whole(v: &Value) -> i64 {
-    v.num().unwrap_or(0.0).trunc() as i64
+    v.numeric().unwrap_or(0.0).trunc() as i64
 }
 
 /// The text, math and date functions (the logical ones are evaluated in `eval`).
 /// Today as days since 1970-01-01 (UTC; DuckDB's `current_date` is local, which only
 /// differs around midnight).
+fn now_micros() -> i64 {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_micros() as i64 + 25_569 * 86_400_000_000)
+            .unwrap_or(0)
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        25_569 * 86_400_000_000
+    }
+}
+
 fn today() -> i64 {
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -1586,9 +1725,9 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
     a.iter()
         .enumerate()
         .map(|(i, v)| match f.kind(i) {
-            ArgKind::Num => Some(Value::Num(v.num().unwrap_or(0.0))),
-            ArgKind::NumOrBlank => v.num().map(Value::Num),
-            ArgKind::Int => Some(Value::Num(v.num().unwrap_or(0.0).round())),
+            ArgKind::Num => Some(Value::Num(v.numeric().unwrap_or(0.0))),
+            ArgKind::NumOrBlank => v.numeric().map(Value::Num),
+            ArgKind::Int => Some(Value::Num(v.numeric().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
             ArgKind::TextOrBlank => match v {
                 Value::Bool(_) => Some(Value::Text(text(v))),
@@ -1781,7 +1920,15 @@ fn scalar(func: &ScalarFunc, a: &[Value]) -> Result<Value> {
             }
             date(z)
         }
-        ScalarFunc::Today => date(today()),
+        ScalarFunc::Today | ScalarFunc::UtcToday => match crate::clock::fixed() {
+            Some(at) => Value::Text(at[..10].to_string()),
+            None => date(today()),
+        },
+        // UTC: the interpreter has no time zones (the SQL's NOW is local time).
+        ScalarFunc::Now | ScalarFunc::UtcNow => Value::Text(match crate::clock::fixed() {
+            Some(at) => at,
+            None => cal::format_micros(now_micros()),
+        }),
         ScalarFunc::Weekday => match day(&a[0]) {
             // 1970-01-01 was a Thursday.
             Some(z) => {
@@ -1976,6 +2123,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
         model,
         data,
         vars: Vec::new(),
+        dated_vars: Vec::new(),
         touched: false,
     };
     let mut groups: Vec<(Id, Id)> = Vec::new();
@@ -2195,6 +2343,7 @@ pub fn calculated_column(
         model,
         data,
         vars: Vec::new(),
+        dated_vars: Vec::new(),
         touched: false,
     };
     let td = it.table(table)?;
@@ -2215,6 +2364,7 @@ pub fn calculated_table(model: &Model, data: &Data, expression: &str) -> Result<
         model,
         data,
         vars: Vec::new(),
+        dated_vars: Vec::new(),
         touched: false,
     };
     let rows = it.eval_table(&t, &Ctx::default(), &[])?;
@@ -2251,6 +2401,7 @@ fn secure(model: &Model, data: &Data, filters: &[crate::visual::RowFilter]) -> R
         model,
         data,
         vars: Vec::new(),
+        dated_vars: Vec::new(),
         touched: false,
     };
     let mut conds = Vec::new();
@@ -2328,6 +2479,48 @@ mod cal {
         let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
         let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
         (yoe + era * 400 + i64::from(m <= 2), m, d)
+    }
+
+    /// ISO text (`2024-01-02`, `2024-01-02 03:04:05.5` or with a `T`) as a serial
+    /// number; anything else is None.
+    pub fn serial(s: &str) -> Option<f64> {
+        micros(s).map(|us| us as f64 / 86_400_000_000.0)
+    }
+
+    /// ISO text as microseconds since 1899-12-30.
+    pub fn micros(s: &str) -> Option<i64> {
+        let b = s.as_bytes();
+        if b.len() < 10 || b[4] != b'-' || b[7] != b'-' {
+            return None;
+        }
+        let day = (parse(s)? + 25_569) * 86_400_000_000;
+        let rest = &s[10..];
+        if rest.is_empty() {
+            return Some(day);
+        }
+        let t = rest.strip_prefix(' ').or_else(|| rest.strip_prefix('T'))?;
+        let mut it = t.splitn(3, ':');
+        let h: i64 = it.next()?.parse().ok()?;
+        let m: i64 = it.next()?.parse().ok()?;
+        let sec: f64 = it.next().unwrap_or("0").parse().ok()?;
+        Some(day + (h * 3600 + m * 60) * 1_000_000 + (sec * 1e6).round() as i64)
+    }
+
+    /// Microseconds since 1899-12-30 as DuckDB writes a TIMESTAMP: trailing zeros of
+    /// the fraction left off.
+    pub fn format_micros(micros: i64) -> String {
+        let per_day = 86_400_000_000i64;
+        let day = micros.div_euclid(per_day) - 25_569;
+        let mut rest = micros.rem_euclid(per_day);
+        let us = rest % 1_000_000;
+        rest /= 1_000_000;
+        let (h, m, s) = (rest / 3600, rest / 60 % 60, rest % 60);
+        let frac = if us == 0 {
+            String::new()
+        } else {
+            format!(".{us:06}").trim_end_matches('0').to_string()
+        };
+        format!("{} {h:02}:{m:02}:{s:02}{frac}", format(day))
     }
 
     pub fn parse(s: &str) -> Option<i64> {

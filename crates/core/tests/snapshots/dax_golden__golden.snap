@@ -483,6 +483,85 @@ NaN
 "Camping" | 55
 "Footwear" | 55
 
+## Last Order Plus — card
+"2026-04-20 13:35:00"
+
+## Last Order Plus — by category
+∅ | "1900-06-28 06:00:00"
+"Apparel" | "2026-04-20 13:35:00"
+"Camping" | "2026-04-06 11:49:00"
+"Footwear" | "2026-04-13 16:38:00"
+
+## Month End Minus — card
+"2025-12-29 12:00:00"
+
+## Month End Minus — by category
+∅ | "2025-12-29 12:00:00"
+"Apparel" | "2025-12-29 12:00:00"
+"Camping" | "2025-12-29 12:00:00"
+"Footwear" | "2025-12-29 12:00:00"
+
+## Orders Late In Month — card
+21
+
+## Orders Late In Month — by category
+"Apparel" | 10
+"Camping" | 7
+"Footwear" | 4
+
+## Days Spanned — card
+660
+
+## Days Spanned — by category
+"Apparel" | 628
+"Camping" | 646
+"Footwear" | 652
+
+## Date Serial — card
+46022
+
+## Date Serial — by category
+∅ | 46022
+"Apparel" | 46022
+"Camping" | 46022
+"Footwear" | 46022
+
+## Before Serial — card
+31
+
+## Before Serial — by category
+∅ | 1
+"Apparel" | 12
+"Camping" | 14
+"Footwear" | 4
+
+## Hours Since Order — card
+2042.9167
+
+## Hours Since Order — by category
+∅ | 1104898.5
+"Apparel" | 2042.9167
+"Camping" | 2380.6833
+"Footwear" | 2207.8667
+
+## Days To Today — card
+"1900-01-14 00:00:00"
+
+## Days To Today — by category
+∅ | "1900-01-14 00:00:00"
+"Apparel" | "1900-01-14 00:00:00"
+"Camping" | "1900-01-14 00:00:00"
+"Footwear" | "1900-01-14 00:00:00"
+
+## A Week From Now — card
+"2026-01-22 10:30:00"
+
+## A Week From Now — by category
+∅ | "2026-01-22 10:30:00"
+"Apparel" | "2026-01-22 10:30:00"
+"Camping" | "2026-01-22 10:30:00"
+"Footwear" | "2026-01-22 10:30:00"
+
 ## All Products Qty — card
 269
 

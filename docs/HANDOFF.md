@@ -510,6 +510,18 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   - Remove the name from `KNOWN` in `bind.rs`. The catalog test fails on duplicates.
   - Add a golden measure, regenerate the conformance files, and run
     `CHARTED_UPDATE_DOCS=1 bin/heavy cargo test -p charted-dax`.
+- **Dates and date/times (M11.4).** The SQL compiler types expressions (`ValueType::Date`
+  is DATE, `DateTime` TIMESTAMP); the reference interpreter has no types, so dates are
+  ISO text there (`2024-01-02`, `2024-01-02 03:04:05.5`, as DuckDB writes them) and
+  `Interp::dated` decides from the expression whether `+`/`-` is date arithmetic (a
+  blank date plus 3 is 1900-01-02 in Power BI, so it can't be decided from the values).
+  Keep `dated` in step with the SQL typing when adding date functions. Both engines add
+  in whole microseconds since 1899-12-30 (`micros_sql`, `cal::micros`), so results
+  don't drift by a microsecond. Tests fix NOW and TODAY with
+  `charted_compiler::clock::fix` (the golden fixture does).
+  - The Service allows 8 refreshes a day per dataset. If `service.py` hits 429 on
+    refresh, delete `charted-conformance` in My workspace and run it again: a new
+    dataset has a fresh allowance.
 - **The Power BI conformance harness (M11.1)** is in `conformance/` (see its README) and
   `crates/core/tests/conformance.rs`. The golden fixture, measures and shapes moved to
   `crates/core/tests/golden/mod.rs`, which both test files share. After changing a golden

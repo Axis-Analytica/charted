@@ -165,6 +165,8 @@ TRUE||Logical|The logical value TRUE.
 TRUNC|Number; [NumberOfDigits]|Math|Truncates to an integer or digits.
 UPPER|Text|Text|Text in upper case.
 USERELATIONSHIP|ColumnName1; ColumnName2|Relationships|Uses an inactive relationship for the duration of a CALCULATE.
+UTCNOW||Date and time|The current date and time in UTC.
+UTCTODAY||Date and time|The current date in UTC.
 VALUE|Text|Text|Converts text to a number.
 VALUES|TableOrColumn|Table|The distinct values of a column (with the blank row when unmatched rows exist), or a table's rows.
 WEEKDAY|Date; [ReturnType]|Date and time|The day of the week.

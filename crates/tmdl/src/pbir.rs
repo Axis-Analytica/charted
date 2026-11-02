@@ -237,6 +237,10 @@ fn literal_for(model: &Model, p: &Projection, v: &Option<String>) -> Value {
             json!({ "Literal": { "Value": format!("{v}D") } })
         }
         Some(DataType::Boolean) => json!({ "Literal": { "Value": v.to_lowercase() } }),
+        // A date/time's key keeps its time (`2024-01-02 03:04:05`).
+        Some(DataType::DateTime) if v.len() > 10 => {
+            json!({ "Literal": { "Value": format!("datetime'{}'", v.replacen(' ', "T", 1)) } })
+        }
         Some(DataType::Date | DataType::DateTime) if v.len() >= 10 => {
             json!({ "Literal": { "Value": format!("datetime'{}T00:00:00'", &v[..10]) } })
         }
@@ -806,8 +810,21 @@ fn literal_text(v: &Value) -> Option<Option<String>> {
     if let Some(t) = s.strip_prefix('\'').and_then(|t| t.strip_suffix('\'')) {
         return Some(Some(t.replace("''", "'")));
     }
+    // A time other than midnight is kept, as DuckDB writes a TIMESTAMP.
     if let Some(d) = s.strip_prefix("datetime'") {
-        return Some(Some(d.chars().take(10).collect()));
+        let d = d.trim_end_matches('\'').replacen('T', " ", 1);
+        return Some(Some(match d.split_once(' ') {
+            Some((day, time)) => {
+                let (hms, frac) = time.split_once('.').unwrap_or((time, ""));
+                let frac = frac.trim_end_matches('0');
+                match (hms, frac) {
+                    ("00:00:00", "") => day.to_string(),
+                    (_, "") => format!("{day} {hms}"),
+                    _ => format!("{day} {hms}.{frac}"),
+                }
+            }
+            None => d,
+        }));
     }
     Some(Some(s.trim_end_matches(['L', 'D', 'M']).to_string()))
 }
