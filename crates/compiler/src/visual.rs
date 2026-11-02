@@ -532,8 +532,8 @@ fn general_number_sql(x: &str) -> String {
     let s = "printf('%.14e', CASE WHEN 14 - floor(log10(abs(_g.x))) BETWEEN -300 AND 300 THEN round(abs(_g.x), CAST(14 - floor(log10(abs(_g.x))) AS INTEGER)) ELSE abs(_g.x) END)";
     format!(
         "list_transform([struct_pack(x := CAST({x} AS DOUBLE))], lambda _g: CASE WHEN _g.x IS NULL THEN NULL \
-        WHEN _g.x = 0 THEN '0' WHEN isnan(_g.x) THEN 'NaN' \
-        WHEN isinf(_g.x) THEN CASE WHEN _g.x > 0 THEN 'Infinity' ELSE '-Infinity' END \
+        WHEN _g.x = 0 THEN '0' WHEN isnan(_g.x) THEN '-nan(ind)' \
+        WHEN isinf(_g.x) THEN CASE WHEN _g.x > 0 THEN 'inf' ELSE '-inf' END \
         ELSE list_transform([struct_pack(d := rtrim(replace(split_part({s}, 'e', 1), '.', ''), '0'), \
             e := CAST(replace(split_part({s}, 'e', 2), '+', '') AS INTEGER), neg := _g.x < 0)], \
             lambda _h: {body})[1] END)[1]"
@@ -950,7 +950,12 @@ fn binary_sql(
         // In doubles, as the interpreter: DuckDB's integer types overflow (1000000 *
         // 1000000 is past INT32) where DAX's 64-bit integers don't.
         BinaryOp::Mul => (format!("(CAST({a} AS DOUBLE) * ({b}))"), ValueType::Number),
-        BinaryOp::Div => (format!("(({a}) / nullif({b}, 0))"), ValueType::Number),
+        // A blank numerator gives blank (NULL / x); a blank divisor is 0, and DuckDB's
+        // IEEE division gives inf and nan as Power BI does.
+        BinaryOp::Div => (
+            format!("(CAST({a} AS DOUBLE) / coalesce(CAST({b} AS DOUBLE), 0))"),
+            ValueType::Number,
+        ),
         BinaryOp::Pow => (format!("power({a}, {b})"), ValueType::Number),
         BinaryOp::Concat => (
             format!("({} || {})", text_sql(l), text_sql(r)),
@@ -2011,23 +2016,23 @@ impl<'a> Compiler<'a> {
                 }
             })
         };
-        // The first and last visible date per key.
+        // The first and last visible date per key, and how many there are.
+        let group_by = if names.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " GROUP BY {}",
+                names
+                    .iter()
+                    .map(|k| format!("b.{k}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
         let span = per_frame.unwrap_or_else(|| {
             format!(
-                "(SELECT {}min(v) AS lo, max(v) AS hi FROM ({visible}) AS b{})",
+                "(SELECT {}min(v) AS lo, max(v) AS hi, count(*) AS n FROM ({visible}) AS b{group_by})",
                 by("b"),
-                if names.is_empty() {
-                    String::new()
-                } else {
-                    format!(
-                        " GROUP BY {}",
-                        names
-                            .iter()
-                            .map(|k| format!("b.{k}"))
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                }
             )
         });
         let between = |lo: String, hi: String| {
@@ -2037,18 +2042,25 @@ impl<'a> Compiler<'a> {
             )
         };
         let sql = match op.clone() {
+            // The visible range moves: its first date by `n` units (the day clamped to
+            // the target month), its last too, or to the target month's last day when
+            // the range ends on a month's last day and has more than one date. Dates
+            // missing from the range (a selection with gaps) give no dates: Power BI
+            // errors, but this set is computed whether or not the value is used.
             DateOp::Shift(n, p) => {
-                let moved = date(format!("b.v + {}", iv(n, p)));
-                let month_end = if p == Period::Day {
-                    String::new()
+                let lo = date(format!("s.lo + {}", iv(n, p)));
+                let moved = date(format!("s.hi + {}", iv(n, p)));
+                let hi = if p == Period::Day {
+                    moved
                 } else {
                     format!(
-                        " OR (b.v = last_day(b.v) AND a.d > {moved} AND a.d <= last_day({moved}))"
+                        "(CASE WHEN s.lo < s.hi AND s.hi = last_day(s.hi) THEN last_day({moved}) ELSE {moved} END)"
                     )
                 };
                 format!(
-                    "SELECT DISTINCT {}a.d AS v0 FROM ({visible}) AS b JOIN ({all}) AS a ON a.d = {moved}{month_end}",
-                    by("b")
+                    "SELECT DISTINCT {}a.d AS v0 FROM {span} AS s JOIN ({all}) AS a ON a.d BETWEEN {lo} AND {hi} \
+                     WHERE (SELECT count(*) FROM ({all}) AS x WHERE x.d BETWEEN s.lo AND s.hi) = s.n",
+                    by("s")
                 )
             }
             DateOp::Parallel(n, p) => between(
@@ -2080,7 +2092,11 @@ impl<'a> Compiler<'a> {
                 )
             }
             DateOp::InPeriod(a, n, p) => {
-                let at = anchor(&a, "s.lo")?;
+                // An anchor before the column's first date starts there.
+                let at = format!(
+                    "greatest({}, (SELECT min(d) FROM ({all}) AS m))",
+                    anchor(&a, "s.lo")?
+                );
                 if n < 0 {
                     let moved = date(format!("{at} + {}", iv(n, p)));
                     // Back from a month's last day to the target month's last day.
@@ -2284,6 +2300,12 @@ impl<'a> Compiler<'a> {
                 .model
                 .table(&r.table)
                 .is_some_and(|t| t.columns.iter().all(|col| r.covers.contains(&col.id)));
+            // A row of a date table (its date column) replaces every filter on the
+            // table, as a CALCULATE filter on the date column does.
+            if crate::replaces_date_table(self.model, &r.table, &r.covers) {
+                c.keys.retain(|k| k.table != r.table);
+                c.filters.retain(|f| f.table != r.table);
+            }
             c.keys.retain(|k| !r.covers.contains(&k.column));
             c.filters.retain(|f| {
                 if f.columns.is_empty() {

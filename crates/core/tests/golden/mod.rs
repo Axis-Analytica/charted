@@ -443,6 +443,14 @@ pub const MEASURES: &[(&str, &str)] = &[
         "SUMX ( Product, Product[ListPrice] * [Quantity] )",
     ),
     ("Per Target Row", "SUMX ( Targets, [Orders] )"),
+    // Division by zero is IEEE in Power BI: Infinity, NaN; blank only over a blank.
+    ("Qty Over Zero", "[Quantity] / 0"),
+    ("Zero Over Zero", "( [Quantity] - [Quantity] ) / 0"),
+    ("Over Blank", "-[Quantity] / BLANK ()"),
+    (
+        "Infinite Texts",
+        "\"\" & [Quantity] / 0 & \"|\" & -[Quantity] / 0 & \"|\" & ( [Quantity] - [Quantity] ) / 0",
+    ),
     ("Target Rows", "SUMX ( Targets, [Orders] * 0 + 1 )"),
     ("All Products Qty", "SUMX ( ALL ( Product ), [Quantity] )"),
     (
@@ -1138,7 +1146,11 @@ pub fn canonical(mut rows: Vec<Vec<Value>>) -> Vec<Vec<Value>> {
 
 pub fn same(a: &Value, b: &Value) -> bool {
     match (a, b) {
-        (Value::Num(x), Value::Num(y)) => (x - y).abs() <= 1e-6 * (1.0 + x.abs().max(y.abs())),
+        (Value::Num(x), Value::Num(y)) => {
+            x == y
+                || (x.is_nan() && y.is_nan())
+                || (x - y).abs() <= 1e-6 * (1.0 + x.abs().max(y.abs()))
+        }
         (Value::Bool(x), Value::Num(y)) | (Value::Num(y), Value::Bool(x)) => {
             (*x as i32 as f64 - y).abs() < 1e-9
         }

@@ -558,6 +558,18 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   - x/0 in Power BI: `1/0` is Infinity, `-1/0` -Infinity, `0/0` and `0/BLANK()` NaN,
     `BLANK()/0` blank (DIVIDE still gives blank). As text: "inf", "-inf", "-nan(ind)".
     Comparisons with NaN are false, SUMX propagates it, ROUND and INT of Infinity error.
+    Charted now matches (`/` in `visual.rs` and `interp.rs`; DIVIDE unchanged). The UI
+    formatter shows ∞ and NaN.
+  - Time intelligence, checked on a marked daily calendar too (a probe model
+    `charted-probe` in My workspace): DATEADD and SAMEPERIODLASTYEAR move the visible
+    range, not each date: the first date by n units (day clamped), the last too, or to
+    the target month's last day when the range ends on a month end and has more than
+    one date (one date never extends: SPLY of 28 Feb 2025 is 28 Feb 2024 only). A
+    selection with gaps (March across two years) errors in Power BI; charted gives no
+    dates, because the SQL set is computed even in SWITCH branches that aren't taken.
+    A DATESINPERIOD anchor before the column's first date starts at that date. A row of
+    a marked date table in an iterator (MAXX ( DATESYTD … )) replaces every filter on
+    the table, like a CALCULATE filter on its date column.
 
 - **DuckDB 2.0 behaviour the DAX work relies on (M11.0 spike, 2026-11-02).** These are
   asserted in `crates/engine/tests/duckdb_behaviour.rs`.

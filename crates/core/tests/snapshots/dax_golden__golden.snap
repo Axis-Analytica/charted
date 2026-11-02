@@ -395,6 +395,42 @@ expression: golden
 "Camping" | 17
 "Footwear" | 17
 
+## Qty Over Zero — card
+inf
+
+## Qty Over Zero — by category
+∅ | inf
+"Apparel" | inf
+"Camping" | inf
+"Footwear" | inf
+
+## Zero Over Zero — card
+NaN
+
+## Zero Over Zero — by category
+∅ | NaN
+"Apparel" | NaN
+"Camping" | NaN
+"Footwear" | NaN
+
+## Over Blank — card
+-inf
+
+## Over Blank — by category
+∅ | -inf
+"Apparel" | -inf
+"Camping" | -inf
+"Footwear" | -inf
+
+## Infinite Texts — card
+"inf|-inf|-nan(ind)"
+
+## Infinite Texts — by category
+∅ | "inf|-inf|-nan(ind)"
+"Apparel" | "inf|-inf|-nan(ind)"
+"Camping" | "inf|-inf|-nan(ind)"
+"Footwear" | "inf|-inf|-nan(ind)"
+
 ## Target Rows — card
 55
 

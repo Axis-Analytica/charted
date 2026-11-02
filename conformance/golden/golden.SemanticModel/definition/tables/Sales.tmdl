@@ -136,6 +136,18 @@ table Sales
 	measure 'Per Target Row' = SUMX ( Targets, [Orders] )
 		lineageTag: m:Per Target Row
 
+	measure 'Qty Over Zero' = [Quantity] / 0
+		lineageTag: m:Qty Over Zero
+
+	measure 'Zero Over Zero' = ( [Quantity] - [Quantity] ) / 0
+		lineageTag: m:Zero Over Zero
+
+	measure 'Over Blank' = -[Quantity] / BLANK ()
+		lineageTag: m:Over Blank
+
+	measure 'Infinite Texts' = "" & [Quantity] / 0 & "|" & -[Quantity] / 0 & "|" & ( [Quantity] - [Quantity] ) / 0
+		lineageTag: m:Infinite Texts
+
 	measure 'Target Rows' = SUMX ( Targets, [Orders] * 0 + 1 )
 		lineageTag: m:Target Rows
 

@@ -10,13 +10,14 @@ pub fn general_number(x: f64) -> String {
     if x == 0.0 {
         return "0".into();
     }
+    // As the Service writes them (its C runtime's spelling).
     if !x.is_finite() {
         return if x.is_nan() {
-            "NaN"
+            "-nan(ind)"
         } else if x > 0.0 {
-            "Infinity"
+            "inf"
         } else {
-            "-Infinity"
+            "-inf"
         }
         .into();
     }

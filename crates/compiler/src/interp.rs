@@ -827,18 +827,23 @@ impl<'a> Interp<'a> {
                     }
                 };
                 let picked: Vec<i64> = match op.clone() {
+                    // The visible range moves: its first date by `n` units (the day
+                    // clamped), its last too, or to the target month's last day when the
+                    // range ends on a month's last day and has more than one date. A
+                    // selection with gaps gives no dates (Power BI's error, which the SQL
+                    // can't raise only where the value is used).
                     DateOp::Shift(n, p) => {
-                        let mut out = std::collections::BTreeSet::new();
-                        for &v in &visible {
-                            let moved = cal::add(v, n, p);
-                            if all.contains(&moved) {
-                                out.insert(moved);
-                            }
-                            if p != Period::Day && v == cal::last_day(v) {
-                                out.extend(within(moved + 1, cal::last_day(moved)));
-                            }
+                        if all.range(lo..=hi).count() > visible.iter().collect::<HashSet<_>>().len()
+                        {
+                            return Ok(Vec::new());
                         }
-                        out.into_iter().collect()
+                        let moved = cal::add(hi, n, p);
+                        let end = if p != Period::Day && lo < hi && hi == cal::last_day(hi) {
+                            cal::last_day(moved)
+                        } else {
+                            moved
+                        };
+                        within(cal::add(lo, n, p), end)
                     }
                     DateOp::Parallel(n, p) => within(
                         cal::trunc(cal::add(lo, n, p), p),
@@ -860,7 +865,8 @@ impl<'a> Interp<'a> {
                         within(start, hi)
                     }
                     DateOp::InPeriod(a, n, p) => {
-                        let at = anchor(&a, lo);
+                        // An anchor before the column's first date starts there.
+                        let at = anchor(&a, lo).max(all.iter().next().copied().unwrap_or(i64::MIN));
                         if n < 0 {
                             // Back from a month's last day to the target month's last day.
                             let back = if p != Period::Day && at == cal::last_day(at) {
@@ -890,6 +896,17 @@ impl<'a> Interp<'a> {
     fn transition(&self, ctx: &Ctx, rows: &[Row]) -> Ctx {
         let mut c = ctx.clone();
         for r in rows {
+            // A row of a date table (its date column) replaces every filter on the
+            // table, as a CALCULATE filter on the date column does.
+            let cols: Vec<Id> = r
+                .values
+                .keys()
+                .filter(|c| !c.starts_with('\u{0}'))
+                .cloned()
+                .collect();
+            if crate::replaces_date_table(self.model, &r.table, &cols) {
+                c.filters.retain(|f| f.table != r.table);
+            }
             for (col, v) in &r.values {
                 // Added columns don't filter; carried columns filter their own table.
                 if col.starts_with('\u{0}') {
@@ -1450,8 +1467,10 @@ fn binary(op: BinaryOp, l: &Value, r: &Value) -> Value {
                 Value::Num(n(l) * n(r))
             }
         }
+        // A blank numerator gives blank; otherwise a blank divisor is 0 and division
+        // is IEEE: 1/0 is Infinity, 0/0 NaN (as in Power BI).
         BinaryOp::Div => {
-            if l.is_blank() || r.is_blank() || n(r) == 0.0 {
+            if l.is_blank() {
                 Value::Blank
             } else {
                 Value::Num(n(l) / n(r))

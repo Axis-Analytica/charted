@@ -20701,6 +20701,379 @@
     ]
    ]
   },
+  "Infinite Texts / by category": {
+   "hash": "f57d4a85806dc3b1",
+   "rows": [
+    [
+     "Camping",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Footwear",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Apparel",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     null,
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by category and year": {
+   "hash": "c85ddc82bf4ac506",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Footwear",
+     2024,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Apparel",
+     2024,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     null,
+     2024,
+     "||"
+    ],
+    [
+     "Camping",
+     2025,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Footwear",
+     2025,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Apparel",
+     2025,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     null,
+     2025,
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by color, apparel and camping": {
+   "hash": "df78e1621d954590",
+   "rows": [
+    [
+     null,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Green",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Black",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Red",
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by month in 2025, camping": {
+   "hash": "f837ec39e602c4b0",
+   "rows": [
+    [
+     1,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2,
+     "||"
+    ],
+    [
+     3,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     4,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     5,
+     "||"
+    ],
+    [
+     6,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     7,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     8,
+     "||"
+    ],
+    [
+     9,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     10,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     11,
+     "||"
+    ],
+    [
+     12,
+     "||"
+    ]
+   ]
+  },
+  "Infinite Texts / by month name": {
+   "hash": "af953ef63687c977",
+   "rows": [
+    [
+     "January",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "February",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "March",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "April",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "May",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "June",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "July",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "August",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "September",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "October",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "November",
+     "||"
+    ],
+    [
+     "December",
+     "||"
+    ]
+   ]
+  },
+  "Infinite Texts / by product, camping": {
+   "hash": "da34efdbbb98186d",
+   "rows": [
+    [
+     "Tent",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Stove",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Lamp",
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by region in 2025": {
+   "hash": "41e0781705eefc7c",
+   "rows": [
+    [
+     "North",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "South",
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     "Online",
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by year": {
+   "hash": "9364c82ed04bf4eb",
+   "rows": [
+    [
+     2024,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
+  "Infinite Texts / by year and month": {
+   "hash": "980b1e63abe37140",
+   "rows": [
+    [
+     2024,
+     1,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     1,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     2,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     2,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     3,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     3,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     4,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     4,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     5,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     5,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     6,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     6,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     7,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     7,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     8,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     8,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     9,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     9,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     10,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2025,
+     10,
+     "inf|-inf|-nan(ind)"
+    ],
+    [
+     2024,
+     11,
+     "||"
+    ],
+    [
+     2025,
+     11,
+     "||"
+    ],
+    [
+     2024,
+     12,
+     "||"
+    ],
+    [
+     2025,
+     12,
+     "||"
+    ]
+   ]
+  },
+  "Infinite Texts / card": {
+   "hash": "a7a8a6d29d05c544",
+   "rows": [
+    [
+     "inf|-inf|-nan(ind)"
+    ]
+   ]
+  },
   "Int Flag / by category": {
    "hash": "8f41e63b8e02eca4",
    "rows": [
@@ -35598,6 +35971,448 @@
     ]
    ]
   },
+  "Over Blank / by category": {
+   "hash": "90dab513755b5c35",
+   "rows": [
+    [
+     null,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Camping",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by category and year": {
+   "hash": "e0f552672f6af6a8",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     2024,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     2024,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     null,
+     2025,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Camping",
+     2025,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     2025,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     2025,
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by color, apparel and camping": {
+   "hash": "f457de594a91ada6",
+   "rows": [
+    [
+     null,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Green",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Black",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Red",
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by month in 2025, camping": {
+   "hash": "2152b96eeb4203c6",
+   "rows": [
+    [
+     1,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     3,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     4,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     6,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     7,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     9,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     10,
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by month name": {
+   "hash": "398b9a3cd57a2b37",
+   "rows": [
+    [
+     "January",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "February",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "March",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "April",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "May",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "June",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "July",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "August",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "September",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "October",
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by product, camping": {
+   "hash": "f5ed4c85d20e26c1",
+   "rows": [
+    [
+     "Tent",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Stove",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Lamp",
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by region in 2025": {
+   "hash": "dd4a46acc5bf92e2",
+   "rows": [
+    [
+     "North",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "South",
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     "Online",
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by year": {
+   "hash": "aa1f3659c7b4b57b",
+   "rows": [
+    [
+     2024,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / by year and month": {
+   "hash": "c8fc8b4ea9f1f836",
+   "rows": [
+    [
+     2024,
+     1,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     1,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     2,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     2,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     3,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     3,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     4,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     4,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     5,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     5,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     6,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     6,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     7,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     7,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     8,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     8,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     9,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     9,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2024,
+     10,
+     {
+      "num": "-Infinity"
+     }
+    ],
+    [
+     2025,
+     10,
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
+  "Over Blank / card": {
+   "hash": "ae77ad8f2000ad8a",
+   "rows": [
+    [
+     {
+      "num": "-Infinity"
+     }
+    ]
+   ]
+  },
   "Per Product / by category": {
    "hash": "3ec914dfcf4e7775",
    "rows": [
@@ -41970,6 +42785,448 @@
    "rows": [
     [
      269
+    ]
+   ]
+  },
+  "Qty Over Zero / by category": {
+   "hash": "921379e7db66bfc9",
+   "rows": [
+    [
+     null,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Camping",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by category and year": {
+   "hash": "5000d68b35d034a4",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     2024,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     2024,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     null,
+     2025,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Camping",
+     2025,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Footwear",
+     2025,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Apparel",
+     2025,
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by color, apparel and camping": {
+   "hash": "1a685a30ba244476",
+   "rows": [
+    [
+     null,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Green",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Black",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Red",
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by month in 2025, camping": {
+   "hash": "5ec34c046e661d56",
+   "rows": [
+    [
+     1,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     3,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     4,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     6,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     7,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     9,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     10,
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by month name": {
+   "hash": "46b11544b36a78ff",
+   "rows": [
+    [
+     "January",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "February",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "March",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "April",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "May",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "June",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "July",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "August",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "September",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "October",
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by product, camping": {
+   "hash": "a54c8b769e759bbd",
+   "rows": [
+    [
+     "Tent",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Stove",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Lamp",
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by region in 2025": {
+   "hash": "24581f9749c01d6a",
+   "rows": [
+    [
+     "North",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "South",
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     "Online",
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by year": {
+   "hash": "ec69bbd8fdb9800b",
+   "rows": [
+    [
+     2024,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / by year and month": {
+   "hash": "99601d8c5f82e626",
+   "rows": [
+    [
+     2024,
+     1,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     1,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     2,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     2,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     3,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     3,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     4,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     4,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     5,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     5,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     6,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     6,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     7,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     7,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     8,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     8,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     9,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     9,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2024,
+     10,
+     {
+      "num": "Infinity"
+     }
+    ],
+    [
+     2025,
+     10,
+     {
+      "num": "Infinity"
+     }
+    ]
+   ]
+  },
+  "Qty Over Zero / card": {
+   "hash": "f5487c01099ca532",
+   "rows": [
+    [
+     {
+      "num": "Infinity"
+     }
     ]
    ]
   },
@@ -64908,6 +66165,448 @@
    "rows": [
     [
      2.1539031454165825
+    ]
+   ]
+  },
+  "Zero Over Zero / by category": {
+   "hash": "797ed98441aaf7f6",
+   "rows": [
+    [
+     null,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Camping",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Footwear",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Apparel",
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by category and year": {
+   "hash": "0f9c766e757bce19",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Footwear",
+     2024,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Apparel",
+     2024,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     null,
+     2025,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Camping",
+     2025,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Footwear",
+     2025,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Apparel",
+     2025,
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by color, apparel and camping": {
+   "hash": "4ca6892dc869aeef",
+   "rows": [
+    [
+     null,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Green",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Black",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Red",
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by month in 2025, camping": {
+   "hash": "9c1b9bce55c0d30f",
+   "rows": [
+    [
+     1,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     3,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     4,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     6,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     7,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     9,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     10,
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by month name": {
+   "hash": "bb7ff91e99176fa8",
+   "rows": [
+    [
+     "January",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "February",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "March",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "April",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "May",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "June",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "July",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "August",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "September",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "October",
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by product, camping": {
+   "hash": "958748f9c95e8432",
+   "rows": [
+    [
+     "Tent",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Stove",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Lamp",
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by region in 2025": {
+   "hash": "3cd93ee07a5a2beb",
+   "rows": [
+    [
+     "North",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "South",
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     "Online",
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by year": {
+   "hash": "f597b5f600a53bcc",
+   "rows": [
+    [
+     2024,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / by year and month": {
+   "hash": "ebff64c6699fd0df",
+   "rows": [
+    [
+     2024,
+     1,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     1,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     2,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     2,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     3,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     3,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     4,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     4,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     5,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     5,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     6,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     6,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     7,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     7,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     8,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     8,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     9,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     9,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2024,
+     10,
+     {
+      "num": "NaN"
+     }
+    ],
+    [
+     2025,
+     10,
+     {
+      "num": "NaN"
+     }
+    ]
+   ]
+  },
+  "Zero Over Zero / card": {
+   "hash": "364e500a2feac4c3",
+   "rows": [
+    [
+     {
+      "num": "NaN"
+     }
     ]
    ]
   }

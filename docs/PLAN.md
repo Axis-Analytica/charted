@@ -515,11 +515,13 @@ Record the answers in HANDOFF "Gotchas"; they decide C, D and F.
 #### M11.2 Fix what the harness finds (M; size unknown)
 
 *Status 2026-11-02:* the harness runs through the Power BI Service
-(`conformance/service.py`). 1931 of 2020 queries agree; the first batch of fixes is in
-(see HANDOFF "Recording Power BI's answers"). The other 89 are in `known.json`. Next:
-LOOKUPVALUE ignoring filters, expanded-table context transition, the blank row in
-ALLSELECTED/ALL tables, CONCATENATEX order, integer arithmetic, and time intelligence on
-month-end date tables. x/0 is still to check (no golden measure divides by zero with `/`).
+(`conformance/service.py`). 2014 of 2060 queries agree; the other 46 are in
+`known.json` with their causes (see HANDOFF "Recording Power BI's answers"). Done:
+blank handling, auto-exist, LOOKUPVALUE, expanded-table context transition, the blank
+row, x/0 (IEEE, as in Power BI), and time intelligence (range shifts, date-row
+transition). Left by choice: CONCATENATEX storage order, Int64 arithmetic, float
+summation order, and DATEADD's error on a selection with gaps. Still open: TOPN ties
+and ALLSELECTED ( Date[Date] ) under a filter on Date[Year] (5 queries).
 
 Expected:
 - Blank handling (e.g. ROUND(BLANK())).
