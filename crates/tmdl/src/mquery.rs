@@ -1096,6 +1096,8 @@ fn to_query_at(
             {
                 out.extend(picked.take().map(|p| p.2).unwrap_or_default());
             }
+            // `Tbl = Rows`: a step that only names the one before it.
+            (Some(_), None, M::Ident(p)) if Some(p.as_str()) == prev && picked.is_none() => {}
             _ if picked.is_some() => {
                 return Err(format!(
                     "step \"{name}\" uses grouped rows other than with Table.Combine"
