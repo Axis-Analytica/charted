@@ -393,6 +393,13 @@ pub enum Bound {
         table: Id,
         column: Id,
     },
+    /// PATH ( id, parent ): the ids from the top of the current row's parent-child
+    /// hierarchy down to its own, joined by `|` (a calculated column's function).
+    Path {
+        table: Id,
+        id: Id,
+        parent: Id,
+    },
     /// RELATED: a column of the table the current row relates to.
     Related {
         table: Id,
@@ -515,9 +522,7 @@ pub const KNOWN: &[&str] = &[
     "SQRT",
     "STDEV.P",
     "STDEV.S",
-    "TREATAS",
     "TRUNC",
-    "VALUE",
     "WEEKNUM",
     "YEARFRAC",
 ];
@@ -591,6 +596,7 @@ pub const SUPPORTED: &[&str] = &[
     "NOT",
     "OR",
     "PARALLELPERIOD",
+    "PATH",
     "PI",
     "PREVIOUSDAY",
     "PREVIOUSMONTH",
@@ -615,6 +621,7 @@ pub const SUPPORTED: &[&str] = &[
     "SWITCH",
     "TODAY",
     "TOPN",
+    "TREATAS",
     "TOTALMTD",
     "TOTALQTD",
     "TOTALYTD",
@@ -1725,6 +1732,7 @@ impl<'a> Binder<'a> {
                             .and(None),
                     };
                 }
+                "TREATAS" => return self.treatas(args, e.span, rows),
                 "FILTER" | "VALUES" | "DISTINCT" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE"
                 | "SAMEPERIODLASTYEAR" | "DATEADD" | "PARALLELPERIOD" | "DATESYTD" | "DATESQTD"
                 | "DATESMTD" | "DATESINPERIOD" | "DATESBETWEEN" | "PREVIOUSDAY"
@@ -1771,6 +1779,105 @@ impl<'a> Binder<'a> {
         }
         Some(FilterArg::Table(TableExpr::Filter {
             source: Box::new(TableExpr::All { table, columns }),
+            condition: Box::new(condition),
+        }))
+    }
+
+    /// TREATAS ( table, columns… ) as a CALCULATE filter: the target columns keep the
+    /// values (or combinations) found in the table's rows. It's
+    /// FILTER ( ALL ( columns ), the row's values are among the table's ), so values the
+    /// columns don't have are dropped, as in Power BI. The columns must be of one table.
+    fn treatas(&mut self, args: &[Expr], span: Span, rows: Rows<'a, '_>) -> Option<FilterArg> {
+        if !self.arity("TREATAS", args, span, 2, usize::MAX) {
+            return None;
+        }
+        let source = self.table_expr(&args[0], rows)?;
+        let mut target: Option<Id> = None;
+        let mut columns = Vec::new();
+        for a in &args[1..] {
+            let (t, c) = self.column_arg(a)?;
+            if target.as_ref().is_some_and(|x| x != &t.id) {
+                return self
+                    .err(
+                        a.span,
+                        "charted's TREATAS needs its columns to be of one table",
+                    )
+                    .and(None);
+            }
+            target = Some(t.id.clone());
+            columns.push(c.id.clone());
+        }
+        let target = target?;
+        let column = |c: &Id| Bound::Column {
+            table: target.clone(),
+            column: c.clone(),
+        };
+        let condition = match &source {
+            // A list of values: IN.
+            TableExpr::List(items) if columns.len() == 1 && items.iter().all(|r| r.len() == 1) => {
+                Bound::In {
+                    value: Box::new(column(&columns[0])),
+                    list: items.iter().map(|r| r[0].clone()).collect(),
+                }
+            }
+            _ => {
+                let (Some(st), Some(sc)) = (source.table(), source.columns()) else {
+                    return self
+                        .err(args[0].span, "charted's TREATAS reads columns of a model table, such as VALUES ( T[c] )")
+                        .and(None);
+                };
+                if sc.len() != columns.len() {
+                    return self
+                        .err(
+                            span,
+                            format!(
+                                "TREATAS has {} columns to fill but its table has {}",
+                                columns.len(),
+                                sc.len()
+                            ),
+                        )
+                        .and(None);
+                }
+                // Some row of the table has the same values: COUNTROWS ( FILTER ( table,
+                // its columns == the row's ) ) > 0.
+                let mut matches: Option<Bound> = None;
+                for (s, c) in sc.iter().zip(&columns) {
+                    let eq = Bound::Binary {
+                        op: BinaryOp::StrictEq,
+                        left: Box::new(Bound::Column {
+                            table: st.clone(),
+                            column: s.clone(),
+                        }),
+                        right: Box::new(column(c)),
+                    };
+                    matches = Some(match matches {
+                        None => eq,
+                        Some(m) => Bound::Binary {
+                            op: BinaryOp::And,
+                            left: Box::new(m),
+                            right: Box::new(eq),
+                        },
+                    });
+                }
+                Bound::Binary {
+                    op: BinaryOp::Gt,
+                    left: Box::new(Bound::Aggregate {
+                        func: AggFunc::CountRows,
+                        source: TableExpr::Filter {
+                            source: Box::new(source.clone()),
+                            condition: Box::new(matches?),
+                        },
+                        arg: None,
+                    }),
+                    right: Box::new(Bound::Number(0.0)),
+                }
+            }
+        };
+        Some(FilterArg::Table(TableExpr::Filter {
+            source: Box::new(TableExpr::All {
+                table: target,
+                columns,
+            }),
             condition: Box::new(condition),
         }))
     }
@@ -1968,6 +2075,51 @@ impl<'a> Binder<'a> {
                     table: t.id.clone(),
                     column: c.id.clone(),
                     n: n as usize,
+                })
+            }
+            "PATH" => {
+                if !self.arity(&upper, args, span, 2, 2) {
+                    return None;
+                }
+                let (t, id) = self.column_arg(&args[0])?;
+                let (pt, parent) = self.column_arg(&args[1])?;
+                if pt.id != t.id {
+                    return self.err(span, "PATH's id and parent columns must be columns of one table");
+                }
+                if !rows.iter().any(|r| r.id == t.id) {
+                    return self.err(span, format!("PATH needs a row of '{}': use it in a calculated column of that table", t.name));
+                }
+                Some(Bound::Path {
+                    table: t.id.clone(),
+                    id: id.id.clone(),
+                    parent: parent.id.clone(),
+                })
+            }
+            "PATHITEM" | "PATHITEMREVERSE" => {
+                // The third argument: TEXT (0, the default) or INTEGER (1), which reads
+                // the item as a number.
+                if !self.arity(&upper, args, span, 2, 3) {
+                    return None;
+                }
+                let integer = match args.get(2).map(|a| (a, &a.kind)) {
+                    None | Some((_, ExprKind::Omitted)) => false,
+                    Some((_, ExprKind::Table(n) | ExprKind::Ref { table: None, name: n })) if n.eq_ignore_ascii_case("TEXT") => false,
+                    Some((_, ExprKind::Table(n) | ExprKind::Ref { table: None, name: n })) if n.eq_ignore_ascii_case("INTEGER") => true,
+                    Some((a, _)) => match self.whole(a)? {
+                        0 => false,
+                        1 => true,
+                        _ => return self.err(span, format!("{upper}'s type is TEXT or INTEGER")),
+                    },
+                };
+                let func = if upper == "PATHITEM" { LibFn::PathItem } else { LibFn::PathItemReverse };
+                let item = Bound::Call {
+                    func: ScalarFunc::Lib(func),
+                    args: vec![self.expr(&args[0], rows)?, self.expr(&args[1], rows)?],
+                };
+                Some(if integer {
+                    Bound::Call { func: ScalarFunc::Lib(LibFn::Value), args: vec![item] }
+                } else {
+                    item
                 })
             }
             "LOOKUPVALUE" => {

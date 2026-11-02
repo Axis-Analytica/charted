@@ -148,6 +148,21 @@ table Sales
 	measure 'Infinite Texts' = "" & [Quantity] / 0 & "|" & -[Quantity] / 0 & "|" & ( [Quantity] - [Quantity] ) / 0
 		lineageTag: m:Infinite Texts
 
+	measure 'Targets On Order Months' = CALCULATE ( SUM ( Targets[Target] ), TREATAS ( VALUES ( Sales[OrderDateKey] ), Targets[DateKey] ) )
+		lineageTag: m:Targets On Order Months
+
+	measure 'Qty Red Green' = CALCULATE ( [Quantity], TREATAS ( { "Red", "Green", "Purple" }, Product[Color] ) )
+		lineageTag: m:Qty Red Green
+
+	measure 'Targets On Order Stores' = CALCULATE ( SUM ( Targets[Target] ), TREATAS ( ALL ( Sales[OrderDateKey], Sales[StoreKey] ), Targets[DateKey], Targets[StoreKey] ) )
+		lineageTag: m:Targets On Order Stores
+
+	measure 'Value Of Text' = VALUE ( " 1,234 " ) + VALUE ( "$5" ) + VALUE ( "2024-01-02" ) + [Quantity]
+		lineageTag: m:Value Of Text
+
+	measure 'Path Pieces' = PATHITEM ( "4|5|6", MAX ( Store[StoreKey] ) ) & "/" & PATHITEMREVERSE ( "4|5|6", MIN ( Store[StoreKey] ), INTEGER ) & "/" & PATHLENGTH ( "4|5|6" ) & "/" & PATHCONTAINS ( "4|5|6", MAX ( Store[StoreKey] ) + 3 )
+		lineageTag: m:Path Pieces
+
 	measure 'Target Rows' = SUMX ( Targets, [Orders] * 0 + 1 )
 		lineageTag: m:Target Rows
 

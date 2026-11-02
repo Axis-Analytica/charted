@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (104 functions)
+## Evaluated (111 functions)
 
 ### Aggregation
 
@@ -52,6 +52,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `FILTER ( Table, FilterExpression )` | The rows of a table for which the expression is TRUE. |
 | `KEEPFILTERS ( Filter )` | Applies a CALCULATE filter on top of existing filters instead of replacing them. |
 | `REMOVEFILTERS ( [TableOrColumn], [Column]… )` | Removes filters from tables or columns (in CALCULATE). |
+| `TREATAS ( Table, Column… )` | Applies the rows of a table as filters on unrelated columns. |
 
 ### Information
 
@@ -93,6 +94,16 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `MOD ( Number, Divisor )` | The remainder after division. |
 | `PI (  )` | The number π, 3.14159265358979. |
 | `ROUND ( Number, NumberOfDigits )` | Rounds a number to the given number of digits. |
+
+### Parent and child
+
+| Function | Description |
+|---|---|
+| `PATH ( ID_ColumnName, Parent_ColumnName )` | The ids from the top of a parent-child hierarchy down to the current row's, joined by vertical bars (in a calculated column). |
+| `PATHCONTAINS ( Path, Item )` | TRUE when an item is one of a path's ids. |
+| `PATHITEM ( Path, Position, [Type] )` | The id at a position of a path, counting from the top; Type INTEGER returns it as a number. |
+| `PATHITEMREVERSE ( Path, Position, [Type] )` | The id at a position of a path, counting from the end. |
+| `PATHLENGTH ( Path )` | How many ids a path has. |
 
 ### Relationships
 
@@ -137,6 +148,7 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `SUBSTITUTE ( Text, OldText, NewText, [InstanceNumber] )` | Replaces text by matching. |
 | `TRIM ( Text )` | Removes spaces from both ends and repeated spaces between words. |
 | `UPPER ( Text )` | Text in upper case. |
+| `VALUE ( Text )` | Converts text to a number. |
 
 ### Time intelligence
 
@@ -175,8 +187,10 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **DATESINPERIOD and DATESBETWEEN** take any date expression for their ends (`MAX ( 'Date'[Date] )`, `EOMONTH ( MAX ( 'Date'[Date] ), -1 )`, `TODAY ()`, a variable), evaluated in the outer filter context; a blank end of DATESBETWEEN is open. Time-intelligence tables can be iterated (`AVERAGEX ( DATESINPERIOD ( … ), [Sales] )`) as well as used as filters.
 - **RANKX** ranks with blank as zero (or empty text), descending by default; ties share a rank and skip the next ones unless DENSE. The value argument may be left out (`RANKX ( T, e, , ASC )`).
 - **TOPN** keeps the rows tied at the cut (so it can return more than N), orders descending by default with blank as zero, and works as a CALCULATE filter or an iterated table. **CONCATENATEX** takes its delimiter as text and orders by its order expression, then by the text.
-- **LOOKUPVALUE** filters the search columns to the values (evaluated where it is called) in the current filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
+- **LOOKUPVALUE** finds the rows whose search columns equal the values (evaluated where it is called), ignoring the filter context, and returns the result column's value; several different values are an error unless there is an alternate result. **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context and can be iterated or used as filters.
 - **ADDCOLUMNS, SELECTCOLUMNS, SUMMARIZE and SUMMARIZECOLUMNS** can be iterated and used as calculated tables; their new columns are named `[Name]` in expressions over them. SUMMARIZE's and SUMMARIZECOLUMNS' new columns are evaluated in each group's filter context; SUMMARIZECOLUMNS crosses the visible values of each table's group columns and leaves out rows whose new columns are all blank. **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.
+- **TREATAS** works as a CALCULATE filter whose columns are of one table, from a list or from columns of a model table (`VALUES`, `ALL`); values the columns don't have are dropped.
+- **PATH** is for calculated columns: a parent that isn't a row heads the path, and a loop is an error, as in Power BI. **PATHITEM** with INTEGER reads the id as a number.
 - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted and used as CALCULATE filters in the context where they're defined.
 - **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( "a", 1 ), ( "b", 2 ) }` (`Value1`, `Value2`…) can be iterated and used as calculated tables; **NAMEOF** gives a column's or measure's name as `'Table'[Name]`. Together they make field parameters.
 - **SELECTEDMEASURE, SELECTEDMEASURENAME, SELECTEDMEASUREFORMATSTRING and ISSELECTEDMEASURE** work in calculation items, which apply to the measures a visual shows (not to measures those measures use).
@@ -184,8 +198,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (39)
+## Recognised, not yet evaluated (37)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TREATAS`, `TRUNC`, `VALUE`, `WEEKNUM`, `YEARFRAC`
+`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `NOW`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TRUNC`, `WEEKNUM`, `YEARFRAC`

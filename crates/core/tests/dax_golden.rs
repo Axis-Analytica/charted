@@ -643,6 +643,31 @@ fn security_filters_agree_with_the_reference_interpreter() {
 
 /// Calculated columns that aggregate (v1.5): fixed cases on every kind of table.
 const COLUMNS: &[(&str, &str)] = &[
+    // Parent-child paths.
+    (
+        "Account",
+        "PATH ( Account[AccountKey], Account[ParentKey] )",
+    ),
+    (
+        "Account",
+        "PATHITEM ( PATH ( Account[AccountKey], Account[ParentKey] ), 2, INTEGER )",
+    ),
+    (
+        "Account",
+        "PATHLENGTH ( PATH ( Account[AccountKey], Account[ParentKey] ) )",
+    ),
+    (
+        "Account",
+        "LOOKUPVALUE ( Account[Name], Account[AccountKey], PATHITEM ( PATH ( Account[AccountKey], Account[ParentKey] ), 1, INTEGER ) )",
+    ),
+    (
+        "Account",
+        "PATHCONTAINS ( PATH ( Account[AccountKey], Account[ParentKey] ), 2 )",
+    ),
+    (
+        "Account",
+        "PATHITEMREVERSE ( PATH ( Account[AccountKey], Account[ParentKey] ), 2 )",
+    ),
     // Context transition: the row becomes a filter.
     ("Product", "CALCULATE ( SUM ( Sales[Amount] ) )"),
     ("Product", "COUNTROWS ( RELATEDTABLE ( Sales ) )"),

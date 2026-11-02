@@ -347,6 +347,7 @@ fn row_pure(b: &Bound) -> bool {
                 | Bound::Rank { .. }
                 | Bound::ConcatX { .. }
                 | Bound::Earlier { .. }
+                | Bound::Path { .. }
                 | Bound::Calculate { .. }
                 | Bound::Info { .. }
                 | Bound::Var(_)
@@ -544,7 +545,9 @@ fn text_or_null(x: &(String, ValueType)) -> String {
     match x.1 {
         ValueType::Text => x.0.clone(),
         ValueType::Number => general_number_sql(&x.0),
-        ValueType::Bool | ValueType::Date => format!("CAST({} AS VARCHAR)", x.0),
+        // TRUE and FALSE in capitals, as Power BI writes them.
+        ValueType::Bool => format!("upper(CAST({} AS VARCHAR))", x.0),
+        ValueType::Date => format!("CAST({} AS VARCHAR)", x.0),
     }
 }
 
@@ -699,6 +702,22 @@ fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
     (body, ty)
 }
 
+/// The error for a PATH whose parents go round a loop (the same in the interpreter).
+pub fn path_loop(model: &Model, table: &str, id: &str, parent: &str) -> String {
+    let t = model.table(table);
+    let name = |c: &str| {
+        t.and_then(|t| t.column(c))
+            .map(|c| c.name.clone())
+            .unwrap_or_default()
+    };
+    let t = t.map(|t| t.name.clone()).unwrap_or_default();
+    format!(
+        "The PATH function has found a loop in columns '{t}'[{}] and '{t}'[{}].",
+        name(id),
+        name(parent)
+    )
+}
+
 /// Each library function in SQL, its arguments `a` already read as their kinds say.
 fn lib_template(f: LibFn, a: &[String]) -> String {
     let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
@@ -734,6 +753,24 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
             s = a[1],
             n = a[2],
         ),
+        // Spaces, a leading $ and thousands separators are allowed, and a date counts
+        // its days from 1899-12-30, as in Power BI.
+        LibFn::Value => format!(
+            "(CASE WHEN {x} IS NULL THEN NULL ELSE coalesce(TRY_CAST(regexp_replace(trim({x}), '^\\$|,', '', 'g') AS DOUBLE), CAST(date_diff('day', DATE '1899-12-30', TRY_CAST(trim({x}) AS DATE)) AS DOUBLE), error('Cannot convert value ''' || {x} || ''' of type Text to type Number.')) END)",
+            x = a[0]
+        ),
+        LibFn::PathLength => format!("len(string_split({}, '|'))", a[0]),
+        LibFn::PathItem => format!(
+            "(CASE WHEN {n} < 1 THEN NULL ELSE list_extract(string_split({}, '|'), {n}) END)",
+            a[0],
+            n = a[1]
+        ),
+        LibFn::PathItemReverse => format!(
+            "(CASE WHEN {n} < 1 THEN NULL ELSE list_extract(string_split({}, '|'), -({n})) END)",
+            a[0],
+            n = a[1]
+        ),
+        LibFn::PathContains => format!("list_contains(string_split({}, '|'), {})", a[0], a[1]),
     }
 }
 
@@ -3539,6 +3576,51 @@ impl<'a> Compiler<'a> {
                 lit(
                     format!("f.{name}"),
                     ValueType::of(self.column_type(table, column)),
+                )
+            }
+            // The ids from the top of the hierarchy down to the row's, by a recursive
+            // walk down from the top rows: those with no parent, and those whose parent
+            // isn't a row (the parent then heads the path, as in Power BI). Rows a walk
+            // never reaches are in a loop: an error, as in Power BI.
+            Bound::Path { table, id, parent } => {
+                let row_id = rows
+                    .iter()
+                    .rev()
+                    .find_map(|r| r.columns.iter().find(|(c, _)| c == id))
+                    .map(|(_, n)| format!("f.{n}"))
+                    .ok_or_else(|| {
+                        CompileError::Unsupported("PATH outside a row of its table".into())
+                    })?;
+                let (_, _, from, _) = self.scope(table, &Ctx::default(), &[], false)?;
+                let (ids, ty) = self.column_sql(table, id)?;
+                let (pars, pty) = self.column_sql(table, parent)?;
+                let none = if pty == ValueType::Text {
+                    "coalesce(par, '') = ''"
+                } else {
+                    "par IS NULL"
+                };
+                let text = |x: &str, t| text_sql(&(x.to_string(), t));
+                let name = self.fresh("path");
+                self.ctes.push(CteDef {
+                    name: name.clone(),
+                    sql: format!(
+                        "WITH RECURSIVE b AS (SELECT DISTINCT {ids} AS id, {pars} AS par FROM {from} WHERE {ids} IS NOT NULL), \
+                         up AS (SELECT id, CASE WHEN {none} THEN {tid} ELSE {tpar} || '|' || {tid} END AS path, 1 AS d \
+                         FROM b WHERE {none} OR par NOT IN (SELECT id FROM b) \
+                         UNION SELECT b.id, up.path || '|' || {bid}, up.d + 1 FROM b JOIN up ON b.par = up.id WHERE up.d < 100000) \
+                         SELECT id, min(path) AS path FROM up GROUP BY id",
+                        tid = text("id", ty),
+                        tpar = text("par", pty),
+                        bid = text("b.id", ty),
+                    ),
+                    keys: Vec::new(),
+                });
+                let message = string(&path_loop(self.model, table, id, parent));
+                lit(
+                    format!(
+                        "(CASE WHEN {row_id} IS NULL THEN NULL ELSE coalesce((SELECT p.path FROM {name} AS p WHERE p.id = {row_id}), error({message})) END)"
+                    ),
+                    ValueType::Text,
                 )
             }
             Bound::Ext { name } => {

@@ -113,6 +113,11 @@ NOT|Logical|Logical|Reverses TRUE and FALSE.
 NOW||Date and time|The current date and time.
 OR|Logical1; Logical2|Logical|TRUE when either argument is TRUE.
 PARALLELPERIOD|Dates; NumberOfIntervals; Interval|Time intelligence|The whole period a number of intervals away.
+PATH|ID_ColumnName; Parent_ColumnName|Parent and child|The ids from the top of a parent-child hierarchy down to the current row's, joined by vertical bars (in a calculated column).
+PATHCONTAINS|Path; Item|Parent and child|TRUE when an item is one of a path's ids.
+PATHITEM|Path; Position; [Type]|Parent and child|The id at a position of a path, counting from the top; Type INTEGER returns it as a number.
+PATHITEMREVERSE|Path; Position; [Type]|Parent and child|The id at a position of a path, counting from the end.
+PATHLENGTH|Path|Parent and child|How many ids a path has.
 PERCENTILE.INC|Column; K|Aggregation|The k-th percentile, inclusive.
 PI||Math|The number π, 3.14159265358979.
 POWER|Number; Power|Math|A number raised to a power.
@@ -257,8 +262,8 @@ pub fn support_markdown() -> String {
            descending by default with blank as zero, and works as a CALCULATE filter or an \
            iterated table. **CONCATENATEX** takes its delimiter as text and orders by its \
            order expression, then by the text.\n\
-         - **LOOKUPVALUE** filters the search columns to the values (evaluated where it is \
-           called) in the current filter context, and returns the result column's value; \
+         - **LOOKUPVALUE** finds the rows whose search columns equal the values (evaluated \
+           where it is called), ignoring the filter context, and returns the result column's value; \
            several different values are an error unless there is an alternate result. \
            **CALCULATETABLE** and **RELATEDTABLE** read their rows in the changed context \
            and can be iterated or used as filters.\n\
@@ -268,6 +273,11 @@ pub fn support_markdown() -> String {
            group's filter context; SUMMARIZECOLUMNS crosses the visible values of each \
            table's group columns and leaves out rows whose new columns are all blank. \
            **CALENDAR** and **GENERATESERIES** make a `Date` or `Value` column.\n\
+         - **TREATAS** works as a CALCULATE filter whose columns are of one table, from a \
+           list or from columns of a model table (`VALUES`, `ALL`); values the columns \
+           don't have are dropped.\n\
+         - **PATH** is for calculated columns: a parent that isn't a row heads the path, \
+           and a loop is an error, as in Power BI. **PATHITEM** with INTEGER reads the id as a number.\n\
          - **Table variables** (`VAR period = DATESINPERIOD ( … )`) can be iterated, counted \
            and used as CALCULATE filters in the context where they're defined.\n\
          - **Table constructors** `{ 1, 2, 3 }` (a `Value` column) and `{ ( \"a\", 1 ), ( \"b\", 2 ) }` \

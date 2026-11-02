@@ -231,6 +231,25 @@ pub fn fixture() -> Fixture {
         targets,
     ));
 
+    // A parent-child hierarchy (PATH): two trees, and a row whose parent isn't a row.
+    tables.push((
+        "Account".into(),
+        vec![
+            ("AccountKey".into(), DataType::Int64),
+            ("ParentKey".into(), DataType::Int64),
+            ("Name".into(), DataType::String),
+        ],
+        vec![
+            vec![n(1.0), Value::Blank, t("Revenue")],
+            vec![n(2.0), n(1.0), t("Sales")],
+            vec![n(3.0), n(2.0), t("Retail")],
+            vec![n(4.0), n(2.0), t("Online")],
+            vec![n(5.0), Value::Blank, t("Costs")],
+            vec![n(6.0), n(5.0), t("Staff")],
+            vec![n(7.0), n(9.0), t("Orphan")],
+        ],
+    ));
+
     let db = Database::open(None, &DbOptions::default()).unwrap();
     let mut model = Model {
         name: "golden".into(),
@@ -450,6 +469,28 @@ pub const MEASURES: &[(&str, &str)] = &[
     (
         "Infinite Texts",
         "\"\" & [Quantity] / 0 & \"|\" & -[Quantity] / 0 & \"|\" & ( [Quantity] - [Quantity] ) / 0",
+    ),
+    // TREATAS as a filter: values found in a table, a list, two columns at once.
+    (
+        "Targets On Order Months",
+        "CALCULATE ( SUM ( Targets[Target] ), TREATAS ( VALUES ( Sales[OrderDateKey] ), Targets[DateKey] ) )",
+    ),
+    (
+        "Qty Red Green",
+        "CALCULATE ( [Quantity], TREATAS ( { \"Red\", \"Green\", \"Purple\" }, Product[Color] ) )",
+    ),
+    (
+        "Targets On Order Stores",
+        "CALCULATE ( SUM ( Targets[Target] ), TREATAS ( ALL ( Sales[OrderDateKey], Sales[StoreKey] ), Targets[DateKey], Targets[StoreKey] ) )",
+    ),
+    // Text to number and parent-child path text.
+    (
+        "Value Of Text",
+        "VALUE ( \" 1,234 \" ) + VALUE ( \"$5\" ) + VALUE ( \"2024-01-02\" ) + [Quantity]",
+    ),
+    (
+        "Path Pieces",
+        "PATHITEM ( \"4|5|6\", MAX ( Store[StoreKey] ) ) & \"/\" & PATHITEMREVERSE ( \"4|5|6\", MIN ( Store[StoreKey] ), INTEGER ) & \"/\" & PATHLENGTH ( \"4|5|6\" ) & \"/\" & PATHCONTAINS ( \"4|5|6\", MAX ( Store[StoreKey] ) + 3 )",
     ),
     ("Target Rows", "SUMX ( Targets, [Orders] * 0 + 1 )"),
     ("All Products Qty", "SUMX ( ALL ( Product ), [Quantity] )"),

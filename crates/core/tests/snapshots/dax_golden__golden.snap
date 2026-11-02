@@ -431,6 +431,49 @@ NaN
 "Camping" | "inf|-inf|-nan(ind)"
 "Footwear" | "inf|-inf|-nan(ind)"
 
+## Targets On Order Months — card
+56250
+
+## Targets On Order Months — by category
+∅ | 2520
+"Apparel" | 38800
+"Camping" | 37480
+"Footwear" | 33410
+
+## Qty Red Green — card
+122
+
+## Qty Red Green — by category
+"Apparel" | 70
+"Camping" | 52
+
+## Targets On Order Stores — card
+41300
+
+## Targets On Order Stores — by category
+∅ | 41300
+"Apparel" | 41300
+"Camping" | 41300
+"Footwear" | 41300
+
+## Value Of Text — card
+46801
+
+## Value Of Text — by category
+∅ | 46535
+"Apparel" | 46643
+"Camping" | 46614
+"Footwear" | 46605
+
+## Path Pieces — card
+"6/6/3/TRUE"
+
+## Path Pieces — by category
+∅ | "6/6/3/TRUE"
+"Apparel" | "6/6/3/TRUE"
+"Camping" | "6/6/3/TRUE"
+"Footwear" | "6/6/3/TRUE"
+
 ## Target Rows — card
 55
 

@@ -87,6 +87,11 @@ library! {
     Left = "LEFT" (TextOrBlank; Int) -> Text;
     Right = "RIGHT" (TextOrBlank; Int) -> Text;
     Mid = "MID" (TextOrBlank, Int, Int) -> Text;
+    Value = "VALUE" (TextOrBlank) -> Num;
+    PathLength = "PATHLENGTH" (Text) -> Num;
+    PathItem = "PATHITEM" (Text, Int) -> Text;
+    PathItemReverse = "PATHITEMREVERSE" (Text, Int) -> Text;
+    PathContains = "PATHCONTAINS" (Text, Text) -> Bool;
 }
 
 impl LibFn {

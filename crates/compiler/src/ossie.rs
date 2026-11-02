@@ -122,6 +122,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
         | Bound::Rank { .. }
         | Bound::ConcatX { .. }
         | Bound::Earlier { .. }
+        | Bound::Path { .. }
         | Bound::Ext { .. }
         | Bound::Calculate { .. }
         | Bound::Info { .. }
@@ -165,6 +166,12 @@ fn lib(f: LibFn, a: &[String]) -> Option<String> {
         LibFn::Left => format!("LEFT({}, {})", a[0], n()),
         LibFn::Right => format!("RIGHT({}, {})", a[0], n()),
         LibFn::Mid => format!("SUBSTRING({}, {}, {})", a[0], a[1], a[2]),
-        LibFn::Trim | LibFn::Mod => return None,
+        LibFn::Trim
+        | LibFn::Mod
+        | LibFn::Value
+        | LibFn::PathLength
+        | LibFn::PathItem
+        | LibFn::PathItemReverse
+        | LibFn::PathContains => return None,
     })
 }

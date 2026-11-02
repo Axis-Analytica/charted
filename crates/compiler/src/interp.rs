@@ -1190,6 +1190,42 @@ impl<'a> Interp<'a> {
                 .nth(*n)
                 .map(|r| r.values[column].clone())
                 .unwrap_or(Value::Blank),
+            Bound::Path { table, id, parent } => {
+                let Some(start) = rows
+                    .iter()
+                    .rev()
+                    .find(|r| &r.table == table)
+                    .and_then(|r| r.values.get(id))
+                    .and_then(Value::key)
+                else {
+                    return Ok(Value::Blank);
+                };
+                let td = self.table(table)?;
+                let (Some(ci), Some(pi)) = (td.col(id), td.col(parent)) else {
+                    return Ok(Value::Blank);
+                };
+                let parents: HashMap<String, Option<String>> = td
+                    .rows
+                    .iter()
+                    .filter_map(|r| {
+                        let p = r[pi].key().filter(|p| !p.is_empty());
+                        Some((r[ci].key()?, p))
+                    })
+                    .collect();
+                // Up to a row with no parent, or to a parent that isn't a row (it heads
+                // the path); going round a loop is an error, as in Power BI.
+                let mut path = vec![start.clone()];
+                let mut at = start;
+                while let Some(Some(p)) = parents.get(&at) {
+                    if path.len() > parents.len() {
+                        return Err(crate::visual::path_loop(self.model, table, id, parent));
+                    }
+                    path.push(p.clone());
+                    at = p.clone();
+                }
+                path.reverse();
+                Value::Text(path.join("|"))
+            }
             Bound::Related { table, column } => {
                 let Some(r) = rows.last() else {
                     return Ok(Value::Blank);
@@ -1515,6 +1551,8 @@ fn day(v: &Value) -> Option<i64> {
 fn text(v: &Value) -> String {
     match v {
         Value::Num(x) => charted_dax::format::general_number(*x),
+        // TRUE and FALSE in capitals, as Power BI writes them.
+        Value::Bool(b) => if *b { "TRUE" } else { "FALSE" }.into(),
         _ => v.key().unwrap_or_default(),
     }
 }
@@ -1552,7 +1590,10 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
             ArgKind::NumOrBlank => v.num().map(Value::Num),
             ArgKind::Int => Some(Value::Num(v.num().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
-            ArgKind::TextOrBlank => v.key().map(Value::Text),
+            ArgKind::TextOrBlank => match v {
+                Value::Bool(_) => Some(Value::Text(text(v))),
+                _ => v.key().map(Value::Text),
+            },
         })
         .collect()
 }
@@ -1585,6 +1626,36 @@ fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
             }
             Value::Num(x - d * (x / d).floor())
         }
+        LibFn::Value => {
+            let raw = txt(0);
+            let t = raw.trim();
+            let plain = t.strip_prefix('$').unwrap_or(t).replace(',', "");
+            match plain.parse::<f64>() {
+                Ok(n) if !plain.is_empty() => Value::Num(n),
+                _ => match cal::parse(t).filter(|_| t.len() == 10) {
+                    Some(d) => Value::Num((d + 25_569) as f64),
+                    None => {
+                        return Err(format!(
+                            "Cannot convert value '{raw}' of type Text to type Number."
+                        ));
+                    }
+                },
+            }
+        }
+        LibFn::PathLength => Value::Num(txt(0).split('|').count() as f64),
+        LibFn::PathItem | LibFn::PathItemReverse => {
+            let path = txt(0);
+            let parts: Vec<&str> = path.split('|').collect();
+            let n = int(1);
+            if n < 1 || n as usize > parts.len() {
+                Value::Blank
+            } else if f == LibFn::PathItem {
+                Value::Text(parts[n as usize - 1].to_string())
+            } else {
+                Value::Text(parts[parts.len() - n as usize].to_string())
+            }
+        }
+        LibFn::PathContains => Value::Bool(txt(0).split('|').any(|p| p == txt(1))),
         LibFn::Upper => Value::Text(txt(0).to_uppercase()),
         LibFn::Lower => Value::Text(txt(0).to_lowercase()),
         LibFn::Len => Value::Num(txt(0).chars().count() as f64),

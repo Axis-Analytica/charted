@@ -1,5 +1,5 @@
 {
- "fixture": "5479d79bcbcd9923",
+ "fixture": "e67d4e7e43f2143e",
  "powerbi": "Power BI Service",
  "results": {
   "Abs Gap / by category": {
@@ -36413,6 +36413,379 @@
     ]
    ]
   },
+  "Path Pieces / by category": {
+   "hash": "599af8635acd727f",
+   "rows": [
+    [
+     "Camping",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Footwear",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Apparel",
+     "6/6/3/TRUE"
+    ],
+    [
+     null,
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by category and year": {
+   "hash": "5697d0bc3378c6a2",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Footwear",
+     2024,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Apparel",
+     2024,
+     "6/6/3/TRUE"
+    ],
+    [
+     null,
+     2024,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Camping",
+     2025,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Footwear",
+     2025,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Apparel",
+     2025,
+     "6/6/3/TRUE"
+    ],
+    [
+     null,
+     2025,
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by color, apparel and camping": {
+   "hash": "3ca888f5ebba8e98",
+   "rows": [
+    [
+     null,
+     "6/6/3/TRUE"
+    ],
+    [
+     "Green",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Black",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Red",
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by month in 2025, camping": {
+   "hash": "eac3c0dad2c53cf8",
+   "rows": [
+    [
+     1,
+     "6/6/3/TRUE"
+    ],
+    [
+     2,
+     "6/6/3/TRUE"
+    ],
+    [
+     3,
+     "6/6/3/TRUE"
+    ],
+    [
+     4,
+     "6/6/3/TRUE"
+    ],
+    [
+     5,
+     "6/6/3/TRUE"
+    ],
+    [
+     6,
+     "6/6/3/TRUE"
+    ],
+    [
+     7,
+     "6/6/3/TRUE"
+    ],
+    [
+     8,
+     "6/6/3/TRUE"
+    ],
+    [
+     9,
+     "6/6/3/TRUE"
+    ],
+    [
+     10,
+     "6/6/3/TRUE"
+    ],
+    [
+     11,
+     "6/6/3/TRUE"
+    ],
+    [
+     12,
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by month name": {
+   "hash": "05226d302e8a62c9",
+   "rows": [
+    [
+     "January",
+     "6/6/3/TRUE"
+    ],
+    [
+     "February",
+     "6/6/3/TRUE"
+    ],
+    [
+     "March",
+     "6/6/3/TRUE"
+    ],
+    [
+     "April",
+     "6/6/3/TRUE"
+    ],
+    [
+     "May",
+     "6/6/3/TRUE"
+    ],
+    [
+     "June",
+     "6/6/3/TRUE"
+    ],
+    [
+     "July",
+     "6/6/3/TRUE"
+    ],
+    [
+     "August",
+     "6/6/3/TRUE"
+    ],
+    [
+     "September",
+     "6/6/3/TRUE"
+    ],
+    [
+     "October",
+     "6/6/3/TRUE"
+    ],
+    [
+     "November",
+     "6/6/3/TRUE"
+    ],
+    [
+     "December",
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by product, camping": {
+   "hash": "b786d4baac89f773",
+   "rows": [
+    [
+     "Tent",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Stove",
+     "6/6/3/TRUE"
+    ],
+    [
+     "Lamp",
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by region in 2025": {
+   "hash": "5e18cad35a24d09c",
+   "rows": [
+    [
+     "North",
+     "4/6/3/TRUE"
+    ],
+    [
+     "South",
+     "5/5/3/TRUE"
+    ],
+    [
+     "Online",
+     "6/4/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by year": {
+   "hash": "7cb374aa1370c895",
+   "rows": [
+    [
+     2024,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / by year and month": {
+   "hash": "51898bacc464f2c8",
+   "rows": [
+    [
+     2024,
+     1,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     1,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     2,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     2,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     3,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     3,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     4,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     4,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     5,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     5,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     6,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     6,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     7,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     7,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     8,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     8,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     9,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     9,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     10,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     10,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     11,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     11,
+     "6/6/3/TRUE"
+    ],
+    [
+     2024,
+     12,
+     "6/6/3/TRUE"
+    ],
+    [
+     2025,
+     12,
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
+  "Path Pieces / card": {
+   "hash": "a40e9305588dc544",
+   "rows": [
+    [
+     "6/6/3/TRUE"
+    ]
+   ]
+  },
   "Per Product / by category": {
    "hash": "3ec914dfcf4e7775",
    "rows": [
@@ -45223,6 +45596,281 @@
    "rows": [
     [
      9
+    ]
+   ]
+  },
+  "Qty Red Green / by category": {
+   "hash": "6221a344844eac74",
+   "rows": [
+    [
+     "Camping",
+     52
+    ],
+    [
+     "Apparel",
+     70
+    ]
+   ]
+  },
+  "Qty Red Green / by category and year": {
+   "hash": "89bc1ac206fc16e1",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     25
+    ],
+    [
+     "Apparel",
+     2024,
+     20
+    ],
+    [
+     "Camping",
+     2025,
+     27
+    ],
+    [
+     "Apparel",
+     2025,
+     50
+    ]
+   ]
+  },
+  "Qty Red Green / by color, apparel and camping": {
+   "hash": "a70cf3cd446e1f3f",
+   "rows": [
+    [
+     null,
+     122
+    ],
+    [
+     "Green",
+     122
+    ],
+    [
+     "Black",
+     122
+    ],
+    [
+     "Red",
+     122
+    ]
+   ]
+  },
+  "Qty Red Green / by month in 2025, camping": {
+   "hash": "d78a482d52827ddf",
+   "rows": [
+    [
+     3,
+     8
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     6,
+     5
+    ],
+    [
+     7,
+     9
+    ],
+    [
+     9,
+     4
+    ]
+   ]
+  },
+  "Qty Red Green / by month name": {
+   "hash": "e9f17dab93e3afd6",
+   "rows": [
+    [
+     "January",
+     12
+    ],
+    [
+     "February",
+     1
+    ],
+    [
+     "March",
+     17
+    ],
+    [
+     "April",
+     6
+    ],
+    [
+     "May",
+     20
+    ],
+    [
+     "June",
+     9
+    ],
+    [
+     "July",
+     14
+    ],
+    [
+     "August",
+     17
+    ],
+    [
+     "September",
+     20
+    ],
+    [
+     "October",
+     6
+    ]
+   ]
+  },
+  "Qty Red Green / by product, camping": {
+   "hash": "358f4e16743873b0",
+   "rows": [
+    [
+     "Tent",
+     25
+    ],
+    [
+     "Lamp",
+     27
+    ]
+   ]
+  },
+  "Qty Red Green / by region in 2025": {
+   "hash": "12fe7d16bf5e3eeb",
+   "rows": [
+    [
+     "North",
+     16
+    ],
+    [
+     "South",
+     28
+    ],
+    [
+     "Online",
+     33
+    ]
+   ]
+  },
+  "Qty Red Green / by year": {
+   "hash": "6f48ca431970258a",
+   "rows": [
+    [
+     2024,
+     45
+    ],
+    [
+     2025,
+     77
+    ]
+   ]
+  },
+  "Qty Red Green / by year and month": {
+   "hash": "a73f272ef71bb9af",
+   "rows": [
+    [
+     2024,
+     1,
+     5
+    ],
+    [
+     2025,
+     1,
+     7
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2024,
+     3,
+     4
+    ],
+    [
+     2025,
+     3,
+     13
+    ],
+    [
+     2024,
+     4,
+     4
+    ],
+    [
+     2025,
+     4,
+     2
+    ],
+    [
+     2024,
+     5,
+     9
+    ],
+    [
+     2025,
+     5,
+     11
+    ],
+    [
+     2024,
+     6,
+     4
+    ],
+    [
+     2025,
+     6,
+     5
+    ],
+    [
+     2024,
+     7,
+     5
+    ],
+    [
+     2025,
+     7,
+     9
+    ],
+    [
+     2024,
+     8,
+     1
+    ],
+    [
+     2025,
+     8,
+     16
+    ],
+    [
+     2024,
+     9,
+     12
+    ],
+    [
+     2025,
+     9,
+     8
+    ],
+    [
+     2025,
+     10,
+     6
+    ]
+   ]
+  },
+  "Qty Red Green / card": {
+   "hash": "0c4aeccbd6cffc63",
+   "rows": [
+    [
+     122
     ]
    ]
   },
@@ -60012,6 +60660,658 @@
     ]
    ]
   },
+  "Targets On Order Months / by category": {
+   "hash": "cc3337227abdc760",
+   "rows": [
+    [
+     "Camping",
+     37480.0
+    ],
+    [
+     "Footwear",
+     33410.0
+    ],
+    [
+     "Apparel",
+     38800.0
+    ],
+    [
+     null,
+     2520.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by category and year": {
+   "hash": "2fdfa827c9b7a819",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     18640.0
+    ],
+    [
+     "Footwear",
+     2024,
+     7320.0
+    ],
+    [
+     "Apparel",
+     2024,
+     16240.0
+    ],
+    [
+     "Camping",
+     2025,
+     18840.0
+    ],
+    [
+     "Footwear",
+     2025,
+     26090.0
+    ],
+    [
+     "Apparel",
+     2025,
+     22560.0
+    ],
+    [
+     null,
+     2025,
+     2520.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by color, apparel and camping": {
+   "hash": "b31cbf9d9f307c2b",
+   "rows": [
+    [
+     "Green",
+     32560.0
+    ],
+    [
+     null,
+     27560.0
+    ],
+    [
+     "Red",
+     33720.0
+    ],
+    [
+     "Black",
+     21200.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by month in 2025, camping": {
+   "hash": "26b20e9c6abf314b",
+   "rows": [
+    [
+     1,
+     2320.0
+    ],
+    [
+     3,
+     2560.0
+    ],
+    [
+     4,
+     3720.0
+    ],
+    [
+     6,
+     2520.0
+    ],
+    [
+     7,
+     2640.0
+    ],
+    [
+     9,
+     2480.0
+    ],
+    [
+     10,
+     2600.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by month name": {
+   "hash": "35c60a8a86846ec6",
+   "rows": [
+    [
+     "January",
+     4640.0
+    ],
+    [
+     "February",
+     6090.0
+    ],
+    [
+     "March",
+     5120.0
+    ],
+    [
+     "April",
+     7440.0
+    ],
+    [
+     "May",
+     4800.0
+    ],
+    [
+     "June",
+     5040.0
+    ],
+    [
+     "July",
+     5280.0
+    ],
+    [
+     "August",
+     7680.0
+    ],
+    [
+     "September",
+     4960.0
+    ],
+    [
+     "October",
+     5200.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by product, camping": {
+   "hash": "ab203cdbe54bfccc",
+   "rows": [
+    [
+     "Tent",
+     22640.0
+    ],
+    [
+     "Stove",
+     21200.0
+    ],
+    [
+     "Lamp",
+     12560.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by region in 2025": {
+   "hash": "3e65fce563acf727",
+   "rows": [
+    [
+     "North",
+     6930.0
+    ],
+    [
+     "South",
+     8770.0
+    ],
+    [
+     "Online",
+     8160.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by year": {
+   "hash": "89a1ec901f68692a",
+   "rows": [
+    [
+     2024,
+     27520.0
+    ],
+    [
+     2025,
+     28730.0
+    ]
+   ]
+  },
+  "Targets On Order Months / by year and month": {
+   "hash": "2b6bf79a79e3d1db",
+   "rows": [
+    [
+     2024,
+     1,
+     2320.0
+    ],
+    [
+     2025,
+     1,
+     2320.0
+    ],
+    [
+     2024,
+     2,
+     2440.0
+    ],
+    [
+     2025,
+     2,
+     3650.0
+    ],
+    [
+     2024,
+     3,
+     2560.0
+    ],
+    [
+     2025,
+     3,
+     2560.0
+    ],
+    [
+     2024,
+     4,
+     3720.0
+    ],
+    [
+     2025,
+     4,
+     3720.0
+    ],
+    [
+     2024,
+     5,
+     2400.0
+    ],
+    [
+     2025,
+     5,
+     2400.0
+    ],
+    [
+     2024,
+     6,
+     2520.0
+    ],
+    [
+     2025,
+     6,
+     2520.0
+    ],
+    [
+     2024,
+     7,
+     2640.0
+    ],
+    [
+     2025,
+     7,
+     2640.0
+    ],
+    [
+     2024,
+     8,
+     3840.0
+    ],
+    [
+     2025,
+     8,
+     3840.0
+    ],
+    [
+     2024,
+     9,
+     2480.0
+    ],
+    [
+     2025,
+     9,
+     2480.0
+    ],
+    [
+     2024,
+     10,
+     2600.0
+    ],
+    [
+     2025,
+     10,
+     2600.0
+    ]
+   ]
+  },
+  "Targets On Order Months / card": {
+   "hash": "7efea672a6109b7f",
+   "rows": [
+    [
+     56250.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by category": {
+   "hash": "414c8409025e66f5",
+   "rows": [
+    [
+     "Camping",
+     41300.0
+    ],
+    [
+     "Footwear",
+     41300.0
+    ],
+    [
+     "Apparel",
+     41300.0
+    ],
+    [
+     null,
+     41300.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by category and year": {
+   "hash": "6f30a75f75c43bf2",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     17440.0
+    ],
+    [
+     "Footwear",
+     2024,
+     17440.0
+    ],
+    [
+     "Apparel",
+     2024,
+     17440.0
+    ],
+    [
+     null,
+     2024,
+     17440.0
+    ],
+    [
+     "Camping",
+     2025,
+     23860.0
+    ],
+    [
+     "Footwear",
+     2025,
+     23860.0
+    ],
+    [
+     "Apparel",
+     2025,
+     23860.0
+    ],
+    [
+     null,
+     2025,
+     23860.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by color, apparel and camping": {
+   "hash": "98f4f3223fd5ae64",
+   "rows": [
+    [
+     null,
+     41300.0
+    ],
+    [
+     "Green",
+     41300.0
+    ],
+    [
+     "Black",
+     41300.0
+    ],
+    [
+     "Red",
+     41300.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by month in 2025, camping": {
+   "hash": "dacfb11302d7a9c4",
+   "rows": [
+    [
+     1,
+     2320.0
+    ],
+    [
+     2,
+     1320.0
+    ],
+    [
+     3,
+     2560.0
+    ],
+    [
+     4,
+     2380.0
+    ],
+    [
+     5,
+     2400.0
+    ],
+    [
+     6,
+     2520.0
+    ],
+    [
+     7,
+     2640.0
+    ],
+    [
+     8,
+     3840.0
+    ],
+    [
+     9,
+     2480.0
+    ],
+    [
+     10,
+     1400.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by month name": {
+   "hash": "a2ca5e0eabf82153",
+   "rows": [
+    [
+     "January",
+     4640.0
+    ],
+    [
+     "February",
+     3760.0
+    ],
+    [
+     "March",
+     5120.0
+    ],
+    [
+     "April",
+     4960.0
+    ],
+    [
+     "May",
+     4800.0
+    ],
+    [
+     "June",
+     2520.0
+    ],
+    [
+     "July",
+     3910.0
+    ],
+    [
+     "August",
+     5020.0
+    ],
+    [
+     "September",
+     3770.0
+    ],
+    [
+     "October",
+     2800.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by product, camping": {
+   "hash": "ebd688a5238382b9",
+   "rows": [
+    [
+     "Tent",
+     41300.0
+    ],
+    [
+     "Stove",
+     41300.0
+    ],
+    [
+     "Lamp",
+     41300.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by region in 2025": {
+   "hash": "cf8a05239de6f8d8",
+   "rows": [
+    [
+     "North",
+     6930.0
+    ],
+    [
+     "South",
+     8770.0
+    ],
+    [
+     "Online",
+     8160.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by year": {
+   "hash": "9b16160e5f3e249f",
+   "rows": [
+    [
+     2024,
+     17440.0
+    ],
+    [
+     2025,
+     23860.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / by year and month": {
+   "hash": "2584235343c63114",
+   "rows": [
+    [
+     2024,
+     1,
+     2320.0
+    ],
+    [
+     2025,
+     1,
+     2320.0
+    ],
+    [
+     2024,
+     2,
+     2440.0
+    ],
+    [
+     2025,
+     2,
+     1320.0
+    ],
+    [
+     2024,
+     3,
+     2560.0
+    ],
+    [
+     2025,
+     3,
+     2560.0
+    ],
+    [
+     2024,
+     4,
+     2580.0
+    ],
+    [
+     2025,
+     4,
+     2380.0
+    ],
+    [
+     2024,
+     5,
+     2400.0
+    ],
+    [
+     2025,
+     5,
+     2400.0
+    ],
+    [
+     2025,
+     6,
+     2520.0
+    ],
+    [
+     2024,
+     7,
+     1270.0
+    ],
+    [
+     2025,
+     7,
+     2640.0
+    ],
+    [
+     2024,
+     8,
+     1180.0
+    ],
+    [
+     2025,
+     8,
+     3840.0
+    ],
+    [
+     2024,
+     9,
+     1290.0
+    ],
+    [
+     2025,
+     9,
+     2480.0
+    ],
+    [
+     2024,
+     10,
+     1400.0
+    ],
+    [
+     2025,
+     10,
+     1400.0
+    ]
+   ]
+  },
+  "Targets On Order Stores / card": {
+   "hash": "34ae4a2c524aec20",
+   "rows": [
+    [
+     41300.0
+    ]
+   ]
+  },
   "Tens Rank Dense / by category": {
    "hash": "2e83171704306cba",
    "rows": [
@@ -63537,6 +64837,379 @@
   "Upper Category / card": {
    "hash": "3269421039ad194a",
    "rows": []
+  },
+  "Value Of Text / by category": {
+   "hash": "6ccfc8128bfc04e7",
+   "rows": [
+    [
+     "Camping",
+     46614.0
+    ],
+    [
+     "Footwear",
+     46605.0
+    ],
+    [
+     "Apparel",
+     46643.0
+    ],
+    [
+     null,
+     46535.0
+    ]
+   ]
+  },
+  "Value Of Text / by category and year": {
+   "hash": "b1bd580623f5ef6e",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     46562.0
+    ],
+    [
+     "Footwear",
+     2024,
+     46546.0
+    ],
+    [
+     "Apparel",
+     2024,
+     46570.0
+    ],
+    [
+     null,
+     2024,
+     46532.0
+    ],
+    [
+     "Camping",
+     2025,
+     46584.0
+    ],
+    [
+     "Footwear",
+     2025,
+     46591.0
+    ],
+    [
+     "Apparel",
+     2025,
+     46605.0
+    ],
+    [
+     null,
+     2025,
+     46535.0
+    ]
+   ]
+  },
+  "Value Of Text / by color, apparel and camping": {
+   "hash": "62de440f4de50458",
+   "rows": [
+    [
+     null,
+     46573.0
+    ],
+    [
+     "Green",
+     46584.0
+    ],
+    [
+     "Black",
+     46562.0
+    ],
+    [
+     "Red",
+     46602.0
+    ]
+   ]
+  },
+  "Value Of Text / by month in 2025, camping": {
+   "hash": "fc02112b9af99478",
+   "rows": [
+    [
+     1,
+     46535.0
+    ],
+    [
+     2,
+     46532.0
+    ],
+    [
+     3,
+     46540.0
+    ],
+    [
+     4,
+     46542.0
+    ],
+    [
+     5,
+     46532.0
+    ],
+    [
+     6,
+     46542.0
+    ],
+    [
+     7,
+     46543.0
+    ],
+    [
+     8,
+     46532.0
+    ],
+    [
+     9,
+     46538.0
+    ],
+    [
+     10,
+     46536.0
+    ],
+    [
+     11,
+     46532.0
+    ],
+    [
+     12,
+     46532.0
+    ]
+   ]
+  },
+  "Value Of Text / by month name": {
+   "hash": "1140baae3b9d264d",
+   "rows": [
+    [
+     "January",
+     46574.0
+    ],
+    [
+     "February",
+     46542.0
+    ],
+    [
+     "March",
+     46559.0
+    ],
+    [
+     "April",
+     46562.0
+    ],
+    [
+     "May",
+     46569.0
+    ],
+    [
+     "June",
+     46554.0
+    ],
+    [
+     "July",
+     46556.0
+    ],
+    [
+     "August",
+     46555.0
+    ],
+    [
+     "September",
+     46565.0
+    ],
+    [
+     "October",
+     46553.0
+    ],
+    [
+     "November",
+     46532.0
+    ],
+    [
+     "December",
+     46532.0
+    ]
+   ]
+  },
+  "Value Of Text / by product, camping": {
+   "hash": "d7bd0a91544277ab",
+   "rows": [
+    [
+     "Tent",
+     46557.0
+    ],
+    [
+     "Stove",
+     46562.0
+    ],
+    [
+     "Lamp",
+     46559.0
+    ]
+   ]
+  },
+  "Value Of Text / by region in 2025": {
+   "hash": "d6bec8ec3b9166ec",
+   "rows": [
+    [
+     "North",
+     46580.0
+    ],
+    [
+     "South",
+     46583.0
+    ],
+    [
+     "Online",
+     46620.0
+    ]
+   ]
+  },
+  "Value Of Text / by year": {
+   "hash": "6b42588f9640b909",
+   "rows": [
+    [
+     2024,
+     46614.0
+    ],
+    [
+     2025,
+     46719.0
+    ]
+   ]
+  },
+  "Value Of Text / by year and month": {
+   "hash": "f3dbbe97cad81248",
+   "rows": [
+    [
+     2024,
+     1,
+     46544.0
+    ],
+    [
+     2025,
+     1,
+     46562.0
+    ],
+    [
+     2024,
+     2,
+     46536.0
+    ],
+    [
+     2025,
+     2,
+     46538.0
+    ],
+    [
+     2024,
+     3,
+     46541.0
+    ],
+    [
+     2025,
+     3,
+     46550.0
+    ],
+    [
+     2024,
+     4,
+     46540.0
+    ],
+    [
+     2025,
+     4,
+     46554.0
+    ],
+    [
+     2024,
+     5,
+     46548.0
+    ],
+    [
+     2025,
+     5,
+     46553.0
+    ],
+    [
+     2024,
+     6,
+     46540.0
+    ],
+    [
+     2025,
+     6,
+     46546.0
+    ],
+    [
+     2024,
+     7,
+     46541.0
+    ],
+    [
+     2025,
+     7,
+     46547.0
+    ],
+    [
+     2024,
+     8,
+     46533.0
+    ],
+    [
+     2025,
+     8,
+     46554.0
+    ],
+    [
+     2024,
+     9,
+     46544.0
+    ],
+    [
+     2025,
+     9,
+     46553.0
+    ],
+    [
+     2024,
+     10,
+     46535.0
+    ],
+    [
+     2025,
+     10,
+     46550.0
+    ],
+    [
+     2024,
+     11,
+     46532.0
+    ],
+    [
+     2025,
+     11,
+     46532.0
+    ],
+    [
+     2024,
+     12,
+     46532.0
+    ],
+    [
+     2025,
+     12,
+     46532.0
+    ]
+   ]
+  },
+  "Value Of Text / card": {
+   "hash": "8cf3777c647bccd4",
+   "rows": [
+    [
+     46801.0
+    ]
+   ]
   },
   "Var Ratio / by category": {
    "hash": "a8a4f807caaa8268",

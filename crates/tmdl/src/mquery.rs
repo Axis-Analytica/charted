@@ -1,6 +1,7 @@
 //! Understands the common shapes of Power Query (M) that load a table from a file —
 //! CSV, Excel, Parquet and JSON, with promoted headers, type changes, removed,
-//! selected and renamed columns, skipped and kept rows and distinct rows — as a
+//! selected and renamed columns, skipped and kept rows, distinct, sorted and grouped
+//! rows (including the first or last row of each group) — as a
 //! charted source and steps. Anything else is reported, not guessed.
 
 use charted_compiler::steps::{Source, Step};
@@ -683,6 +684,158 @@ pub fn decimal_comma_culture(culture: &str) -> bool {
     COMMA.contains(&lang) && !POINT.contains(&c.as_str())
 }
 
+/// `{{"a", Order.Ascending}, "b"}` (or one pair) as columns and whether descending.
+fn sort_order(m: &M) -> Option<Vec<(String, bool)>> {
+    let one = |m: &M| -> Option<(String, bool)> {
+        match m {
+            M::Str(c) => Some((c.clone(), false)),
+            M::List(kv) => match kv.as_slice() {
+                [M::Str(c)] => Some((c.clone(), false)),
+                [M::Str(c), M::Ident(o)] if o == "Order.Ascending" => Some((c.clone(), false)),
+                [M::Str(c), M::Ident(o)] if o == "Order.Descending" => Some((c.clone(), true)),
+                [M::Str(c), M::Num(n)] => Some((c.clone(), *n == 1.0)),
+                _ => None,
+            },
+            _ => None,
+        }
+    };
+    match m {
+        M::Str(_) => one(m).map(|x| vec![x]),
+        M::List(xs) if matches!(xs.first(), Some(M::Str(_))) && xs.len() == 2 => one(m)
+            .map(|x| vec![x])
+            .or_else(|| xs.iter().map(one).collect()),
+        M::List(xs) if !xs.is_empty() => xs.iter().map(one).collect(),
+        _ => None,
+    }
+}
+
+enum Grouping {
+    Aggregates(Vec<charted_compiler::steps::Aggregate>),
+    /// One whole row kept per group, in a column of tables: what it's called and the
+    /// steps that keep the same rows.
+    Row(String, Vec<Step>),
+}
+
+/// What `Table.Group`'s aggregations do: ordinary aggregates, or keeping the first or
+/// last row of each group by an order (`each Table.LastN(Table.Sort(_, …), 1)`).
+fn group(m: &M, keys: &[String]) -> Result<Grouping, String> {
+    use charted_compiler::steps::{AggOp, Aggregate};
+    let M::List(items) = m else {
+        return Err("its aggregations aren't a list".into());
+    };
+    // One aggregation may be given on its own: {"n", each …, type …}.
+    let items: Vec<&M> = if matches!(items.first(), Some(M::Str(_))) {
+        vec![m]
+    } else {
+        items.iter().collect()
+    };
+    let mut aggregates = Vec::new();
+    for item in &items {
+        let (Some(M::Str(name)), Some(M::Other(body))) = (
+            match item {
+                M::List(x) => x.first(),
+                _ => None,
+            },
+            match item {
+                M::List(x) => x.get(1),
+                _ => None,
+            },
+        ) else {
+            return Err("an aggregation isn't a name and a function".into());
+        };
+        let body = body.strip_prefix("each").unwrap_or(body).trim();
+        let compact: String = body.chars().filter(|c| !c.is_whitespace()).collect();
+        let column = |inner: &str| -> Option<String> {
+            let c = inner.strip_prefix('[')?.strip_suffix(']')?;
+            let c = c
+                .strip_prefix("#\"")
+                .and_then(|c| c.strip_suffix('"'))
+                .unwrap_or(c);
+            (!c.is_empty()).then(|| c.to_string())
+        };
+        let call = |f: &str| -> Option<&str> {
+            compact
+                .strip_prefix(f)?
+                .strip_prefix('(')?
+                .strip_suffix(')')
+        };
+        // Whole rows: the first or last of each group in an order.
+        let pick = [("Table.FirstN", false), ("Table.LastN", true)]
+            .into_iter()
+            .find_map(|(f, last)| {
+                let inner = call(f)?.strip_suffix(",1")?;
+                inner.strip_prefix("Table.Sort(_,")?.strip_suffix(')')?;
+                Some(last)
+            });
+        if let Some(last) = pick {
+            if items.len() != 1 {
+                return Err("it keeps whole rows alongside other aggregations".into());
+            }
+            // The order's text again, through the reader (it has no spaces to lose).
+            let spec = order_text(body).ok_or("it sorts in a way charted can't read")?;
+            let mut columns = sort_order(&spec).ok_or("it sorts in a way charted can't read")?;
+            if last {
+                // The last row in an order is the first in the reverse order.
+                for c in &mut columns {
+                    c.1 = !c.1;
+                }
+            }
+            return Ok(Grouping::Row(
+                name.clone(),
+                vec![
+                    Step::SortRows { columns },
+                    Step::RemoveDuplicates {
+                        columns: keys.to_vec(),
+                    },
+                ],
+            ));
+        }
+        let (op, col) = if compact == "Table.RowCount(_)" || compact == "List.Count(_)" {
+            (AggOp::CountRows, None)
+        } else if let Some(c) = call("List.Count").and_then(|i| {
+            i.strip_prefix("List.Distinct(")
+                .and_then(|i| i.strip_suffix(')'))
+                .and_then(column)
+        }) {
+            (AggOp::CountDistinct, Some(c))
+        } else if let Some(c) = call("List.NonNullCount").and_then(column) {
+            (AggOp::Count, Some(c))
+        } else if let Some(_c) = call("List.Count").and_then(column) {
+            (AggOp::CountRows, None)
+        } else {
+            let found = [
+                ("List.Sum", AggOp::Sum),
+                ("List.Average", AggOp::Average),
+                ("List.Min", AggOp::Min),
+                ("List.Max", AggOp::Max),
+            ]
+            .into_iter()
+            .find_map(|(f, op)| Some((op, Some(call(f).and_then(column)?))));
+            found.ok_or_else(|| format!("its aggregation \"{name}\" isn't one charted knows"))?
+        };
+        aggregates.push(Aggregate {
+            name: name.clone(),
+            op,
+            column: col,
+        });
+    }
+    Ok(Grouping::Aggregates(aggregates))
+}
+
+/// The sort order inside `Table.FirstN(Table.Sort(_, ORDER), 1)`, parsed.
+fn order_text(body: &str) -> Option<M> {
+    let start = body.find("Table.Sort(")? + "Table.Sort(".len();
+    let mut l = Lexer {
+        s: &body[start..],
+        i: 0,
+    };
+    // `_`, then the order.
+    if l.next() != Tok::Ident("_".into()) || l.next() != Tok::Sym(',') {
+        return None;
+    }
+    expr(&mut l).ok()
+}
+
 fn count(m: &M) -> Option<u32> {
     match m {
         M::Num(n) if *n >= 0.0 && n.fract() == 0.0 => Some(*n as u32),
@@ -748,6 +901,9 @@ fn to_query_at(
     let mut dates = false;
     // An entered table's columns are text until its first type change.
     let mut untyped = false;
+    // A grouping that keeps one whole row per key: (its step, its column, the steps it
+    // becomes once `Table.Combine` takes the rows back out).
+    let mut picked: Option<(&str, String, Vec<Step>)> = None;
     for (name, e) in &steps[..=end] {
         let call = match e {
             M::Call(f, args) => Some((name_of(f), args.as_slice())),
@@ -932,6 +1088,19 @@ fn to_query_at(
                     header: false,
                 });
             }
+            (Some(_), Some((f, args)), _)
+                if f == "Table.Combine"
+                    && matches!(&picked, Some((step, column, _))
+                        if matches!(args, [M::Field(t, c)]
+                            if matches!(&**t, M::Ident(n) if n == step) && c == column)) =>
+            {
+                out.extend(picked.take().map(|p| p.2).unwrap_or_default());
+            }
+            _ if picked.is_some() => {
+                return Err(format!(
+                    "step \"{name}\" uses grouped rows other than with Table.Combine"
+                ));
+            }
             (Some(_), Some((f, args)), _) if on_prev(args) => match f.as_str() {
                 "Table.PromoteHeaders" if out.is_empty() => match source.as_mut() {
                     Some(Source::Csv { header, .. } | Source::Excel { header, .. }) if !*header => {
@@ -1068,15 +1237,39 @@ fn to_query_at(
                         .and_then(count)
                         .ok_or("it keeps a number of rows charted can't read")?,
                 }),
-                "Table.Distinct" if args.len() == 1 => out.push(Step::RemoveDuplicates {
-                    columns: Vec::new(),
+                "Table.Distinct" => out.push(Step::RemoveDuplicates {
+                    columns: match args.get(1) {
+                        None => Vec::new(),
+                        Some(m) => texts(m).ok_or("its columns aren't a list of names")?,
+                    },
                 }),
+                "Table.Sort" => out.push(Step::SortRows {
+                    columns: args
+                        .get(1)
+                        .and_then(sort_order)
+                        .ok_or("it sorts in a way charted can't read")?,
+                }),
+                "Table.Group" if args.len() == 3 => {
+                    let keys = args
+                        .get(1)
+                        .and_then(texts)
+                        .ok_or("it groups by columns charted can't read")?;
+                    match group(&args[2], &keys)? {
+                        Grouping::Aggregates(aggregates) => {
+                            out.push(Step::GroupBy { keys, aggregates })
+                        }
+                        Grouping::Row(column, steps) => picked = Some((name, column, steps)),
+                    }
+                }
                 other => return Err(format!("step \"{name}\" uses {other}")),
             },
             (None, Some((f, _)), _) => return Err(format!("it reads data with {f}")),
             _ => return Err(format!("step \"{name}\" isn't one charted understands")),
         }
         prev = Some(name);
+    }
+    if picked.is_some() {
+        return Err("it groups rows into tables and leaves them grouped".into());
     }
     match source {
         _ if dates => Err("it makes a list of dates, not a table".into()),
@@ -1123,6 +1316,64 @@ in
                 ]
             }
         );
+    }
+
+    #[test]
+    fn group_keeping_the_latest_row_and_aggregates() {
+        let params = BTreeMap::new();
+        let m = r#"let
+    Source = Csv.Document(File.Contents("/d/cc.csv"), [Delimiter = ","]),
+    Rows = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+    // Keep the latest leg per business_key.
+    Grouped = Table.Group(Rows, {"business_key"}, {{"leg", each Table.LastN(Table.Sort(_, {{"valid_from", Order.Ascending}}), 1)}}),
+    Latest = Table.Combine(Grouped[leg]),
+    Sorted = Table.Sort(Latest, {{"name", Order.Descending}, "code"}),
+    Distinct = Table.Distinct(Sorted, {"code"}),
+    Totals = Table.Group(Distinct, {"code"}, {{"Total", each List.Sum([amount]), type number}, {"Rows", each Table.RowCount(_), Int64.Type}, {"Names", each List.Count(List.Distinct([name]))}})
+in
+    Totals"#;
+        let (_, steps) = to_query(m, &params).unwrap();
+        use charted_compiler::steps::{AggOp, Aggregate};
+        assert_eq!(
+            steps,
+            vec![
+                Step::SortRows {
+                    columns: vec![("valid_from".into(), true)]
+                },
+                Step::RemoveDuplicates {
+                    columns: vec!["business_key".into()]
+                },
+                Step::SortRows {
+                    columns: vec![("name".into(), true), ("code".into(), false)]
+                },
+                Step::RemoveDuplicates {
+                    columns: vec!["code".into()]
+                },
+                Step::GroupBy {
+                    keys: vec!["code".into()],
+                    aggregates: vec![
+                        Aggregate {
+                            name: "Total".into(),
+                            op: AggOp::Sum,
+                            column: Some("amount".into())
+                        },
+                        Aggregate {
+                            name: "Rows".into(),
+                            op: AggOp::CountRows,
+                            column: None
+                        },
+                        Aggregate {
+                            name: "Names".into(),
+                            op: AggOp::CountDistinct,
+                            column: Some("name".into())
+                        },
+                    ]
+                },
+            ]
+        );
+        // Grouped tables left grouped aren't something charted can load.
+        let left = m.replace("Latest = Table.Combine(Grouped[leg])", "Latest = Grouped");
+        assert!(to_query(&left, &params).is_err());
     }
 
     #[test]

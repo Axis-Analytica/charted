@@ -8,12 +8,13 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_QueryOrder = ["Product","Date","Store","Sales","Targets"]
+annotation PBI_QueryOrder = ["Product","Date","Store","Sales","Targets","Account"]
 
 ref table Product
 ref table Date
 ref table Store
 ref table Sales
 ref table Targets
+ref table Account
 
 ref cultureInfo en-US
