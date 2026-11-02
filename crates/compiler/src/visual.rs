@@ -18,9 +18,9 @@
 //!   aggregates of a row expression. Iterators whose expression needs context
 //!   transition get a frame of their own: the outer frame joined to the iterated rows,
 //!   with the expression evaluated per row and aggregated back.
-//! - The result rows are the key combinations where some aggregate has rows (each
-//!   CTE's keys, crossed with the distinct values of keys it cannot reach), minus rows
-//!   where every value is blank, like SUMMARIZECOLUMNS.
+//! - The result rows are every combination of the keys' values (existing ones within
+//!   a table, crossed between tables), minus rows where every value is blank, like
+//!   SUMMARIZECOLUMNS: a value that isn't blank without data shows on every row.
 //! - BLANK follows DAX: `+`/`-` treat it as zero unless both sides are blank, DIVIDE by
 //!   zero or blank gives the alternate result, counts of nothing are blank.
 
@@ -296,9 +296,6 @@ struct CteDef {
     sql: String,
     /// Frame key names it is grouped by (joined on).
     keys: Vec<String>,
-    /// Computed under the visual's own filters, so its key combinations are ones the
-    /// visual can show (otherwise they are checked against the key domains).
-    exact: bool,
 }
 
 struct Compiler<'a> {
@@ -315,12 +312,6 @@ struct Compiler<'a> {
     dom: Option<String>,
     dks: Vec<(Id, String, Vec<String>)>,
     counter: usize,
-    /// CTEs that give visual rows data besides the values' own: variables' values
-    /// (evaluated whether used or not, as the interpreter does).
-    extra_top: BTreeSet<usize>,
-    /// A value read the visual's own key (SELECTEDVALUE): every row of the key domain
-    /// has data.
-    dom_rows: bool,
     /// Row-level security conditions by table (row expressions over the table).
     security: Vec<(Id, Bound)>,
 }
@@ -520,13 +511,34 @@ fn eq_sql(a: &(String, ValueType), b: &(String, ValueType)) -> String {
 
 /// A value as text, as the interpreter's `Value::key` writes it (whole numbers without
 /// decimals), or NULL when it is blank.
+/// A number as DAX writes it as text: `charted_dax::format::general_number`'s rule
+/// (15 significant digits, E-notation past 15 digits either side of the point), from
+/// printf's `%.14e`. The number is computed once, through lambdas.
+fn general_number_sql(x: &str) -> String {
+    let body = "(CASE WHEN _h.neg THEN '-' ELSE '' END) || CASE \
+        WHEN _h.e < 15 AND (_h.e >= 0 OR -_h.e - 1 + length(_h.d) <= 15) THEN \
+            CASE WHEN _h.e < 0 THEN '0.' || repeat('0', -_h.e - 1) || _h.d \
+            WHEN length(_h.d) <= _h.e + 1 THEN _h.d || repeat('0', _h.e + 1 - length(_h.d)) \
+            ELSE left(_h.d, _h.e + 1) || '.' || substr(_h.d, _h.e + 2) END \
+        ELSE left(_h.d, 1) || CASE WHEN length(_h.d) > 1 THEN '.' || substr(_h.d, 2) ELSE '' END \
+            || 'E' || CASE WHEN _h.e < 0 THEN '-' ELSE '+' END || lpad(CAST(abs(_h.e) AS VARCHAR), 2, '0') END";
+    // Rounded to 15 significant digits first, halves away from zero (printf alone
+    // rounds a tie to even), as general_number does.
+    let s = "printf('%.14e', CASE WHEN 14 - floor(log10(abs(_g.x))) BETWEEN -300 AND 300 THEN round(abs(_g.x), CAST(14 - floor(log10(abs(_g.x))) AS INTEGER)) ELSE abs(_g.x) END)";
+    format!(
+        "list_transform([struct_pack(x := CAST({x} AS DOUBLE))], lambda _g: CASE WHEN _g.x IS NULL THEN NULL \
+        WHEN _g.x = 0 THEN '0' WHEN isnan(_g.x) THEN 'NaN' \
+        WHEN isinf(_g.x) THEN CASE WHEN _g.x > 0 THEN 'Infinity' ELSE '-Infinity' END \
+        ELSE list_transform([struct_pack(d := rtrim(replace(split_part({s}, 'e', 1), '.', ''), '0'), \
+            e := CAST(replace(split_part({s}, 'e', 2), '+', '') AS INTEGER), neg := _g.x < 0)], \
+            lambda _h: {body})[1] END)[1]"
+    )
+}
+
 fn text_or_null(x: &(String, ValueType)) -> String {
     match x.1 {
         ValueType::Text => x.0.clone(),
-        ValueType::Number => format!(
-            "(CASE WHEN {d} = trunc({d}) AND abs({d}) < 1e15 THEN CAST(CAST({d} AS BIGINT) AS VARCHAR) ELSE CAST({d} AS VARCHAR) END)",
-            d = format!("CAST({} AS DOUBLE)", x.0)
-        ),
+        ValueType::Number => general_number_sql(&x.0),
         ValueType::Bool | ValueType::Date => format!("CAST({} AS VARCHAR)", x.0),
     }
 }
@@ -619,8 +631,12 @@ fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
     match kind {
         ArgKind::Num => format!("coalesce(CAST({} AS DOUBLE), 0)", x.0),
         ArgKind::NumOrBlank => format!("CAST({} AS DOUBLE)", x.0),
-        ArgKind::Int => whole_sql(x),
+        ArgKind::Int => format!(
+            "CAST(round(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
+            x.0
+        ),
         ArgKind::Text => text_sql(x),
+        ArgKind::TextOrBlank => text_or_null(x),
     }
 }
 
@@ -681,6 +697,11 @@ fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
 /// Each library function in SQL, its arguments `a` already read as their kinds say.
 fn lib_template(f: LibFn, a: &[String]) -> String {
     let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
+    // The same message as the interpreter's (lib_fn).
+    let bad = format!(
+        "error('An argument of function ''{}'' has an invalid value.')",
+        f.name()
+    );
     match f {
         LibFn::Abs => format!("abs({})", a[0]),
         // TRUE and FALSE are 1 and 0 (INT ( x > 0 ) is a common idiom).
@@ -688,7 +709,7 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
         // DAX rounds halves away from zero, as DuckDB does.
         LibFn::Round => format!("round({}, CAST({} AS INTEGER))", a[0], a[1]),
         LibFn::Mod => format!(
-            "(CASE WHEN {d} = 0 THEN NULL ELSE {x} - {d} * floor({x} / {d}) END)",
+            "(CASE WHEN {d} = 0 THEN error('Division by zero has occurred when evaluating function ''MOD''.') ELSE {x} - {d} * floor({x} / {d}) END)",
             x = a[0],
             d = a[1]
         ),
@@ -696,11 +717,17 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
         LibFn::Lower => format!("lower({})", a[0]),
         LibFn::Len => format!("length({})", a[0]),
         LibFn::Trim => format!("trim(regexp_replace({}, ' +', ' ', 'g'))", a[0]),
-        LibFn::Left => format!("left({}, greatest({}, 0))", a[0], opt(1, "1")),
-        LibFn::Right => format!("right({}, greatest({}, 0))", a[0], opt(1, "1")),
+        LibFn::Left | LibFn::Right => format!(
+            "{}({}, CASE WHEN {n} < 0 THEN {bad} ELSE {n} END)",
+            f.name().to_lowercase(),
+            a[0],
+            n = opt(1, "1"),
+        ),
         LibFn::Mid => format!(
-            "substring({}, greatest({}, 1), greatest({}, 0))",
-            a[0], a[1], a[2]
+            "substring({}, CASE WHEN {s} < 1 OR {n} < 0 THEN {bad} ELSE {s} END, {n})",
+            a[0],
+            s = a[1],
+            n = a[2],
         ),
     }
 }
@@ -779,10 +806,13 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
             };
             let numeric = |t: ValueType| matches!(t, ValueType::Number | ValueType::Bool);
             if numeric(a[0].1) && numeric(a[1].1) {
-                // Numbers: blank counts as zero unless both are blank.
+                // Numbers: blank compares as zero but comes back as blank when it wins;
+                // on a tie the other one does (as interp's scalar). Each argument is
+                // computed once, through a lambda.
+                let op = if f == "least" { "<" } else { ">" };
                 (
                     format!(
-                        "(CASE WHEN ({x}) IS NULL AND ({y}) IS NULL THEN NULL ELSE {f}(coalesce(CAST({x} AS DOUBLE), 0), coalesce(CAST({y} AS DOUBLE), 0)) END)",
+                        "list_transform([struct_pack(x := CAST({x} AS DOUBLE), y := CAST({y} AS DOUBLE))], lambda _l: CASE WHEN coalesce(_l.x, 0) {op} coalesce(_l.y, 0) THEN _l.x WHEN coalesce(_l.y, 0) {op} coalesce(_l.x, 0) THEN _l.y ELSE coalesce(_l.x, _l.y) END)[1]",
                         x = a[0].0,
                         y = a[1].0
                     ),
@@ -813,12 +843,21 @@ fn call_sql(func: &ScalarFunc, a: &[(String, ValueType)]) -> Result<(String, Val
         }
         ScalarFunc::Format(spec) => (format_sql(spec, &a[0])?, ValueType::Text),
         ScalarFunc::Date => {
-            let y = whole_sql(&a[0]);
+            // As Power BI: the parts are rounded, months and days roll over, but a day
+            // of 0 or a year outside 1–9999 is an error (interp's `ScalarFunc::Date`).
+            let part = |x: &(String, ValueType)| {
+                format!(
+                    "CAST(round(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
+                    x.0
+                )
+            };
+            let bad = "error('An argument of function ''DATE'' has the wrong data type or the result is too large or too small.')";
             (
                 format!(
-                    "CAST(make_date(CASE WHEN {y} BETWEEN 0 AND 1899 THEN {y} + 1900 ELSE {y} END, 1, 1) + to_months(CAST({} - 1 AS INTEGER)) + to_days(CAST({} - 1 AS INTEGER)) AS DATE)",
-                    whole_sql(&a[1]),
-                    whole_sql(&a[2])
+                    "list_transform([struct_pack(y := {}, m := {}, d := {})], lambda _l: CASE WHEN _l.d = 0 THEN {bad} ELSE list_transform([CAST(make_date(CASE WHEN _l.y BETWEEN 0 AND 1899 THEN _l.y + 1900 ELSE _l.y END, 1, 1) + to_months(CAST(_l.m - 1 AS INTEGER)) + to_days(CAST(_l.d - 1 AS INTEGER)) AS DATE)], lambda _r: CASE WHEN year(_r) BETWEEN 1 AND 9999 THEN _r ELSE {bad} END)[1] END)[1]",
+                    part(&a[0]),
+                    part(&a[1]),
+                    part(&a[2])
                 ),
                 ValueType::Date,
             )
@@ -903,11 +942,13 @@ fn binary_sql(
                 ValueType::Number,
             )
         }
-        BinaryOp::Mul => (format!("(({a}) * ({b}))"), ValueType::Number),
+        // In doubles, as the interpreter: DuckDB's integer types overflow (1000000 *
+        // 1000000 is past INT32) where DAX's 64-bit integers don't.
+        BinaryOp::Mul => (format!("(CAST({a} AS DOUBLE) * ({b}))"), ValueType::Number),
         BinaryOp::Div => (format!("(({a}) / nullif({b}, 0))"), ValueType::Number),
         BinaryOp::Pow => (format!("power({a}, {b})"), ValueType::Number),
         BinaryOp::Concat => (
-            format!("(coalesce(CAST({a} AS VARCHAR), '') || coalesce(CAST({b} AS VARCHAR), ''))"),
+            format!("({} || {})", text_sql(l), text_sql(r)),
             ValueType::Text,
         ),
         BinaryOp::Eq => cmp("="),
@@ -1399,7 +1440,7 @@ impl<'a> Compiler<'a> {
         Ok((out_keys, preds, from, expands))
     }
 
-    fn add_cte(&mut self, sql: String, keys: Vec<String>, exact: bool) -> usize {
+    fn add_cte(&mut self, sql: String, keys: Vec<String>) -> usize {
         if let Some(i) = self
             .ctes
             .iter()
@@ -1408,18 +1449,8 @@ impl<'a> Compiler<'a> {
             return i;
         }
         let name = format!("c{}", self.ctes.len());
-        self.ctes.push(CteDef {
-            name,
-            sql,
-            keys,
-            exact,
-        });
+        self.ctes.push(CteDef { name, sql, keys });
         self.ctes.len() - 1
-    }
-
-    /// Whether a context is the visual's own (same filters, no relationship changes).
-    fn is_visual_ctx(&self, ctx: &Ctx) -> bool {
-        ctx.use_rels.is_empty() && ctx.filters == self.top_filters
     }
 
     /// An aggregate of a row expression over a table's rows, as a CTE value.
@@ -1573,10 +1604,7 @@ impl<'a> Compiler<'a> {
                 sql
             }
         };
-        // Joins across a Both relationship from its one side give rows without a match
-        // blank keys, which the visual may not have: check those against the domains.
-        let exact = self.is_visual_ctx(ctx) && !expands;
-        let i = self.add_cte(sql, key_names, exact);
+        let i = self.add_cte(sql, key_names);
         let ty = match (func, arg) {
             (AggFunc::Min | AggFunc::Max, Some(a)) => self.row(a, None)?.1,
             _ => ValueType::Number,
@@ -1695,7 +1723,6 @@ impl<'a> Compiler<'a> {
                 name: name.clone(),
                 sql,
                 keys: Vec::new(),
-                exact: true,
             });
             self.dks
                 .push((t.clone(), name, keys.into_iter().map(|k| k.name).collect()));
@@ -1725,7 +1752,6 @@ impl<'a> Compiler<'a> {
             name: name.clone(),
             sql,
             keys: Vec::new(),
-            exact: true,
         });
         self.dom = Some(name.clone());
         Ok(name)
@@ -1842,7 +1868,7 @@ impl<'a> Compiler<'a> {
             select.push(format!("{} AS v{i}", self.column_sql(table_id, c)?.0));
         }
         let sql = self.distinct_with_blank(&select.join(", "), table_id, &from, &preds)?;
-        let set = self.add_cte(sql, Vec::new(), false);
+        let set = self.add_cte(sql, Vec::new());
         Ok(CFilter {
             table: table_id.to_string(),
             columns: columns.to_vec(),
@@ -2073,7 +2099,7 @@ impl<'a> Compiler<'a> {
                 anchor(&b, "DATE '9999-12-31'")?,
             ),
         };
-        let set = self.add_cte(sql, Vec::new(), false);
+        let set = self.add_cte(sql, Vec::new());
         Ok(CFilter {
             table: table_id.to_string(),
             columns: vec![column.to_string()],
@@ -2367,7 +2393,7 @@ impl<'a> Compiler<'a> {
             ));
         }
         // Built over the key domain, so its keys are combinations the visual can show.
-        let i = self.add_cte(out, keys, true);
+        let i = self.add_cte(out, keys);
         Ok(Scalar {
             sql: format!("\u{1}{i}\u{1}"),
             ty: if matches!(func, AggFunc::Min | AggFunc::Max) {
@@ -2471,7 +2497,6 @@ impl<'a> Compiler<'a> {
                 }
             ),
             keys: Vec::new(),
-            exact: true,
         });
         self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows)
     }
@@ -2580,7 +2605,6 @@ impl<'a> Compiler<'a> {
             name: rows_name.clone(),
             sql,
             keys: Vec::new(),
-            exact: true,
         });
         self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows)
     }
@@ -2666,7 +2690,7 @@ impl<'a> Compiler<'a> {
                     .join(", ")
             ));
         }
-        let i = self.add_cte(sql, keys, true);
+        let i = self.add_cte(sql, keys);
         Ok(Scalar {
             sql: format!("\u{1}{i}\u{1}"),
             ty: ValueType::Text,
@@ -2714,13 +2738,6 @@ impl<'a> Compiler<'a> {
                 b
             }
         };
-        // Rows exist where some value has data, as for the other aggregates (reading the
-        // iterated rows' own columns isn't data).
-        let having = if row_pure(expr) {
-            format!(" HAVING bool_or({ov} IS NOT NULL)")
-        } else {
-            format!(" HAVING count({iv}) > 0 OR bool_or({ov} IS NOT NULL)")
-        };
         let (iv, ov) = (norm(iv, inner.ty), norm(ov, outer.ty));
         let beats = format!("{iv} {} {ov}", if ascending { "<" } else { ">" });
         let count = if dense {
@@ -2758,11 +2775,7 @@ impl<'a> Compiler<'a> {
                     .join(", ")
             ));
         }
-        // A card always has its one row.
-        if !keys.is_empty() {
-            sql.push_str(&having);
-        }
-        let i = self.add_cte(sql, keys, true);
+        let i = self.add_cte(sql, keys);
         Ok(Scalar {
             sql: format!("(1 + coalesce(\u{1}{i}\u{1}, 0))"),
             ty: ValueType::Number,
@@ -2814,7 +2827,7 @@ impl<'a> Compiler<'a> {
             "SELECT DISTINCT {} FROM {from} WHERE {cond_sql}",
             select.join(", ")
         );
-        let set = self.add_cte(sql, Vec::new(), false);
+        let set = self.add_cte(sql, Vec::new());
         // Matched on the columns that identify a row; replaces filters on all it has.
         let columns: Vec<Id> = ident.into_iter().map(|(c, _)| c).collect();
         Ok(CFilter {
@@ -2947,7 +2960,6 @@ impl<'a> Compiler<'a> {
                         }
                     ),
                     keys: Vec::new(),
-                    exact: true,
                 });
                 return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
             }
@@ -3022,7 +3034,6 @@ impl<'a> Compiler<'a> {
                     name: rows_name.clone(),
                     sql: format!("SELECT DISTINCT {} FROM {from}", select.join(", ")),
                     keys: Vec::new(),
-                    exact: true,
                 });
                 if cols.is_empty() {
                     return self.join_rows(&rows_name, &keys, binding, conds, ctx, frame, rows);
@@ -3112,7 +3123,6 @@ impl<'a> Compiler<'a> {
                     name: rows_name.clone(),
                     sql,
                     keys: Vec::new(),
-                    exact: true,
                 });
                 let binding = RowBinding {
                     table: String::new(),
@@ -3195,7 +3205,6 @@ impl<'a> Compiler<'a> {
                     name: rows_name.clone(),
                     sql,
                     keys: Vec::new(),
-                    exact: true,
                 });
                 let key = charted_dax::bind::ext_key(name);
                 let binding = RowBinding {
@@ -3238,7 +3247,6 @@ impl<'a> Compiler<'a> {
                 name: rows_name.clone(),
                 sql,
                 keys: Vec::new(),
-                exact: true,
             });
             let binding = RowBinding {
                 table: table.clone(),
@@ -3362,7 +3370,6 @@ impl<'a> Compiler<'a> {
             name: rows_name.clone(),
             sql: rows_sql,
             keys: Vec::new(),
-            exact: true,
         });
         let reach: Vec<String> = reach_keys.into_iter().map(|(k, _)| k.name).collect();
         self.join_rows(&rows_name, &reach, binding, later, ctx, frame, rows)
@@ -3416,7 +3423,6 @@ impl<'a> Compiler<'a> {
             name: frame_name.clone(),
             sql: format!("SELECT {fsel} FROM {outer_rel} AS o {join}"),
             keys: Vec::new(),
-            exact: true,
         });
         let mut inner_keys = frame.keys.clone();
         for (c, n) in binding
@@ -3542,13 +3548,6 @@ impl<'a> Compiler<'a> {
                 .ok_or_else(|| CompileError::Field(format!("unknown variable {name}"))),
             Bound::Let { name, value, body } => {
                 let v = self.scalar(value, ctx, frame, rows)?;
-                if frame.rel == "k" {
-                    let mut parts = v.sql.split('\u{1}');
-                    parts.next();
-                    while let (Some(idx), Some(_)) = (parts.next(), parts.next()) {
-                        self.extra_top.insert(idx.parse().unwrap_or(0));
-                    }
-                }
                 self.vars.push((name.clone(), v));
                 let out = self.scalar(body, ctx, frame, rows);
                 self.vars.pop();
@@ -3659,20 +3658,16 @@ impl<'a> Compiler<'a> {
                 InfoFunc::SelectedValue | InfoFunc::HasOneValue | InfoFunc::Lookup => {
                     let col = column.clone().unwrap_or_default();
                     let ty = ValueType::of(self.column_type(table, &col));
-                    // The visual's own key (LOOKUPVALUE checks the rows: its search may
-                    // leave none).
-                    if let Some(k) = ctx.keys.iter().find(|k| k.column == col)
-                        && *func != InfoFunc::Lookup
-                    {
-                        if frame.rel == "k" && self.is_visual_ctx(ctx) {
-                            self.dom_rows = true;
-                        }
-                        return if *func == InfoFunc::HasOneValue {
-                            lit("TRUE".into(), ValueType::Bool)
-                        } else {
-                            lit(format!("f.{}", k.name), ty)
-                        };
-                    }
+                    // The visual's own key has its one value, unless it's the blank
+                    // row, which the context may hide (Sales filtering Product both
+                    // ways): that takes the general path below. LOOKUPVALUE checks the
+                    // rows: its search may leave none.
+                    let own = ctx
+                        .keys
+                        .iter()
+                        .find(|k| k.column == col)
+                        .filter(|_| *func != InfoFunc::Lookup)
+                        .map(|k| k.name.clone());
                     let col_b = Bound::Column {
                         table: table.clone(),
                         column: col.clone(),
@@ -3686,8 +3681,21 @@ impl<'a> Compiler<'a> {
                         Some(&col_b),
                         ctx,
                     )?;
+                    let own_or = |general: String| match &own {
+                        Some(k) => {
+                            format!("(CASE WHEN f.{k} IS NOT NULL THEN f.{k} ELSE {general} END)")
+                        }
+                        None => general,
+                    };
                     if *func == InfoFunc::HasOneValue {
-                        return lit(format!("coalesce({} = 1, FALSE)", n.sql), ValueType::Bool);
+                        let general = format!("coalesce({} = 1, FALSE)", n.sql);
+                        return lit(
+                            match &own {
+                                Some(k) => format!("(f.{k} IS NOT NULL OR {general})"),
+                                None => general,
+                            },
+                            ValueType::Bool,
+                        );
                     }
                     let v = self.simple_aggregate(
                         AggFunc::Min,
@@ -3714,10 +3722,10 @@ impl<'a> Compiler<'a> {
                         String::new()
                     };
                     lit(
-                        format!(
+                        own_or(format!(
                             "(CASE WHEN {} = 1 THEN {}{several} ELSE {} END)",
                             n.sql, parts[0], parts[1]
-                        ),
+                        )),
                         ty,
                     )
                 }
@@ -3871,8 +3879,6 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         dom: None,
         dks: Vec::new(),
         counter: 0,
-        extra_top: BTreeSet::new(),
-        dom_rows: false,
         security: Vec::new(),
     };
 
@@ -3963,99 +3969,14 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
         .map(|(b, kind)| Ok((c.scalar(b, &ctx, &frame, &[])?, *kind)))
         .collect::<Result<Vec<_>>>()?;
 
-    // The frame's rows: where some top-level aggregate has rows.
-    let key_names: Vec<String> = keys.iter().map(|k| k.name.clone()).collect();
-    let mut top: BTreeSet<usize> = BTreeSet::new();
-    for s in values.iter().chain(vfilters.iter().map(|(s, _)| s)) {
-        let mut parts = s.sql.split('\u{1}');
-        parts.next();
-        while let (Some(idx), Some(_)) = (parts.next(), parts.next()) {
-            top.insert(idx.parse().unwrap_or(0));
-        }
-    }
-    top.extend(c.extra_top.iter().copied());
-    let k_sql = if key_names.is_empty() {
+    // The frame's rows: every combination of the keys' values (existing ones within a
+    // table, crossed between tables). Rows where every value is blank go below, as
+    // SUMMARIZECOLUMNS does: a value that isn't blank without data (IF ( [Qty] > 10,
+    // "High", "Low" )) shows on every row, as in Power BI.
+    let k_sql = if keys.is_empty() {
         "SELECT 1 AS one".to_string()
-    } else if top.is_empty() || c.dom_rows {
-        format!("SELECT * FROM {}", c.domain()?)
     } else {
-        let mut parts = Vec::new();
-        for i in top {
-            let ck = c.ctes[i].keys.clone();
-            let name = c.ctes[i].name.clone();
-            let exact = c.ctes[i].exact;
-            let missing: Vec<&String> = key_names.iter().filter(|k| !ck.contains(k)).collect();
-            // Keys the CTE lacks come from each table's key domain: joined on the keys
-            // of that table it has (a sort-by column follows its column), crossed when
-            // it has none of them.
-            let mut part = format!(
-                "SELECT {} FROM {name} AS x",
-                key_names
-                    .iter()
-                    .map(|k| format!("{{{k}}}"))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            );
-            let mut source: Vec<(String, String)> =
-                ck.iter().map(|k| (k.clone(), format!("x.{k}"))).collect();
-            if !missing.is_empty() {
-                for (j, (_, dk, names)) in c.key_domains()?.into_iter().enumerate() {
-                    let lacking: Vec<&String> = names.iter().filter(|n| !ck.contains(n)).collect();
-                    if lacking.is_empty() {
-                        continue;
-                    }
-                    let alias = format!("d{j}");
-                    let shared: Vec<&String> = names.iter().filter(|n| ck.contains(n)).collect();
-                    if shared.is_empty() {
-                        part.push_str(&format!(" CROSS JOIN {dk} AS {alias}"));
-                    } else {
-                        part.push_str(&format!(
-                            " JOIN {dk} AS {alias} ON {}",
-                            shared
-                                .iter()
-                                .map(|n| format!("{alias}.{n} IS NOT DISTINCT FROM x.{n}"))
-                                .collect::<Vec<_>>()
-                                .join(" AND ")
-                        ));
-                    }
-                    for n in lacking {
-                        source.push((n.clone(), format!("{alias}.{n}")));
-                    }
-                }
-            }
-            for (k, e) in &source {
-                part = part.replace(&format!("{{{k}}}"), e);
-            }
-            // A context the visual doesn't have (CALCULATE replaced a filter) can produce
-            // combinations the visual's own filters exclude: keep the existing ones.
-            if !exact {
-                let mut conds = Vec::new();
-                for (_, dk, names) in c.key_domains()? {
-                    let shared: Vec<&String> = names.iter().filter(|n| ck.contains(n)).collect();
-                    if shared.is_empty() {
-                        continue;
-                    }
-                    conds.push(format!(
-                        "EXISTS (SELECT 1 FROM {dk} AS e WHERE {})",
-                        shared
-                            .iter()
-                            .map(|n| format!("e.{n} IS NOT DISTINCT FROM x.{n}"))
-                            .collect::<Vec<_>>()
-                            .join(" AND ")
-                    ));
-                }
-                if !conds.is_empty() {
-                    part.push_str(&format!(" WHERE {}", conds.join(" AND ")));
-                }
-            }
-            // An aggregate without keys has its one row even over no rows: it gives the
-            // visual rows only when it found something.
-            if ck.is_empty() {
-                part.push_str(" WHERE x.v IS NOT NULL");
-            }
-            parts.push(part);
-        }
-        parts.join(" UNION ")
+        format!("SELECT * FROM {}", c.domain()?)
     };
 
     let mut select: Vec<String> = Vec::new();
@@ -4154,7 +4075,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
             outer_cols.join(", ")
         }
     );
-    if !value_names.is_empty() && !key_names.is_empty() {
+    if !value_names.is_empty() && !keys.is_empty() {
         sql.push_str(&format!(
             " WHERE {}",
             value_names
@@ -4226,8 +4147,6 @@ pub fn calculated_column(
         dom: None,
         dks: Vec::new(),
         counter: 0,
-        extra_top: BTreeSet::new(),
-        dom_rows: false,
         security: Vec::new(),
     };
     let mut related = Vec::new();
@@ -4294,7 +4213,6 @@ pub fn calculated_column(
         name: "crow".into(),
         sql: format!("SELECT {} FROM {from}", select.join(", ")),
         keys: Vec::new(),
-        exact: true,
     });
     let frame = Frame {
         rel: "crow".into(),
@@ -4346,8 +4264,6 @@ pub fn calculated_table(
         dom: None,
         dks: Vec::new(),
         counter: 0,
-        extra_top: BTreeSet::new(),
-        dom_rows: false,
         security: Vec::new(),
     };
     // The rows are iterated from a frame of one row.
@@ -4355,7 +4271,6 @@ pub fn calculated_table(
         name: "one".into(),
         sql: "SELECT 1 AS one".into(),
         keys: Vec::new(),
-        exact: true,
     });
     let frame = Frame {
         rel: "one".into(),

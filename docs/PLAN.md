@@ -514,6 +514,13 @@ Record the answers in HANDOFF "Gotchas"; they decide C, D and F.
 
 #### M11.2 Fix what the harness finds (M; size unknown)
 
+*Status 2026-11-02:* the harness runs through the Power BI Service
+(`conformance/service.py`). 1931 of 2020 queries agree; the first batch of fixes is in
+(see HANDOFF "Recording Power BI's answers"). The other 89 are in `known.json`. Next:
+LOOKUPVALUE ignoring filters, expanded-table context transition, the blank row in
+ALLSELECTED/ALL tables, CONCATENATEX order, integer arithmetic, and time intelligence on
+month-end date tables. x/0 is still to check (no golden measure divides by zero with `/`).
+
 Expected:
 - Blank handling (e.g. ROUND(BLANK())).
 - The card's blank result.

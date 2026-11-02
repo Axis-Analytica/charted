@@ -2,6 +2,67 @@
 //! string into a `FormatSpec`; the SQL compiler and the interpreter each render it, so
 //! anything outside this small, well-defined subset is refused instead of guessed.
 
+/// A number as DAX writes it as text (`"" & x`, FORMAT's "General Number"), as the
+/// Power BI Service answered: rounded to 15 significant digits, in fixed notation
+/// unless that needs more than 15 digits before the point or after it, then as
+/// `3.33333333333333E-05`. The SQL compiler's `general_number_sql` is the same rule.
+pub fn general_number(x: f64) -> String {
+    if x == 0.0 {
+        return "0".into();
+    }
+    if !x.is_finite() {
+        return if x.is_nan() {
+            "NaN"
+        } else if x > 0.0 {
+            "Infinity"
+        } else {
+            "-Infinity"
+        }
+        .into();
+    }
+    // Rounded to 15 significant digits first, halves away from zero as Power BI does
+    // (`{:.14e}` alone would round a tie to even); the SQL does the same with round().
+    let s = 14 - x.abs().log10().floor() as i32;
+    let r = if (-300..=300).contains(&s) {
+        let m = 10f64.powi(s.abs());
+        if s >= 0 {
+            (x.abs() * m).round() / m
+        } else {
+            (x.abs() / m).round() * m
+        }
+    } else {
+        x.abs()
+    };
+    let sci = format!("{:.14e}", r);
+    let (mantissa, exp) = sci.split_once('e').unwrap_or((&sci, "0"));
+    let e: i32 = exp.parse().unwrap_or(0);
+    let digits = mantissa.replace('.', "");
+    let digits = digits.trim_end_matches('0');
+    let k = digits.len() as i32;
+    let sign = if x < 0.0 { "-" } else { "" };
+    let body = if e < 15 && (e >= 0 || -e - 1 + k <= 15) {
+        if e >= 0 {
+            let int = (e + 1) as usize;
+            if digits.len() <= int {
+                format!("{digits}{}", "0".repeat(int - digits.len()))
+            } else {
+                format!("{}.{}", &digits[..int], &digits[int..])
+            }
+        } else {
+            format!("0.{}{digits}", "0".repeat((-e - 1) as usize))
+        }
+    } else {
+        let rest = if k > 1 {
+            format!(".{}", &digits[1..])
+        } else {
+            String::new()
+        };
+        let sign = if e < 0 { '-' } else { '+' };
+        format!("{}{rest}E{sign}{:02}", &digits[..1], e.abs())
+    };
+    format!("{sign}{body}")
+}
+
 /// A parsed FORMAT format string.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FormatSpec {
@@ -180,6 +241,37 @@ mod tests {
         assert_eq!(parse("$#,0"), Ok(number(0, true, false, "$")));
         assert_eq!(parse("Percent"), Ok(number(2, false, true, "")));
         assert_eq!(parse("general number"), Ok(FormatSpec::General));
+    }
+
+    #[test]
+    fn general_number_matches_power_bi() {
+        // Each as the Power BI Service wrote it (November 2026).
+        for (x, want) in [
+            (1.0 / 3.0, "0.333333333333333"),
+            (87.03717472118959, "87.0371747211896"),
+            (1234567.891, "1234567.891"),
+            (0.000012345, "0.000012345"),
+            (1e20 / 3.0, "3.33333333333333E+19"),
+            (1e15, "1E+15"),
+            (123456789012345.0, "123456789012345"),
+            (100000000000000.5, "100000000000001"),
+            (0.0001, "0.0001"),
+            (1e-10 / 3.0, "3.33333333333333E-11"),
+            (-2.5, "-2.5"),
+            (1e-5, "0.00001"),
+            (0.00001234567, "0.00001234567"),
+            (1.0 / 3.0 * 1e-4, "3.33333333333333E-05"),
+            (3.33333e-5, "0.0000333333"),
+            (1e-5 / 3.0, "3.33333333333333E-06"),
+            (1.0 / 3.0 * 1e-3, "3.33333333333333E-04"),
+            (0.00012345, "0.00012345"),
+            (0.1 + 0.2, "0.3"),
+            (123456.5, "123456.5"),
+            (0.0, "0"),
+            (-0.0, "0"),
+        ] {
+            assert_eq!(general_number(x), want, "{x:e}");
+        }
         assert_eq!(
             parse("MMM yyyy"),
             Ok(FormatSpec::Date(vec![

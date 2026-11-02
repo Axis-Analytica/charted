@@ -49,13 +49,19 @@ pub fn lex(src: &str) -> Vec<Token> {
     lex_inner(src, &mut Vec::new())
 }
 
-/// `src` with every unquoted table reference quoted: `Date[Date]` becomes
-/// `'Date'[Date]`. Charted accepts both, but Power BI refuses an unquoted table whose
-/// name is also a function (`Date`, `Calendar`, …), and the quoted form is always
-/// valid, so it is what charted writes for Power BI. A name counts as a table only when
-/// a `[` follows it directly, and keywords (`RETURN[M]`) and the expression's own
-/// variables (`_t[Col]`) are left alone. Everything else, comments included, is kept.
+/// `src` with the unquoted table references Power BI refuses quoted: `Date[Date]`
+/// becomes `'Date'[Date]`, since `DATE` is one of the names it reserves. Charted accepts both; other
+/// names (`Sales[Amount]`) stay as written, so exports round-trip. A name counts as a
+/// table only when a `[` follows it directly, and keywords (`RETURN[M]`) and the
+/// expression's own variables (`_t[Col]`) are left alone. Everything else, comments
+/// included, is kept.
 pub fn quote_tables(src: &str) -> String {
+    // The names Power BI reserves (its older functions): it accepted Product[x]
+    // unquoted, though PRODUCT is a newer function, and refused Date[x].
+    fn names_a_function(name: &str) -> bool {
+        let upper = name.to_ascii_uppercase();
+        crate::parser::RESERVED_VARS.contains(&upper.as_str())
+    }
     const KEYWORDS: &[&str] = &[
         "VAR", "RETURN", "NOT", "IN", "AND", "OR", "TRUE", "FALSE", "ASC", "DESC", "BY", "DEFINE",
         "EVALUATE", "MEASURE", "COLUMN", "TABLE", "ORDER", "START", "AT",
@@ -77,6 +83,7 @@ pub fn quote_tables(src: &str) -> String {
         if w[0].span.end != w[1].span.start
             || KEYWORDS.iter().any(|k| name.eq_ignore_ascii_case(k))
             || vars.iter().any(|v| v.eq_ignore_ascii_case(name))
+            || !names_a_function(name)
         {
             continue;
         }
@@ -260,7 +267,7 @@ mod tests {
             quote_tables(
                 "VAR _t = VALUES ( Product[Color] ) RETURN[M] + NOT[B] + COUNTROWS ( _t ) + _t[Color]"
             ),
-            "VAR _t = VALUES ( 'Product'[Color] ) RETURN[M] + NOT[B] + COUNTROWS ( _t ) + _t[Color]"
+            "VAR _t = VALUES ( Product[Color] ) RETURN[M] + NOT[B] + COUNTROWS ( _t ) + _t[Color]"
         );
         assert_eq!(quote_tables("\"Date[x]\" & Date"), "\"Date[x]\" & Date");
     }

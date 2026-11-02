@@ -137,6 +137,106 @@ fn describe(t: &Tok) -> String {
     }
 }
 
+/// Names Power BI refuses as variable names: its keywords and the older functions
+/// (newer ones like UPPER or TODAY are allowed), as the Power BI Service answered in
+/// November 2026. Sorted, for binary search.
+pub(crate) const RESERVED_VARS: &[&str] = &[
+    "ADDCOLUMNS",
+    "ALL",
+    "ALLEXCEPT",
+    "ALLSELECTED",
+    "AND",
+    "ASC",
+    "AT",
+    "AVERAGE",
+    "AVERAGEA",
+    "AVERAGEX",
+    "BLANK",
+    "BOOLEAN",
+    "BY",
+    "CALCULATE",
+    "CALCULATETABLE",
+    "COLUMN",
+    "COUNT",
+    "COUNTA",
+    "COUNTAX",
+    "COUNTBLANK",
+    "COUNTROWS",
+    "COUNTX",
+    "CROSSJOIN",
+    "DATATABLE",
+    "DATE",
+    "DATESBETWEEN",
+    "DATESINPERIOD",
+    "DATESMTD",
+    "DATESQTD",
+    "DATESYTD",
+    "DEFINE",
+    "DESC",
+    "DISTINCT",
+    "DISTINCTCOUNT",
+    "DIVIDE",
+    "DOUBLE",
+    "EARLIER",
+    "EVALUATE",
+    "FALSE",
+    "FILTER",
+    "FIRSTDATE",
+    "FIRSTNONBLANK",
+    "GENERATE",
+    "HASONEVALUE",
+    "IF",
+    "IN",
+    "ISFILTERED",
+    "KEEPFILTERS",
+    "LASTDATE",
+    "LASTNONBLANK",
+    "LOG",
+    "LOOKUPVALUE",
+    "MAX",
+    "MAXA",
+    "MAXX",
+    "MEASURE",
+    "MEDIAN",
+    "MIN",
+    "MINA",
+    "MINX",
+    "NEXTDAY",
+    "NEXTMONTH",
+    "NEXTQUARTER",
+    "NEXTYEAR",
+    "NOT",
+    "OR",
+    "ORDER",
+    "PARALLELPERIOD",
+    "PREVIOUSDAY",
+    "PREVIOUSMONTH",
+    "PREVIOUSQUARTER",
+    "PREVIOUSYEAR",
+    "RANKX",
+    "RELATED",
+    "RELATEDTABLE",
+    "RETURN",
+    "ROW",
+    "SAMEPERIODLASTYEAR",
+    "START",
+    "SUM",
+    "SUMMARIZE",
+    "SUMX",
+    "SWITCH",
+    "TABLE",
+    "TOPN",
+    "TOTALMTD",
+    "TOTALQTD",
+    "TOTALYTD",
+    "TRUE",
+    "UNION",
+    "USERELATIONSHIP",
+    "VALUE",
+    "VALUES",
+    "VAR",
+];
+
 struct Parser {
     toks: Vec<Token>,
     pos: usize,
@@ -337,6 +437,15 @@ impl Parser {
                 };
             }
         };
+        if RESERVED_VARS
+            .binary_search(&name.to_ascii_uppercase().as_str())
+            .is_ok()
+        {
+            self.error(
+                name_span,
+                &format!("\"{name}\" can't be a variable name: Power BI reserves it"),
+            );
+        }
         if matches!(self.peek(), Tok::Eq) {
             self.bump();
         } else {
@@ -485,6 +594,18 @@ mod tests {
         let p = parse(src);
         assert!(p.diagnostics.is_empty(), "{src}: {:?}", p.diagnostics);
         show(&p.expr)
+    }
+
+    #[test]
+    fn reserved_variable_names() {
+        assert!(RESERVED_VARS.windows(2).all(|w| w[0] < w[1]));
+        let p = parse("VAR all = 1 RETURN all");
+        assert!(
+            p.diagnostics[0].message.contains("Power BI reserves it"),
+            "{:?}",
+            p.diagnostics
+        );
+        ok("VAR today = 1 VAR _all = 2 RETURN today + _all");
     }
 
     #[test]

@@ -1,5 +1,5 @@
 {
-  "fixture": "5ca52eec7374e7e8",
+  "fixture": "5479d79bcbcd9923",
   "queries": [
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Sales Amount])\n",
@@ -4483,70 +4483,70 @@
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Qty From Mid 2024])\n",
-      "hash": "61ee836ba824a4cd",
+      "hash": "3b4c13faa964e82d",
       "id": "Qty From Mid 2024 / card",
       "measure": "Qty From Mid 2024",
       "shape": "card"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Qty From Mid 2024])\n",
-      "hash": "e729001da00437a8",
+      "hash": "52e91bba15a137b0",
       "id": "Qty From Mid 2024 / by category",
       "measure": "Qty From Mid 2024",
       "shape": "by category"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Qty From Mid 2024])\n",
-      "hash": "e0dee052a743d1a2",
+      "hash": "14a73f1a4052963a",
       "id": "Qty From Mid 2024 / by year",
       "measure": "Qty From Mid 2024",
       "shape": "by year"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Qty From Mid 2024])\n",
-      "hash": "f85dbc5e0d47b5b7",
+      "hash": "70bd952bc9719007",
       "id": "Qty From Mid 2024 / by category and year",
       "measure": "Qty From Mid 2024",
       "shape": "by category and year"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Qty From Mid 2024])\n",
-      "hash": "caa870d09960a065",
+      "hash": "656b839b80286765",
       "id": "Qty From Mid 2024 / by region in 2025",
       "measure": "Qty From Mid 2024",
       "shape": "by region in 2025"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Qty From Mid 2024])\n",
-      "hash": "4c3f10178f366dc1",
+      "hash": "470b6edfd50d4fc1",
       "id": "Qty From Mid 2024 / by year and month",
       "measure": "Qty From Mid 2024",
       "shape": "by year and month"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Qty From Mid 2024])\n",
-      "hash": "a87eedd1499efc86",
+      "hash": "9f47afcaeb0f52be",
       "id": "Qty From Mid 2024 / by month name",
       "measure": "Qty From Mid 2024",
       "shape": "by month name"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Qty From Mid 2024])\n",
-      "hash": "107625df7d610311",
+      "hash": "567a112769504b91",
       "id": "Qty From Mid 2024 / by color, apparel and camping",
       "measure": "Qty From Mid 2024",
       "shape": "by color, apparel and camping"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Qty From Mid 2024])\n",
-      "hash": "f306e3953d2fb8b1",
+      "hash": "c428381a34367831",
       "id": "Qty From Mid 2024 / by month in 2025, camping",
       "measure": "Qty From Mid 2024",
       "shape": "by month in 2025, camping"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Qty From Mid 2024])\n",
-      "hash": "a7f9df7b4316e5cc",
+      "hash": "6cda9296207024d4",
       "id": "Qty From Mid 2024 / by product, camping",
       "measure": "Qty From Mid 2024",
       "shape": "by product, camping"
@@ -9383,70 +9383,70 @@
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Calc Var])\n",
-      "hash": "2f9816f137532af2",
+      "hash": "0f8f0ff073bfbc2c",
       "id": "Calc Var / card",
       "measure": "Calc Var",
       "shape": "card"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Calc Var])\n",
-      "hash": "16577a517aa2ae8b",
+      "hash": "e20f2ddc5f101da5",
       "id": "Calc Var / by category",
       "measure": "Calc Var",
       "shape": "by category"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Calc Var])\n",
-      "hash": "c160b7c2e031a3c1",
+      "hash": "ddb2d92e3c3e8423",
       "id": "Calc Var / by year",
       "measure": "Calc Var",
       "shape": "by year"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Calc Var])\n",
-      "hash": "3f73cb8ac82ce270",
+      "hash": "edf62934d11a12ba",
       "id": "Calc Var / by category and year",
       "measure": "Calc Var",
       "shape": "by category and year"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Calc Var])\n",
-      "hash": "95e7f8608343ed0a",
+      "hash": "d20b5be501be93c4",
       "id": "Calc Var / by region in 2025",
       "measure": "Calc Var",
       "shape": "by region in 2025"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Calc Var])\n",
-      "hash": "fa6155828e561686",
+      "hash": "53f61c54ebfac940",
       "id": "Calc Var / by year and month",
       "measure": "Calc Var",
       "shape": "by year and month"
     },
     {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Calc Var])\n",
-      "hash": "b9181099727c7cb5",
+      "hash": "948984bcc4caa5a7",
       "id": "Calc Var / by month name",
       "measure": "Calc Var",
       "shape": "by month name"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Calc Var])\n",
-      "hash": "268cb5ea5c8a56b6",
+      "hash": "0e603993209b32f0",
       "id": "Calc Var / by color, apparel and camping",
       "measure": "Calc Var",
       "shape": "by color, apparel and camping"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Calc Var])\n",
-      "hash": "42153583e4b54ed6",
+      "hash": "40eb7147b900ce10",
       "id": "Calc Var / by month in 2025, camping",
       "measure": "Calc Var",
       "shape": "by month in 2025, camping"
     },
     {
       "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Calc Var])\n",
-      "hash": "aa66bc63c109f18f",
+      "hash": "586058b80a6e6ca9",
       "id": "Calc Var / by product, camping",
       "measure": "Calc Var",
       "shape": "by product, camping"
@@ -13369,6 +13369,76 @@
       "hash": "7c97f96427b684e3",
       "id": "General Text / by product, camping",
       "measure": "General Text",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Number Texts])\n",
+      "hash": "8af8bfe5c1dfa46e",
+      "id": "Number Texts / card",
+      "measure": "Number Texts",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Number Texts])\n",
+      "hash": "452f5bf251c9f701",
+      "id": "Number Texts / by category",
+      "measure": "Number Texts",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Number Texts])\n",
+      "hash": "9f9c088b97f3af73",
+      "id": "Number Texts / by year",
+      "measure": "Number Texts",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Number Texts])\n",
+      "hash": "9601349e7fbb9f98",
+      "id": "Number Texts / by category and year",
+      "measure": "Number Texts",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Number Texts])\n",
+      "hash": "f08fd25b6a81c0d6",
+      "id": "Number Texts / by region in 2025",
+      "measure": "Number Texts",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Number Texts])\n",
+      "hash": "c167009016964a1a",
+      "id": "Number Texts / by year and month",
+      "measure": "Number Texts",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Number Texts])\n",
+      "hash": "943d54217f8276ff",
+      "id": "Number Texts / by month name",
+      "measure": "Number Texts",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Number Texts])\n",
+      "hash": "8cc3990001e0a40a",
+      "id": "Number Texts / by color, apparel and camping",
+      "measure": "Number Texts",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Number Texts])\n",
+      "hash": "e16ef2ffeca849ea",
+      "id": "Number Texts / by month in 2025, camping",
+      "measure": "Number Texts",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Number Texts])\n",
+      "hash": "5dd4f8b98f52361d",
+      "id": "Number Texts / by product, camping",
+      "measure": "Number Texts",
       "shape": "by product, camping"
     },
     {

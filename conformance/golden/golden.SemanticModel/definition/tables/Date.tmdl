@@ -4,6 +4,7 @@ table Date
 
 	column Date
 		dataType: dateTime
+		isKey
 		formatString: Short Date
 		lineageTag: Date.Date
 		sourceColumn: Date

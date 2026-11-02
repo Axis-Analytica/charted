@@ -197,6 +197,17 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
         }
         prop(&mut out, 2, "lineageTag", &m.id);
     }
+    // Power BI marks a date table by its date column's isKey as well as the table's
+    // dataCategory; without the key it ignores the marking (time intelligence then
+    // keeps the filters on the table's other columns), so mark the first date column.
+    let date_key = (t.is_date_table && !t.columns.iter().any(|c| c.is_key))
+        .then(|| {
+            t.columns
+                .iter()
+                .find(|c| matches!(c.data_type, DataType::Date | DataType::DateTime))
+        })
+        .flatten()
+        .map(|c| c.id.clone());
     for c in &t.columns {
         out.push('\n');
         if let Some(d) = &c.description {
@@ -214,7 +225,7 @@ fn table_tmdl(t: &Table, query: Option<&Query>, queries: &[Query]) -> String {
             }
         }
         prop(&mut out, 2, "dataType", data_type(c.data_type));
-        if c.is_key {
+        if c.is_key || date_key.as_ref() == Some(&c.id) {
             let _ = writeln!(out, "\t\tisKey");
         }
         if c.hidden {

@@ -496,7 +496,9 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
 
 - **Adding a plain DAX function (M11.3):** functions of their arguments alone (no
   filter context, no tables) go in the `library!` table in `crates/dax/src/library.rs`:
-  name, argument kinds (`Num`, `NumOrBlank`, `Int`, `Text`) and return type. The build
+  name, argument kinds (`Num`, `NumOrBlank`, `Int`, `Text`, `TextOrBlank`) and
+  return type. Check each new function's blank, rounding and error behaviour against
+  the Power BI Service first (below): the kinds follow what it answered. The build
   then fails until there's an arm in `lib_template` (`crates/compiler/src/visual.rs`),
   `lib_fn` (`interp.rs`) and `lib` (`ossie.rs`; return None when there's no portable
   SQL). Both sides read arguments by kind before the arm sees them (`lib_arg` and
@@ -514,6 +516,34 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
   measure or the fixture, run
   `CHARTED_UPDATE_CONFORMANCE=1 bin/heavy cargo test -p charted-core --test conformance`.
   Otherwise `conformance_files_are_current` fails.
+- **Recording Power BI's answers through the Service (M11.2, 2026-11-02).** `bin/pbi login`
+  (device code; the user's Pro account), then `python3 conformance/service.py`: it
+  publishes `golden/` to My workspace as `charted-conformance` through the Fabric items
+  API, refreshes it and runs every query through `executeQueries` (120 a minute, about 17
+  minutes). Background shells here lose the network after a minute, so run it in the
+  foreground in chunks: `timeout 570 python3 conformance/service.py --no-publish`
+  resumes from `expected.json.progress`. For one-off questions, POST any DAX to
+  `datasets/<id>/executeQueries` the same way (`EVALUATE { UPPER ( BLANK () ) }`); pace
+  them (0.5 s) or 429s look like errors.
+  - First run: 1703 of 2010 agreed. After the fixes below: 1931 of 2020, and the other 89
+    are in `known.json` with their causes (expanded-table context transition, LOOKUPVALUE
+    ignoring filters, CONCATENATEX storage order, integer arithmetic, ALLSELECTED on a
+    single column, time intelligence on the fixture's month-end Date table).
+  - What Power BI does, and charted now does too: result rows are every combination of
+    the grouped columns' values (existing ones within a table, crossed between tables),
+    minus rows where every value is blank, so `IF ( [Qty] > 10, "High", "Low" )` shows
+    "Low" for months with no sales; text functions give blank for blank text; MOD by
+    zero, `LEFT ( x, -1 )`, `MID ( x, 0, … )`, `DATE ( y, m, 0 )` and years past 9999
+    are errors; whole-number arguments round (`RIGHT ( "abc", 1.9 )` is "bc"); two-value
+    MAX/MIN return the blank when it wins (`MAX ( BLANK (), -1 )`); numbers become text
+    with 15 significant digits (`charted_dax::format::general_number`, E-notation past
+    15 digits either side of the point); measures that error fail in both the golden tests
+    and Power BI.
+  - Power BI refuses an unquoted table named like one of its reserved functions
+    (`Date[Date]`) and a variable with such a name (`VAR all`). The parser refuses those
+    variables (`RESERVED_VARS`, 94 names probed from the Service), and the PBIP export
+    quotes those table names (`charted_dax::lexer::quote_tables`). The export also marks
+    a date table's date column `isKey`, without which Power BI ignores the marking.
 
 - **DuckDB 2.0 behaviour the DAX work relies on (M11.0 spike, 2026-11-02).** These are
   asserted in `crates/engine/tests/duckdb_behaviour.rs`.

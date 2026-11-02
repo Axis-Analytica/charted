@@ -515,7 +515,7 @@ pub const MEASURES: &[(&str, &str)] = &[
     ),
     (
         "Qty From Mid 2024",
-        "VAR start = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( Store[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], start, MAX ( Date[Date] ) ) ) )",
+        "VAR mid2024 = DATE ( 2024, 6, 30 ) RETURN SUMX ( VALUES ( Store[Region] ), CALCULATE ( [Quantity], DATESBETWEEN ( Date[Date], mid2024, MAX ( Date[Date] ) ) ) )",
     ),
     // RANKX
     ("Qty Rank", "RANKX ( ALL ( Product[Product] ), [Quantity] )"),
@@ -782,7 +782,7 @@ pub const MEASURES: &[(&str, &str)] = &[
     ("Target All Stores", "CALCULATE ( [Target], ALL ( Store ) )"),
     (
         "Calc Var",
-        "VAR all = CALCULATE ( [Quantity], ALL ( Product ) ) RETURN DIVIDE ( [Quantity], all )",
+        "VAR everything = CALCULATE ( [Quantity], ALL ( Product ) ) RETURN DIVIDE ( [Quantity], everything )",
     ),
     (
         "Transition Sum",
@@ -960,6 +960,10 @@ pub const MEASURES: &[(&str, &str)] = &[
     (
         "General Text",
         "FORMAT ( [Price Per Unit], \"General Number\" )",
+    ),
+    (
+        "Number Texts",
+        "1 / 3 & \"|\" & 1 / 30000 & \"|\" & 1 / 3000 & \"|\" & 0.0000333333 & \"|\" & 1000000 * 1000000 * 1000 & \"|\" & 10 / 3 * 1000000000000000000 & \"|\" & -2 / 3 & \"|\" & 123456.5 & \"|\" & [Quantity] / 7",
     ),
     (
         "Last Month Name",

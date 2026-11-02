@@ -44,8 +44,19 @@ fn compiler_agrees_with_the_reference_interpreter() {
             };
             let expected = match interp::run(&f.model, &f.data, &q) {
                 Ok(r) => canonical(r),
+                // A measure that errors (as in Power BI) must fail the SQL too.
                 Err(e) => {
-                    failures.push(format!("{name} / {shape}: the interpreter failed: {e}"));
+                    if shape == "card" || shape == "by category" {
+                        golden.push_str(&format!("## {name} — {shape}\nerror: {e}\n\n"));
+                    }
+                    let sql = visual::compile(&f.model, &schema, &q)
+                        .map_err(|e| e.to_string())
+                        .and_then(|c| f.db.arrow(&c.sql).map_err(|e| e.to_string()));
+                    if sql.is_ok() {
+                        failures.push(format!(
+                            "{name} / {shape}: the interpreter failed ({e}) but the SQL didn't"
+                        ));
+                    }
                     continue;
                 }
             };
@@ -395,6 +406,8 @@ fn both_directions_agree_with_the_reference_interpreter() {
                         ));
                     }
                 }
+                // Both fail: the measure errors, as in Power BI.
+                (Err(_), Err(_)) => {}
                 (e, g) => {
                     failures.push(format!("{name} / {shape}: {:?} vs {:?}", e.err(), g.err()))
                 }
@@ -595,6 +608,8 @@ fn security_filters_agree_with_the_reference_interpreter() {
                         ));
                     }
                 }
+                // Both fail: the measure errors, as in Power BI.
+                (Err(_), Err(_)) => {}
                 (e, g) => {
                     failures.push(format!("{name} / {shape}: {:?} vs {:?}", e.err(), g.err()))
                 }
