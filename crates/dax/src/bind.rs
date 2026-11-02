@@ -1442,8 +1442,18 @@ impl<'a> Binder<'a> {
                         if !self.arity(&upper, args, e.span, 1, 1) {
                             return None;
                         }
+                        // VALUES ( table ) has the blank row a table on the one side of a
+                        // relationship gets for unmatched keys; DISTINCT ( table ) and the
+                        // table itself don't (as in Power BI).
                         if let ExprKind::Table(tn) = &args[0].kind {
-                            return Some(TableExpr::Table(self.table(tn, args[0].span)?.id.clone()));
+                            let t = self.table(tn, args[0].span)?;
+                            if upper == "DISTINCT" {
+                                return Some(TableExpr::Table(t.id.clone()));
+                            }
+                            return Some(TableExpr::Values {
+                                table: t.id.clone(),
+                                columns: t.columns.iter().map(|c| c.id.clone()).collect(),
+                            });
                         }
                         let (t, c) = self.column_arg(&args[0])?;
                         Some(TableExpr::Values {
@@ -1968,27 +1978,53 @@ impl<'a> Binder<'a> {
                 let pairs = (args.len() - 1) / 2;
                 let alternate = if args.len().is_multiple_of(2) { Some(Box::new(self.expr(&args[args.len() - 1], rows)?)) } else { None };
                 // Each value is a variable, evaluated in the calling context; the search
-                // columns are FILTER ( ALL ( column ), column = value ) arguments.
+                // columns are FILTER ( ALL ( column ), column = value ) arguments. Power BI
+                // ignores the filter context for the search itself (checked in the Service:
+                // filters on the result table, on its own columns and on related tables
+                // all leave the answer unchanged), so every filter is removed first.
                 let mut lets = Vec::new();
-                let mut filters = Vec::new();
+                let mut filters = vec![FilterArg::RemoveAll];
                 for i in 0..pairs {
                     let (st, sc) = self.column_arg(&args[1 + 2 * i])?;
                     let value = self.expr(&args[2 + 2 * i], rows)?;
                     let name = format!("__lookup{}_{i}", self.vars.len());
                     lets.push((name.clone(), value));
-                    filters.push(FilterArg::Table(TableExpr::Filter {
-                        source: Box::new(TableExpr::All {
+                    // The search is over the table's own rows: blank matches only a
+                    // blank cell (not "" or 0), and never the blank row a table on the
+                    // one side of a relationship gets for unmatched keys (it's blank in
+                    // the relationship's key column, which real rows aren't).
+                    let mut condition = Bound::Binary {
+                        op: BinaryOp::StrictEq,
+                        left: Box::new(Bound::Column {
                             table: st.id.clone(),
-                            columns: vec![sc.id.clone()],
+                            column: sc.id.clone(),
                         }),
-                        condition: Box::new(Bound::Binary {
-                            op: BinaryOp::Eq,
-                            left: Box::new(Bound::Column {
-                                table: st.id.clone(),
-                                column: sc.id.clone(),
-                            }),
-                            right: Box::new(Bound::Var(name)),
-                        }),
+                        right: Box::new(Bound::Var(name)),
+                    };
+                    let key = self.model.relationships.iter().find(|r| r.to_table == st.id).map(|r| r.to_column.clone());
+                    let columns = match key {
+                        Some(key) => {
+                            condition = Bound::Binary {
+                                op: BinaryOp::And,
+                                left: Box::new(condition),
+                                right: Box::new(Bound::Call {
+                                    func: ScalarFunc::Not,
+                                    args: vec![Bound::Call {
+                                        func: ScalarFunc::IsBlank,
+                                        args: vec![Bound::Column {
+                                            table: st.id.clone(),
+                                            column: key.clone(),
+                                        }],
+                                    }],
+                                }),
+                            };
+                            if key == sc.id { vec![key] } else { vec![sc.id.clone(), key] }
+                        }
+                        None => vec![sc.id.clone()],
+                    };
+                    filters.push(FilterArg::Table(TableExpr::Filter {
+                        source: Box::new(TableExpr::All { table: st.id.clone(), columns }),
+                        condition: Box::new(condition),
                     }));
                 }
                 let mut out = Bound::Calculate {

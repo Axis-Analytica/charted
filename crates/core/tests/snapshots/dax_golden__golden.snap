@@ -387,13 +387,13 @@ expression: golden
 "Footwear" | 7800
 
 ## Per Target Row — card
-4950
+64
 
 ## Per Target Row — by category
-∅ | 55
-"Apparel" | 2090
-"Camping" | 1595
-"Footwear" | 1210
+∅ | 1
+"Apparel" | 29
+"Camping" | 17
+"Footwear" | 17
 
 ## Target Rows — card
 55
@@ -440,13 +440,13 @@ expression: golden
 "Footwear" | 73
 
 ## Selected Products — card
-8
+9
 
 ## Selected Products — by category
-∅ | 8
-"Apparel" | 8
-"Camping" | 8
-"Footwear" | 8
+∅ | 9
+"Apparel" | 9
+"Camping" | 9
+"Footwear" | 9
 
 ## Share Of Selected — card
 1
@@ -728,7 +728,10 @@ expression: golden
 300
 
 ## Tent List Price — by category
+∅ | 300
+"Apparel" | 300
 "Camping" | 300
+"Footwear" | 300
 
 ## Price Of Top Key — card
 -1
@@ -751,7 +754,10 @@ expression: golden
 "Camping"
 
 ## Green Category — by category
+∅ | "Camping"
+"Apparel" | "Camping"
 "Camping" | "Camping"
+"Footwear" | "Camping"
 
 ## Best Category Sales — card
 10138

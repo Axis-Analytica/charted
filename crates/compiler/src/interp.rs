@@ -522,8 +522,12 @@ impl<'a> Interp<'a> {
             TableExpr::AllSelected { table, columns } => {
                 let mut c = ctx.clone();
                 c.filters.retain(|f| !f.grouping);
+                // The whole table is its distinct rows, with the blank row (as in Power BI).
                 let t = if columns.is_empty() {
-                    TableExpr::Table(table.clone())
+                    TableExpr::Values {
+                        table: table.clone(),
+                        columns: self.table(table)?.columns.clone(),
+                    }
                 } else {
                     TableExpr::Values {
                         table: table.clone(),
@@ -903,6 +907,41 @@ impl<'a> Interp<'a> {
                     table,
                     columns: vec![col.clone()],
                     tuples: HashSet::from([vec![v.key()]]),
+                    grouping: true,
+                });
+            }
+            // The row filters its expanded table: each table it reaches on the one side
+            // of an active relationship is filtered to the related row, replacing the
+            // filters on that table's columns (as in Power BI).
+            for rel in self
+                .model
+                .relationships
+                .iter()
+                .filter(|rel| rel.active && rel.from_table == r.table)
+            {
+                let Some(v) = r.values.get(&rel.from_column) else {
+                    continue;
+                };
+                let one = &rel.to_table;
+                // A key the table lacks relates the row to its blank member.
+                let matched = self
+                    .table(one)
+                    .ok()
+                    .and_then(|t| t.col(&rel.to_column).map(|i| (t, i)))
+                    .is_some_and(|(t, i)| t.rows.iter().any(|x| x[i].key() == v.key()));
+                let key = if matched { v.key() } else { None };
+                let cols: Vec<&Id> = self
+                    .model
+                    .table(one)
+                    .map(|t| t.columns.iter().map(|c| &c.id).collect())
+                    .unwrap_or_default();
+                c.filters.retain(|f| {
+                    &f.table != one && !f.columns.iter().any(|col| cols.contains(&col))
+                });
+                c.filters.push(Filter {
+                    table: one.clone(),
+                    columns: vec![rel.to_column.clone()],
+                    tuples: HashSet::from([vec![key]]),
                     grouping: true,
                 });
             }

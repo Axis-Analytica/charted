@@ -360,17 +360,22 @@ fn row_pure(b: &Bound) -> bool {
 
 /// ALLSELECTED as a table reads VALUES (or the table) under the context without its
 /// grouping keys; other sources are read as they are.
-fn unselect(source: &TableExpr, ctx: &Ctx) -> Option<(TableExpr, Ctx)> {
+fn unselect(model: &Model, source: &TableExpr, ctx: &Ctx) -> Option<(TableExpr, Ctx)> {
     let TableExpr::AllSelected { table, columns } = source else {
         return None;
     };
-    let t = if columns.is_empty() {
-        TableExpr::Table(table.clone())
+    // The whole table is its distinct rows, with the blank row (as in Power BI).
+    let columns = if columns.is_empty() {
+        model
+            .table(table)
+            .map(|t| t.columns.iter().map(|c| c.id.clone()).collect())
+            .unwrap_or_default()
     } else {
-        TableExpr::Values {
-            table: table.clone(),
-            columns: columns.clone(),
-        }
+        columns.clone()
+    };
+    let t = TableExpr::Values {
+        table: table.clone(),
+        columns,
     };
     Some((
         t,
@@ -1468,7 +1473,7 @@ impl<'a> Compiler<'a> {
             conds.push(condition);
             cur = source;
         }
-        let selected = unselect(cur, ctx);
+        let selected = unselect(self.model, cur, ctx);
         let (cur, ctx) = match &selected {
             Some((t, c)) => (t, c),
             None => (cur, ctx),
@@ -2228,7 +2233,7 @@ impl<'a> Compiler<'a> {
                 added.push((self.value_set(table, columns, outer)?, keep))
             }
             TableExpr::AllSelected { .. } => {
-                let (t, c) = unselect(t, outer).expect("ALLSELECTED");
+                let (t, c) = unselect(self.model, t, outer).expect("ALLSELECTED");
                 self.table_filter(&t, keep, &c, frame, rows, added)?
             }
             TableExpr::Table(table) => {
@@ -2296,6 +2301,35 @@ impl<'a> Compiler<'a> {
                     name: name.clone(),
                     table: self.table_of(col).unwrap_or_else(|| r.table.clone()),
                     column: col.clone(),
+                });
+            }
+            // The row filters its expanded table: each table it reaches on the one side
+            // of an active relationship is filtered to the related row, replacing the
+            // keys and filters on that table (as in Power BI).
+            for rel in self
+                .model
+                .relationships
+                .iter()
+                .filter(|rel| rel.active && rel.from_table == r.table)
+            {
+                let Some((_, name)) = r.columns.iter().find(|(c, _)| *c == rel.from_column) else {
+                    continue;
+                };
+                let one = &rel.to_table;
+                let cols: Vec<&Id> = self
+                    .model
+                    .table(one)
+                    .map(|t| t.columns.iter().map(|c| &c.id).collect())
+                    .unwrap_or_default();
+                c.keys
+                    .retain(|k| &k.table != one && !cols.contains(&&k.column));
+                c.filters.retain(|f| {
+                    &f.table != one && !f.columns.iter().any(|col| cols.contains(&col))
+                });
+                c.keys.push(Key {
+                    name: name.clone(),
+                    table: one.clone(),
+                    column: rel.to_column.clone(),
                 });
             }
         }
@@ -2860,7 +2894,7 @@ impl<'a> Compiler<'a> {
         }
         // The rows are read in their own context (ALLSELECTED drops the keys); the
         // expression is evaluated in the outer one.
-        let selected = unselect(cur, ctx);
+        let selected = unselect(self.model, cur, ctx);
         let (cur, rows_ctx) = match &selected {
             Some((t, c)) => (t, c),
             None => (cur, ctx),

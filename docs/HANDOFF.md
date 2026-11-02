@@ -544,6 +544,20 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
     variables (`RESERVED_VARS`, 94 names probed from the Service), and the PBIP export
     quotes those table names (`charted_dax::lexer::quote_tables`). The export also marks
     a date table's date column `isKey`, without which Power BI ignores the marking.
+  - Second round (1957 of 2020, 63 known): LOOKUPVALUE ignores every filter (its own
+    table's, related tables', a CALCULATE around it) and searches only real rows with
+    strict equality: blank matches a blank cell, not "" or 0, and never the blank row.
+    Context transition filters the row's expanded table: a Targets row also filters
+    Date and Store to the related rows, replacing their filters (an unmatched key gives
+    the blank row). VALUES ( table ), ALL ( table ) and ALLSELECTED ( table ) include
+    the blank row; the table itself and DISTINCT ( table ) don't.
+  - Not worth matching: CONCATENATEX with no order follows VertiPaq's storage order
+    (categories in first-seen order with blank last, colours with blank first, numbers
+    sorted, table rows regrouped by colour); Int64 arithmetic only shows when an integer
+    of 10^15 or more becomes text.
+  - x/0 in Power BI: `1/0` is Infinity, `-1/0` -Infinity, `0/0` and `0/BLANK()` NaN,
+    `BLANK()/0` blank (DIVIDE still gives blank). As text: "inf", "-inf", "-nan(ind)".
+    Comparisons with NaN are false, SUMX propagates it, ROUND and INT of Infinity error.
 
 - **DuckDB 2.0 behaviour the DAX work relies on (M11.0 spike, 2026-11-02).** These are
   asserted in `crates/engine/tests/duckdb_behaviour.rs`.
