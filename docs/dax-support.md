@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (180 functions)
+## Evaluated (191 functions)
 
 ### Aggregation
 
@@ -211,16 +211,27 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 
 | Function | Description |
 |---|---|
+| `COMBINEVALUES ( Delimiter, Expression, Expression, [Expression]… )` | Joins two or more texts with a delimiter. |
 | `CONCATENATE ( Text1, Text2 )` | Joins two text strings. |
 | `CONCATENATEX ( Table, Expression, [Delimiter], [OrderBy], [Order] )` | Joins an expression evaluated for each row. |
+| `CONTAINSSTRING ( WithinText, FindText )` | Whether text contains other text, ignoring case; ? and * are wildcards. |
+| `CONTAINSSTRINGEXACT ( WithinText, FindText )` | Whether text contains other text, matching case. |
+| `EXACT ( Text1, Text2 )` | Whether two texts are the same, matching case. |
+| `FIND ( FindText, WithinText, [StartPosition], [NotFoundValue] )` | The position of text within text (case-sensitive). |
+| `FIXED ( Number, [Decimals], [NoCommas] )` | A number rounded to a number of decimals, as text with thousands separators. |
 | `FORMAT ( Value, FormatString )` | Converts a value to text with a format string. |
 | `LEFT ( Text, [NumberOfCharacters] )` | Characters from the start of text. |
 | `LEN ( Text )` | The number of characters. |
 | `LOWER ( Text )` | Text in lower case. |
 | `MID ( Text, StartPosition, NumberOfCharacters )` | Characters from the middle of text. |
+| `REPLACE ( OldText, StartPosition, NumberOfCharacters, NewText )` | Replaces part of text by position. |
+| `REPT ( Text, NumberTimes )` | Text repeated a number of times. |
 | `RIGHT ( Text, [NumberOfCharacters] )` | Characters from the end of text. |
+| `SEARCH ( FindText, WithinText, [StartPosition], [NotFoundValue] )` | The position of text within text (not case-sensitive). |
 | `SUBSTITUTE ( Text, OldText, NewText, [InstanceNumber] )` | Replaces text by matching. |
 | `TRIM ( Text )` | Removes spaces from both ends and repeated spaces between words. |
+| `UNICHAR ( Number )` | The character with a Unicode number. |
+| `UNICODE ( Text )` | The Unicode number of the first character of text. |
 | `UPPER ( Text )` | Text in upper case. |
 | `VALUE ( Text )` | Converts text to a number. |
 
@@ -272,8 +283,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (14)
+## Recognised, not yet evaluated (11)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`CROSSFILTER`, `DATEVALUE`, `FIND`, `FIRSTNONBLANK`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `MINUTE`, `REPLACE`, `SEARCH`, `WEEKNUM`, `YEARFRAC`
+`CROSSFILTER`, `DATEVALUE`, `FIRSTNONBLANK`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `MINUTE`, `WEEKNUM`, `YEARFRAC`

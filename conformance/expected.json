@@ -15759,6 +15759,379 @@
     ]
    ]
   },
+  "Combined / by category": {
+   "hash": "0e5d3eb6a186dace",
+   "rows": [
+    [
+     "Camping",
+     "Camping / 29"
+    ],
+    [
+     "Footwear",
+     "Footwear / 22"
+    ],
+    [
+     "Apparel",
+     "Apparel / 38"
+    ],
+    [
+     null,
+     " / 1"
+    ]
+   ]
+  },
+  "Combined / by category and year": {
+   "hash": "f5dffd56115563a9",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "Camping / 13"
+    ],
+    [
+     "Footwear",
+     2024,
+     "Footwear / 4"
+    ],
+    [
+     "Apparel",
+     2024,
+     "Apparel / 13"
+    ],
+    [
+     null,
+     2024,
+     " / "
+    ],
+    [
+     "Camping",
+     2025,
+     "Camping / 16"
+    ],
+    [
+     "Footwear",
+     2025,
+     "Footwear / 18"
+    ],
+    [
+     "Apparel",
+     2025,
+     "Apparel / 25"
+    ],
+    [
+     null,
+     2025,
+     " / 1"
+    ]
+   ]
+  },
+  "Combined / by color, apparel and camping": {
+   "hash": "6660d27eeeecdc7f",
+   "rows": [
+    [
+     null,
+     "Apparel / 13"
+    ],
+    [
+     "Green",
+     "Camping / 19"
+    ],
+    [
+     "Black",
+     "Camping / 10"
+    ],
+    [
+     "Red",
+     "Apparel / 25"
+    ]
+   ]
+  },
+  "Combined / by month in 2025, camping": {
+   "hash": "e12edb8843bead9f",
+   "rows": [
+    [
+     1,
+     "Camping / 1"
+    ],
+    [
+     2,
+     "Camping / "
+    ],
+    [
+     3,
+     "Camping / 2"
+    ],
+    [
+     4,
+     "Camping / 3"
+    ],
+    [
+     5,
+     "Camping / "
+    ],
+    [
+     6,
+     "Camping / 2"
+    ],
+    [
+     7,
+     "Camping / 4"
+    ],
+    [
+     8,
+     "Camping / "
+    ],
+    [
+     9,
+     "Camping / 3"
+    ],
+    [
+     10,
+     "Camping / 1"
+    ],
+    [
+     11,
+     "Camping / "
+    ],
+    [
+     12,
+     "Camping / "
+    ]
+   ]
+  },
+  "Combined / by month name": {
+   "hash": "a73195654cb605d8",
+   "rows": [
+    [
+     "January",
+     " / 13"
+    ],
+    [
+     "February",
+     " / 5"
+    ],
+    [
+     "March",
+     " / 8"
+    ],
+    [
+     "April",
+     " / 10"
+    ],
+    [
+     "May",
+     " / 12"
+    ],
+    [
+     "June",
+     " / 7"
+    ],
+    [
+     "July",
+     " / 9"
+    ],
+    [
+     "August",
+     " / 8"
+    ],
+    [
+     "September",
+     " / 11"
+    ],
+    [
+     "October",
+     " / 7"
+    ],
+    [
+     "November",
+     " / "
+    ],
+    [
+     "December",
+     " / "
+    ]
+   ]
+  },
+  "Combined / by product, camping": {
+   "hash": "945e692558e32182",
+   "rows": [
+    [
+     "Tent",
+     "Camping / 11"
+    ],
+    [
+     "Stove",
+     "Camping / 10"
+    ],
+    [
+     "Lamp",
+     "Camping / 8"
+    ]
+   ]
+  },
+  "Combined / by region in 2025": {
+   "hash": "8aaf36a12fe37023",
+   "rows": [
+    [
+     "North",
+     " / 17"
+    ],
+    [
+     "South",
+     " / 15"
+    ],
+    [
+     "Online",
+     " / 28"
+    ]
+   ]
+  },
+  "Combined / by year": {
+   "hash": "d1f7560166ff8ec4",
+   "rows": [
+    [
+     2024,
+     " / 30"
+    ],
+    [
+     2025,
+     " / 60"
+    ]
+   ]
+  },
+  "Combined / by year and month": {
+   "hash": "354f0040e4383cef",
+   "rows": [
+    [
+     2024,
+     1,
+     " / 4"
+    ],
+    [
+     2025,
+     1,
+     " / 9"
+    ],
+    [
+     2024,
+     2,
+     " / 3"
+    ],
+    [
+     2025,
+     2,
+     " / 2"
+    ],
+    [
+     2024,
+     3,
+     " / 2"
+    ],
+    [
+     2025,
+     3,
+     " / 6"
+    ],
+    [
+     2024,
+     4,
+     " / 3"
+    ],
+    [
+     2025,
+     4,
+     " / 7"
+    ],
+    [
+     2024,
+     5,
+     " / 6"
+    ],
+    [
+     2025,
+     5,
+     " / 6"
+    ],
+    [
+     2024,
+     6,
+     " / 3"
+    ],
+    [
+     2025,
+     6,
+     " / 4"
+    ],
+    [
+     2024,
+     7,
+     " / 4"
+    ],
+    [
+     2025,
+     7,
+     " / 5"
+    ],
+    [
+     2024,
+     8,
+     " / 1"
+    ],
+    [
+     2025,
+     8,
+     " / 7"
+    ],
+    [
+     2024,
+     9,
+     " / 3"
+    ],
+    [
+     2025,
+     9,
+     " / 8"
+    ],
+    [
+     2024,
+     10,
+     " / 1"
+    ],
+    [
+     2025,
+     10,
+     " / 6"
+    ],
+    [
+     2024,
+     11,
+     " / "
+    ],
+    [
+     2025,
+     11,
+     " / "
+    ],
+    [
+     2024,
+     12,
+     " / "
+    ],
+    [
+     2025,
+     12,
+     " / "
+    ]
+   ]
+  },
+  "Combined / card": {
+   "hash": "cc777b9633c921ab",
+   "rows": [
+    [
+     " / 90"
+    ]
+   ]
+  },
   "Counted Lines / by category": {
    "hash": "13607551f7ab5817",
    "rows": [
@@ -21301,6 +21674,379 @@
     ]
    ]
   },
+  "Find Category / by category": {
+   "hash": "d5835d6590b5cc32",
+   "rows": [
+    [
+     "Camping",
+     4
+    ],
+    [
+     "Footwear",
+     0
+    ],
+    [
+     "Apparel",
+     2
+    ],
+    [
+     null,
+     0
+    ]
+   ]
+  },
+  "Find Category / by category and year": {
+   "hash": "0c3a44c296eb01ff",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     4
+    ],
+    [
+     "Footwear",
+     2024,
+     0
+    ],
+    [
+     "Apparel",
+     2024,
+     2
+    ],
+    [
+     null,
+     2024,
+     0
+    ],
+    [
+     "Camping",
+     2025,
+     4
+    ],
+    [
+     "Footwear",
+     2025,
+     0
+    ],
+    [
+     "Apparel",
+     2025,
+     2
+    ],
+    [
+     null,
+     2025,
+     0
+    ]
+   ]
+  },
+  "Find Category / by color, apparel and camping": {
+   "hash": "3fd475c0bb33db2d",
+   "rows": [
+    [
+     null,
+     2
+    ],
+    [
+     "Green",
+     4
+    ],
+    [
+     "Black",
+     4
+    ],
+    [
+     "Red",
+     2
+    ]
+   ]
+  },
+  "Find Category / by month in 2025, camping": {
+   "hash": "a456c0eaad83dc4d",
+   "rows": [
+    [
+     1,
+     4
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     4,
+     4
+    ],
+    [
+     5,
+     4
+    ],
+    [
+     6,
+     4
+    ],
+    [
+     7,
+     4
+    ],
+    [
+     8,
+     4
+    ],
+    [
+     9,
+     4
+    ],
+    [
+     10,
+     4
+    ],
+    [
+     11,
+     4
+    ],
+    [
+     12,
+     4
+    ]
+   ]
+  },
+  "Find Category / by month name": {
+   "hash": "98e8a0778063fe9c",
+   "rows": [
+    [
+     "January",
+     0
+    ],
+    [
+     "February",
+     0
+    ],
+    [
+     "March",
+     0
+    ],
+    [
+     "April",
+     0
+    ],
+    [
+     "May",
+     0
+    ],
+    [
+     "June",
+     0
+    ],
+    [
+     "July",
+     0
+    ],
+    [
+     "August",
+     0
+    ],
+    [
+     "September",
+     0
+    ],
+    [
+     "October",
+     0
+    ],
+    [
+     "November",
+     0
+    ],
+    [
+     "December",
+     0
+    ]
+   ]
+  },
+  "Find Category / by product, camping": {
+   "hash": "4503f14f2835b7ee",
+   "rows": [
+    [
+     "Tent",
+     4
+    ],
+    [
+     "Stove",
+     4
+    ],
+    [
+     "Lamp",
+     4
+    ]
+   ]
+  },
+  "Find Category / by region in 2025": {
+   "hash": "712fdd2c3be36f09",
+   "rows": [
+    [
+     "North",
+     0
+    ],
+    [
+     "South",
+     0
+    ],
+    [
+     "Online",
+     0
+    ]
+   ]
+  },
+  "Find Category / by year": {
+   "hash": "90f5fd1350865dc0",
+   "rows": [
+    [
+     2024,
+     0
+    ],
+    [
+     2025,
+     0
+    ]
+   ]
+  },
+  "Find Category / by year and month": {
+   "hash": "51835c8657f3d5fd",
+   "rows": [
+    [
+     2024,
+     1,
+     0
+    ],
+    [
+     2025,
+     1,
+     0
+    ],
+    [
+     2024,
+     2,
+     0
+    ],
+    [
+     2025,
+     2,
+     0
+    ],
+    [
+     2024,
+     3,
+     0
+    ],
+    [
+     2025,
+     3,
+     0
+    ],
+    [
+     2024,
+     4,
+     0
+    ],
+    [
+     2025,
+     4,
+     0
+    ],
+    [
+     2024,
+     5,
+     0
+    ],
+    [
+     2025,
+     5,
+     0
+    ],
+    [
+     2024,
+     6,
+     0
+    ],
+    [
+     2025,
+     6,
+     0
+    ],
+    [
+     2024,
+     7,
+     0
+    ],
+    [
+     2025,
+     7,
+     0
+    ],
+    [
+     2024,
+     8,
+     0
+    ],
+    [
+     2025,
+     8,
+     0
+    ],
+    [
+     2024,
+     9,
+     0
+    ],
+    [
+     2025,
+     9,
+     0
+    ],
+    [
+     2024,
+     10,
+     0
+    ],
+    [
+     2025,
+     10,
+     0
+    ],
+    [
+     2024,
+     11,
+     0
+    ],
+    [
+     2025,
+     11,
+     0
+    ],
+    [
+     2024,
+     12,
+     0
+    ],
+    [
+     2025,
+     12,
+     0
+    ]
+   ]
+  },
+  "Find Category / card": {
+   "hash": "18621a6f9469b8b1",
+   "rows": [
+    [
+     0
+    ]
+   ]
+  },
   "First Month / by category": {
    "hash": "cb250578112512a2",
    "rows": [
@@ -21671,6 +22417,379 @@
    "rows": [
     [
      "2024-01 January 31"
+    ]
+   ]
+  },
+  "Fixed Amount / by category": {
+   "hash": "ac70ed4c5d3f2526",
+   "rows": [
+    [
+     "Camping",
+     "3,379.3"
+    ],
+    [
+     "Footwear",
+     "2,173.0"
+    ],
+    [
+     "Apparel",
+     "2,225.0"
+    ],
+    [
+     null,
+     "27.0"
+    ]
+   ]
+  },
+  "Fixed Amount / by category and year": {
+   "hash": "4d2b7a55cde2e957",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "1,403.3"
+    ],
+    [
+     "Footwear",
+     2024,
+     "500.0"
+    ],
+    [
+     "Apparel",
+     2024,
+     "571.2"
+    ],
+    [
+     null,
+     2024,
+     "0.0"
+    ],
+    [
+     "Camping",
+     2025,
+     "1,976.0"
+    ],
+    [
+     "Footwear",
+     2025,
+     "1,673.0"
+    ],
+    [
+     "Apparel",
+     2025,
+     "1,653.8"
+    ],
+    [
+     null,
+     2025,
+     "27.0"
+    ]
+   ]
+  },
+  "Fixed Amount / by color, apparel and camping": {
+   "hash": "bc02d764bcdca049",
+   "rows": [
+    [
+     null,
+     "300.0"
+    ],
+    [
+     "Green",
+     "2,343.3"
+    ],
+    [
+     "Black",
+     "1,036.0"
+    ],
+    [
+     "Red",
+     "1,925.0"
+    ]
+   ]
+  },
+  "Fixed Amount / by month in 2025, camping": {
+   "hash": "4e088d0a71bddce9",
+   "rows": [
+    [
+     1,
+     "96.0"
+    ],
+    [
+     2,
+     "0.0"
+    ],
+    [
+     3,
+     "720.0"
+    ],
+    [
+     4,
+     "460.0"
+    ],
+    [
+     5,
+     "0.0"
+    ],
+    [
+     6,
+     "260.0"
+    ],
+    [
+     7,
+     "258.7"
+    ],
+    [
+     8,
+     "0.0"
+    ],
+    [
+     9,
+     "53.3"
+    ],
+    [
+     10,
+     "128.0"
+    ],
+    [
+     11,
+     "0.0"
+    ],
+    [
+     12,
+     "0.0"
+    ]
+   ]
+  },
+  "Fixed Amount / by month name": {
+   "hash": "733438cc153acdb4",
+   "rows": [
+    [
+     "January",
+     "1,414.3"
+    ],
+    [
+     "February",
+     "200.8"
+    ],
+    [
+     "March",
+     "1,336.7"
+    ],
+    [
+     "April",
+     "805.3"
+    ],
+    [
+     "May",
+     "549.7"
+    ],
+    [
+     "June",
+     "469.7"
+    ],
+    [
+     "July",
+     "590.0"
+    ],
+    [
+     "August",
+     "559.5"
+    ],
+    [
+     "September",
+     "1,250.3"
+    ],
+    [
+     "October",
+     "628.0"
+    ],
+    [
+     "November",
+     "0.0"
+    ],
+    [
+     "December",
+     "0.0"
+    ]
+   ]
+  },
+  "Fixed Amount / by product, camping": {
+   "hash": "a99cd38bb05e6d3a",
+   "rows": [
+    [
+     "Tent",
+     "2,010.0"
+    ],
+    [
+     "Stove",
+     "1,036.0"
+    ],
+    [
+     "Lamp",
+     "333.3"
+    ]
+   ]
+  },
+  "Fixed Amount / by region in 2025": {
+   "hash": "584c7a1f939296dd",
+   "rows": [
+    [
+     "North",
+     "1,635.7"
+    ],
+    [
+     "South",
+     "1,389.0"
+    ],
+    [
+     "Online",
+     "2,305.2"
+    ]
+   ]
+  },
+  "Fixed Amount / by year": {
+   "hash": "e63e229286d96af0",
+   "rows": [
+    [
+     2024,
+     "2,474.5"
+    ],
+    [
+     2025,
+     "5,329.8"
+    ]
+   ]
+  },
+  "Fixed Amount / by year and month": {
+   "hash": "0712df258e5ad919",
+   "rows": [
+    [
+     2024,
+     1,
+     "380.0"
+    ],
+    [
+     2025,
+     1,
+     "1,034.3"
+    ],
+    [
+     2024,
+     2,
+     "120.8"
+    ],
+    [
+     2025,
+     2,
+     "80.0"
+    ],
+    [
+     2024,
+     3,
+     "308.3"
+    ],
+    [
+     2025,
+     3,
+     "1,028.3"
+    ],
+    [
+     2024,
+     4,
+     "83.3"
+    ],
+    [
+     2025,
+     4,
+     "722.0"
+    ],
+    [
+     2024,
+     5,
+     "311.3"
+    ],
+    [
+     2025,
+     5,
+     "238.3"
+    ],
+    [
+     2024,
+     6,
+     "182.7"
+    ],
+    [
+     2025,
+     6,
+     "287.0"
+    ],
+    [
+     2024,
+     7,
+     "298.0"
+    ],
+    [
+     2025,
+     7,
+     "292.0"
+    ],
+    [
+     2024,
+     8,
+     "100.0"
+    ],
+    [
+     2025,
+     8,
+     "459.5"
+    ],
+    [
+     2024,
+     9,
+     "570.0"
+    ],
+    [
+     2025,
+     9,
+     "680.3"
+    ],
+    [
+     2024,
+     10,
+     "120.0"
+    ],
+    [
+     2025,
+     10,
+     "508.0"
+    ],
+    [
+     2024,
+     11,
+     "0.0"
+    ],
+    [
+     2025,
+     11,
+     "0.0"
+    ],
+    [
+     2024,
+     12,
+     "0.0"
+    ],
+    [
+     2025,
+     12,
+     "0.0"
+    ]
+   ]
+  },
+  "Fixed Amount / card": {
+   "hash": "fb39009c88c87f15",
+   "rows": [
+    [
+     "7,804.3"
     ]
    ]
   },
@@ -67430,6 +68549,379 @@
     ]
    ]
   },
+  "Rept Bar / by category": {
+   "hash": "15c369d0661e73ed",
+   "rows": [
+    [
+     "Camping",
+     "||||||"
+    ],
+    [
+     "Footwear",
+     "||||"
+    ],
+    [
+     "Apparel",
+     "||||||||"
+    ],
+    [
+     null,
+     ""
+    ]
+   ]
+  },
+  "Rept Bar / by category and year": {
+   "hash": "0230c02eae6bbf1a",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "|||"
+    ],
+    [
+     "Footwear",
+     2024,
+     "|"
+    ],
+    [
+     "Apparel",
+     2024,
+     "|||"
+    ],
+    [
+     null,
+     2024,
+     ""
+    ],
+    [
+     "Camping",
+     2025,
+     "|||"
+    ],
+    [
+     "Footwear",
+     2025,
+     "||||"
+    ],
+    [
+     "Apparel",
+     2025,
+     "|||||"
+    ],
+    [
+     null,
+     2025,
+     ""
+    ]
+   ]
+  },
+  "Rept Bar / by color, apparel and camping": {
+   "hash": "7a11cd6c924b40e0",
+   "rows": [
+    [
+     null,
+     "|||"
+    ],
+    [
+     "Green",
+     "||||"
+    ],
+    [
+     "Black",
+     "||"
+    ],
+    [
+     "Red",
+     "|||||"
+    ]
+   ]
+  },
+  "Rept Bar / by month in 2025, camping": {
+   "hash": "54b51172b675a100",
+   "rows": [
+    [
+     1,
+     ""
+    ],
+    [
+     2,
+     ""
+    ],
+    [
+     3,
+     ""
+    ],
+    [
+     4,
+     "|"
+    ],
+    [
+     5,
+     ""
+    ],
+    [
+     6,
+     ""
+    ],
+    [
+     7,
+     "|"
+    ],
+    [
+     8,
+     ""
+    ],
+    [
+     9,
+     "|"
+    ],
+    [
+     10,
+     ""
+    ],
+    [
+     11,
+     ""
+    ],
+    [
+     12,
+     ""
+    ]
+   ]
+  },
+  "Rept Bar / by month name": {
+   "hash": "0a56c4df93ba0ecf",
+   "rows": [
+    [
+     "January",
+     "|||"
+    ],
+    [
+     "February",
+     "|"
+    ],
+    [
+     "March",
+     "||"
+    ],
+    [
+     "April",
+     "||"
+    ],
+    [
+     "May",
+     "||"
+    ],
+    [
+     "June",
+     "|"
+    ],
+    [
+     "July",
+     "||"
+    ],
+    [
+     "August",
+     "||"
+    ],
+    [
+     "September",
+     "||"
+    ],
+    [
+     "October",
+     "|"
+    ],
+    [
+     "November",
+     ""
+    ],
+    [
+     "December",
+     ""
+    ]
+   ]
+  },
+  "Rept Bar / by product, camping": {
+   "hash": "7c24ee52b04f9da1",
+   "rows": [
+    [
+     "Tent",
+     "||"
+    ],
+    [
+     "Stove",
+     "||"
+    ],
+    [
+     "Lamp",
+     "||"
+    ]
+   ]
+  },
+  "Rept Bar / by region in 2025": {
+   "hash": "dc23f6e951235334",
+   "rows": [
+    [
+     "North",
+     "|||"
+    ],
+    [
+     "South",
+     "|||"
+    ],
+    [
+     "Online",
+     "||||||"
+    ]
+   ]
+  },
+  "Rept Bar / by year": {
+   "hash": "d0edcea57f1f2b0b",
+   "rows": [
+    [
+     2024,
+     "||||||"
+    ],
+    [
+     2025,
+     "||||||||||||"
+    ]
+   ]
+  },
+  "Rept Bar / by year and month": {
+   "hash": "4443770d170d47b0",
+   "rows": [
+    [
+     2024,
+     1,
+     "|"
+    ],
+    [
+     2025,
+     1,
+     "||"
+    ],
+    [
+     2024,
+     2,
+     "|"
+    ],
+    [
+     2025,
+     2,
+     ""
+    ],
+    [
+     2024,
+     3,
+     ""
+    ],
+    [
+     2025,
+     3,
+     "|"
+    ],
+    [
+     2024,
+     4,
+     "|"
+    ],
+    [
+     2025,
+     4,
+     "|"
+    ],
+    [
+     2024,
+     5,
+     "|"
+    ],
+    [
+     2025,
+     5,
+     "|"
+    ],
+    [
+     2024,
+     6,
+     "|"
+    ],
+    [
+     2025,
+     6,
+     "|"
+    ],
+    [
+     2024,
+     7,
+     "|"
+    ],
+    [
+     2025,
+     7,
+     "|"
+    ],
+    [
+     2024,
+     8,
+     ""
+    ],
+    [
+     2025,
+     8,
+     "|"
+    ],
+    [
+     2024,
+     9,
+     "|"
+    ],
+    [
+     2025,
+     9,
+     "||"
+    ],
+    [
+     2024,
+     10,
+     ""
+    ],
+    [
+     2025,
+     10,
+     "|"
+    ],
+    [
+     2024,
+     11,
+     ""
+    ],
+    [
+     2025,
+     11,
+     ""
+    ],
+    [
+     2024,
+     12,
+     ""
+    ],
+    [
+     2025,
+     12,
+     ""
+    ]
+   ]
+  },
+  "Rept Bar / card": {
+   "hash": "def4756a119f371c",
+   "rows": [
+    [
+     "||||||||||||||||||"
+    ]
+   ]
+  },
   "Restore Values / by category": {
    "hash": "3b2c0b2521fd1c48",
    "rows": [
@@ -73339,6 +74831,752 @@
   "Scoped Share / card": {
    "hash": "4d733c308c4cb1d0",
    "rows": []
+  },
+  "Search Dynamic / by category": {
+   "hash": "d0cdb46d24c89ff4",
+   "rows": [
+    [
+     "Camping",
+     1
+    ],
+    [
+     "Footwear",
+     1
+    ],
+    [
+     "Apparel",
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by category and year": {
+   "hash": "8098b1690c2bc993",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     1
+    ],
+    [
+     "Footwear",
+     2024,
+     1
+    ],
+    [
+     "Apparel",
+     2024,
+     1
+    ],
+    [
+     null,
+     2024,
+     1
+    ],
+    [
+     "Camping",
+     2025,
+     1
+    ],
+    [
+     "Footwear",
+     2025,
+     1
+    ],
+    [
+     "Apparel",
+     2025,
+     1
+    ],
+    [
+     null,
+     2025,
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by color, apparel and camping": {
+   "hash": "74eba34ac9226ffd",
+   "rows": [
+    [
+     null,
+     1
+    ],
+    [
+     "Green",
+     10
+    ],
+    [
+     "Black",
+     19
+    ],
+    [
+     "Red",
+     5
+    ]
+   ]
+  },
+  "Search Dynamic / by month in 2025, camping": {
+   "hash": "7cd3f9be15892e5d",
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     12,
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by month name": {
+   "hash": "82e4ea1f5eab30b2",
+   "rows": [
+    [
+     "January",
+     1
+    ],
+    [
+     "February",
+     1
+    ],
+    [
+     "March",
+     1
+    ],
+    [
+     "April",
+     1
+    ],
+    [
+     "May",
+     1
+    ],
+    [
+     "June",
+     1
+    ],
+    [
+     "July",
+     1
+    ],
+    [
+     "August",
+     1
+    ],
+    [
+     "September",
+     1
+    ],
+    [
+     "October",
+     1
+    ],
+    [
+     "November",
+     1
+    ],
+    [
+     "December",
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by product, camping": {
+   "hash": "a92e7a75ce8ba958",
+   "rows": [
+    [
+     "Tent",
+     10
+    ],
+    [
+     "Stove",
+     19
+    ],
+    [
+     "Lamp",
+     10
+    ]
+   ]
+  },
+  "Search Dynamic / by region in 2025": {
+   "hash": "0b8e4de291ac3d31",
+   "rows": [
+    [
+     "North",
+     1
+    ],
+    [
+     "South",
+     1
+    ],
+    [
+     "Online",
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by year": {
+   "hash": "abfc8bb9f86ef31e",
+   "rows": [
+    [
+     2024,
+     1
+    ],
+    [
+     2025,
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / by year and month": {
+   "hash": "743814fbff9d11ad",
+   "rows": [
+    [
+     2024,
+     1,
+     1
+    ],
+    [
+     2025,
+     1,
+     1
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2025,
+     2,
+     1
+    ],
+    [
+     2024,
+     3,
+     1
+    ],
+    [
+     2025,
+     3,
+     1
+    ],
+    [
+     2024,
+     4,
+     1
+    ],
+    [
+     2025,
+     4,
+     1
+    ],
+    [
+     2024,
+     5,
+     1
+    ],
+    [
+     2025,
+     5,
+     1
+    ],
+    [
+     2024,
+     6,
+     1
+    ],
+    [
+     2025,
+     6,
+     1
+    ],
+    [
+     2024,
+     7,
+     1
+    ],
+    [
+     2025,
+     7,
+     1
+    ],
+    [
+     2024,
+     8,
+     1
+    ],
+    [
+     2025,
+     8,
+     1
+    ],
+    [
+     2024,
+     9,
+     1
+    ],
+    [
+     2025,
+     9,
+     1
+    ],
+    [
+     2024,
+     10,
+     1
+    ],
+    [
+     2025,
+     10,
+     1
+    ],
+    [
+     2024,
+     11,
+     1
+    ],
+    [
+     2025,
+     11,
+     1
+    ],
+    [
+     2024,
+     12,
+     1
+    ],
+    [
+     2025,
+     12,
+     1
+    ]
+   ]
+  },
+  "Search Dynamic / card": {
+   "hash": "263863d0ac19f859",
+   "rows": [
+    [
+     1
+    ]
+   ]
+  },
+  "Search Product / by category": {
+   "hash": "c5ada0c5d5488306",
+   "rows": [
+    [
+     "Camping",
+     -1
+    ],
+    [
+     "Footwear",
+     -1
+    ],
+    [
+     "Apparel",
+     -1
+    ],
+    [
+     null,
+     -1
+    ]
+   ]
+  },
+  "Search Product / by category and year": {
+   "hash": "6bb1fba8c9f8047b",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     -1
+    ],
+    [
+     "Footwear",
+     2024,
+     -1
+    ],
+    [
+     "Apparel",
+     2024,
+     -1
+    ],
+    [
+     null,
+     2024,
+     -1
+    ],
+    [
+     "Camping",
+     2025,
+     -1
+    ],
+    [
+     "Footwear",
+     2025,
+     -1
+    ],
+    [
+     "Apparel",
+     2025,
+     -1
+    ],
+    [
+     null,
+     2025,
+     -1
+    ]
+   ]
+  },
+  "Search Product / by color, apparel and camping": {
+   "hash": "f14a4c02caa94d19",
+   "rows": [
+    [
+     null,
+     -1
+    ],
+    [
+     "Green",
+     -1
+    ],
+    [
+     "Black",
+     -1
+    ],
+    [
+     "Red",
+     -1
+    ]
+   ]
+  },
+  "Search Product / by month in 2025, camping": {
+   "hash": "6a3814ec320970b9",
+   "rows": [
+    [
+     1,
+     -1
+    ],
+    [
+     2,
+     -1
+    ],
+    [
+     3,
+     -1
+    ],
+    [
+     4,
+     -1
+    ],
+    [
+     5,
+     -1
+    ],
+    [
+     6,
+     -1
+    ],
+    [
+     7,
+     -1
+    ],
+    [
+     8,
+     -1
+    ],
+    [
+     9,
+     -1
+    ],
+    [
+     10,
+     -1
+    ],
+    [
+     11,
+     -1
+    ],
+    [
+     12,
+     -1
+    ]
+   ]
+  },
+  "Search Product / by month name": {
+   "hash": "108620be5a905dd8",
+   "rows": [
+    [
+     "January",
+     -1
+    ],
+    [
+     "February",
+     -1
+    ],
+    [
+     "March",
+     -1
+    ],
+    [
+     "April",
+     -1
+    ],
+    [
+     "May",
+     -1
+    ],
+    [
+     "June",
+     -1
+    ],
+    [
+     "July",
+     -1
+    ],
+    [
+     "August",
+     -1
+    ],
+    [
+     "September",
+     -1
+    ],
+    [
+     "October",
+     -1
+    ],
+    [
+     "November",
+     -1
+    ],
+    [
+     "December",
+     -1
+    ]
+   ]
+  },
+  "Search Product / by product, camping": {
+   "hash": "3ae7ca98e83739ea",
+   "rows": [
+    [
+     "Tent",
+     1
+    ],
+    [
+     "Stove",
+     -1
+    ],
+    [
+     "Lamp",
+     -1
+    ]
+   ]
+  },
+  "Search Product / by region in 2025": {
+   "hash": "47de09964266927d",
+   "rows": [
+    [
+     "North",
+     -1
+    ],
+    [
+     "South",
+     -1
+    ],
+    [
+     "Online",
+     -1
+    ]
+   ]
+  },
+  "Search Product / by year": {
+   "hash": "ba170469ccf482f4",
+   "rows": [
+    [
+     2024,
+     -1
+    ],
+    [
+     2025,
+     -1
+    ]
+   ]
+  },
+  "Search Product / by year and month": {
+   "hash": "de3abf2d9d8dbe89",
+   "rows": [
+    [
+     2024,
+     1,
+     -1
+    ],
+    [
+     2025,
+     1,
+     -1
+    ],
+    [
+     2024,
+     2,
+     -1
+    ],
+    [
+     2025,
+     2,
+     -1
+    ],
+    [
+     2024,
+     3,
+     -1
+    ],
+    [
+     2025,
+     3,
+     -1
+    ],
+    [
+     2024,
+     4,
+     -1
+    ],
+    [
+     2025,
+     4,
+     -1
+    ],
+    [
+     2024,
+     5,
+     -1
+    ],
+    [
+     2025,
+     5,
+     -1
+    ],
+    [
+     2024,
+     6,
+     -1
+    ],
+    [
+     2025,
+     6,
+     -1
+    ],
+    [
+     2024,
+     7,
+     -1
+    ],
+    [
+     2025,
+     7,
+     -1
+    ],
+    [
+     2024,
+     8,
+     -1
+    ],
+    [
+     2025,
+     8,
+     -1
+    ],
+    [
+     2024,
+     9,
+     -1
+    ],
+    [
+     2025,
+     9,
+     -1
+    ],
+    [
+     2024,
+     10,
+     -1
+    ],
+    [
+     2025,
+     10,
+     -1
+    ],
+    [
+     2024,
+     11,
+     -1
+    ],
+    [
+     2025,
+     11,
+     -1
+    ],
+    [
+     2024,
+     12,
+     -1
+    ],
+    [
+     2025,
+     12,
+     -1
+    ]
+   ]
+  },
+  "Search Product / card": {
+   "hash": "52ad0105148fbdb5",
+   "rows": [
+    [
+     -1
+    ]
+   ]
   },
   "Second A / by category": {
    "hash": "63de1753b7e2ec20",
@@ -84321,6 +86559,2351 @@
    "rows": [
     [
      300.0
+    ]
+   ]
+  },
+  "Text Edge 1 / by category": {
+   "hash": "d12cb8702cd66118",
+   "rows": []
+  },
+  "Text Edge 1 / by category and year": {
+   "hash": "45279cfe4243f58d",
+   "rows": []
+  },
+  "Text Edge 1 / by color, apparel and camping": {
+   "hash": "7a1249783bb2061b",
+   "rows": []
+  },
+  "Text Edge 1 / by month in 2025, camping": {
+   "hash": "fdb8a57640c3a27b",
+   "rows": []
+  },
+  "Text Edge 1 / by month name": {
+   "hash": "3cddfd1ca630fa1a",
+   "rows": []
+  },
+  "Text Edge 1 / by product, camping": {
+   "hash": "f40f95bed100dc1c",
+   "rows": []
+  },
+  "Text Edge 1 / by region in 2025": {
+   "hash": "47e467b63e35f4ff",
+   "rows": []
+  },
+  "Text Edge 1 / by year": {
+   "hash": "90231a6038be8ab6",
+   "rows": []
+  },
+  "Text Edge 1 / by year and month": {
+   "hash": "80c59e0da34d5b4b",
+   "rows": []
+  },
+  "Text Edge 1 / card": {
+   "hash": "f27d4f4d3bf66c47",
+   "rows": []
+  },
+  "Text Edge 10 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "14b93b9ee748f091"
+  },
+  "Text Edge 10 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "afcc28f5b8d07594"
+  },
+  "Text Edge 10 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "782c3cf2e2f9a8aa"
+  },
+  "Text Edge 10 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "54647b241e80c3ca"
+  },
+  "Text Edge 10 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "8b4cf4860502310b"
+  },
+  "Text Edge 10 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "e9f788e00632e5cd"
+  },
+  "Text Edge 10 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "8a057de8d4812e76"
+  },
+  "Text Edge 10 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "556ed0d899b69f0f"
+  },
+  "Text Edge 10 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "806a75936624a81a"
+  },
+  "Text Edge 10 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 10</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "500aa95bf6a64b8e"
+  },
+  "Text Edge 11 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "656a4b761c2f8548"
+  },
+  "Text Edge 11 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "76b7f12eb55a1515"
+  },
+  "Text Edge 11 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "74b611945c23e40f"
+  },
+  "Text Edge 11 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "6f50a655d2e6ec6f"
+  },
+  "Text Edge 11 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "48f31314b7b5f26e"
+  },
+  "Text Edge 11 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "5923d76b42727ee4"
+  },
+  "Text Edge 11 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "7b4302e14228a05b"
+  },
+  "Text Edge 11 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "a44b26e01c169dd2"
+  },
+  "Text Edge 11 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "abd1a0796a70651f"
+  },
+  "Text Edge 11 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 11</oii>]: An argument of function 'REPT' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "f26584a1dd55abc3"
+  },
+  "Text Edge 12 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "96036736e69807be"
+  },
+  "Text Edge 12 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "f80144c9024dc3ad"
+  },
+  "Text Edge 12 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "d69096151c6e7613"
+  },
+  "Text Edge 12 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "31ee34a2dddc0833"
+  },
+  "Text Edge 12 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "ac47087c94496088"
+  },
+  "Text Edge 12 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "fb9f0bc82cfa34e2"
+  },
+  "Text Edge 12 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "c3bf03dd9e91e347"
+  },
+  "Text Edge 12 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "8f3ed377373e8724"
+  },
+  "Text Edge 12 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "e974349dd50c5e23"
+  },
+  "Text Edge 12 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 12</oii>]: An argument of function 'UNICHAR' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "4c9b2877af5be98f"
+  },
+  "Text Edge 13 / by category": {
+   "hash": "655e6c99e58f4e05",
+   "rows": []
+  },
+  "Text Edge 13 / by category and year": {
+   "hash": "a03e3e8f501accf4",
+   "rows": []
+  },
+  "Text Edge 13 / by color, apparel and camping": {
+   "hash": "f9aa1fc9aaf27cfe",
+   "rows": []
+  },
+  "Text Edge 13 / by month in 2025, camping": {
+   "hash": "6c6b4f961504e79e",
+   "rows": []
+  },
+  "Text Edge 13 / by month name": {
+   "hash": "fb542b5ca0d72cc3",
+   "rows": []
+  },
+  "Text Edge 13 / by product, camping": {
+   "hash": "661fa8e3ff336229",
+   "rows": []
+  },
+  "Text Edge 13 / by region in 2025": {
+   "hash": "a266a2288ba142e2",
+   "rows": []
+  },
+  "Text Edge 13 / by year": {
+   "hash": "d9f01a6c65c8b39f",
+   "rows": []
+  },
+  "Text Edge 13 / by year and month": {
+   "hash": "b0e97675f7f5db6e",
+   "rows": []
+  },
+  "Text Edge 13 / card": {
+   "hash": "4a5cb124d9a5669a",
+   "rows": []
+  },
+  "Text Edge 14 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "b7bd148c81a1d757"
+  },
+  "Text Edge 14 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "139f408ca2c23df2"
+  },
+  "Text Edge 14 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "1bb0f028becfb74c"
+  },
+  "Text Edge 14 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "0c04b65d4018d36c"
+  },
+  "Text Edge 14 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "aa8854de67fbb5ad"
+  },
+  "Text Edge 14 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "c632ce9690f85e33"
+  },
+  "Text Edge 14 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "67c6ec17a39c3028"
+  },
+  "Text Edge 14 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "4ad329dafd33b3d1"
+  },
+  "Text Edge 14 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "2d4f9ecbee4469dc"
+  },
+  "Text Edge 14 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 14</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "2ffa76b3520acc10"
+  },
+  "Text Edge 15 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "e145607fbd21b1dd"
+  },
+  "Text Edge 15 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "857f0073bf6e1b66"
+  },
+  "Text Edge 15 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "e0804c0d0d0a24b0"
+  },
+  "Text Edge 15 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "6812b6d831e61650"
+  },
+  "Text Edge 15 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "f2f4b1bc32c0a5f3"
+  },
+  "Text Edge 15 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "40e48dfed47d6389"
+  },
+  "Text Edge 15 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "188899817434a60c"
+  },
+  "Text Edge 15 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "a4e3d2407d5c7f97"
+  },
+  "Text Edge 15 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "5eac5fb32bcd7a40"
+  },
+  "Text Edge 15 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 15</oii>]: An argument of function 'REPLACE' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "aedad4bb03eb3464"
+  },
+  "Text Edge 2 / by category": {
+   "hash": "1e874f0d7d5acb73",
+   "rows": []
+  },
+  "Text Edge 2 / by category and year": {
+   "hash": "cb1ba9de7363134e",
+   "rows": []
+  },
+  "Text Edge 2 / by color, apparel and camping": {
+   "hash": "c2e35ce321539244",
+   "rows": []
+  },
+  "Text Edge 2 / by month in 2025, camping": {
+   "hash": "17fe2b59632d99a4",
+   "rows": []
+  },
+  "Text Edge 2 / by month name": {
+   "hash": "0a752d5b0f88b7cd",
+   "rows": []
+  },
+  "Text Edge 2 / by product, camping": {
+   "hash": "7865ff88f63c239f",
+   "rows": []
+  },
+  "Text Edge 2 / by region in 2025": {
+   "hash": "c37bffcc8c1d73a0",
+   "rows": []
+  },
+  "Text Edge 2 / by year": {
+   "hash": "73b2b20b54b891c1",
+   "rows": []
+  },
+  "Text Edge 2 / by year and month": {
+   "hash": "8d9b75e61cafb294",
+   "rows": []
+  },
+  "Text Edge 2 / card": {
+   "hash": "6040e90b5110af28",
+   "rows": []
+  },
+  "Text Edge 3 / by category": {
+   "hash": "399355332b6e2100",
+   "rows": [
+    [
+     "Camping",
+     1
+    ],
+    [
+     "Footwear",
+     1
+    ],
+    [
+     "Apparel",
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by category and year": {
+   "hash": "146c34c65bbf3be1",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     1
+    ],
+    [
+     "Footwear",
+     2024,
+     1
+    ],
+    [
+     "Apparel",
+     2024,
+     1
+    ],
+    [
+     null,
+     2024,
+     1
+    ],
+    [
+     "Camping",
+     2025,
+     1
+    ],
+    [
+     "Footwear",
+     2025,
+     1
+    ],
+    [
+     "Apparel",
+     2025,
+     1
+    ],
+    [
+     null,
+     2025,
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by color, apparel and camping": {
+   "hash": "7aa6adf23a46b0bb",
+   "rows": [
+    [
+     null,
+     1
+    ],
+    [
+     "Green",
+     1
+    ],
+    [
+     "Black",
+     1
+    ],
+    [
+     "Red",
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by month in 2025, camping": {
+   "hash": "d4e6a4ead772845b",
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     12,
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by month name": {
+   "hash": "4ddbdb203e399f4e",
+   "rows": [
+    [
+     "January",
+     1
+    ],
+    [
+     "February",
+     1
+    ],
+    [
+     "March",
+     1
+    ],
+    [
+     "April",
+     1
+    ],
+    [
+     "May",
+     1
+    ],
+    [
+     "June",
+     1
+    ],
+    [
+     "July",
+     1
+    ],
+    [
+     "August",
+     1
+    ],
+    [
+     "September",
+     1
+    ],
+    [
+     "October",
+     1
+    ],
+    [
+     "November",
+     1
+    ],
+    [
+     "December",
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by product, camping": {
+   "hash": "745cd158139eb8bc",
+   "rows": [
+    [
+     "Tent",
+     1
+    ],
+    [
+     "Stove",
+     1
+    ],
+    [
+     "Lamp",
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by region in 2025": {
+   "hash": "86dc59276e5aee67",
+   "rows": [
+    [
+     "North",
+     1
+    ],
+    [
+     "South",
+     1
+    ],
+    [
+     "Online",
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by year": {
+   "hash": "ad09a6e2d566e9e2",
+   "rows": [
+    [
+     2024,
+     1
+    ],
+    [
+     2025,
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / by year and month": {
+   "hash": "043ece117b0d14cb",
+   "rows": [
+    [
+     2024,
+     1,
+     1
+    ],
+    [
+     2025,
+     1,
+     1
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2025,
+     2,
+     1
+    ],
+    [
+     2024,
+     3,
+     1
+    ],
+    [
+     2025,
+     3,
+     1
+    ],
+    [
+     2024,
+     4,
+     1
+    ],
+    [
+     2025,
+     4,
+     1
+    ],
+    [
+     2024,
+     5,
+     1
+    ],
+    [
+     2025,
+     5,
+     1
+    ],
+    [
+     2024,
+     6,
+     1
+    ],
+    [
+     2025,
+     6,
+     1
+    ],
+    [
+     2024,
+     7,
+     1
+    ],
+    [
+     2025,
+     7,
+     1
+    ],
+    [
+     2024,
+     8,
+     1
+    ],
+    [
+     2025,
+     8,
+     1
+    ],
+    [
+     2024,
+     9,
+     1
+    ],
+    [
+     2025,
+     9,
+     1
+    ],
+    [
+     2024,
+     10,
+     1
+    ],
+    [
+     2025,
+     10,
+     1
+    ],
+    [
+     2024,
+     11,
+     1
+    ],
+    [
+     2025,
+     11,
+     1
+    ],
+    [
+     2024,
+     12,
+     1
+    ],
+    [
+     2025,
+     12,
+     1
+    ]
+   ]
+  },
+  "Text Edge 3 / card": {
+   "hash": "a4915623a6a46f4f",
+   "rows": [
+    [
+     1
+    ]
+   ]
+  },
+  "Text Edge 4 / by category": {
+   "hash": "31e4005d2792375f",
+   "rows": [
+    [
+     "Camping",
+     "0.00"
+    ],
+    [
+     "Footwear",
+     "0.00"
+    ],
+    [
+     "Apparel",
+     "0.00"
+    ],
+    [
+     null,
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by category and year": {
+   "hash": "34749998ff1d6d1e",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "0.00"
+    ],
+    [
+     "Footwear",
+     2024,
+     "0.00"
+    ],
+    [
+     "Apparel",
+     2024,
+     "0.00"
+    ],
+    [
+     null,
+     2024,
+     "0.00"
+    ],
+    [
+     "Camping",
+     2025,
+     "0.00"
+    ],
+    [
+     "Footwear",
+     2025,
+     "0.00"
+    ],
+    [
+     "Apparel",
+     2025,
+     "0.00"
+    ],
+    [
+     null,
+     2025,
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by color, apparel and camping": {
+   "hash": "b6afc9c19054082c",
+   "rows": [
+    [
+     null,
+     "0.00"
+    ],
+    [
+     "Green",
+     "0.00"
+    ],
+    [
+     "Black",
+     "0.00"
+    ],
+    [
+     "Red",
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by month in 2025, camping": {
+   "hash": "cd08b9a918e8a48c",
+   "rows": [
+    [
+     1,
+     "0.00"
+    ],
+    [
+     2,
+     "0.00"
+    ],
+    [
+     3,
+     "0.00"
+    ],
+    [
+     4,
+     "0.00"
+    ],
+    [
+     5,
+     "0.00"
+    ],
+    [
+     6,
+     "0.00"
+    ],
+    [
+     7,
+     "0.00"
+    ],
+    [
+     8,
+     "0.00"
+    ],
+    [
+     9,
+     "0.00"
+    ],
+    [
+     10,
+     "0.00"
+    ],
+    [
+     11,
+     "0.00"
+    ],
+    [
+     12,
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by month name": {
+   "hash": "881b88fbd673a291",
+   "rows": [
+    [
+     "January",
+     "0.00"
+    ],
+    [
+     "February",
+     "0.00"
+    ],
+    [
+     "March",
+     "0.00"
+    ],
+    [
+     "April",
+     "0.00"
+    ],
+    [
+     "May",
+     "0.00"
+    ],
+    [
+     "June",
+     "0.00"
+    ],
+    [
+     "July",
+     "0.00"
+    ],
+    [
+     "August",
+     "0.00"
+    ],
+    [
+     "September",
+     "0.00"
+    ],
+    [
+     "October",
+     "0.00"
+    ],
+    [
+     "November",
+     "0.00"
+    ],
+    [
+     "December",
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by product, camping": {
+   "hash": "7aad1e167c24caf3",
+   "rows": [
+    [
+     "Tent",
+     "0.00"
+    ],
+    [
+     "Stove",
+     "0.00"
+    ],
+    [
+     "Lamp",
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by region in 2025": {
+   "hash": "39b333b04748f520",
+   "rows": [
+    [
+     "North",
+     "0.00"
+    ],
+    [
+     "South",
+     "0.00"
+    ],
+    [
+     "Online",
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by year": {
+   "hash": "82d7ac23ed6ed3ed",
+   "rows": [
+    [
+     2024,
+     "0.00"
+    ],
+    [
+     2025,
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / by year and month": {
+   "hash": "c596ed84ba02665c",
+   "rows": [
+    [
+     2024,
+     1,
+     "0.00"
+    ],
+    [
+     2025,
+     1,
+     "0.00"
+    ],
+    [
+     2024,
+     2,
+     "0.00"
+    ],
+    [
+     2025,
+     2,
+     "0.00"
+    ],
+    [
+     2024,
+     3,
+     "0.00"
+    ],
+    [
+     2025,
+     3,
+     "0.00"
+    ],
+    [
+     2024,
+     4,
+     "0.00"
+    ],
+    [
+     2025,
+     4,
+     "0.00"
+    ],
+    [
+     2024,
+     5,
+     "0.00"
+    ],
+    [
+     2025,
+     5,
+     "0.00"
+    ],
+    [
+     2024,
+     6,
+     "0.00"
+    ],
+    [
+     2025,
+     6,
+     "0.00"
+    ],
+    [
+     2024,
+     7,
+     "0.00"
+    ],
+    [
+     2025,
+     7,
+     "0.00"
+    ],
+    [
+     2024,
+     8,
+     "0.00"
+    ],
+    [
+     2025,
+     8,
+     "0.00"
+    ],
+    [
+     2024,
+     9,
+     "0.00"
+    ],
+    [
+     2025,
+     9,
+     "0.00"
+    ],
+    [
+     2024,
+     10,
+     "0.00"
+    ],
+    [
+     2025,
+     10,
+     "0.00"
+    ],
+    [
+     2024,
+     11,
+     "0.00"
+    ],
+    [
+     2025,
+     11,
+     "0.00"
+    ],
+    [
+     2024,
+     12,
+     "0.00"
+    ],
+    [
+     2025,
+     12,
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 4 / card": {
+   "hash": "0b01aeb3cde4e798",
+   "rows": [
+    [
+     "0.00"
+    ]
+   ]
+  },
+  "Text Edge 5 / by category": {
+   "hash": "a1feee602cb9e51d",
+   "rows": [
+    [
+     "Camping",
+     1
+    ],
+    [
+     "Footwear",
+     1
+    ],
+    [
+     "Apparel",
+     1
+    ],
+    [
+     null,
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by category and year": {
+   "hash": "638f23241e262d7c",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     1
+    ],
+    [
+     "Footwear",
+     2024,
+     1
+    ],
+    [
+     "Apparel",
+     2024,
+     1
+    ],
+    [
+     null,
+     2024,
+     1
+    ],
+    [
+     "Camping",
+     2025,
+     1
+    ],
+    [
+     "Footwear",
+     2025,
+     1
+    ],
+    [
+     "Apparel",
+     2025,
+     1
+    ],
+    [
+     null,
+     2025,
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by color, apparel and camping": {
+   "hash": "0c5609b4ea5d668a",
+   "rows": [
+    [
+     null,
+     1
+    ],
+    [
+     "Green",
+     1
+    ],
+    [
+     "Black",
+     1
+    ],
+    [
+     "Red",
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by month in 2025, camping": {
+   "hash": "74c0e827c51e0a2a",
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     12,
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by month name": {
+   "hash": "b94d88ab69fd363f",
+   "rows": [
+    [
+     "January",
+     1
+    ],
+    [
+     "February",
+     1
+    ],
+    [
+     "March",
+     1
+    ],
+    [
+     "April",
+     1
+    ],
+    [
+     "May",
+     1
+    ],
+    [
+     "June",
+     1
+    ],
+    [
+     "July",
+     1
+    ],
+    [
+     "August",
+     1
+    ],
+    [
+     "September",
+     1
+    ],
+    [
+     "October",
+     1
+    ],
+    [
+     "November",
+     1
+    ],
+    [
+     "December",
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by product, camping": {
+   "hash": "fb958d8504566cd9",
+   "rows": [
+    [
+     "Tent",
+     1
+    ],
+    [
+     "Stove",
+     1
+    ],
+    [
+     "Lamp",
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by region in 2025": {
+   "hash": "0472e6a70e75c046",
+   "rows": [
+    [
+     "North",
+     1
+    ],
+    [
+     "South",
+     1
+    ],
+    [
+     "Online",
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by year": {
+   "hash": "91efdd50aae40de3",
+   "rows": [
+    [
+     2024,
+     1
+    ],
+    [
+     2025,
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / by year and month": {
+   "hash": "fc17fb94c601421a",
+   "rows": [
+    [
+     2024,
+     1,
+     1
+    ],
+    [
+     2025,
+     1,
+     1
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2025,
+     2,
+     1
+    ],
+    [
+     2024,
+     3,
+     1
+    ],
+    [
+     2025,
+     3,
+     1
+    ],
+    [
+     2024,
+     4,
+     1
+    ],
+    [
+     2025,
+     4,
+     1
+    ],
+    [
+     2024,
+     5,
+     1
+    ],
+    [
+     2025,
+     5,
+     1
+    ],
+    [
+     2024,
+     6,
+     1
+    ],
+    [
+     2025,
+     6,
+     1
+    ],
+    [
+     2024,
+     7,
+     1
+    ],
+    [
+     2025,
+     7,
+     1
+    ],
+    [
+     2024,
+     8,
+     1
+    ],
+    [
+     2025,
+     8,
+     1
+    ],
+    [
+     2024,
+     9,
+     1
+    ],
+    [
+     2025,
+     9,
+     1
+    ],
+    [
+     2024,
+     10,
+     1
+    ],
+    [
+     2025,
+     10,
+     1
+    ],
+    [
+     2024,
+     11,
+     1
+    ],
+    [
+     2025,
+     11,
+     1
+    ],
+    [
+     2024,
+     12,
+     1
+    ],
+    [
+     2025,
+     12,
+     1
+    ]
+   ]
+  },
+  "Text Edge 5 / card": {
+   "hash": "ce3ce508dc9ae9be",
+   "rows": [
+    [
+     1
+    ]
+   ]
+  },
+  "Text Edge 6 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "ae3b954bc54cb6f7"
+  },
+  "Text Edge 6 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "96a409bb0b9ae410"
+  },
+  "Text Edge 6 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "970638c3d660940a"
+  },
+  "Text Edge 6 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "38883126e3ce57ea"
+  },
+  "Text Edge 6 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "d012c4764b4526ed"
+  },
+  "Text Edge 6 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "fc88caa07783b15b"
+  },
+  "Text Edge 6 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "69150543b4b835fe"
+  },
+  "Text Edge 6 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "338dc00045513559"
+  },
+  "Text Edge 6 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "cac046bed3b8cfda"
+  },
+  "Text Edge 6 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 6</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "5763fb228befe8d6"
+  },
+  "Text Edge 7 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "9ba4338ff1f3fc8f"
+  },
+  "Text Edge 7 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "d866b36839c47092"
+  },
+  "Text Edge 7 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "818b3ff144ad90e0"
+  },
+  "Text Edge 7 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "713260382597db40"
+  },
+  "Text Edge 7 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "376598b986ecc889"
+  },
+  "Text Edge 7 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "e8637abefa1fa35b"
+  },
+  "Text Edge 7 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "770c163862f9219c"
+  },
+  "Text Edge 7 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "aa0d85e580e3dedd"
+  },
+  "Text Edge 7 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "9642bd8cc3176010"
+  },
+  "Text Edge 7 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 7</oii>]: The search Text provided to function 'FIND' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "64e5cf5fd3cacc84"
+  },
+  "Text Edge 8 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "aca323fa3912e9b0"
+  },
+  "Text Edge 8 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "ba48336d81e8a355"
+  },
+  "Text Edge 8 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "689d57e63fdcdedb"
+  },
+  "Text Edge 8 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "6364a9161194103b"
+  },
+  "Text Edge 8 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "f813888f9665378a"
+  },
+  "Text Edge 8 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "def1e249acf30464"
+  },
+  "Text Edge 8 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "73a7693386aae78f"
+  },
+  "Text Edge 8 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "600d03fc617692e6"
+  },
+  "Text Edge 8 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "d74ed7dcef57da8b"
+  },
+  "Text Edge 8 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 8</oii>]: An argument of function 'FIND' has the wrong data type or has an invalid value.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803804}}]}",
+   "hash": "d00c7e97d36507d7"
+  },
+  "Text Edge 9 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "46b5eda4c5dc5c1e"
+  },
+  "Text Edge 9 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "71491c0d018456d1"
+  },
+  "Text Edge 9 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "f107ce6bc7c90517"
+  },
+  "Text Edge 9 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "d7b30d4e068654f7"
+  },
+  "Text Edge 9 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "8d37389d09bd17e0"
+  },
+  "Text Edge 9 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "6a9e8a6c239fdd02"
+  },
+  "Text Edge 9 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "6ea62eced035656b"
+  },
+  "Text Edge 9 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "a52075e37d7e5d8c"
+  },
+  "Text Edge 9 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "c26b6b1615ec4867"
+  },
+  "Text Edge 9 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Text Edge 9</oii>]: The search Text provided to function 'SEARCH' could not be found in the given text.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803835}}]}",
+   "hash": "17fefcd1a741eb93"
+  },
+  "Text Probes / by category": {
+   "hash": "e973a61ddf541724",
+   "rows": [
+    [
+     "Camping",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Footwear",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Apparel",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     null,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by category and year": {
+   "hash": "61a95048a094d9dd",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Footwear",
+     2024,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Apparel",
+     2024,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     null,
+     2024,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Camping",
+     2025,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Footwear",
+     2025,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Apparel",
+     2025,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     null,
+     2025,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by color, apparel and camping": {
+   "hash": "fb083c37800a33af",
+   "rows": [
+    [
+     null,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Green",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Black",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Red",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by month in 2025, camping": {
+   "hash": "a6045238ef673b4f",
+   "rows": [
+    [
+     1,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     3,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     4,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     5,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     6,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     7,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     8,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     9,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     10,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     11,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     12,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by month name": {
+   "hash": "45614df4deeceb1a",
+   "rows": [
+    [
+     "January",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "February",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "March",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "April",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "May",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "June",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "July",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "August",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "September",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "October",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "November",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "December",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by product, camping": {
+   "hash": "6d5479282cf65d58",
+   "rows": [
+    [
+     "Tent",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Stove",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Lamp",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by region in 2025": {
+   "hash": "b891bc1b67d6f7a3",
+   "rows": [
+    [
+     "North",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "South",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     "Online",
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by year": {
+   "hash": "172a722129737aa6",
+   "rows": [
+    [
+     2024,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / by year and month": {
+   "hash": "8c9ffa768b22907f",
+   "rows": [
+    [
+     2024,
+     1,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     1,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     2,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     2,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     3,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     3,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     4,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     4,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     5,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     5,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     6,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     6,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     7,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     7,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     8,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     8,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     9,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     9,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     10,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     10,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     11,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     11,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2024,
+     12,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ],
+    [
+     2025,
+     12,
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes / card": {
+   "hash": "50e7d13de14d1c4b",
+   "rows": [
+    [
+     "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+    ]
+   ]
+  },
+  "Text Probes 2 / by category": {
+   "hash": "f81ccb1306429894",
+   "rows": [
+    [
+     "Camping",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Footwear",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Apparel",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     null,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by category and year": {
+   "hash": "f4762e9587370223",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Footwear",
+     2024,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Apparel",
+     2024,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     null,
+     2024,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Camping",
+     2025,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Footwear",
+     2025,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Apparel",
+     2025,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     null,
+     2025,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by color, apparel and camping": {
+   "hash": "2d8f1888a946d1c9",
+   "rows": [
+    [
+     null,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Green",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Black",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Red",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by month in 2025, camping": {
+   "hash": "f6441e61f2db19e9",
+   "rows": [
+    [
+     1,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     3,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     4,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     5,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     6,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     7,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     8,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     9,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     10,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     11,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     12,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by month name": {
+   "hash": "55ce9c6a7b0b463e",
+   "rows": [
+    [
+     "January",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "February",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "March",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "April",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "May",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "June",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "July",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "August",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "September",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "October",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "November",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "December",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by product, camping": {
+   "hash": "bf6a0c42c95620e8",
+   "rows": [
+    [
+     "Tent",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Stove",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Lamp",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by region in 2025": {
+   "hash": "b9e516667ee8b55d",
+   "rows": [
+    [
+     "North",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "South",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     "Online",
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by year": {
+   "hash": "bff5257670cc26da",
+   "rows": [
+    [
+     2024,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / by year and month": {
+   "hash": "bd3c0dc67ba66bd9",
+   "rows": [
+    [
+     2024,
+     1,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     1,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     2,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     2,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     3,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     3,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     4,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     4,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     5,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     5,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     6,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     6,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     7,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     7,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     8,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     8,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     9,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     9,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     10,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     10,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     11,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     11,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2024,
+     12,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ],
+    [
+     2025,
+     12,
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+    ]
+   ]
+  },
+  "Text Probes 2 / card": {
+   "hash": "a5c88039bdebf4a5",
+   "rows": [
+    [
+     "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
     ]
    ]
   },

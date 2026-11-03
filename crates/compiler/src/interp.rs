@@ -1843,12 +1843,46 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
             ArgKind::NumOrBlank => v.numeric().map(Value::Num),
             ArgKind::Int => Some(Value::Num(v.numeric().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
+            ArgKind::Any => Some(v.clone()),
             ArgKind::TextOrBlank => match v {
                 Value::Bool(_) => Some(Value::Text(text(v))),
                 _ => v.key().map(Value::Text),
             },
         })
         .collect()
+}
+
+/// SEARCH: the 0-based character position of the first match of `pattern` in `text`,
+/// ignoring case; `?` is any character, `*` any run, `~` makes the next one literal
+/// (SQL's `wildcard_regex`).
+fn wildcard_find(text: &str, pattern: &str) -> Option<usize> {
+    #[derive(Clone, Copy)]
+    enum Tok {
+        Lit(char),
+        One,
+        Many,
+    }
+    let mut toks = Vec::new();
+    let mut it = pattern.chars().peekable();
+    while let Some(c) = it.next() {
+        toks.push(match c {
+            '~' if matches!(it.peek(), Some('~' | '?' | '*')) => Tok::Lit(it.next().unwrap()),
+            '?' => Tok::One,
+            '*' => Tok::Many,
+            c => Tok::Lit(c),
+        });
+    }
+    let fold = |c: char| c.to_lowercase().next().unwrap_or(c);
+    let chars: Vec<char> = text.chars().map(fold).collect();
+    fn at(t: &[char], p: &[Tok], fold: &dyn Fn(char) -> char) -> bool {
+        match p.split_first() {
+            None => true,
+            Some((Tok::Many, rest)) => (0..=t.len()).any(|i| at(&t[i..], rest, fold)),
+            Some((Tok::One, rest)) => !t.is_empty() && at(&t[1..], rest, fold),
+            Some((Tok::Lit(c), rest)) => t.first() == Some(&fold(*c)) && at(&t[1..], rest, fold),
+        }
+    }
+    (0..=chars.len()).find(|&i| at(&chars[i..], &toks, &fold))
 }
 
 /// DuckDB's `round(v, 9)`: ratios are snapped before rounding up or down.
@@ -2193,6 +2227,94 @@ fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
                 &chars[chars.len().saturating_sub(n)..]
             };
             Value::Text(cut.iter().collect())
+        }
+        LibFn::Find | LibFn::Search => {
+            let (find, within) = (txt(0), txt(1));
+            let start = if a.len() > 2 { int(2) } else { 1 };
+            let chars: Vec<char> = within.chars().collect();
+            if start < 1 || start as usize > chars.len() + 1 {
+                return bad();
+            }
+            let rest: String = chars[start as usize - 1..].iter().collect();
+            let at = if f == LibFn::Find {
+                rest.find(&find).map(|b| rest[..b].chars().count())
+            } else {
+                wildcard_find(&rest, &find)
+            };
+            match (at, a.get(3)) {
+                (Some(i), _) => Value::Num((i as i64 + start) as f64),
+                (None, Some(v)) => v.clone(),
+                (None, None) => {
+                    return Err(format!(
+                        "The search Text provided to function '{}' could not be found in the given text.",
+                        f.name()
+                    ));
+                }
+            }
+        }
+        // Nothing is found in empty text, not even empty text.
+        LibFn::ContainsString => {
+            Value::Bool(!txt(0).is_empty() && wildcard_find(&txt(0), &txt(1)).is_some())
+        }
+        LibFn::ContainsStringExact => Value::Bool(txt(0).contains(&txt(1))),
+        LibFn::Exact => Value::Bool(txt(0) == txt(1)),
+        LibFn::Replace => {
+            let (start, n) = (int(1), int(2));
+            if start < 1 || n < 0 {
+                return bad();
+            }
+            let chars: Vec<char> = txt(0).chars().collect();
+            let head: String = chars.iter().take(start as usize - 1).collect();
+            let tail: String = chars.iter().skip((start + n) as usize - 1).collect();
+            Value::Text(format!("{head}{}{tail}", txt(3)))
+        }
+        LibFn::Rept => {
+            let n = num(1);
+            if n < 0.0 {
+                return bad();
+            }
+            Value::Text(txt(0).repeat(n.trunc() as usize))
+        }
+        // The same arithmetic as SQL's (text_template).
+        LibFn::Fixed => {
+            let x = num(0);
+            let d = if a.len() > 1 { num(1) } else { 2.0 };
+            let plain = a.len() > 2 && num(2) != 0.0;
+            let p = 10f64.powf(d);
+            let n = (x.abs() * p).round();
+            let whole = if d > 0.0 { (n / p).trunc() } else { n / p };
+            let mut digits = format!("{whole:.0}");
+            if !plain {
+                let mut grouped = String::new();
+                for (i, c) in digits.chars().enumerate() {
+                    if i > 0 && (digits.len() - i) % 3 == 0 {
+                        grouped.push(',');
+                    }
+                    grouped.push(c);
+                }
+                digits = grouped;
+            }
+            let frac = if d > 0.0 {
+                format!(".{:0>w$.0}", n - whole * p, w = d as usize)
+            } else {
+                String::new()
+            };
+            let sign = if x < 0.0 && n > 0.0 { "-" } else { "" };
+            Value::Text(format!("{sign}{digits}{frac}"))
+        }
+        LibFn::Unichar => {
+            let n = num(0);
+            match char::from_u32(n.trunc() as u32).filter(|_| (1.0..=1_114_111.0).contains(&n)) {
+                Some(c) => Value::Text(c.to_string()),
+                None => return bad(),
+            }
+        }
+        LibFn::Unicode => match txt(0).chars().next() {
+            Some(c) => Value::Num(c as u32 as f64),
+            None => Value::Blank,
+        },
+        LibFn::CombineValues => {
+            Value::Text((1..a.len()).map(txt).collect::<Vec<_>>().join(&txt(0)))
         }
         LibFn::Mid => {
             let (start, n) = (int(1), int(2));

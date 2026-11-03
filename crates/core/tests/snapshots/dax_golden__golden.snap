@@ -1165,6 +1165,177 @@ error: An argument of function 'SQRTPI' has an invalid value.
 ## Math Edge 26 — by category
 error: An argument of function 'SQRTPI' has an invalid value.
 
+## Find Category — card
+0
+
+## Find Category — by category
+∅ | 0
+"Apparel" | 2
+"Camping" | 4
+"Footwear" | 0
+
+## Search Product — card
+-1
+
+## Search Product — by category
+∅ | -1
+"Apparel" | -1
+"Camping" | -1
+"Footwear" | -1
+
+## Search Dynamic — card
+1
+
+## Search Dynamic — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Fixed Amount — card
+"7,804.3"
+
+## Fixed Amount — by category
+∅ | "27.0"
+"Apparel" | "2,225.0"
+"Camping" | "3,379.3"
+"Footwear" | "2,173.0"
+
+## Rept Bar — card
+"||||||||||||||||||"
+
+## Rept Bar — by category
+∅ | ""
+"Apparel" | "||||||||"
+"Camping" | "||||||"
+"Footwear" | "||||"
+
+## Combined — card
+" / 90"
+
+## Combined — by category
+∅ | " / 1"
+"Apparel" | "Apparel / 38"
+"Camping" | "Camping / 29"
+"Footwear" | "Footwear / 22"
+
+## Text Probes — card
+"f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+
+## Text Probes — by category
+∅ | "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+"Apparel" | "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+"Camping" | "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+"Footwear" | "f1:2 f2:4 f3:-1 f4: f5:1 f6:0 s1:2 s2:3 s3:3 s4:2 s5:2 s6:2 s7:1 s8:2 c1:TRUE c2:TRUE c3:FALSE x1:TRUE x2:FALSE e1:FALSE e2:TRUE e3:TRUE r1:aXef r2:x r3:abcZ p1:ababab p2: p3: "
+
+## Text Probes 2 — card
+"x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+
+## Text Probes 2 — by category
+∅ | "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+"Apparel" | "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+"Camping" | "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+"Footwear" | "x1:1,234.57 x2:1234.6 x3:0.00 x4:1,200 x5:3 x6:-1,234,567.89 x7:0.13 u1:A u2:97 u3:€ cv:a--3 cv2:1.5,TRUE "
+
+## Text Edge 1 — card
+∅
+
+## Text Edge 1 — by category
+
+
+## Text Edge 2 — card
+∅
+
+## Text Edge 2 — by category
+
+
+## Text Edge 3 — card
+1
+
+## Text Edge 3 — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Text Edge 4 — card
+"0.00"
+
+## Text Edge 4 — by category
+∅ | "0.00"
+"Apparel" | "0.00"
+"Camping" | "0.00"
+"Footwear" | "0.00"
+
+## Text Edge 5 — card
+1
+
+## Text Edge 5 — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Text Edge 6 — card
+error: The search Text provided to function 'FIND' could not be found in the given text.
+
+## Text Edge 6 — by category
+error: The search Text provided to function 'FIND' could not be found in the given text.
+
+## Text Edge 7 — card
+error: An argument of function 'FIND' has an invalid value.
+
+## Text Edge 7 — by category
+error: An argument of function 'FIND' has an invalid value.
+
+## Text Edge 8 — card
+error: An argument of function 'FIND' has an invalid value.
+
+## Text Edge 8 — by category
+error: An argument of function 'FIND' has an invalid value.
+
+## Text Edge 9 — card
+error: The search Text provided to function 'SEARCH' could not be found in the given text.
+
+## Text Edge 9 — by category
+error: The search Text provided to function 'SEARCH' could not be found in the given text.
+
+## Text Edge 10 — card
+error: An argument of function 'REPLACE' has an invalid value.
+
+## Text Edge 10 — by category
+error: An argument of function 'REPLACE' has an invalid value.
+
+## Text Edge 11 — card
+error: An argument of function 'REPT' has an invalid value.
+
+## Text Edge 11 — by category
+error: An argument of function 'REPT' has an invalid value.
+
+## Text Edge 12 — card
+error: An argument of function 'UNICHAR' has an invalid value.
+
+## Text Edge 12 — by category
+error: An argument of function 'UNICHAR' has an invalid value.
+
+## Text Edge 13 — card
+∅
+
+## Text Edge 13 — by category
+
+
+## Text Edge 14 — card
+error: The search Text provided to function 'FIND' could not be found in the given text.
+
+## Text Edge 14 — by category
+error: The search Text provided to function 'FIND' could not be found in the given text.
+
+## Text Edge 15 — card
+error: An argument of function 'REPLACE' has an invalid value.
+
+## Text Edge 15 — by category
+error: An argument of function 'REPLACE' has an invalid value.
+
 ## Median Parent — card
 2
 

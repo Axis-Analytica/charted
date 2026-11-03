@@ -602,6 +602,13 @@ GCD and LCM round their arguments; FLOOR by 0 and POWER ( 0, -1 ) are errors;
 POWER ( -8, 1/3 ) is -2; MIN and MAX of numbers with a NaN are NaN, of NaNs alone
 blank.
 
+*Batch 2 (text), 2026-11-03: done,* except CONVERT (a type keyword argument; later)
+and VALUE (already done). Checked against the Service (3194 of 3240 agree, the other
+46 known): REPT rounds its count; CONTAINSSTRING finds nothing in empty text;
+UNICODE ( "" ) is blank; FIXED counts blank as 0. SEARCH's wildcards (`?`, `*`, `~`)
+become a regular expression in SQL (`wildcard_regex`) and a matcher in the
+interpreter (`wildcard_find`).
+
 1. **Math:**
    - The 11 recognised ones: CEILING, FLOOR, ROUNDUP, ROUNDDOWN, TRUNC, SQRT, POWER, EXP,
      LN, LOG, SIGN.

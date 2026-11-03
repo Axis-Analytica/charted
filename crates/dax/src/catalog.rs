@@ -47,8 +47,11 @@ CALCULATETABLE|Table; [Filter]…|Filter|Evaluates a table in a filter context c
 CALENDAR|StartDate; EndDate|Table|A table with one column, Date, of every date from the start date to the end date.
 CEILING|Number; Significance|Math|Rounds up to the nearest multiple of significance.
 COALESCE|Value1; Value2; [Value]…|Logical|The first argument that is not blank.
+COMBINEVALUES|Delimiter; Expression; Expression; [Expression]…|Text|Joins two or more texts with a delimiter.
 CONCATENATE|Text1; Text2|Text|Joins two text strings.
 CONCATENATEX|Table; Expression; [Delimiter]; [OrderBy]; [Order]|Text|Joins an expression evaluated for each row.
+CONTAINSSTRINGEXACT|WithinText; FindText|Text|Whether text contains other text, matching case.
+CONTAINSSTRING|WithinText; FindText|Text|Whether text contains other text, ignoring case; ? and * are wildcards.
 COSH|Number|Math|The hyperbolic cosine of a number.
 COS|Number|Math|The cosine of an angle in radians.
 COTH|Number|Math|The hyperbolic cotangent of a number.
@@ -80,6 +83,7 @@ EARLIER|Column; [Number]|Filter|A column's value in an outer row context.
 EDATE|StartDate; Months|Date and time|The date a number of months before or after.
 EOMONTH|StartDate; Months|Date and time|The last day of the month a number of months away.
 EVEN|Number|Math|Rounds a number away from zero to the nearest even integer.
+EXACT|Text1; Text2|Text|Whether two texts are the same, matching case.
 EXP|Number|Math|e raised to a power.
 FACT|Number|Math|The factorial of a number.
 FALSE||Logical|The logical value FALSE.
@@ -87,6 +91,7 @@ FILTER|Table; FilterExpression|Filter|The rows of a table for which the expressi
 FIND|FindText; WithinText; [StartPosition]; [NotFoundValue]|Text|The position of text within text (case-sensitive).
 FIRSTDATE|Dates|Time intelligence|The first date in context.
 FIRSTNONBLANK|Column; Expression|Filter|The first value of a column for which the expression is not blank.
+FIXED|Number; [Decimals]; [NoCommas]|Text|A number rounded to a number of decimals, as text with thousands separators.
 FLOOR|Number; Significance|Math|Rounds down to the nearest multiple of significance.
 FORMAT|Value; FormatString|Text|Converts a value to text with a format string.
 GCD|Number1; Number2|Math|The greatest common divisor of two integers.
@@ -166,6 +171,7 @@ RELATED|Column|Relationships|The value of a column in the related table on the o
 RELATEDTABLE|Table|Relationships|The rows of a table on the many side related to the current row.
 REMOVEFILTERS|[TableOrColumn]; [Column]…|Filter|Removes filters from tables or columns (in CALCULATE).
 REPLACE|OldText; StartPosition; NumberOfCharacters; NewText|Text|Replaces part of text by position.
+REPT|Text; NumberTimes|Text|Text repeated a number of times.
 RIGHT|Text; [NumberOfCharacters]|Text|Characters from the end of text.
 ROUND|Number; NumberOfDigits|Math|Rounds a number to the given number of digits.
 ROUNDDOWN|Number; NumberOfDigits|Math|Rounds towards zero.
@@ -203,6 +209,8 @@ TREATAS|Table; Column…|Filter|Applies the rows of a table as filters on unrela
 TRIM|Text|Text|Removes spaces from both ends and repeated spaces between words.
 TRUE||Logical|The logical value TRUE.
 TRUNC|Number; [NumberOfDigits]|Math|Truncates to an integer or digits.
+UNICHAR|Number|Text|The character with a Unicode number.
+UNICODE|Text|Text|The Unicode number of the first character of text.
 UPPER|Text|Text|Text in upper case.
 USERELATIONSHIP|ColumnName1; ColumnName2|Relationships|Uses an inactive relationship for the duration of a CALCULATE.
 UTCNOW||Date and time|The current date and time in UTC.

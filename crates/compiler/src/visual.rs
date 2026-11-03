@@ -745,6 +745,7 @@ fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
         ),
         ArgKind::Text => text_sql(x),
         ArgKind::TextOrBlank => text_or_null(x),
+        ArgKind::Any => x.0.clone(),
     }
 }
 
@@ -889,6 +890,17 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
             n = a[1]
         ),
         LibFn::PathContains => format!("list_contains(string_split({}, '|'), {})", a[0], a[1]),
+        LibFn::Find
+        | LibFn::Search
+        | LibFn::ContainsString
+        | LibFn::ContainsStringExact
+        | LibFn::Exact
+        | LibFn::Replace
+        | LibFn::Rept
+        | LibFn::Fixed
+        | LibFn::Unichar
+        | LibFn::Unicode
+        | LibFn::CombineValues => text_template(f, a, &bad),
         // Math: the same formulas as the interpreter's (lib_fn), so the two agree to
         // the last bit. Ratios are snapped to 9 decimals before rounding them up or
         // down, so 3.2 * 10 isn't taken for 32.000000000000004.
@@ -939,6 +951,94 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
 
 /// `blank`: the first argument was blank (and is 0 here); LN of it is -Infinity, not
 /// an error, as in Power BI.
+/// SEARCH's pattern as a regular expression: `?` is any character, `*` any run, and
+/// `~` makes the next one literal (the interpreter's `wildcard_find`).
+fn wildcard_regex(p: &str) -> String {
+    format!(
+        "replace(replace(replace(replace(replace(replace(replace(replace(regexp_replace({p}, '([.^$+(){{}}\\[\\]|\\\\])', '\\\\\\1', 'g'), '~~', chr(1)), '~?', chr(2)), '~*', chr(3)), '?', '.'), '*', '.*'), chr(1), '~'), chr(2), '\\?'), chr(3), '\\*')"
+    )
+}
+
+fn text_template(f: LibFn, a: &[String], bad: &str) -> String {
+    let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
+    match f {
+        // The position of the first match at or after `start`; text not found is the
+        // fourth argument, or an error without one.
+        LibFn::Find | LibFn::Search => {
+            let (find, within, start) = (&a[0], &a[1], opt(2, "1"));
+            let missing = a.get(3).cloned().unwrap_or_else(|| {
+                format!(
+                    "error('The search Text provided to function ''{}'' could not be found in the given text.')",
+                    f.name()
+                )
+            });
+            let rest = format!("substring({within}, {start})");
+            let at = if f == LibFn::Find {
+                format!("instr({rest}, {find})")
+            } else {
+                let rx = wildcard_regex(find);
+                format!(
+                    "(CASE WHEN regexp_matches({rest}, {rx}, 'is') THEN instr({rest}, regexp_extract({rest}, {rx}, 0, 'is')) ELSE 0 END)"
+                )
+            };
+            format!(
+                "(CASE WHEN {start} < 1 OR {start} > length({within}) + 1 THEN {bad} WHEN {at} > 0 THEN {at} + {start} - 1 ELSE {missing} END)"
+            )
+        }
+        LibFn::ContainsString => {
+            // Nothing is found in empty text, not even empty text.
+            format!(
+                "(length({w}) > 0 AND regexp_matches({w}, {}, 'is'))",
+                wildcard_regex(&a[1]),
+                w = a[0]
+            )
+        }
+        LibFn::ContainsStringExact => format!("contains({}, {})", a[0], a[1]),
+        LibFn::Exact => format!("({} = {})", a[0], a[1]),
+        LibFn::Replace => format!(
+            "(CASE WHEN {s} < 1 OR {n} < 0 THEN {bad} ELSE substring({t}, 1, {s} - 1) || {new} || substring({t}, {s} + {n}) END)",
+            t = a[0],
+            s = a[1],
+            n = a[2],
+            new = a[3]
+        ),
+        LibFn::Rept => format!(
+            "(CASE WHEN {n} < 0 THEN {bad} ELSE repeat({t}, {n}) END)",
+            t = a[0],
+            n = a[1]
+        ),
+        // Rounded to `d` decimals (halves away from zero) as a whole number of
+        // 10^-d, then written with thousands separators unless the third argument
+        // says not to; the interpreter does the same arithmetic.
+        LibFn::Fixed => {
+            let (x, d, plain) = (&a[0], opt(1, "2"), opt(2, "0"));
+            let n = format!("round(abs({x}) * pow(10, {d}))");
+            let whole = format!(
+                "(CASE WHEN {d} > 0 THEN trunc({n} / pow(10, {d})) ELSE {n} / pow(10, {d}) END)"
+            );
+            let digits = format!(
+                "(CASE WHEN {plain} <> 0 THEN format('{{:.0f}}', {whole}) ELSE format('{{:,.0f}}', {whole}) END)"
+            );
+            let frac = format!(
+                "(CASE WHEN {d} > 0 THEN '.' || lpad(format('{{:.0f}}', {n} - {whole} * pow(10, {d})), CAST({d} AS INTEGER), '0') ELSE '' END)"
+            );
+            format!(
+                "(CASE WHEN {x} IS NULL THEN NULL ELSE (CASE WHEN {x} < 0 AND {n} > 0 THEN '-' ELSE '' END) || {digits} || {frac} END)"
+            )
+        }
+        LibFn::Unichar => format!(
+            "(CASE WHEN {x} < 1 OR {x} > 1114111 THEN {bad} ELSE chr(CAST(trunc({x}) AS INTEGER)) END)",
+            x = a[0]
+        ),
+        LibFn::Unicode => format!(
+            "(CASE WHEN length({t}) = 0 THEN NULL ELSE CAST(unicode({t}) AS DOUBLE) END)",
+            t = a[0]
+        ),
+        LibFn::CombineValues => a[1..].join(&format!(" || {} || ", a[0])),
+        _ => unreachable!("{} isn't a text function", f.name()),
+    }
+}
+
 fn math_template(f: LibFn, a: &[String], bad: &str, blank: bool) -> String {
     let x = a.first().cloned().unwrap_or_default();
     let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());

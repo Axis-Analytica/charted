@@ -155,6 +155,8 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "SQRT ( [Quantity] )",
         "MROUND ( [Orders], 3 )",
         "LOG ( [Sales Amount] + 1, 2 )",
+        "LEN ( FIXED ( [Sales Amount], 1 ) )",
+        "SEARCH ( \"e\", SELECTEDVALUE ( Product[Category] ) & \"x\", 1, 0 )",
     ];
     const FILTERS: &[&str] = &[
         "Product[Category] = \"Camping\"",
@@ -706,6 +708,15 @@ const COLUMNS: &[(&str, &str)] = &[
     ),
     ("Product", "STDEVX.P ( RELATEDTABLE ( Sales ), Sales[Qty] )"),
     ("Sales", "CEILING ( Sales[Price] * 1.07, 0.05 )"),
+    ("Product", "CONTAINSSTRING ( Product[Product], \"e\" )"),
+    (
+        "Product",
+        "REPLACE ( Product[Product], 2, 1, \"_\" ) & EXACT ( Product[Color], \"Red\" )",
+    ),
+    (
+        "Product",
+        "SEARCH ( \"a\", Product[Product], 1, 0 ) + FIND ( \"e\", Product[Product], 1, 0 )",
+    ),
     ("Sales", "POWER ( Sales[Qty], 2 ) + SIGN ( Sales[Qty] - 3 )"),
     // No transition: the whole table.
     ("Product", "SUM ( Sales[Amount] )"),

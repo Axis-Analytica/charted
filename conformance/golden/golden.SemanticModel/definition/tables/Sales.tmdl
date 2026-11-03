@@ -418,6 +418,75 @@ table Sales
 	measure 'Math Edge 26' = SQRTPI ( -1 )
 		lineageTag: m:Math Edge 26
 
+	measure 'Find Category' = FIND ( "p", SELECTEDVALUE ( Product[Category] ) & "", 1, 0 )
+		lineageTag: m:Find Category
+
+	measure 'Search Product' = SEARCH ( "t*n", SELECTEDVALUE ( Product[Product] ) & "", 1, -1 )
+		lineageTag: m:Search Product
+
+	measure 'Search Dynamic' = SEARCH ( LEFT ( SELECTEDVALUE ( Product[Color] ), 2 ), "the red, green or black", 1, BLANK () )
+		lineageTag: m:Search Dynamic
+
+	measure 'Fixed Amount' = FIXED ( [Sales Amount] / 3, 1 )
+		lineageTag: m:Fixed Amount
+
+	measure 'Rept Bar' = REPT ( "|", [Orders] / 5 )
+		lineageTag: m:Rept Bar
+
+	measure Combined = COMBINEVALUES ( " / ", SELECTEDVALUE ( Product[Category] ), [Orders] )
+		lineageTag: m:Combined
+
+	measure 'Text Probes' = "f1:" & FIND ( "b", "abcb" ) & " " & "f2:" & FIND ( "b", "abcb", 3 ) & " " & "f3:" & FIND ( "B", "abc", 1, -1 ) & " " & "f4:" & FIND ( "x", "abc", 1, BLANK () ) & " " & "f5:" & FIND ( "", "abc" ) & " " & "f6:" & FIND ( "c", "abc", 4, 0 ) & " " & "s1:" & SEARCH ( "B", "abc" ) & " " & "s2:" & SEARCH ( "b?d", "xabcd" ) & " " & "s3:" & SEARCH ( "a*c", "xxabbbc" ) & " " & "s4:" & SEARCH ( "~*", "a*b" ) & " " & "s5:" & SEARCH ( "~?", "a?b" ) & " " & "s6:" & SEARCH ( ".", "a.b" ) & " " & "s7:" & SEARCH ( "*", "abc" ) & " " & "s8:" & SEARCH ( "(", "a(b" ) & " " & "c1:" & CONTAINSSTRING ( "Hello", "ELL" ) & " " & "c2:" & CONTAINSSTRING ( "Hello", "h*o" ) & " " & "c3:" & CONTAINSSTRING ( BLANK (), "" ) & " " & "x1:" & CONTAINSSTRINGEXACT ( "Hello", "ell" ) & " " & "x2:" & CONTAINSSTRINGEXACT ( "Hello", "ELL" ) & " " & "e1:" & EXACT ( "a", "A" ) & " " & "e2:" & EXACT ( BLANK (), "" ) & " " & "e3:" & EXACT ( 1, "1" ) & " " & "r1:" & REPLACE ( "abcdef", 2, 3, "X" ) & " " & "r2:" & REPLACE ( BLANK (), 1, 0, "x" ) & " " & "r3:" & REPLACE ( "abc", 5, 2, "Z" ) & " " & "p1:" & REPT ( "ab", 2.7 ) & " " & "p2:" & REPT ( BLANK (), 2 ) & " " & "p3:" & REPT ( "x", BLANK () ) & " "
+		lineageTag: m:Text Probes
+
+	measure 'Text Probes 2' = "x1:" & FIXED ( 1234.567 ) & " " & "x2:" & FIXED ( 1234.567, 1, TRUE () ) & " " & "x3:" & FIXED ( -0.001, 2 ) & " " & "x4:" & FIXED ( 1234.5, -2 ) & " " & "x5:" & FIXED ( 2.5, 0 ) & " " & "x6:" & FIXED ( -1234567.891, 2 ) & " " & "x7:" & FIXED ( 0.125, 2 ) & " " & "u1:" & UNICHAR ( 65 ) & " " & "u2:" & UNICODE ( "abc" ) & " " & "u3:" & UNICHAR ( 8364 ) & " " & "cv:" & COMBINEVALUES ( "-", "a", BLANK (), 3 ) & " " & "cv2:" & COMBINEVALUES ( ",", 1.5, TRUE () ) & " "
+		lineageTag: m:Text Probes 2
+
+	measure 'Text Edge 1' = UNICODE ( BLANK () )
+		lineageTag: m:Text Edge 1
+
+	measure 'Text Edge 2' = UNICHAR ( BLANK () )
+		lineageTag: m:Text Edge 2
+
+	measure 'Text Edge 3' = FIND ( BLANK (), "abc" )
+		lineageTag: m:Text Edge 3
+
+	measure 'Text Edge 4' = FIXED ( BLANK () )
+		lineageTag: m:Text Edge 4
+
+	measure 'Text Edge 5' = SEARCH ( BLANK (), "abc" )
+		lineageTag: m:Text Edge 5
+
+	measure 'Text Edge 6' = FIND ( "x", "abc" )
+		lineageTag: m:Text Edge 6
+
+	measure 'Text Edge 7' = FIND ( "a", "abc", 5 )
+		lineageTag: m:Text Edge 7
+
+	measure 'Text Edge 8' = FIND ( "a", "abc", 0 )
+		lineageTag: m:Text Edge 8
+
+	measure 'Text Edge 9' = SEARCH ( "x", "abc" )
+		lineageTag: m:Text Edge 9
+
+	measure 'Text Edge 10' = REPLACE ( "abc", 0, 1, "x" )
+		lineageTag: m:Text Edge 10
+
+	measure 'Text Edge 11' = REPT ( "a", -1 )
+		lineageTag: m:Text Edge 11
+
+	measure 'Text Edge 12' = UNICHAR ( 0 )
+		lineageTag: m:Text Edge 12
+
+	measure 'Text Edge 13' = UNICODE ( "" )
+		lineageTag: m:Text Edge 13
+
+	measure 'Text Edge 14' = FIND ( "a", BLANK () )
+		lineageTag: m:Text Edge 14
+
+	measure 'Text Edge 15' = REPLACE ( "abc", 1, -1, "x" )
+		lineageTag: m:Text Edge 15
+
 	measure 'Median Parent' = MEDIAN ( Account[ParentKey] )
 		lineageTag: m:Median Parent
 

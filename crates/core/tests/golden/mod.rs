@@ -669,6 +669,48 @@ pub const MEASURES: &[(&str, &str)] = &[
     ("Math Edge 24", "ACOTH ( BLANK () )"),
     ("Math Edge 25", "POWER ( 0, -1 )"),
     ("Math Edge 26", "SQRTPI ( -1 )"),
+    // Text (M11.6 batch 2)
+    (
+        "Find Category",
+        "FIND ( \"p\", SELECTEDVALUE ( Product[Category] ) & \"\", 1, 0 )",
+    ),
+    (
+        "Search Product",
+        "SEARCH ( \"t*n\", SELECTEDVALUE ( Product[Product] ) & \"\", 1, -1 )",
+    ),
+    (
+        "Search Dynamic",
+        "SEARCH ( LEFT ( SELECTEDVALUE ( Product[Color] ), 2 ), \"the red, green or black\", 1, BLANK () )",
+    ),
+    ("Fixed Amount", "FIXED ( [Sales Amount] / 3, 1 )"),
+    ("Rept Bar", "REPT ( \"|\", [Orders] / 5 )"),
+    (
+        "Combined",
+        "COMBINEVALUES ( \" / \", SELECTEDVALUE ( Product[Category] ), [Orders] )",
+    ),
+    (
+        "Text Probes",
+        "\"f1:\" & FIND ( \"b\", \"abcb\" ) & \" \" & \"f2:\" & FIND ( \"b\", \"abcb\", 3 ) & \" \" & \"f3:\" & FIND ( \"B\", \"abc\", 1, -1 ) & \" \" & \"f4:\" & FIND ( \"x\", \"abc\", 1, BLANK () ) & \" \" & \"f5:\" & FIND ( \"\", \"abc\" ) & \" \" & \"f6:\" & FIND ( \"c\", \"abc\", 4, 0 ) & \" \" & \"s1:\" & SEARCH ( \"B\", \"abc\" ) & \" \" & \"s2:\" & SEARCH ( \"b?d\", \"xabcd\" ) & \" \" & \"s3:\" & SEARCH ( \"a*c\", \"xxabbbc\" ) & \" \" & \"s4:\" & SEARCH ( \"~*\", \"a*b\" ) & \" \" & \"s5:\" & SEARCH ( \"~?\", \"a?b\" ) & \" \" & \"s6:\" & SEARCH ( \".\", \"a.b\" ) & \" \" & \"s7:\" & SEARCH ( \"*\", \"abc\" ) & \" \" & \"s8:\" & SEARCH ( \"(\", \"a(b\" ) & \" \" & \"c1:\" & CONTAINSSTRING ( \"Hello\", \"ELL\" ) & \" \" & \"c2:\" & CONTAINSSTRING ( \"Hello\", \"h*o\" ) & \" \" & \"c3:\" & CONTAINSSTRING ( BLANK (), \"\" ) & \" \" & \"x1:\" & CONTAINSSTRINGEXACT ( \"Hello\", \"ell\" ) & \" \" & \"x2:\" & CONTAINSSTRINGEXACT ( \"Hello\", \"ELL\" ) & \" \" & \"e1:\" & EXACT ( \"a\", \"A\" ) & \" \" & \"e2:\" & EXACT ( BLANK (), \"\" ) & \" \" & \"e3:\" & EXACT ( 1, \"1\" ) & \" \" & \"r1:\" & REPLACE ( \"abcdef\", 2, 3, \"X\" ) & \" \" & \"r2:\" & REPLACE ( BLANK (), 1, 0, \"x\" ) & \" \" & \"r3:\" & REPLACE ( \"abc\", 5, 2, \"Z\" ) & \" \" & \"p1:\" & REPT ( \"ab\", 2.7 ) & \" \" & \"p2:\" & REPT ( BLANK (), 2 ) & \" \" & \"p3:\" & REPT ( \"x\", BLANK () ) & \" \"",
+    ),
+    (
+        "Text Probes 2",
+        "\"x1:\" & FIXED ( 1234.567 ) & \" \" & \"x2:\" & FIXED ( 1234.567, 1, TRUE () ) & \" \" & \"x3:\" & FIXED ( -0.001, 2 ) & \" \" & \"x4:\" & FIXED ( 1234.5, -2 ) & \" \" & \"x5:\" & FIXED ( 2.5, 0 ) & \" \" & \"x6:\" & FIXED ( -1234567.891, 2 ) & \" \" & \"x7:\" & FIXED ( 0.125, 2 ) & \" \" & \"u1:\" & UNICHAR ( 65 ) & \" \" & \"u2:\" & UNICODE ( \"abc\" ) & \" \" & \"u3:\" & UNICHAR ( 8364 ) & \" \" & \"cv:\" & COMBINEVALUES ( \"-\", \"a\", BLANK (), 3 ) & \" \" & \"cv2:\" & COMBINEVALUES ( \",\", 1.5, TRUE () ) & \" \"",
+    ),
+    ("Text Edge 1", "UNICODE ( BLANK () )"),
+    ("Text Edge 2", "UNICHAR ( BLANK () )"),
+    ("Text Edge 3", "FIND ( BLANK (), \"abc\" )"),
+    ("Text Edge 4", "FIXED ( BLANK () )"),
+    ("Text Edge 5", "SEARCH ( BLANK (), \"abc\" )"),
+    ("Text Edge 6", "FIND ( \"x\", \"abc\" )"),
+    ("Text Edge 7", "FIND ( \"a\", \"abc\", 5 )"),
+    ("Text Edge 8", "FIND ( \"a\", \"abc\", 0 )"),
+    ("Text Edge 9", "SEARCH ( \"x\", \"abc\" )"),
+    ("Text Edge 10", "REPLACE ( \"abc\", 0, 1, \"x\" )"),
+    ("Text Edge 11", "REPT ( \"a\", -1 )"),
+    ("Text Edge 12", "UNICHAR ( 0 )"),
+    ("Text Edge 13", "UNICODE ( \"\" )"),
+    ("Text Edge 14", "FIND ( \"a\", BLANK () )"),
+    ("Text Edge 15", "REPLACE ( \"abc\", 1, -1, \"x\" )"),
     // How blanks count: Account[ParentKey] has one, and products without sales in
     // the context have a blank [Quantity].
     ("Median Parent", "MEDIAN ( Account[ParentKey] )"),

@@ -178,6 +178,17 @@ fn lib(f: LibFn, a: &[String]) -> Option<String> {
         | LibFn::PathItem
         | LibFn::PathItemReverse
         | LibFn::PathContains
+        | LibFn::Find
+        | LibFn::Search
+        | LibFn::ContainsString
+        | LibFn::ContainsStringExact
+        | LibFn::Exact
+        | LibFn::Replace
+        | LibFn::Rept
+        | LibFn::Fixed
+        | LibFn::Unichar
+        | LibFn::Unicode
+        | LibFn::CombineValues
         | LibFn::Ceiling
         | LibFn::Floor
         | LibFn::IsoCeiling

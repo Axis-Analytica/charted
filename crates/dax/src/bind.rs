@@ -530,7 +530,6 @@ pub enum Bound {
 pub const KNOWN: &[&str] = &[
     "CROSSFILTER",
     "DATEVALUE",
-    "FIND",
     "FIRSTNONBLANK",
     "GENERATE",
     "HOUR",
@@ -538,8 +537,6 @@ pub const KNOWN: &[&str] = &[
     "ISERROR",
     "LASTNONBLANK",
     "MINUTE",
-    "REPLACE",
-    "SEARCH",
     "WEEKNUM",
     "YEARFRAC",
 ];

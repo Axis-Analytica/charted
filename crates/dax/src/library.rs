@@ -26,6 +26,8 @@ pub enum ArgKind {
     NumBlank,
     /// A whole number: decimals are rounded (half away from zero), blank counts as zero.
     Int,
+    /// Any value, as given (FIND's value for text not found, which may be blank).
+    Any,
     /// Text; blank counts as empty text, numbers and dates as they're written.
     Text,
     /// Text, numbers and dates as they're written; a blank argument makes the result
@@ -137,6 +139,18 @@ library! {
     Atanh = "ATANH" (NumBlank) -> Num;
     Acoth = "ACOTH" (NumBlank) -> Num;
     Currency = "CURRENCY" (NumBlank) -> Num;
+    // Text (M11.6 batch 2).
+    Find = "FIND" (Text, Text; Int, Any) -> Num;
+    Search = "SEARCH" (Text, Text; Int, Any) -> Num;
+    ContainsString = "CONTAINSSTRING" (Text, Text) -> Bool;
+    ContainsStringExact = "CONTAINSSTRINGEXACT" (Text, Text) -> Bool;
+    Exact = "EXACT" (Text, Text) -> Bool;
+    Replace = "REPLACE" (Text, Int, Int, Text) -> Text;
+    Rept = "REPT" (Text, Int) -> Text;
+    Fixed = "FIXED" (Num; Int, Num) -> Text;
+    Unichar = "UNICHAR" (NumOrBlank) -> Text;
+    Unicode = "UNICODE" (TextOrBlank) -> Num;
+    CombineValues = "COMBINEVALUES" (Text, Text, Text; Text, Text, Text, Text, Text, Text) -> Text;
     Rand = "RAND" () -> Num;
     RandBetween = "RANDBETWEEN" (Int, Int) -> Num;
 }
