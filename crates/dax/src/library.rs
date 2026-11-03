@@ -32,6 +32,9 @@ pub enum ArgKind {
     Moment,
     /// Like Moment, but a blank argument is day 0 (YEARFRAC, NETWORKDAYS).
     Day0,
+    /// The value's type, as the function sees it: "blank", "number" (dates too),
+    /// "text" or "logical" (ISNUMBER, ISTEXT…).
+    TypeOf,
     /// Any value, as given (FIND's value for text not found, which may be blank).
     Any,
     /// Text; blank counts as empty text, numbers and dates as they're written.
@@ -168,6 +171,18 @@ library! {
     WeekNum = "WEEKNUM" (Moment; Int) -> Num;
     YearFrac = "YEARFRAC" (Day0, Day0; Int) -> Num;
     NetworkDays = "NETWORKDAYS" (Day0, Day0; Int) -> Num;
+    // Information (M11.6 batch 4).
+    IsNumber = "ISNUMBER" (TypeOf) -> Bool;
+    IsText = "ISTEXT" (TypeOf) -> Bool;
+    IsNonText = "ISNONTEXT" (TypeOf) -> Bool;
+    IsLogical = "ISLOGICAL" (TypeOf) -> Bool;
+    IsEven = "ISEVEN" (Int) -> Bool;
+    IsOdd = "ISODD" (Int) -> Bool;
+    BitAnd = "BITAND" (Int, Int) -> Num;
+    BitOr = "BITOR" (Int, Int) -> Num;
+    BitXor = "BITXOR" (Int, Int) -> Num;
+    BitLShift = "BITLSHIFT" (Int, Int) -> Num;
+    BitRShift = "BITRSHIFT" (Int, Int) -> Num;
     Rand = "RAND" () -> Num;
     RandBetween = "RANDBETWEEN" (Int, Int) -> Num;
 }

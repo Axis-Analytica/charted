@@ -41,6 +41,11 @@ ATAN|Number|Math|The arctangent of a number, in radians.
 AVERAGE|Column|Aggregation|The arithmetic mean of a column's numbers.
 AVERAGEA|Column|Aggregation|The mean of a column, counting text as zero.
 AVERAGEX|Table; Expression|Aggregation|The mean of an expression evaluated for each row of a table.
+BITAND|Number1; Number2|Bitwise|The bitwise AND of two whole numbers.
+BITLSHIFT|Number; ShiftAmount|Bitwise|A whole number shifted left by a number of bits.
+BITOR|Number1; Number2|Bitwise|The bitwise OR of two whole numbers.
+BITRSHIFT|Number; ShiftAmount|Bitwise|A whole number shifted right by a number of bits.
+BITXOR|Number1; Number2|Bitwise|The bitwise exclusive OR of two whole numbers.
 BLANK||Information|Returns blank.
 CALCULATE|Expression; [Filter]…|Filter|Evaluates an expression in a filter context changed by the filters.
 CALCULATETABLE|Table; [Filter]…|Filter|Evaluates a table in a filter context changed by the filters.
@@ -105,11 +110,18 @@ IF|LogicalTest; ResultIfTrue; [ResultIfFalse]|Logical|Returns one value when a c
 IFERROR|Value; ValueIfError|Logical|The value, or another when it is an error.
 INT|Number|Math|Rounds down to an integer.
 ISBLANK|Value|Information|TRUE when the value is blank.
+ISEMPTY|Table|Information|Whether a table has no rows.
 ISERROR|Value|Information|TRUE when the value is an error.
+ISEVEN|Number|Information|Whether a number, rounded, is even.
 ISFILTERED|TableOrColumn|Information|TRUE when the column (or any column of the table) is filtered directly.
 ISINSCOPE|Column|Information|TRUE when the column is a grouping level of the current row in the visual.
+ISLOGICAL|Value|Information|Whether a value is TRUE or FALSE.
+ISNONTEXT|Value|Information|Whether a value isn't text (blank isn't text).
+ISNUMBER|Value|Information|Whether a value is a number (dates count as numbers).
 ISO.CEILING|Number; [Significance]|Math|Rounds a number up to the nearest multiple of significance, whatever the signs.
+ISODD|Number|Information|Whether a number, rounded, is odd.
 ISSELECTEDMEASURE|Measure; [Measure]…|Information|In a calculation item, TRUE when the item is applied to one of these measures.
+ISTEXT|Value|Information|Whether a value is text.
 KEEPFILTERS|Filter|Filter|Applies a CALCULATE filter on top of existing filters instead of replacing them.
 LASTDATE|Dates|Time intelligence|The last date in context.
 LASTNONBLANK|Column; Expression|Filter|The last value of a column for which the expression is not blank.

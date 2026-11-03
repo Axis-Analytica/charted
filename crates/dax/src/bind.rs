@@ -544,6 +544,7 @@ pub fn supported(name: &str) -> bool {
 /// Functions charted evaluates, for docs/dax-support.md, besides the library
 /// functions (library.rs).
 pub const SUPPORTED: &[&str] = &[
+    "ISEMPTY",
     "APPROXIMATEDISTINCTCOUNT",
     "AVERAGEA",
     "COUNTAX",
@@ -2074,19 +2075,28 @@ impl<'a> Binder<'a> {
                     dense,
                 })
             }
-            "COUNTROWS" => {
+            "COUNTROWS" | "ISEMPTY" => {
                 if !self.arity(&upper, args, span, 1, 1) {
                     return None;
                 }
                 let source = self.table_expr(&args[0], rows)?;
                 if source.table().is_none() && source.ext_names().is_empty() {
-                    return self.err(args[0].span, "COUNTROWS of a list of values isn't supported yet");
+                    return self.err(args[0].span, format!("{upper} of a list of values isn't supported yet"));
                 }
-                Some(Bound::Aggregate {
+                let count = Bound::Aggregate {
                     func: AggFunc::CountRows,
                     source,
                     arg: None,
                     param: None,
+                };
+                // ISEMPTY: no rows, which COUNTROWS gives as blank.
+                Some(if upper == "ISEMPTY" {
+                    Bound::Call {
+                        func: ScalarFunc::IsBlank,
+                        args: vec![count],
+                    }
+                } else {
+                    count
                 })
             }
             "CALCULATE" => {

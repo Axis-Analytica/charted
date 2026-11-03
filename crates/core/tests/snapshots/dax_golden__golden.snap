@@ -1514,6 +1514,66 @@ error: Cannot convert value 'abc' of type Text to type Date.
 ## Date Edge 15 — by category
 error: Cannot convert value 'abc' of type Text to type Date.
 
+## Selected Is Text — card
+"FALSETRUEFALSE"
+
+## Selected Is Text — by category
+∅ | "FALSETRUETRUE"
+"Apparel" | "TRUETRUEFALSE"
+"Camping" | "TRUETRUETRUE"
+"Footwear" | "TRUETRUEFALSE"
+
+## No Big Sales — card
+false
+
+## No Big Sales — by category
+∅ | true
+"Apparel" | false
+"Camping" | false
+"Footwear" | false
+
+## Orders Bits — card
+273
+
+## Orders Bits — by category
+∅ | 2
+"Apparel" | 121
+"Camping" | 90
+"Footwear" | 73
+
+## Info Probes — card
+"n1:TRUE n2:FALSE n3:FALSE n4:TRUE n5:FALSE t1:TRUE t2:FALSE t3:FALSE t4:FALSE nt1:TRUE nt2:FALSE nt3:TRUE l1:TRUE l2:FALSE l3:FALSE e1:TRUE e2:TRUE e3:FALSE e4:TRUE o1:FALSE o2:TRUE b1:9 b2:29 b3:20 b4:48 b5:25 b6:8 b7:16 b8:6 b9:5 em1:TRUE em2:FALSE"
+
+## Info Probes — by category
+∅ | "n1:TRUE n2:FALSE n3:FALSE n4:TRUE n5:FALSE t1:TRUE t2:FALSE t3:FALSE t4:FALSE nt1:TRUE nt2:FALSE nt3:TRUE l1:TRUE l2:FALSE l3:FALSE e1:TRUE e2:TRUE e3:FALSE e4:TRUE o1:FALSE o2:TRUE b1:9 b2:29 b3:20 b4:48 b5:25 b6:8 b7:16 b8:6 b9:5 em1:TRUE em2:TRUE"
+"Apparel" | "n1:TRUE n2:FALSE n3:FALSE n4:TRUE n5:FALSE t1:TRUE t2:FALSE t3:FALSE t4:FALSE nt1:TRUE nt2:FALSE nt3:TRUE l1:TRUE l2:FALSE l3:FALSE e1:TRUE e2:TRUE e3:FALSE e4:TRUE o1:FALSE o2:TRUE b1:9 b2:29 b3:20 b4:48 b5:25 b6:8 b7:16 b8:6 b9:5 em1:TRUE em2:FALSE"
+"Camping" | "n1:TRUE n2:FALSE n3:FALSE n4:TRUE n5:FALSE t1:TRUE t2:FALSE t3:FALSE t4:FALSE nt1:TRUE nt2:FALSE nt3:TRUE l1:TRUE l2:FALSE l3:FALSE e1:TRUE e2:TRUE e3:FALSE e4:TRUE o1:FALSE o2:TRUE b1:9 b2:29 b3:20 b4:48 b5:25 b6:8 b7:16 b8:6 b9:5 em1:TRUE em2:FALSE"
+"Footwear" | "n1:TRUE n2:FALSE n3:FALSE n4:TRUE n5:FALSE t1:TRUE t2:FALSE t3:FALSE t4:FALSE nt1:TRUE nt2:FALSE nt3:TRUE l1:TRUE l2:FALSE l3:FALSE e1:TRUE e2:TRUE e3:FALSE e4:TRUE o1:FALSE o2:TRUE b1:9 b2:29 b3:20 b4:48 b5:25 b6:8 b7:16 b8:6 b9:5 em1:TRUE em2:FALSE"
+
+## Info Edge 1 — card
+error: Cannot convert value 'a' of type Text to type Number.
+
+## Info Edge 1 — by category
+error: Cannot convert value 'a' of type Text to type Number.
+
+## Info Edge 2 — card
+0
+
+## Info Edge 2 — by category
+∅ | 0
+"Apparel" | 0
+"Camping" | 0
+"Footwear" | 0
+
+## Info Edge 3 — card
+1152921504606846976
+
+## Info Edge 3 — by category
+∅ | 1152921504606846976
+"Apparel" | 1152921504606846976
+"Camping" | 1152921504606846976
+"Footwear" | 1152921504606846976
+
 ## Median Parent — card
 2
 

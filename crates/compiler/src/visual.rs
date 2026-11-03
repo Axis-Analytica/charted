@@ -746,6 +746,16 @@ fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
         ArgKind::Text => text_sql(x),
         ArgKind::TextOrBlank => text_or_null(x),
         ArgKind::Any => x.0.clone(),
+        ArgKind::TypeOf => format!(
+            "(CASE WHEN ({}) IS NULL THEN 'blank' ELSE '{}' END)",
+            x.0,
+            match x.1 {
+                // A date is a number to ISNUMBER, as in Power BI.
+                ValueType::Number | ValueType::Date | ValueType::DateTime => "number",
+                ValueType::Text => "text",
+                ValueType::Bool => "logical",
+            }
+        ),
         ArgKind::Moment | ArgKind::Day0 => {
             let us = match x.1 {
                 ValueType::Text => format!(
@@ -930,6 +940,32 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
         | LibFn::Unichar
         | LibFn::Unicode
         | LibFn::CombineValues => text_template(f, a, &bad),
+        LibFn::IsNumber => format!("({} = 'number')", a[0]),
+        LibFn::IsText => format!("({} = 'text')", a[0]),
+        LibFn::IsNonText => format!("({} <> 'text')", a[0]),
+        LibFn::IsLogical => format!("({} = 'logical')", a[0]),
+        LibFn::IsEven => format!("({} % 2 = 0)", a[0]),
+        LibFn::IsOdd => format!("({} % 2 <> 0)", a[0]),
+        // A negative shift goes the other way.
+        LibFn::BitAnd | LibFn::BitOr | LibFn::BitXor | LibFn::BitLShift | LibFn::BitRShift => {
+            let (x, n) = (a[0].clone(), a[1].clone());
+            let (left, right) = if f == LibFn::BitLShift {
+                ("<<", ">>")
+            } else {
+                (">>", "<<")
+            };
+            format!(
+                "CAST({} AS DOUBLE)",
+                match f {
+                    LibFn::BitAnd => format!("({x} & {n})"),
+                    LibFn::BitOr => format!("({x} | {n})"),
+                    LibFn::BitXor => format!("xor({x}, {n})"),
+                    _ => format!(
+                        "(CASE WHEN {n} >= 0 THEN {x} {left} {n} ELSE {x} {right} -{n} END)"
+                    ),
+                }
+            )
+        }
         LibFn::Hour
         | LibFn::Minute
         | LibFn::Second

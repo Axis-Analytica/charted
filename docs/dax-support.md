@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (200 functions)
+## Evaluated (212 functions)
 
 ### Aggregation
 
@@ -37,6 +37,16 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `PRODUCTX ( Table, Expression )` | The product of an expression evaluated for each row. |
 | `SUM ( Column )` | The sum of a column's numbers. |
 | `SUMX ( Table, Expression )` | The sum of an expression evaluated for each row of a table. |
+
+### Bitwise
+
+| Function | Description |
+|---|---|
+| `BITAND ( Number1, Number2 )` | The bitwise AND of two whole numbers. |
+| `BITLSHIFT ( Number, ShiftAmount )` | A whole number shifted left by a number of bits. |
+| `BITOR ( Number1, Number2 )` | The bitwise OR of two whole numbers. |
+| `BITRSHIFT ( Number, ShiftAmount )` | A whole number shifted right by a number of bits. |
+| `BITXOR ( Number1, Number2 )` | The bitwise exclusive OR of two whole numbers. |
 
 ### Date and time
 
@@ -87,9 +97,16 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | `BLANK (  )` | Returns blank. |
 | `HASONEVALUE ( Column )` | TRUE when the filter context leaves exactly one value of the column. |
 | `ISBLANK ( Value )` | TRUE when the value is blank. |
+| `ISEMPTY ( Table )` | Whether a table has no rows. |
+| `ISEVEN ( Number )` | Whether a number, rounded, is even. |
 | `ISFILTERED ( TableOrColumn )` | TRUE when the column (or any column of the table) is filtered directly. |
 | `ISINSCOPE ( Column )` | TRUE when the column is a grouping level of the current row in the visual. |
+| `ISLOGICAL ( Value )` | Whether a value is TRUE or FALSE. |
+| `ISNONTEXT ( Value )` | Whether a value isn't text (blank isn't text). |
+| `ISNUMBER ( Value )` | Whether a value is a number (dates count as numbers). |
+| `ISODD ( Number )` | Whether a number, rounded, is odd. |
 | `ISSELECTEDMEASURE ( Measure, [Measure]… )` | In a calculation item, TRUE when the item is applied to one of these measures. |
+| `ISTEXT ( Value )` | Whether a value is text. |
 | `LOOKUPVALUE ( ResultColumn, SearchColumn, SearchValue, [SearchColumn, SearchValue]…, [AlternateResult] )` | The value of a column in the row matching the search values. |
 | `NAMEOF ( Value )` | The name of a column or measure, as 'Table'[Name] (field parameters use it). |
 | `SELECTEDMEASURE (  )` | In a calculation item, the measure the item is applied to. |

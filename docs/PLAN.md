@@ -618,6 +618,13 @@ date is an error; in US 30/360 an end on the 31st becomes the 30th only when the
 start day (before adjusting) is the 30th or 31st. YEARFRAC basis 1 follows Excel's
 rule and matched the one case probed.
 
+*Batch 4 (information), 2026-11-03: done* for ISNUMBER, ISTEXT, ISNONTEXT, ISLOGICAL,
+ISEVEN, ISODD, ISEMPTY and the BIT functions; HASONEFILTER (needs FILTERS) and
+ISINSCOPE's edge cases wait. Checked against the Service (3504 of 3550 agree, the
+other 46 known): a date is a number to ISNUMBER; ISEVEN, ISODD and the BIT functions
+round their arguments. Text where a number is wanted is now an error in the
+interpreter too (SQL's cast already failed).
+
 1. **Math:**
    - The 11 recognised ones: CEILING, FLOOR, ROUNDUP, ROUNDDOWN, TRUNC, SQRT, POWER, EXP,
      LN, LOG, SIGN.

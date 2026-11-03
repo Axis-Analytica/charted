@@ -1555,10 +1555,27 @@ impl<'a> Interp<'a> {
             }
             Bound::Calculate { expr, filters } => self.calculate(expr, filters, ctx, rows)?,
             Bound::Call { func, args } => {
-                let a = args
+                let mut a = args
                     .iter()
                     .map(|x| self.eval(x, ctx, rows))
                     .collect::<Result<Vec<_>>>()?;
+                // ISNUMBER, ISTEXT…: the type, dates known from the expression (they
+                // are text here).
+                if let ScalarFunc::Lib(f) = func
+                    && f.kind(0) == ArgKind::TypeOf
+                {
+                    a[0] = Value::Text(
+                        match &a[0] {
+                            Value::Blank => "blank",
+                            // A date is a number to ISNUMBER, as in Power BI.
+                            _ if self.dated(&args[0]) => "number",
+                            Value::Num(_) => "number",
+                            Value::Bool(_) => "logical",
+                            _ => "text",
+                        }
+                        .into(),
+                    );
+                }
                 match func {
                     ScalarFunc::Lib(f) => lib_fn(*f, &a)?,
                     ScalarFunc::Divide => match (a[0].numeric(), a[1].numeric()) {
@@ -1846,7 +1863,7 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
             ArgKind::NumOrBlank => v.numeric().map(Value::Num),
             ArgKind::Int => Some(Value::Num(v.numeric().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
-            ArgKind::Any => Some(v.clone()),
+            ArgKind::Any | ArgKind::TypeOf => Some(v.clone()),
             ArgKind::Moment | ArgKind::Day0 => match v {
                 Value::Text(t) => cal::micros(t).map(|u| Value::Num(u as f64)),
                 Value::Blank if f.kind(i) == ArgKind::Day0 => Some(Value::Num(0.0)),
@@ -2307,6 +2324,20 @@ fn math_fn(f: LibFn, a: &[f64], blank: bool) -> Result<Value> {
 fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
     // A blank first argument: the function of 0, and blank if that is 0.
     let blank = f.kind(0) == ArgKind::NumBlank && a.first().is_some_and(Value::is_blank);
+    // Text that isn't a number, where a number is wanted, is an error (SQL's cast
+    // fails the same way).
+    for (i, v) in a.iter().enumerate() {
+        if let (
+            ArgKind::Num | ArgKind::NumOrBlank | ArgKind::NumBlank | ArgKind::Int,
+            Value::Text(t),
+        ) = (f.kind(i), v)
+            && v.numeric().is_none()
+        {
+            return Err(format!(
+                "Cannot convert value '{t}' of type Text to type Number."
+            ));
+        }
+    }
     // Text that isn't a date, where a date is wanted, is an error.
     for (i, v) in a.iter().enumerate() {
         if let (ArgKind::Moment | ArgKind::Day0, Value::Text(t)) = (f.kind(i), v)
@@ -2455,6 +2486,29 @@ fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
         | LibFn::WeekNum
         | LibFn::YearFrac
         | LibFn::NetworkDays => return time_fn(f, &a),
+        LibFn::IsNumber => Value::Bool(txt(0) == "number"),
+        LibFn::IsText => Value::Bool(txt(0) == "text"),
+        LibFn::IsNonText => Value::Bool(txt(0) != "text"),
+        LibFn::IsLogical => Value::Bool(txt(0) == "logical"),
+        LibFn::IsEven => Value::Bool(num(0).trunc() % 2.0 == 0.0),
+        LibFn::IsOdd => Value::Bool(num(0).trunc() % 2.0 != 0.0),
+        LibFn::BitAnd | LibFn::BitOr | LibFn::BitXor | LibFn::BitLShift | LibFn::BitRShift => {
+            let (x, n) = (num(0).trunc() as i64, num(1).trunc() as i64);
+            let shift = |x: i64, n: i64, left: bool| {
+                if (n >= 0) == left {
+                    x.wrapping_shl(n.unsigned_abs() as u32)
+                } else {
+                    x.wrapping_shr(n.unsigned_abs() as u32)
+                }
+            };
+            Value::Num(match f {
+                LibFn::BitAnd => x & n,
+                LibFn::BitOr => x | n,
+                LibFn::BitXor => x ^ n,
+                LibFn::BitLShift => shift(x, n, true),
+                _ => shift(x, n, false),
+            } as f64)
+        }
         LibFn::Find | LibFn::Search => {
             let (find, within) = (txt(0), txt(1));
             let start = if a.len() > 2 { int(2) } else { 1 };

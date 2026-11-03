@@ -178,6 +178,17 @@ fn lib(f: LibFn, a: &[String]) -> Option<String> {
         | LibFn::PathItem
         | LibFn::PathItemReverse
         | LibFn::PathContains
+        | LibFn::IsNumber
+        | LibFn::IsText
+        | LibFn::IsNonText
+        | LibFn::IsLogical
+        | LibFn::IsEven
+        | LibFn::IsOdd
+        | LibFn::BitAnd
+        | LibFn::BitOr
+        | LibFn::BitXor
+        | LibFn::BitLShift
+        | LibFn::BitRShift
         | LibFn::Hour
         | LibFn::Minute
         | LibFn::Second

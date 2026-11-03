@@ -769,6 +769,26 @@ pub const MEASURES: &[(&str, &str)] = &[
         "YEARFRAC ( DATE ( 2024, 1, 1 ), DATE ( 2024, 2, 1 ), 1 )",
     ),
     ("Date Edge 15", "HOUR ( \"abc\" )"),
+    // Information (M11.6 batch 4)
+    (
+        "Selected Is Text",
+        "ISTEXT ( SELECTEDVALUE ( Product[Category] ) ) & ISNUMBER ( [Orders] ) & ISODD ( [Orders] )",
+    ),
+    (
+        "No Big Sales",
+        "ISEMPTY ( FILTER ( Sales, Sales[Qty] > 4 ) )",
+    ),
+    (
+        "Orders Bits",
+        "BITAND ( [Orders], 6 ) + BITXOR ( [Orders], 1 ) + BITLSHIFT ( [Orders], 1 )",
+    ),
+    (
+        "Info Probes",
+        "\"n1:\" & ISNUMBER ( 1 ) & \" \" & \"n2:\" & ISNUMBER ( \"1\" ) & \" \" & \"n3:\" & ISNUMBER ( BLANK () ) & \" \" & \"n4:\" & ISNUMBER ( TODAY () ) & \" \" & \"n5:\" & ISNUMBER ( TRUE () ) & \" \" & \"t1:\" & ISTEXT ( \"a\" ) & \" \" & \"t2:\" & ISTEXT ( BLANK () ) & \" \" & \"t3:\" & ISTEXT ( 1 ) & \" \" & \"t4:\" & ISTEXT ( TODAY () ) & \" \" & \"nt1:\" & ISNONTEXT ( BLANK () ) & \" \" & \"nt2:\" & ISNONTEXT ( \"\" ) & \" \" & \"nt3:\" & ISNONTEXT ( 3 ) & \" \" & \"l1:\" & ISLOGICAL ( TRUE () ) & \" \" & \"l2:\" & ISLOGICAL ( 1 ) & \" \" & \"l3:\" & ISLOGICAL ( BLANK () ) & \" \" & \"e1:\" & ISEVEN ( 4 ) & \" \" & \"e2:\" & ISEVEN ( 3.9 ) & \" \" & \"e3:\" & ISEVEN ( -3 ) & \" \" & \"e4:\" & ISEVEN ( BLANK () ) & \" \" & \"o1:\" & ISODD ( 3.9 ) & \" \" & \"o2:\" & ISODD ( -3 ) & \" \" & \"b1:\" & BITAND ( 13, 25 ) & \" \" & \"b2:\" & BITOR ( 13, 25 ) & \" \" & \"b3:\" & BITXOR ( 13, 25 ) & \" \" & \"b4:\" & BITLSHIFT ( 3, 4 ) & \" \" & \"b5:\" & BITRSHIFT ( 100, 2 ) & \" \" & \"b6:\" & BITAND ( 13.7, 25 ) & \" \" & \"b7:\" & BITLSHIFT ( 64, -2 ) & \" \" & \"b8:\" & BITAND ( -1, 6 ) & \" \" & \"b9:\" & BITOR ( BLANK (), 5 ) & \" \" & \"em1:\" & ISEMPTY ( FILTER ( Product, Product[ListPrice] > 1000000 ) ) & \" \" & \"em2:\" & ISEMPTY ( Product )",
+    ),
+    ("Info Edge 1", "ISEVEN ( \"a\" )"),
+    ("Info Edge 2", "BITAND ( 2 ^ 50, 1 )"),
+    ("Info Edge 3", "BITLSHIFT ( 1, 60 )"),
     // How blanks count: Account[ParentKey] has one, and products without sales in
     // the context have a blank [Quantity].
     ("Median Parent", "MEDIAN ( Account[ParentKey] )"),
