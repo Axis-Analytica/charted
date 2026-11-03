@@ -135,6 +135,7 @@ MOD|Number; Divisor|Math|The remainder after division.
 MONTH|Date|Date and time|The month, 1 to 12.
 MROUND|Number; Multiple|Math|Rounds a number to the nearest multiple.
 NAMEOF|Value|Information|The name of a column or measure, as 'Table'[Name] (field parameters use it).
+NETWORKDAYS|StartDate; EndDate; [Weekend]|Date and time|The number of working days between two dates, both included (charted doesn't take a holidays table yet).
 NEXTDAY|Dates|Time intelligence|The day after the last date.
 NEXTMONTH|Dates|Time intelligence|The dates of the next month.
 NEXTQUARTER|Dates|Time intelligence|The dates of the next quarter.
@@ -178,6 +179,7 @@ ROUNDDOWN|Number; NumberOfDigits|Math|Rounds towards zero.
 ROUNDUP|Number; NumberOfDigits|Math|Rounds away from zero.
 SAMEPERIODLASTYEAR|Dates|Time intelligence|The dates shifted back one year.
 SEARCH|FindText; WithinText; [StartPosition]; [NotFoundValue]|Text|The position of text within text (not case-sensitive).
+SECOND|DateTime|Date and time|The seconds of a time, 0 to 59.
 SELECTCOLUMNS|Table; Name; Expression; [Name; Expression]…|Table|A table with the given columns.
 SELECTEDMEASURE||Information|In a calculation item, the measure the item is applied to.
 SELECTEDMEASUREFORMATSTRING||Information|In a calculation item, the format string of the measure the item is applied to.
@@ -200,6 +202,8 @@ SUMX|Table; Expression|Aggregation|The sum of an expression evaluated for each r
 SWITCH|Expression; Value; Result; [Value; Result]…; [Else]|Logical|Returns the result for the first value that matches the expression.
 TANH|Number|Math|The hyperbolic tangent of a number.
 TAN|Number|Math|The tangent of an angle in radians.
+TIMEVALUE|TimeText|Date and time|A time from text such as 15:45 or 3:45 PM.
+TIME|Hour; Minute; Second|Date and time|A time from hours, minutes and seconds (hours past 24 wrap round).
 TODAY||Date and time|The current date.
 TOPN|N; Table; [OrderBy]; [Order]…|Table|The top N rows of a table by an expression.
 TOTALMTD|Expression; Dates; [Filter]|Time intelligence|An expression over the month to date.

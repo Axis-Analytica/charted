@@ -609,6 +609,15 @@ UNICODE ( "" ) is blank; FIXED counts blank as 0. SEARCH's wildcards (`?`, `*`, 
 become a regular expression in SQL (`wildcard_regex`) and a matcher in the
 interpreter (`wildcard_find`).
 
+*Batch 3 (date and time), 2026-11-03: done* (NOW, UTCNOW and UTCTODAY came with
+M11.4; CALENDARAUTO is a table function and waits; NETWORKDAYS doesn't take a holidays
+table yet). Checked against the Service (3434 of 3480 agree, the other 46 known):
+TIME rounds its arguments; YEARFRAC and NETWORKDAYS count a blank date as day 0, while
+HOUR, WEEKNUM… of a blank are blank (`ArgKind::Day0` and `Moment`); text that isn't a
+date is an error; in US 30/360 an end on the 31st becomes the 30th only when the
+start day (before adjusting) is the 30th or 31st. YEARFRAC basis 1 follows Excel's
+rule and matched the one case probed.
+
 1. **Math:**
    - The 11 recognised ones: CEILING, FLOOR, ROUNDUP, ROUNDDOWN, TRUNC, SQRT, POWER, EXP,
      LN, LOG, SIGN.

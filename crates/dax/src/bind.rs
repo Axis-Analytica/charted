@@ -529,16 +529,11 @@ pub enum Bound {
 /// DAX functions charted knows of but cannot evaluate yet, so their message can say so.
 pub const KNOWN: &[&str] = &[
     "CROSSFILTER",
-    "DATEVALUE",
     "FIRSTNONBLANK",
     "GENERATE",
-    "HOUR",
     "IFERROR",
     "ISERROR",
     "LASTNONBLANK",
-    "MINUTE",
-    "WEEKNUM",
-    "YEARFRAC",
 ];
 
 /// Whether charted evaluates the function `name` (in capitals).

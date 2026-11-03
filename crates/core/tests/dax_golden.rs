@@ -156,6 +156,8 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "MROUND ( [Orders], 3 )",
         "LOG ( [Sales Amount] + 1, 2 )",
         "LEN ( FIXED ( [Sales Amount], 1 ) )",
+        "WEEKNUM ( MAX ( Date[Date] ) )",
+        "NETWORKDAYS ( MIN ( Date[Date] ), MAX ( Date[Date] ) )",
         "SEARCH ( \"e\", SELECTEDVALUE ( Product[Category] ) & \"x\", 1, 0 )",
     ];
     const FILTERS: &[&str] = &[
@@ -709,6 +711,15 @@ const COLUMNS: &[(&str, &str)] = &[
     ("Product", "STDEVX.P ( RELATEDTABLE ( Sales ), Sales[Qty] )"),
     ("Sales", "CEILING ( Sales[Price] * 1.07, 0.05 )"),
     ("Product", "CONTAINSSTRING ( Product[Product], \"e\" )"),
+    (
+        "Sales",
+        "HOUR ( Sales[OrderedAt] ) + MINUTE ( Sales[OrderedAt] ) / 100",
+    ),
+    ("Sales", "WEEKNUM ( RELATED ( 'Date'[Date] ), 2 )"),
+    (
+        "Sales",
+        "NETWORKDAYS ( RELATED ( 'Date'[Date] ), Sales[OrderedAt] + 10 )",
+    ),
     (
         "Product",
         "REPLACE ( Product[Product], 2, 1, \"_\" ) & EXACT ( Product[Color], \"Red\" )",

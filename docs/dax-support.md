@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (191 functions)
+## Evaluated (200 functions)
 
 ### Aggregation
 
@@ -44,17 +44,26 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 |---|---|
 | `DATE ( Year, Month, Day )` | A date from its parts. |
 | `DATEDIFF ( Date1, Date2, Interval )` | The number of interval boundaries between two dates. |
+| `DATEVALUE ( DateText )` | Converts text to a date. |
 | `DAY ( Date )` | The day of the month. |
 | `EDATE ( StartDate, Months )` | The date a number of months before or after. |
 | `EOMONTH ( StartDate, Months )` | The last day of the month a number of months away. |
+| `HOUR ( DateTime )` | The hour of a time. |
+| `MINUTE ( DateTime )` | The minute of a time. |
 | `MONTH ( Date )` | The month, 1 to 12. |
+| `NETWORKDAYS ( StartDate, EndDate, [Weekend] )` | The number of working days between two dates, both included (charted doesn't take a holidays table yet). |
 | `NOW (  )` | The current date and time. |
 | `QUARTER ( Date )` | The quarter, 1 to 4. |
+| `SECOND ( DateTime )` | The seconds of a time, 0 to 59. |
+| `TIME ( Hour, Minute, Second )` | A time from hours, minutes and seconds (hours past 24 wrap round). |
+| `TIMEVALUE ( TimeText )` | A time from text such as 15:45 or 3:45 PM. |
 | `TODAY (  )` | The current date. |
 | `UTCNOW (  )` | The current date and time in UTC. |
 | `UTCTODAY (  )` | The current date in UTC. |
 | `WEEKDAY ( Date, [ReturnType] )` | The day of the week. |
+| `WEEKNUM ( Date, [ReturnType] )` | The week number in the year. |
 | `YEAR ( Date )` | The year of a date. |
+| `YEARFRAC ( StartDate, EndDate, [Basis] )` | The fraction of a year between two dates. |
 
 ### Filter
 
@@ -283,8 +292,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (11)
+## Recognised, not yet evaluated (6)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`CROSSFILTER`, `DATEVALUE`, `FIRSTNONBLANK`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `MINUTE`, `WEEKNUM`, `YEARFRAC`
+`CROSSFILTER`, `FIRSTNONBLANK`, `GENERATE`, `IFERROR`, `ISERROR`, `LASTNONBLANK`

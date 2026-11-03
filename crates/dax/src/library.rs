@@ -26,6 +26,12 @@ pub enum ArgKind {
     NumBlank,
     /// A whole number: decimals are rounded (half away from zero), blank counts as zero.
     Int,
+    /// A date or time, as microseconds since 1899-12-30 (a number is a serial day,
+    /// text is read as an ISO date, other text is an error); a blank argument makes
+    /// the result blank.
+    Moment,
+    /// Like Moment, but a blank argument is day 0 (YEARFRAC, NETWORKDAYS).
+    Day0,
     /// Any value, as given (FIND's value for text not found, which may be blank).
     Any,
     /// Text; blank counts as empty text, numbers and dates as they're written.
@@ -42,6 +48,7 @@ pub enum Returns {
     Text,
     Bool,
     Date,
+    DateTime,
 }
 
 macro_rules! library {
@@ -151,6 +158,16 @@ library! {
     Unichar = "UNICHAR" (NumOrBlank) -> Text;
     Unicode = "UNICODE" (TextOrBlank) -> Num;
     CombineValues = "COMBINEVALUES" (Text, Text, Text; Text, Text, Text, Text, Text, Text) -> Text;
+    // Date and time (M11.6 batch 3).
+    Hour = "HOUR" (Moment) -> Num;
+    Minute = "MINUTE" (Moment) -> Num;
+    Second = "SECOND" (Moment) -> Num;
+    Time = "TIME" (Int, Int, Int) -> DateTime;
+    TimeValue = "TIMEVALUE" (TextOrBlank) -> DateTime;
+    DateValue = "DATEVALUE" (TextOrBlank) -> Date;
+    WeekNum = "WEEKNUM" (Moment; Int) -> Num;
+    YearFrac = "YEARFRAC" (Day0, Day0; Int) -> Num;
+    NetworkDays = "NETWORKDAYS" (Day0, Day0; Int) -> Num;
     Rand = "RAND" () -> Num;
     RandBetween = "RANDBETWEEN" (Int, Int) -> Num;
 }

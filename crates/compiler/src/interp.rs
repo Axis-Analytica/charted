@@ -1159,7 +1159,10 @@ impl<'a> Interp<'a> {
                 | ScalarFunc::UtcNow
                 | ScalarFunc::EoMonth
                 | ScalarFunc::EDate => true,
-                ScalarFunc::Lib(f) => f.returns() == charted_dax::Returns::Date,
+                ScalarFunc::Lib(f) => matches!(
+                    f.returns(),
+                    charted_dax::Returns::Date | charted_dax::Returns::DateTime
+                ),
                 ScalarFunc::If => args.iter().skip(1).any(|a| self.dated(a)),
                 ScalarFunc::Coalesce | ScalarFunc::Min | ScalarFunc::Max => {
                     args.iter().any(|a| self.dated(a))
@@ -1844,12 +1847,217 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
             ArgKind::Int => Some(Value::Num(v.numeric().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
             ArgKind::Any => Some(v.clone()),
+            ArgKind::Moment | ArgKind::Day0 => match v {
+                Value::Text(t) => cal::micros(t).map(|u| Value::Num(u as f64)),
+                Value::Blank if f.kind(i) == ArgKind::Day0 => Some(Value::Num(0.0)),
+                Value::Blank => None,
+                _ => v
+                    .numeric()
+                    .map(|n| Value::Num((n * 86_400_000_000.0).round())),
+            },
             ArgKind::TextOrBlank => match v {
                 Value::Bool(_) => Some(Value::Text(text(v))),
                 _ => v.key().map(Value::Text),
             },
         })
         .collect()
+}
+
+/// YEARFRAC basis 1 of serial days `lo` <= `hi` (SQL's `actual_actual_sql`).
+fn actual_actual(lo: i64, hi: i64) -> f64 {
+    let civil = |z: i64| cal::civil(z - 25_569);
+    let leap = |y: i64| (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
+    let ((y1, m1, d1), (y2, m2, d2)) = (civil(lo), civil(hi));
+    let days = (hi - lo) as f64;
+    if y1 == y2 || (y2 == y1 + 1 && (m1 > m2 || (m1 == m2 && d1 >= d2))) {
+        let den = if y1 == y2 {
+            if leap(y1) { 366.0 } else { 365.0 }
+        } else if (leap(y1) && m1 < 3) || (leap(y2) && (m2 > 2 || (m2 == 2 && d2 == 29))) {
+            366.0
+        } else {
+            365.0
+        };
+        days / den
+    } else {
+        let span = (cal::days(y2 + 1, 1, 1) - cal::days(y1, 1, 1)) as f64;
+        days / (span / (y2 - y1 + 1) as f64)
+    }
+}
+
+/// NETWORKDAYS: SQL's `work_days_sql`, from serial day `lo` to `hi` (`lo` <= `hi`).
+fn work_days(lo: i64, hi: i64, w: i64) -> Option<i64> {
+    let n = hi - lo + 1;
+    let dow = (lo + 6) % 7;
+    let hit = |x: i64| i64::from(((x - dow) % 7 + 7) % 7 < n % 7);
+    match w {
+        1..=7 => Some(n - (n / 7) * 2 - hit((w + 5) % 7) - hit((w + 6) % 7)),
+        11..=17 => Some(n - n / 7 - hit(w - 11)),
+        _ => None,
+    }
+}
+
+/// TIMEVALUE's text: `H:MM[:SS[.f]]` with an optional AM or PM, or an ISO date and
+/// time; the time of day in microseconds.
+fn time_of(t: &str) -> Option<i64> {
+    let t = t.trim();
+    if let Some(us) = cal::micros(t) {
+        return Some(us.rem_euclid(86_400_000_000));
+    }
+    let upper = t.to_uppercase();
+    let (clock, pm) = match upper
+        .strip_suffix("PM")
+        .or_else(|| upper.strip_suffix("AM"))
+    {
+        Some(c) => (c.trim_end().to_string(), Some(upper.ends_with("PM"))),
+        None => (upper.clone(), None),
+    };
+    let mut it = clock.split(':');
+    let h: i64 = it.next()?.parse().ok()?;
+    let m: i64 = it.next()?.parse().ok()?;
+    let sec: f64 = match it.next() {
+        Some(s) => s.parse().ok()?,
+        None => 0.0,
+    };
+    if it.next().is_some() || !(0..60).contains(&m) || !(0.0..60.0).contains(&sec) {
+        return None;
+    }
+    let h = match pm {
+        Some(pm) if (1..=12).contains(&h) => h % 12 + if pm { 12 } else { 0 },
+        Some(_) => return None,
+        None if (0..24).contains(&h) => h,
+        None => return None,
+    };
+    Some((h * 3600 + m * 60) * 1_000_000 + (sec * 1e6).round() as i64)
+}
+
+/// DATEVALUE's text: an ISO date (and time) or `m/d/yyyy`; the serial day.
+fn date_of(t: &str) -> Option<i64> {
+    let t = t.trim();
+    if let Some(us) = cal::micros(t) {
+        return Some(us.div_euclid(86_400_000_000));
+    }
+    let mut it = t.split('/');
+    let m: u32 = it.next()?.parse().ok()?;
+    let d: u32 = it.next()?.parse().ok()?;
+    let y: i64 = it.next()?.parse().ok()?;
+    let z = cal::days(y, m, d);
+    (it.next().is_none() && cal::civil(z) == (y, m, d)).then_some(z + 25_569)
+}
+
+/// The date and time functions; Moment arguments are microseconds since 1899-12-30
+/// (SQL's `time_template`).
+fn time_fn(f: LibFn, a: &[Value]) -> Result<Value> {
+    const DAY: i64 = 86_400_000_000;
+    let us = |i: usize| a[i].num().unwrap_or(0.0) as i64;
+    let num = |i: usize| a.get(i).and_then(Value::num);
+    let serial = |i: usize| us(i).div_euclid(DAY);
+    let civil = |z: i64| cal::civil(z - 25_569);
+    let bad = || {
+        Err(format!(
+            "An argument of function '{}' has an invalid value.",
+            f.name()
+        ))
+    };
+    let not_date = |t: &str| {
+        Err(format!(
+            "Cannot convert value '{t}' of type Text to type Date."
+        ))
+    };
+    let tod = |i: usize| us(i).rem_euclid(DAY);
+    Ok(match f {
+        LibFn::Hour => Value::Num((tod(0) / 3_600_000_000) as f64),
+        LibFn::Minute => Value::Num((tod(0) / 60_000_000 % 60) as f64),
+        LibFn::Second => Value::Num((tod(0) / 1_000_000 % 60) as f64),
+        LibFn::Time => {
+            let total = num(0).unwrap_or(0.0) * 3600.0
+                + num(1).unwrap_or(0.0) * 60.0
+                + num(2).unwrap_or(0.0);
+            if total < 0.0 {
+                return bad();
+            }
+            Value::Text(cal::format_micros((total as i64 % 86_400) * 1_000_000))
+        }
+        LibFn::TimeValue => {
+            let t = text(&a[0]);
+            match time_of(&t) {
+                Some(u) => Value::Text(cal::format_micros(u)),
+                None => return not_date(&t),
+            }
+        }
+        LibFn::DateValue => {
+            let t = text(&a[0]);
+            match date_of(&t) {
+                Some(z) => Value::Text(cal::format(z - 25_569)),
+                None => return not_date(&t),
+            }
+        }
+        LibFn::WeekNum => {
+            let z = serial(0);
+            let t = num(1).map_or(1, |t| t as i64);
+            let (y, _, _) = civil(z);
+            if t == 21 {
+                // ISO: the week of the Thursday of this week.
+                let monday0 = (z + 5).rem_euclid(7);
+                let thursday = z - monday0 + 3;
+                let (ty, _, _) = civil(thursday);
+                let jan1 = cal::days(ty, 1, 1) + 25_569;
+                return Ok(Value::Num(((thursday - jan1) / 7 + 1) as f64));
+            }
+            let start = match t {
+                1 | 17 => 0,
+                2 => 1,
+                12..=16 => t - 10,
+                11 => 1,
+                _ => return bad(),
+            };
+            let jan1 = cal::days(y, 1, 1) + 25_569;
+            let doy = z - jan1 + 1;
+            let jan1_dow = (jan1 + 6) % 7;
+            Value::Num(((doy - 1 + (jan1_dow - start + 7) % 7) / 7 + 1) as f64)
+        }
+        LibFn::YearFrac => {
+            let (lo, hi) = (serial(0).min(serial(1)), serial(0).max(serial(1)));
+            let ((y1, m1, d1), (y2, m2, d2)) = (civil(lo), civil(hi));
+            let last_feb = |z: i64, m: u32| m == 2 && civil(z + 1).2 == 1;
+            let thirty = |e1: i64, e2: i64| {
+                ((y2 - y1) * 360 + (m2 as i64 - m1 as i64) * 30 + (e2 - e1)) as f64 / 360.0
+            };
+            match num(2).map_or(0, |b| b as i64) {
+                0 => {
+                    let e1 = if last_feb(lo, m1) || d1 == 31 {
+                        30
+                    } else {
+                        d1 as i64
+                    };
+                    let e2 = if (last_feb(lo, m1) && last_feb(hi, m2)) || (d2 == 31 && d1 >= 30) {
+                        30
+                    } else {
+                        d2 as i64
+                    };
+                    Value::Num(thirty(e1, e2))
+                }
+                2 => Value::Num((hi - lo) as f64 / 360.0),
+                3 => Value::Num((hi - lo) as f64 / 365.0),
+                4 => Value::Num(thirty(d1.min(30) as i64, d2.min(30) as i64)),
+                1 => Value::Num(actual_actual(lo, hi)),
+                _ => return bad(),
+            }
+        }
+        LibFn::NetworkDays => {
+            let (d1, d2) = (serial(0), serial(1));
+            let w = num(2).map_or(1, |w| w as i64);
+            let n = if d1 <= d2 {
+                work_days(d1, d2, w)
+            } else {
+                work_days(d2, d1, w).map(|n| -n)
+            };
+            match n {
+                Some(n) => Value::Num(n as f64),
+                None => return bad(),
+            }
+        }
+        _ => unreachable!("{} isn't a date function", f.name()),
+    })
 }
 
 /// SEARCH: the 0-based character position of the first match of `pattern` in `text`,
@@ -2099,6 +2307,16 @@ fn math_fn(f: LibFn, a: &[f64], blank: bool) -> Result<Value> {
 fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
     // A blank first argument: the function of 0, and blank if that is 0.
     let blank = f.kind(0) == ArgKind::NumBlank && a.first().is_some_and(Value::is_blank);
+    // Text that isn't a date, where a date is wanted, is an error.
+    for (i, v) in a.iter().enumerate() {
+        if let (ArgKind::Moment | ArgKind::Day0, Value::Text(t)) = (f.kind(i), v)
+            && cal::micros(t).is_none()
+        {
+            return Err(format!(
+                "Cannot convert value '{t}' of type Text to type Date."
+            ));
+        }
+    }
     let Some(a) = lib_args(f, a) else {
         return Ok(Value::Blank);
     };
@@ -2228,6 +2446,15 @@ fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
             };
             Value::Text(cut.iter().collect())
         }
+        LibFn::Hour
+        | LibFn::Minute
+        | LibFn::Second
+        | LibFn::Time
+        | LibFn::TimeValue
+        | LibFn::DateValue
+        | LibFn::WeekNum
+        | LibFn::YearFrac
+        | LibFn::NetworkDays => return time_fn(f, &a),
         LibFn::Find | LibFn::Search => {
             let (find, within) = (txt(0), txt(1));
             let start = if a.len() > 2 { int(2) } else { 1 };

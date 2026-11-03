@@ -711,6 +711,64 @@ pub const MEASURES: &[(&str, &str)] = &[
     ("Text Edge 13", "UNICODE ( \"\" )"),
     ("Text Edge 14", "FIND ( \"a\", BLANK () )"),
     ("Text Edge 15", "REPLACE ( \"abc\", 1, -1, \"x\" )"),
+    // Date and time (M11.6 batch 3)
+    ("Order Hour", "HOUR ( MAX ( Sales[OrderedAt] ) )"),
+    (
+        "Order Minute Second",
+        "MINUTE ( MIN ( Sales[OrderedAt] ) ) * 100 + SECOND ( MIN ( Sales[OrderedAt] ) )",
+    ),
+    ("Time Made", "TIME ( [Orders], 30, 15 )"),
+    (
+        "Week Of Last Date",
+        "WEEKNUM ( MAX ( 'Date'[Date] ) ) * 100 + WEEKNUM ( MAX ( 'Date'[Date] ), 21 )",
+    ),
+    (
+        "Year Fraction",
+        "YEARFRAC ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ) ) + YEARFRAC ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ), 3 )",
+    ),
+    (
+        "Work Days",
+        "NETWORKDAYS ( MIN ( 'Date'[Date] ), MAX ( 'Date'[Date] ) )",
+    ),
+    (
+        "Work Days Fri Sat",
+        "NETWORKDAYS ( MAX ( 'Date'[Date] ), MIN ( 'Date'[Date] ), 7 )",
+    ),
+    (
+        "Time Probes",
+        "\"h:\" & ROUND ( HOUR ( DATE ( 2024, 1, 2 ) + TIME ( 12, 59, 59 ) + 0.6 / 86400 ), 6 ) & \" \" & \"m:\" & ROUND ( MINUTE ( DATE ( 2024, 1, 2 ) + TIME ( 12, 59, 59 ) + 0.6 / 86400 ), 6 ) & \" \" & \"s:\" & ROUND ( SECOND ( DATE ( 2024, 1, 2 ) + TIME ( 12, 59, 59 ) + 0.6 / 86400 ), 6 ) & \" \" & \"h2:\" & ROUND ( HOUR ( 0.75 ), 6 ) & \" \" & \"h3:\" & ROUND ( HOUR ( \"2024-01-02 06:07:08\" ), 6 ) & \" \" & \"m2:\" & ROUND ( MINUTE ( 1.5 / 24 ), 6 ) & \" \" & \"t1:\" & ROUND ( TIME ( 25, 0, 0 ) * 1, 6 ) & \" \" & \"t2:\" & ROUND ( TIME ( 1.9, 0, 0 ) * 1, 6 ) & \" \" & \"t3:\" & ROUND ( TIME ( 1, -30, 0 ) * 1, 6 ) & \" \" & \"t4:\" & ROUND ( TIME ( 0, 90, 30 ) * 1, 6 ) & \" \" & \"tv1:\" & ROUND ( TIMEVALUE ( \"15:45\" ) * 1, 6 ) & \" \" & \"tv2:\" & ROUND ( TIMEVALUE ( \"3:45 PM\" ) * 1, 6 ) & \" \" & \"tv3:\" & ROUND ( TIMEVALUE ( \"2024-01-02 06:07:08\" ) * 1, 6 ) & \" \" & \"tv4:\" & ROUND ( TIMEVALUE ( \"12:30 AM\" ) * 1, 6 ) & \" \" & \"dv1:\" & ROUND ( DATEVALUE ( \"2024-01-15\" ) * 1, 6 ) & \" \" & \"dv2:\" & ROUND ( DATEVALUE ( \"1/15/2024\" ) * 1, 6 ) & \" \" & \"dv3:\" & ROUND ( DATEVALUE ( \"2024-01-15 10:00\" ) * 1, 6 )",
+    ),
+    (
+        "Date Probes",
+        "\"w1:\" & ROUND ( WEEKNUM ( DATE ( 2024, 1, 1 ) ), 6 ) & \" \" & \"w2:\" & ROUND ( WEEKNUM ( DATE ( 2024, 1, 7 ) ), 6 ) & \" \" & \"w3:\" & ROUND ( WEEKNUM ( DATE ( 2024, 1, 7 ), 2 ), 6 ) & \" \" & \"w4:\" & ROUND ( WEEKNUM ( DATE ( 2021, 1, 1 ), 21 ), 6 ) & \" \" & \"w5:\" & ROUND ( WEEKNUM ( DATE ( 2024, 12, 31 ), 21 ), 6 ) & \" \" & \"w6:\" & ROUND ( WEEKNUM ( DATE ( 2024, 3, 15 ), 15 ), 6 ) & \" \" & \"w7:\" & ROUND ( WEEKNUM ( DATE ( 2023, 1, 1 ), 11 ), 6 ) & \" \" & \"w8:\" & ROUND ( WEEKNUM ( DATE ( 2024, 6, 30 ), 17 ), 6 ) & \" \" & \"y1:\" & ROUND ( YEARFRAC ( DATE ( 2024, 1, 31 ), DATE ( 2024, 3, 31 ) ), 6 ) & \" \" & \"y2:\" & ROUND ( YEARFRAC ( DATE ( 2024, 2, 29 ), DATE ( 2025, 2, 28 ) ), 6 ) & \" \" & \"y3:\" & ROUND ( YEARFRAC ( DATE ( 2025, 3, 31 ), DATE ( 2024, 1, 30 ) ), 6 ) & \" \" & \"y4:\" & ROUND ( YEARFRAC ( DATE ( 2024, 1, 1 ), DATE ( 2024, 7, 1 ), 2 ), 6 ) & \" \" & \"y5:\" & ROUND ( YEARFRAC ( DATE ( 2024, 1, 1 ), DATE ( 2024, 7, 1 ), 3 ), 6 ) & \" \" & \"y6:\" & ROUND ( YEARFRAC ( DATE ( 2024, 1, 31 ), DATE ( 2024, 2, 29 ), 4 ), 6 ) & \" \" & \"y7:\" & ROUND ( YEARFRAC ( DATE ( 2023, 2, 28 ), DATE ( 2023, 3, 31 ) ), 6 ) & \" \" & \"n1:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 1 ), DATE ( 2024, 1, 31 ) ), 6 ) & \" \" & \"n2:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 31 ), DATE ( 2024, 1, 1 ) ), 6 ) & \" \" & \"n3:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 1 ), DATE ( 2024, 1, 31 ), 11 ), 6 ) & \" \" & \"n4:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 1 ), DATE ( 2024, 1, 31 ), 7 ), 6 ) & \" \" & \"n5:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 6 ), DATE ( 2024, 1, 7 ) ), 6 ) & \" \" & \"n6:\" & ROUND ( NETWORKDAYS ( DATE ( 2024, 1, 1 ) + 0.9, DATE ( 2024, 1, 2 ) ), 6 )",
+    ),
+    ("Date Edge 1", "HOUR ( BLANK () )"),
+    ("Date Edge 2", "WEEKNUM ( BLANK () )"),
+    ("Date Edge 3", "YEARFRAC ( BLANK (), DATE ( 1900, 6, 30 ) )"),
+    (
+        "Date Edge 4",
+        "NETWORKDAYS ( BLANK (), DATE ( 1900, 1, 10 ) )",
+    ),
+    ("Date Edge 5", "DATEVALUE ( BLANK () )"),
+    ("Date Edge 6", "TIMEVALUE ( BLANK () )"),
+    ("Date Edge 7", "SECOND ( BLANK () )"),
+    ("Date Edge 8", "WEEKNUM ( DATE ( 2024, 1, 1 ), 3 )"),
+    ("Date Edge 9", "TIME ( -1, 0, 0 )"),
+    ("Date Edge 10", "DATEVALUE ( \"abc\" )"),
+    ("Date Edge 11", "TIMEVALUE ( \"abc\" )"),
+    (
+        "Date Edge 12",
+        "NETWORKDAYS ( DATE ( 2024, 1, 1 ), DATE ( 2024, 1, 5 ), 9 )",
+    ),
+    (
+        "Date Edge 13",
+        "YEARFRAC ( DATE ( 2024, 1, 1 ), DATE ( 2024, 2, 1 ), 5 )",
+    ),
+    (
+        "Date Edge 14",
+        "YEARFRAC ( DATE ( 2024, 1, 1 ), DATE ( 2024, 2, 1 ), 1 )",
+    ),
+    ("Date Edge 15", "HOUR ( \"abc\" )"),
     // How blanks count: Account[ParentKey] has one, and products without sales in
     // the context have a blank [Quantity].
     ("Median Parent", "MEDIAN ( Account[ParentKey] )"),

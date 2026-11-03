@@ -16772,6 +16772,1605 @@
     ]
    ]
   },
+  "Date Edge 1 / by category": {
+   "hash": "36a11d4e2f620361",
+   "rows": []
+  },
+  "Date Edge 1 / by category and year": {
+   "hash": "527df3fe96945b5e",
+   "rows": []
+  },
+  "Date Edge 1 / by color, apparel and camping": {
+   "hash": "ca21f187c9dc734c",
+   "rows": []
+  },
+  "Date Edge 1 / by month in 2025, camping": {
+   "hash": "0bda59a8f20f476c",
+   "rows": []
+  },
+  "Date Edge 1 / by month name": {
+   "hash": "b064db61410edf3b",
+   "rows": []
+  },
+  "Date Edge 1 / by product, camping": {
+   "hash": "8e2c58ebdc3dac45",
+   "rows": []
+  },
+  "Date Edge 1 / by region in 2025": {
+   "hash": "556c364e046c7720",
+   "rows": []
+  },
+  "Date Edge 1 / by year": {
+   "hash": "394bbd225be626e7",
+   "rows": []
+  },
+  "Date Edge 1 / by year and month": {
+   "hash": "55545a7af6cb2cfc",
+   "rows": []
+  },
+  "Date Edge 1 / card": {
+   "hash": "8ca05bf8d40b51e8",
+   "rows": []
+  },
+  "Date Edge 10 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "d76c785b5ddbd3df"
+  },
+  "Date Edge 10 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "9fe68b433b5d6ae0"
+  },
+  "Date Edge 10 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "cba3fde4ff7fa156"
+  },
+  "Date Edge 10 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "ff0fff0d5c2413f6"
+  },
+  "Date Edge 10 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "cf00cc6ff94702d9"
+  },
+  "Date Edge 10 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "10f304026cc8518b"
+  },
+  "Date Edge 10 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "b9c8ade9973ce682"
+  },
+  "Date Edge 10 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "822e528f31aa785d"
+  },
+  "Date Edge 10 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "940d65ef4828f7a6"
+  },
+  "Date Edge 10 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 10</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "665f5d2eedea154a"
+  },
+  "Date Edge 11 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "ae28ba69f2c0174a"
+  },
+  "Date Edge 11 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "1f24f6792e2beb55"
+  },
+  "Date Edge 11 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "56f5719e1d02b30b"
+  },
+  "Date Edge 11 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "3ff5fb361fc621ab"
+  },
+  "Date Edge 11 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "adecb4b108ed3334"
+  },
+  "Date Edge 11 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "093219aaa5ba93d6"
+  },
+  "Date Edge 11 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "f41c5809a221f2b7"
+  },
+  "Date Edge 11 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "ce36f6f93c15a268"
+  },
+  "Date Edge 11 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "71e0791ae7df465b"
+  },
+  "Date Edge 11 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 11</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "22cd67e433b65ebf"
+  },
+  "Date Edge 12 / by category": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "7c6fb21e6a7c5890"
+  },
+  "Date Edge 12 / by category and year": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "dbfb7395f098f393"
+  },
+  "Date Edge 12 / by color, apparel and camping": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "02dba7aeb41c0ac5"
+  },
+  "Date Edge 12 / by month in 2025, camping": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "8ec94418c96b42e5"
+  },
+  "Date Edge 12 / by month name": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "3aece2e329c4175e"
+  },
+  "Date Edge 12 / by product, camping": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "47f28da63b64649c"
+  },
+  "Date Edge 12 / by region in 2025": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "cce15ffe8af1c7a1"
+  },
+  "Date Edge 12 / by year": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "5c2be0c292e86b42"
+  },
+  "Date Edge 12 / by year and month": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "f920e13463d3ce75"
+  },
+  "Date Edge 12 / card": {
+   "error": "MdxScript(Model) (1, 57) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 12</oii>]: The third argument of NETWORKDAYS function (Weekend) can only be 1 ~ 7 or 11 ~ 17.",
+   "hash": "02ddfc7dff140749"
+  },
+  "Date Edge 13 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "f0e9ce0b43f35d29"
+  },
+  "Date Edge 13 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "b9b273f7ffc5427c"
+  },
+  "Date Edge 13 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "573f920a3542efd6"
+  },
+  "Date Edge 13 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "8068537b4b35ae36"
+  },
+  "Date Edge 13 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "8c7e90df6d2b1aa7"
+  },
+  "Date Edge 13 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "fe527234455cee3d"
+  },
+  "Date Edge 13 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "ed36a43d2d5a262a"
+  },
+  "Date Edge 13 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "9fa98b4bc8a7f5e3"
+  },
+  "Date Edge 13 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "728b7bace6c4dfe6"
+  },
+  "Date Edge 13 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 13</oii>]: An argument of function 'YEARFRAC' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "c4a3feba55a9eba2"
+  },
+  "Date Edge 14 / by category": {
+   "hash": "d895c22fc9d33df9",
+   "rows": [
+    [
+     "Camping",
+     0.08469945355191257
+    ],
+    [
+     "Footwear",
+     0.08469945355191257
+    ],
+    [
+     "Apparel",
+     0.08469945355191257
+    ],
+    [
+     null,
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by category and year": {
+   "hash": "7489bca28b34a72c",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     0.08469945355191257
+    ],
+    [
+     "Footwear",
+     2024,
+     0.08469945355191257
+    ],
+    [
+     "Apparel",
+     2024,
+     0.08469945355191257
+    ],
+    [
+     null,
+     2024,
+     0.08469945355191257
+    ],
+    [
+     "Camping",
+     2025,
+     0.08469945355191257
+    ],
+    [
+     "Footwear",
+     2025,
+     0.08469945355191257
+    ],
+    [
+     "Apparel",
+     2025,
+     0.08469945355191257
+    ],
+    [
+     null,
+     2025,
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by color, apparel and camping": {
+   "hash": "a3c9c45ab7b8ef56",
+   "rows": [
+    [
+     null,
+     0.08469945355191257
+    ],
+    [
+     "Green",
+     0.08469945355191257
+    ],
+    [
+     "Black",
+     0.08469945355191257
+    ],
+    [
+     "Red",
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by month in 2025, camping": {
+   "hash": "c70c962f2fac25b6",
+   "rows": [
+    [
+     1,
+     0.08469945355191257
+    ],
+    [
+     2,
+     0.08469945355191257
+    ],
+    [
+     3,
+     0.08469945355191257
+    ],
+    [
+     4,
+     0.08469945355191257
+    ],
+    [
+     5,
+     0.08469945355191257
+    ],
+    [
+     6,
+     0.08469945355191257
+    ],
+    [
+     7,
+     0.08469945355191257
+    ],
+    [
+     8,
+     0.08469945355191257
+    ],
+    [
+     9,
+     0.08469945355191257
+    ],
+    [
+     10,
+     0.08469945355191257
+    ],
+    [
+     11,
+     0.08469945355191257
+    ],
+    [
+     12,
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by month name": {
+   "hash": "0cbda297714ffacf",
+   "rows": [
+    [
+     "January",
+     0.08469945355191257
+    ],
+    [
+     "February",
+     0.08469945355191257
+    ],
+    [
+     "March",
+     0.08469945355191257
+    ],
+    [
+     "April",
+     0.08469945355191257
+    ],
+    [
+     "May",
+     0.08469945355191257
+    ],
+    [
+     "June",
+     0.08469945355191257
+    ],
+    [
+     "July",
+     0.08469945355191257
+    ],
+    [
+     "August",
+     0.08469945355191257
+    ],
+    [
+     "September",
+     0.08469945355191257
+    ],
+    [
+     "October",
+     0.08469945355191257
+    ],
+    [
+     "November",
+     0.08469945355191257
+    ],
+    [
+     "December",
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by product, camping": {
+   "hash": "682597b3e5c08df5",
+   "rows": [
+    [
+     "Tent",
+     0.08469945355191257
+    ],
+    [
+     "Stove",
+     0.08469945355191257
+    ],
+    [
+     "Lamp",
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by region in 2025": {
+   "hash": "0389730eb35939a2",
+   "rows": [
+    [
+     "North",
+     0.08469945355191257
+    ],
+    [
+     "South",
+     0.08469945355191257
+    ],
+    [
+     "Online",
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by year": {
+   "hash": "49fe1ac3ece6a5c3",
+   "rows": [
+    [
+     2024,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / by year and month": {
+   "hash": "aa234a8cca1840e6",
+   "rows": [
+    [
+     2024,
+     1,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     1,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     2,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     2,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     3,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     3,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     4,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     4,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     5,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     5,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     6,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     6,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     7,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     7,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     8,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     8,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     9,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     9,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     10,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     10,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     11,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     11,
+     0.08469945355191257
+    ],
+    [
+     2024,
+     12,
+     0.08469945355191257
+    ],
+    [
+     2025,
+     12,
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 14 / card": {
+   "hash": "d190d7bb643ab7fa",
+   "rows": [
+    [
+     0.08469945355191257
+    ]
+   ]
+  },
+  "Date Edge 15 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "180a90a7f7f3b0d4"
+  },
+  "Date Edge 15 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "d187d8a2aa27077d"
+  },
+  "Date Edge 15 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "34b66469755a2a7b"
+  },
+  "Date Edge 15 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "9a39b74a057fc0db"
+  },
+  "Date Edge 15 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "10202a560c2d3786"
+  },
+  "Date Edge 15 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "8db92b7a83003780"
+  },
+  "Date Edge 15 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "a5c79cc89d5acc07"
+  },
+  "Date Edge 15 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "789e7980874de3ea"
+  },
+  "Date Edge 15 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "e25ac0db99d49b8b"
+  },
+  "Date Edge 15 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 8) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 15</oii>]: Cannot convert value 'abc' of type Text to type Date.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241541768}}]}",
+   "hash": "516b60048c4c938f"
+  },
+  "Date Edge 2 / by category": {
+   "hash": "fe9ab95936caf0c3",
+   "rows": []
+  },
+  "Date Edge 2 / by category and year": {
+   "hash": "f361ea0ab9860caa",
+   "rows": []
+  },
+  "Date Edge 2 / by color, apparel and camping": {
+   "hash": "a6f98830a43f7e10",
+   "rows": []
+  },
+  "Date Edge 2 / by month in 2025, camping": {
+   "hash": "45e9c08725196a70",
+   "rows": []
+  },
+  "Date Edge 2 / by month name": {
+   "hash": "2df2a3ae65cd88fd",
+   "rows": []
+  },
+  "Date Edge 2 / by product, camping": {
+   "hash": "98a997ce19b52c3f",
+   "rows": []
+  },
+  "Date Edge 2 / by region in 2025": {
+   "hash": "6747fd9071e82a5c",
+   "rows": []
+  },
+  "Date Edge 2 / by year": {
+   "hash": "b6b25c33f058c261",
+   "rows": []
+  },
+  "Date Edge 2 / by year and month": {
+   "hash": "eaf053cc9a9ad2a0",
+   "rows": []
+  },
+  "Date Edge 2 / card": {
+   "hash": "3e98468022e31264",
+   "rows": []
+  },
+  "Date Edge 3 / by category": {
+   "hash": "5ca8f1a38cb1dba6",
+   "rows": [
+    [
+     "Camping",
+     0.5
+    ],
+    [
+     "Footwear",
+     0.5
+    ],
+    [
+     "Apparel",
+     0.5
+    ],
+    [
+     null,
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by category and year": {
+   "hash": "65cc610b97d146ad",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     0.5
+    ],
+    [
+     "Footwear",
+     2024,
+     0.5
+    ],
+    [
+     "Apparel",
+     2024,
+     0.5
+    ],
+    [
+     null,
+     2024,
+     0.5
+    ],
+    [
+     "Camping",
+     2025,
+     0.5
+    ],
+    [
+     "Footwear",
+     2025,
+     0.5
+    ],
+    [
+     "Apparel",
+     2025,
+     0.5
+    ],
+    [
+     null,
+     2025,
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by color, apparel and camping": {
+   "hash": "ed26b5b341cf1ec3",
+   "rows": [
+    [
+     null,
+     0.5
+    ],
+    [
+     "Green",
+     0.5
+    ],
+    [
+     "Black",
+     0.5
+    ],
+    [
+     "Red",
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by month in 2025, camping": {
+   "hash": "12ed81fbd10a19e3",
+   "rows": [
+    [
+     1,
+     0.5
+    ],
+    [
+     2,
+     0.5
+    ],
+    [
+     3,
+     0.5
+    ],
+    [
+     4,
+     0.5
+    ],
+    [
+     5,
+     0.5
+    ],
+    [
+     6,
+     0.5
+    ],
+    [
+     7,
+     0.5
+    ],
+    [
+     8,
+     0.5
+    ],
+    [
+     9,
+     0.5
+    ],
+    [
+     10,
+     0.5
+    ],
+    [
+     11,
+     0.5
+    ],
+    [
+     12,
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by month name": {
+   "hash": "e529a1e1e0432f10",
+   "rows": [
+    [
+     "January",
+     0.5
+    ],
+    [
+     "February",
+     0.5
+    ],
+    [
+     "March",
+     0.5
+    ],
+    [
+     "April",
+     0.5
+    ],
+    [
+     "May",
+     0.5
+    ],
+    [
+     "June",
+     0.5
+    ],
+    [
+     "July",
+     0.5
+    ],
+    [
+     "August",
+     0.5
+    ],
+    [
+     "September",
+     0.5
+    ],
+    [
+     "October",
+     0.5
+    ],
+    [
+     "November",
+     0.5
+    ],
+    [
+     "December",
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by product, camping": {
+   "hash": "0acc8ee1ba7ffd52",
+   "rows": [
+    [
+     "Tent",
+     0.5
+    ],
+    [
+     "Stove",
+     0.5
+    ],
+    [
+     "Lamp",
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by region in 2025": {
+   "hash": "c27e769c8afef3af",
+   "rows": [
+    [
+     "North",
+     0.5
+    ],
+    [
+     "South",
+     0.5
+    ],
+    [
+     "Online",
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by year": {
+   "hash": "f30829602f72c074",
+   "rows": [
+    [
+     2024,
+     0.5
+    ],
+    [
+     2025,
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / by year and month": {
+   "hash": "f1871ac170e429d3",
+   "rows": [
+    [
+     2024,
+     1,
+     0.5
+    ],
+    [
+     2025,
+     1,
+     0.5
+    ],
+    [
+     2024,
+     2,
+     0.5
+    ],
+    [
+     2025,
+     2,
+     0.5
+    ],
+    [
+     2024,
+     3,
+     0.5
+    ],
+    [
+     2025,
+     3,
+     0.5
+    ],
+    [
+     2024,
+     4,
+     0.5
+    ],
+    [
+     2025,
+     4,
+     0.5
+    ],
+    [
+     2024,
+     5,
+     0.5
+    ],
+    [
+     2025,
+     5,
+     0.5
+    ],
+    [
+     2024,
+     6,
+     0.5
+    ],
+    [
+     2025,
+     6,
+     0.5
+    ],
+    [
+     2024,
+     7,
+     0.5
+    ],
+    [
+     2025,
+     7,
+     0.5
+    ],
+    [
+     2024,
+     8,
+     0.5
+    ],
+    [
+     2025,
+     8,
+     0.5
+    ],
+    [
+     2024,
+     9,
+     0.5
+    ],
+    [
+     2025,
+     9,
+     0.5
+    ],
+    [
+     2024,
+     10,
+     0.5
+    ],
+    [
+     2025,
+     10,
+     0.5
+    ],
+    [
+     2024,
+     11,
+     0.5
+    ],
+    [
+     2025,
+     11,
+     0.5
+    ],
+    [
+     2024,
+     12,
+     0.5
+    ],
+    [
+     2025,
+     12,
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 3 / card": {
+   "hash": "9f31dae5865538e7",
+   "rows": [
+    [
+     0.5
+    ]
+   ]
+  },
+  "Date Edge 4 / by category": {
+   "hash": "98eb9e2724ac54c3",
+   "rows": [
+    [
+     "Camping",
+     8
+    ],
+    [
+     "Footwear",
+     8
+    ],
+    [
+     "Apparel",
+     8
+    ],
+    [
+     null,
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by category and year": {
+   "hash": "c47388bd6be32cea",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     8
+    ],
+    [
+     "Footwear",
+     2024,
+     8
+    ],
+    [
+     "Apparel",
+     2024,
+     8
+    ],
+    [
+     null,
+     2024,
+     8
+    ],
+    [
+     "Camping",
+     2025,
+     8
+    ],
+    [
+     "Footwear",
+     2025,
+     8
+    ],
+    [
+     "Apparel",
+     2025,
+     8
+    ],
+    [
+     null,
+     2025,
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by color, apparel and camping": {
+   "hash": "3dd10e6498a6c104",
+   "rows": [
+    [
+     null,
+     8
+    ],
+    [
+     "Green",
+     8
+    ],
+    [
+     "Black",
+     8
+    ],
+    [
+     "Red",
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by month in 2025, camping": {
+   "hash": "440f24ee4a6e03e4",
+   "rows": [
+    [
+     1,
+     8
+    ],
+    [
+     2,
+     8
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     4,
+     8
+    ],
+    [
+     5,
+     8
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     7,
+     8
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     9,
+     8
+    ],
+    [
+     10,
+     8
+    ],
+    [
+     11,
+     8
+    ],
+    [
+     12,
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by month name": {
+   "hash": "0f6861d85a240dc9",
+   "rows": [
+    [
+     "January",
+     8
+    ],
+    [
+     "February",
+     8
+    ],
+    [
+     "March",
+     8
+    ],
+    [
+     "April",
+     8
+    ],
+    [
+     "May",
+     8
+    ],
+    [
+     "June",
+     8
+    ],
+    [
+     "July",
+     8
+    ],
+    [
+     "August",
+     8
+    ],
+    [
+     "September",
+     8
+    ],
+    [
+     "October",
+     8
+    ],
+    [
+     "November",
+     8
+    ],
+    [
+     "December",
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by product, camping": {
+   "hash": "34b0bf1a8b6fc84f",
+   "rows": [
+    [
+     "Tent",
+     8
+    ],
+    [
+     "Stove",
+     8
+    ],
+    [
+     "Lamp",
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by region in 2025": {
+   "hash": "f818a83eac86a870",
+   "rows": [
+    [
+     "North",
+     8
+    ],
+    [
+     "South",
+     8
+    ],
+    [
+     "Online",
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by year": {
+   "hash": "82a3d2906d0bbf6d",
+   "rows": [
+    [
+     2024,
+     8
+    ],
+    [
+     2025,
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / by year and month": {
+   "hash": "3073418a67168134",
+   "rows": [
+    [
+     2024,
+     1,
+     8
+    ],
+    [
+     2025,
+     1,
+     8
+    ],
+    [
+     2024,
+     2,
+     8
+    ],
+    [
+     2025,
+     2,
+     8
+    ],
+    [
+     2024,
+     3,
+     8
+    ],
+    [
+     2025,
+     3,
+     8
+    ],
+    [
+     2024,
+     4,
+     8
+    ],
+    [
+     2025,
+     4,
+     8
+    ],
+    [
+     2024,
+     5,
+     8
+    ],
+    [
+     2025,
+     5,
+     8
+    ],
+    [
+     2024,
+     6,
+     8
+    ],
+    [
+     2025,
+     6,
+     8
+    ],
+    [
+     2024,
+     7,
+     8
+    ],
+    [
+     2025,
+     7,
+     8
+    ],
+    [
+     2024,
+     8,
+     8
+    ],
+    [
+     2025,
+     8,
+     8
+    ],
+    [
+     2024,
+     9,
+     8
+    ],
+    [
+     2025,
+     9,
+     8
+    ],
+    [
+     2024,
+     10,
+     8
+    ],
+    [
+     2025,
+     10,
+     8
+    ],
+    [
+     2024,
+     11,
+     8
+    ],
+    [
+     2025,
+     11,
+     8
+    ],
+    [
+     2024,
+     12,
+     8
+    ],
+    [
+     2025,
+     12,
+     8
+    ]
+   ]
+  },
+  "Date Edge 4 / card": {
+   "hash": "4ba1961d304def08",
+   "rows": [
+    [
+     8
+    ]
+   ]
+  },
+  "Date Edge 5 / by category": {
+   "hash": "896fedcb4756258c",
+   "rows": []
+  },
+  "Date Edge 5 / by category and year": {
+   "hash": "eb0cb0dfccfbd7e9",
+   "rows": []
+  },
+  "Date Edge 5 / by color, apparel and camping": {
+   "hash": "0606903a3db68027",
+   "rows": []
+  },
+  "Date Edge 5 / by month in 2025, camping": {
+   "hash": "429c1f7c99be6187",
+   "rows": []
+  },
+  "Date Edge 5 / by month name": {
+   "hash": "a5620d6aa7574e96",
+   "rows": []
+  },
+  "Date Edge 5 / by product, camping": {
+   "hash": "b550e212abdfa680",
+   "rows": []
+  },
+  "Date Edge 5 / by region in 2025": {
+   "hash": "36feee7a8e6e004b",
+   "rows": []
+  },
+  "Date Edge 5 / by year": {
+   "hash": "1dd79ee3a8edaf52",
+   "rows": []
+  },
+  "Date Edge 5 / by year and month": {
+   "hash": "fd0cb5fc5befba57",
+   "rows": []
+  },
+  "Date Edge 5 / card": {
+   "hash": "d0e9f6efb47c68b3",
+   "rows": []
+  },
+  "Date Edge 6 / by category": {
+   "hash": "f2682a32573cb49d",
+   "rows": []
+  },
+  "Date Edge 6 / by category and year": {
+   "hash": "2534f6d0ee0c4234",
+   "rows": []
+  },
+  "Date Edge 6 / by color, apparel and camping": {
+   "hash": "6cf6d93af827d9ca",
+   "rows": []
+  },
+  "Date Edge 6 / by month in 2025, camping": {
+   "hash": "fc0aeb563f2c202a",
+   "rows": []
+  },
+  "Date Edge 6 / by month name": {
+   "hash": "9507db316102bc27",
+   "rows": []
+  },
+  "Date Edge 6 / by product, camping": {
+   "hash": "7c6b5c7ec45d68b1",
+   "rows": []
+  },
+  "Date Edge 6 / by region in 2025": {
+   "hash": "a9313bb4b5016ede",
+   "rows": []
+  },
+  "Date Edge 6 / by year": {
+   "hash": "322abe0a86faef93",
+   "rows": []
+  },
+  "Date Edge 6 / by year and month": {
+   "hash": "1f09f257693bdd3a",
+   "rows": []
+  },
+  "Date Edge 6 / card": {
+   "hash": "f54e2ee29b97f726",
+   "rows": []
+  },
+  "Date Edge 7 / by category": {
+   "hash": "09d3d54cedd5c967",
+   "rows": []
+  },
+  "Date Edge 7 / by category and year": {
+   "hash": "ea2d818bcaecd628",
+   "rows": []
+  },
+  "Date Edge 7 / by color, apparel and camping": {
+   "hash": "a72d8a03c17c17fe",
+   "rows": []
+  },
+  "Date Edge 7 / by month in 2025, camping": {
+   "hash": "c68c5f31ed354b9e",
+   "rows": []
+  },
+  "Date Edge 7 / by month name": {
+   "hash": "8e0cf4ac59490b81",
+   "rows": []
+  },
+  "Date Edge 7 / by product, camping": {
+   "hash": "90a3ae0acf9ce18b",
+   "rows": []
+  },
+  "Date Edge 7 / by region in 2025": {
+   "hash": "40662b50701ac492",
+   "rows": []
+  },
+  "Date Edge 7 / by year": {
+   "hash": "31a3065777400c6d",
+   "rows": []
+  },
+  "Date Edge 7 / by year and month": {
+   "hash": "aef4a0bb3a1b908e",
+   "rows": []
+  },
+  "Date Edge 7 / card": {
+   "hash": "6068d99a53653dda",
+   "rows": []
+  },
+  "Date Edge 8 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "13da7a5aee2aee8a"
+  },
+  "Date Edge 8 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "a05ee69132cac86f"
+  },
+  "Date Edge 8 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "7848cf8f4ccef45d"
+  },
+  "Date Edge 8 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "54d80b355c0d6cfd"
+  },
+  "Date Edge 8 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "886d3d43d6a463bc"
+  },
+  "Date Edge 8 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "182e44873dce316e"
+  },
+  "Date Edge 8 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "d68830e7f9c9b051"
+  },
+  "Date Edge 8 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "87827d9798b7e078"
+  },
+  "Date Edge 8 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "93ec9fc330c3986d"
+  },
+  "Date Edge 8 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 8</oii>]: An argument of function 'WEEKNUM' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "a71e872a2de59379"
+  },
+  "Date Edge 9 / by category": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "8ca357344bc63e2b"
+  },
+  "Date Edge 9 / by category and year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "af3d75460c2d26e4"
+  },
+  "Date Edge 9 / by color, apparel and camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "8b32b2fb3cbe2a86"
+  },
+  "Date Edge 9 / by month in 2025, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "b3786c027debfe66"
+  },
+  "Date Edge 9 / by month name": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "a63377c3a5bf8e71"
+  },
+  "Date Edge 9 / by product, camping": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "80e4d55f31eab38f"
+  },
+  "Date Edge 9 / by region in 2025": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "7aa742d368442a9a"
+  },
+  "Date Edge 9 / by year": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "7a81eb697325526d"
+  },
+  "Date Edge 9 / by year and month": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "b1e88e943ea4b476"
+  },
+  "Date Edge 9 / card": {
+   "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Edge 9</oii>]: An argument of function 'TIME' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
+   "hash": "facf794045077ac2"
+  },
   "Date Overflow / by category": {
    "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Overflow</oii>]: An argument of function 'DATE' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
    "hash": "074d683e9b3b243f"
@@ -16811,6 +18410,379 @@
   "Date Overflow / card": {
    "error": "{\"code\": \"QueryUserError\", \"message\": \"MdxScript(Model) (1, 1) Calculation error in measure '<oii>Sales</oii>'[<oii>Date Overflow</oii>]: An argument of function 'DATE' has the wrong data type or the result is too large or too small.\", \"details\": [{\"code\": \"AnalysisServicesErrorCode\", \"detail\": {\"type\": \"1\", \"value\": 3241803805}}]}",
    "hash": "8f11b5ecee21d738"
+  },
+  "Date Probes / by category": {
+   "hash": "18cab4438fa312a4",
+   "rows": [
+    [
+     "Camping",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Footwear",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Apparel",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     null,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by category and year": {
+   "hash": "06ea206076edc5a7",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Footwear",
+     2024,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Apparel",
+     2024,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     null,
+     2024,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Camping",
+     2025,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Footwear",
+     2025,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Apparel",
+     2025,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     null,
+     2025,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by color, apparel and camping": {
+   "hash": "d87594e777cbfe49",
+   "rows": [
+    [
+     null,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Green",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Black",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Red",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by month in 2025, camping": {
+   "hash": "d085e7a7767e0ee9",
+   "rows": [
+    [
+     1,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     3,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     4,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     5,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     6,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     7,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     8,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     9,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     10,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     11,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     12,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by month name": {
+   "hash": "d5fdbf9acf401eea",
+   "rows": [
+    [
+     "January",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "February",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "March",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "April",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "May",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "June",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "July",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "August",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "September",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "October",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "November",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "December",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by product, camping": {
+   "hash": "5096a93d7f47fba0",
+   "rows": [
+    [
+     "Tent",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Stove",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Lamp",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by region in 2025": {
+   "hash": "ccf4489d790d8b95",
+   "rows": [
+    [
+     "North",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "South",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     "Online",
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by year": {
+   "hash": "2a1cb3018d3da6ce",
+   "rows": [
+    [
+     2024,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / by year and month": {
+   "hash": "dc08eec6d57243f9",
+   "rows": [
+    [
+     2024,
+     1,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     1,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     2,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     2,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     3,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     3,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     4,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     4,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     5,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     5,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     6,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     6,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     7,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     7,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     8,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     8,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     9,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     9,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     10,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     10,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     11,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     11,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2024,
+     12,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ],
+    [
+     2025,
+     12,
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
+  },
+  "Date Probes / card": {
+   "hash": "3b8dbac985a3d36d",
+   "rows": [
+    [
+     "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+    ]
+   ]
   },
   "Date Serial / by category": {
    "hash": "530994523c307f29",
@@ -51762,6 +53734,618 @@
    "rows": [
     [
      "many"
+    ]
+   ]
+  },
+  "Order Hour / by category": {
+   "hash": "f817af04ff1abf3f",
+   "rows": [
+    [
+     "Camping",
+     5
+    ],
+    [
+     "Footwear",
+     10
+    ],
+    [
+     "Apparel",
+     7
+    ]
+   ]
+  },
+  "Order Hour / by category and year": {
+   "hash": "e5afb5030f2b7794",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     9
+    ],
+    [
+     "Footwear",
+     2024,
+     6
+    ],
+    [
+     "Apparel",
+     2024,
+     9
+    ],
+    [
+     "Camping",
+     2025,
+     5
+    ],
+    [
+     "Footwear",
+     2025,
+     10
+    ],
+    [
+     "Apparel",
+     2025,
+     7
+    ]
+   ]
+  },
+  "Order Hour / by color, apparel and camping": {
+   "hash": "af40855e8f42b48e",
+   "rows": [
+    [
+     null,
+     7
+    ],
+    [
+     "Green",
+     11
+    ],
+    [
+     "Black",
+     5
+    ],
+    [
+     "Red",
+     14
+    ]
+   ]
+  },
+  "Order Hour / by month in 2025, camping": {
+   "hash": "4e9830fb2e841bee",
+   "rows": [
+    [
+     1,
+     2
+    ],
+    [
+     3,
+     10
+    ],
+    [
+     4,
+     19
+    ],
+    [
+     6,
+     7
+    ],
+    [
+     7,
+     22
+    ],
+    [
+     9,
+     11
+    ],
+    [
+     10,
+     5
+    ]
+   ]
+  },
+  "Order Hour / by month name": {
+   "hash": "c8a0fba902ae3035",
+   "rows": [
+    [
+     "January",
+     23
+    ],
+    [
+     "February",
+     7
+    ],
+    [
+     "March",
+     14
+    ],
+    [
+     "April",
+     23
+    ],
+    [
+     "May",
+     11
+    ],
+    [
+     "June",
+     7
+    ],
+    [
+     "July",
+     22
+    ],
+    [
+     "August",
+     11
+    ],
+    [
+     "September",
+     11
+    ],
+    [
+     "October",
+     7
+    ]
+   ]
+  },
+  "Order Hour / by product, camping": {
+   "hash": "856d195c1ccdcc73",
+   "rows": [
+    [
+     "Tent",
+     4
+    ],
+    [
+     "Stove",
+     5
+    ],
+    [
+     "Lamp",
+     11
+    ]
+   ]
+  },
+  "Order Hour / by region in 2025": {
+   "hash": "70aefd5eb83db702",
+   "rows": [
+    [
+     "North",
+     17
+    ],
+    [
+     "South",
+     10
+    ],
+    [
+     "Online",
+     7
+    ]
+   ]
+  },
+  "Order Hour / by year": {
+   "hash": "62bb405e01b16311",
+   "rows": [
+    [
+     2024,
+     6
+    ],
+    [
+     2025,
+     7
+    ]
+   ]
+  },
+  "Order Hour / by year and month": {
+   "hash": "b151826aa2bd383e",
+   "rows": [
+    [
+     2024,
+     1,
+     15
+    ],
+    [
+     2025,
+     1,
+     23
+    ],
+    [
+     2024,
+     2,
+     21
+    ],
+    [
+     2025,
+     2,
+     7
+    ],
+    [
+     2024,
+     3,
+     6
+    ],
+    [
+     2025,
+     3,
+     14
+    ],
+    [
+     2024,
+     4,
+     15
+    ],
+    [
+     2025,
+     4,
+     23
+    ],
+    [
+     2024,
+     5,
+     15
+    ],
+    [
+     2025,
+     5,
+     11
+    ],
+    [
+     2024,
+     6,
+     3
+    ],
+    [
+     2025,
+     6,
+     7
+    ],
+    [
+     2024,
+     7,
+     15
+    ],
+    [
+     2025,
+     7,
+     22
+    ],
+    [
+     2025,
+     8,
+     11
+    ],
+    [
+     2024,
+     9,
+     9
+    ],
+    [
+     2025,
+     9,
+     11
+    ],
+    [
+     2024,
+     10,
+     6
+    ],
+    [
+     2025,
+     10,
+     7
+    ]
+   ]
+  },
+  "Order Hour / card": {
+   "hash": "f5e1882c569a511a",
+   "rows": [
+    [
+     7
+    ]
+   ]
+  },
+  "Order Minute Second / by category": {
+   "hash": "62636651e66adb69",
+   "rows": [
+    [
+     "Camping",
+     2400
+    ],
+    [
+     "Footwear",
+     3600
+    ],
+    [
+     "Apparel",
+     1200
+    ]
+   ]
+  },
+  "Order Minute Second / by category and year": {
+   "hash": "8d03e7d84947689e",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     2400
+    ],
+    [
+     "Footwear",
+     2024,
+     3600
+    ],
+    [
+     "Apparel",
+     2024,
+     1200
+    ],
+    [
+     "Camping",
+     2025,
+     2200
+    ],
+    [
+     "Footwear",
+     2025,
+     4000
+    ],
+    [
+     "Apparel",
+     2025,
+     4900
+    ]
+   ]
+  },
+  "Order Minute Second / by color, apparel and camping": {
+   "hash": "94cd63302b55f5c4",
+   "rows": [
+    [
+     null,
+     1200
+    ],
+    [
+     "Green",
+     2400
+    ],
+    [
+     "Black",
+     300
+    ],
+    [
+     "Red",
+     4800
+    ]
+   ]
+  },
+  "Order Minute Second / by month in 2025, camping": {
+   "hash": "ae0b355134610ca4",
+   "rows": [
+    [
+     1,
+     2200
+    ],
+    [
+     3,
+     3400
+    ],
+    [
+     4,
+     2500
+    ],
+    [
+     6,
+     5200
+    ],
+    [
+     7,
+     3200
+    ],
+    [
+     9,
+     5000
+    ],
+    [
+     10,
+     4900
+    ]
+   ]
+  },
+  "Order Minute Second / by month name": {
+   "hash": "8a496f02f76249b3",
+   "rows": [
+    [
+     "January",
+     2400
+    ],
+    [
+     "February",
+     1200
+    ],
+    [
+     "March",
+     4800
+    ],
+    [
+     "April",
+     0
+    ],
+    [
+     "May",
+     3600
+    ],
+    [
+     "June",
+     1200
+    ],
+    [
+     "July",
+     600
+    ],
+    [
+     "August",
+     2000
+    ],
+    [
+     "September",
+     0
+    ],
+    [
+     "October",
+     1800
+    ]
+   ]
+  },
+  "Order Minute Second / by product, camping": {
+   "hash": "37407c27b1373775",
+   "rows": [
+    [
+     "Tent",
+     2400
+    ],
+    [
+     "Stove",
+     300
+    ],
+    [
+     "Lamp",
+     3600
+    ]
+   ]
+  },
+  "Order Minute Second / by region in 2025": {
+   "hash": "d0408081a2ea0bb0",
+   "rows": [
+    [
+     "North",
+     4000
+    ],
+    [
+     "South",
+     1700
+    ],
+    [
+     "Online",
+     1400
+    ]
+   ]
+  },
+  "Order Minute Second / by year": {
+   "hash": "84e3c258c4c1c837",
+   "rows": [
+    [
+     2024,
+     2400
+    ],
+    [
+     2025,
+     4000
+    ]
+   ]
+  },
+  "Order Minute Second / by year and month": {
+   "hash": "c9fc4519b4ae77b4",
+   "rows": [
+    [
+     2024,
+     1,
+     2400
+    ],
+    [
+     2025,
+     1,
+     4000
+    ],
+    [
+     2024,
+     2,
+     1200
+    ],
+    [
+     2025,
+     2,
+     3700
+    ],
+    [
+     2024,
+     3,
+     4800
+    ],
+    [
+     2025,
+     3,
+     1600
+    ],
+    [
+     2024,
+     4,
+     0
+    ],
+    [
+     2025,
+     4,
+     4400
+    ],
+    [
+     2024,
+     5,
+     3600
+    ],
+    [
+     2025,
+     5,
+     400
+    ],
+    [
+     2024,
+     6,
+     1200
+    ],
+    [
+     2025,
+     6,
+     2800
+    ],
+    [
+     2024,
+     7,
+     600
+    ],
+    [
+     2025,
+     7,
+     3200
+    ],
+    [
+     2025,
+     8,
+     2000
+    ],
+    [
+     2024,
+     9,
+     0
+    ],
+    [
+     2025,
+     9,
+     400
+    ],
+    [
+     2024,
+     10,
+     1800
+    ],
+    [
+     2025,
+     10,
+     2800
+    ]
+   ]
+  },
+  "Order Minute Second / card": {
+   "hash": "cd7e87b49e95a8b8",
+   "rows": [
+    [
+     2400
     ]
    ]
   },
@@ -89280,6 +91864,752 @@
     ]
    ]
   },
+  "Time Made / by category": {
+   "hash": "ab5e850cee475656",
+   "rows": [
+    [
+     "Camping",
+     "1899-12-30T05:30:15"
+    ],
+    [
+     "Footwear",
+     "1899-12-30T22:30:15"
+    ],
+    [
+     "Apparel",
+     "1899-12-30T14:30:15"
+    ],
+    [
+     null,
+     "1899-12-30T01:30:15"
+    ]
+   ]
+  },
+  "Time Made / by category and year": {
+   "hash": "207a2854d1f1cd8f",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "1899-12-30T13:30:15"
+    ],
+    [
+     "Footwear",
+     2024,
+     "1899-12-30T04:30:15"
+    ],
+    [
+     "Apparel",
+     2024,
+     "1899-12-30T13:30:15"
+    ],
+    [
+     null,
+     2024,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     "Camping",
+     2025,
+     "1899-12-30T16:30:15"
+    ],
+    [
+     "Footwear",
+     2025,
+     "1899-12-30T18:30:15"
+    ],
+    [
+     "Apparel",
+     2025,
+     "1899-12-30T01:30:15"
+    ],
+    [
+     null,
+     2025,
+     "1899-12-30T01:30:15"
+    ]
+   ]
+  },
+  "Time Made / by color, apparel and camping": {
+   "hash": "40f8baaf807d0c05",
+   "rows": [
+    [
+     null,
+     "1899-12-30T13:30:15"
+    ],
+    [
+     "Green",
+     "1899-12-30T19:30:15"
+    ],
+    [
+     "Black",
+     "1899-12-30T10:30:15"
+    ],
+    [
+     "Red",
+     "1899-12-30T01:30:15"
+    ]
+   ]
+  },
+  "Time Made / by month in 2025, camping": {
+   "hash": "0d4ad62c5aa0f0a5",
+   "rows": [
+    [
+     1,
+     "1899-12-30T01:30:15"
+    ],
+    [
+     2,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     3,
+     "1899-12-30T02:30:15"
+    ],
+    [
+     4,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     5,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     6,
+     "1899-12-30T02:30:15"
+    ],
+    [
+     7,
+     "1899-12-30T04:30:15"
+    ],
+    [
+     8,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     9,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     10,
+     "1899-12-30T01:30:15"
+    ],
+    [
+     11,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     12,
+     "1899-12-30T00:30:15"
+    ]
+   ]
+  },
+  "Time Made / by month name": {
+   "hash": "87f0348763d20c88",
+   "rows": [
+    [
+     "January",
+     "1899-12-30T13:30:15"
+    ],
+    [
+     "February",
+     "1899-12-30T05:30:15"
+    ],
+    [
+     "March",
+     "1899-12-30T08:30:15"
+    ],
+    [
+     "April",
+     "1899-12-30T10:30:15"
+    ],
+    [
+     "May",
+     "1899-12-30T12:30:15"
+    ],
+    [
+     "June",
+     "1899-12-30T07:30:15"
+    ],
+    [
+     "July",
+     "1899-12-30T09:30:15"
+    ],
+    [
+     "August",
+     "1899-12-30T08:30:15"
+    ],
+    [
+     "September",
+     "1899-12-30T11:30:15"
+    ],
+    [
+     "October",
+     "1899-12-30T07:30:15"
+    ],
+    [
+     "November",
+     "1899-12-30T00:30:15"
+    ],
+    [
+     "December",
+     "1899-12-30T00:30:15"
+    ]
+   ]
+  },
+  "Time Made / by product, camping": {
+   "hash": "0b8efffe904f7ed2",
+   "rows": [
+    [
+     "Tent",
+     "1899-12-30T11:30:15"
+    ],
+    [
+     "Stove",
+     "1899-12-30T10:30:15"
+    ],
+    [
+     "Lamp",
+     "1899-12-30T08:30:15"
+    ]
+   ]
+  },
+  "Time Made / by region in 2025": {
+   "hash": "712362b9ec537891",
+   "rows": [
+    [
+     "North",
+     "1899-12-30T17:30:15"
+    ],
+    [
+     "South",
+     "1899-12-30T15:30:15"
+    ],
+    [
+     "Online",
+     "1899-12-30T04:30:15"
+    ]
+   ]
+  },
+  "Time Made / by year": {
+   "hash": "cc5ebcd266b4389c",
+   "rows": [
+    [
+     2024,
+     "1899-12-30T06:30:15"
+    ],
+    [
+     2025,
+     "1899-12-30T12:30:15"
+    ]
+   ]
+  },
+  "Time Made / by year and month": {
+   "hash": "ff0de5db2389f6f5",
+   "rows": [
+    [
+     2024,
+     1,
+     "1899-12-30T04:30:15"
+    ],
+    [
+     2025,
+     1,
+     "1899-12-30T09:30:15"
+    ],
+    [
+     2024,
+     2,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     2025,
+     2,
+     "1899-12-30T02:30:15"
+    ],
+    [
+     2024,
+     3,
+     "1899-12-30T02:30:15"
+    ],
+    [
+     2025,
+     3,
+     "1899-12-30T06:30:15"
+    ],
+    [
+     2024,
+     4,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     2025,
+     4,
+     "1899-12-30T07:30:15"
+    ],
+    [
+     2024,
+     5,
+     "1899-12-30T06:30:15"
+    ],
+    [
+     2025,
+     5,
+     "1899-12-30T06:30:15"
+    ],
+    [
+     2024,
+     6,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     2025,
+     6,
+     "1899-12-30T04:30:15"
+    ],
+    [
+     2024,
+     7,
+     "1899-12-30T04:30:15"
+    ],
+    [
+     2025,
+     7,
+     "1899-12-30T05:30:15"
+    ],
+    [
+     2024,
+     8,
+     "1899-12-30T01:30:15"
+    ],
+    [
+     2025,
+     8,
+     "1899-12-30T07:30:15"
+    ],
+    [
+     2024,
+     9,
+     "1899-12-30T03:30:15"
+    ],
+    [
+     2025,
+     9,
+     "1899-12-30T08:30:15"
+    ],
+    [
+     2024,
+     10,
+     "1899-12-30T01:30:15"
+    ],
+    [
+     2025,
+     10,
+     "1899-12-30T06:30:15"
+    ],
+    [
+     2024,
+     11,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     2025,
+     11,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     2024,
+     12,
+     "1899-12-30T00:30:15"
+    ],
+    [
+     2025,
+     12,
+     "1899-12-30T00:30:15"
+    ]
+   ]
+  },
+  "Time Made / card": {
+   "hash": "0f03ecb76a2af739",
+   "rows": [
+    [
+     "1899-12-30T18:30:15"
+    ]
+   ]
+  },
+  "Time Probes / by category": {
+   "hash": "c62a227cb509d0a2",
+   "rows": [
+    [
+     "Camping",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Footwear",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Apparel",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     null,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by category and year": {
+   "hash": "b624c8cf2a25e787",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Footwear",
+     2024,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Apparel",
+     2024,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     null,
+     2024,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Camping",
+     2025,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Footwear",
+     2025,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Apparel",
+     2025,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     null,
+     2025,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by color, apparel and camping": {
+   "hash": "dcc8794dfb160a99",
+   "rows": [
+    [
+     null,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Green",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Black",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Red",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by month in 2025, camping": {
+   "hash": "9a0a5f4bb677f779",
+   "rows": [
+    [
+     1,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     3,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     4,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     5,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     6,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     7,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     8,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     9,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     10,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     11,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     12,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by month name": {
+   "hash": "1f57ee3f3bf2d568",
+   "rows": [
+    [
+     "January",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "February",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "March",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "April",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "May",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "June",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "July",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "August",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "September",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "October",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "November",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "December",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by product, camping": {
+   "hash": "6be3c46e8a812e86",
+   "rows": [
+    [
+     "Tent",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Stove",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Lamp",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by region in 2025": {
+   "hash": "a94fe08179fee2fd",
+   "rows": [
+    [
+     "North",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "South",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     "Online",
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by year": {
+   "hash": "39c4ad08d2beb724",
+   "rows": [
+    [
+     2024,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / by year and month": {
+   "hash": "ad8ae9a407b75789",
+   "rows": [
+    [
+     2024,
+     1,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     1,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     2,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     2,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     3,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     3,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     4,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     4,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     5,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     5,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     6,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     6,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     7,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     7,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     8,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     8,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     9,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     9,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     10,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     10,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     11,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     11,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2024,
+     12,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ],
+    [
+     2025,
+     12,
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
+  "Time Probes / card": {
+   "hash": "b88f5fa88431caf5",
+   "rows": [
+    [
+     "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+    ]
+   ]
+  },
   "Timed Orders / by category": {
    "hash": "c52c186579625ed0",
    "rows": [
@@ -94411,6 +97741,379 @@
     ]
    ]
   },
+  "Week Of Last Date / by category": {
+   "hash": "2393d9527c5ad444",
+   "rows": [
+    [
+     "Camping",
+     5301
+    ],
+    [
+     "Footwear",
+     5301
+    ],
+    [
+     "Apparel",
+     5301
+    ],
+    [
+     null,
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by category and year": {
+   "hash": "493d90f5d718fa07",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     5301
+    ],
+    [
+     "Footwear",
+     2024,
+     5301
+    ],
+    [
+     "Apparel",
+     2024,
+     5301
+    ],
+    [
+     null,
+     2024,
+     5301
+    ],
+    [
+     "Camping",
+     2025,
+     5301
+    ],
+    [
+     "Footwear",
+     2025,
+     5301
+    ],
+    [
+     "Apparel",
+     2025,
+     5301
+    ],
+    [
+     null,
+     2025,
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by color, apparel and camping": {
+   "hash": "b81f8cfa8146a425",
+   "rows": [
+    [
+     null,
+     5301
+    ],
+    [
+     "Green",
+     5301
+    ],
+    [
+     "Black",
+     5301
+    ],
+    [
+     "Red",
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by month in 2025, camping": {
+   "hash": "f0f5827b70688285",
+   "rows": [
+    [
+     1,
+     505
+    ],
+    [
+     2,
+     909
+    ],
+    [
+     3,
+     1414
+    ],
+    [
+     4,
+     1818
+    ],
+    [
+     5,
+     2222
+    ],
+    [
+     6,
+     2727
+    ],
+    [
+     7,
+     3131
+    ],
+    [
+     8,
+     3635
+    ],
+    [
+     9,
+     4040
+    ],
+    [
+     10,
+     4444
+    ],
+    [
+     11,
+     4948
+    ],
+    [
+     12,
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by month name": {
+   "hash": "c52700778a39a4fe",
+   "rows": [
+    [
+     "January",
+     505
+    ],
+    [
+     "February",
+     909
+    ],
+    [
+     "March",
+     1414
+    ],
+    [
+     "April",
+     1818
+    ],
+    [
+     "May",
+     2222
+    ],
+    [
+     "June",
+     2727
+    ],
+    [
+     "July",
+     3131
+    ],
+    [
+     "August",
+     3635
+    ],
+    [
+     "September",
+     4040
+    ],
+    [
+     "October",
+     4444
+    ],
+    [
+     "November",
+     4948
+    ],
+    [
+     "December",
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by product, camping": {
+   "hash": "dfb3838a69c12190",
+   "rows": [
+    [
+     "Tent",
+     5301
+    ],
+    [
+     "Stove",
+     5301
+    ],
+    [
+     "Lamp",
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by region in 2025": {
+   "hash": "385a769c059f5221",
+   "rows": [
+    [
+     "North",
+     5301
+    ],
+    [
+     "South",
+     5301
+    ],
+    [
+     "Online",
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by year": {
+   "hash": "46bc526fbd65d702",
+   "rows": [
+    [
+     2024,
+     5301
+    ],
+    [
+     2025,
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / by year and month": {
+   "hash": "726daec07bb4f735",
+   "rows": [
+    [
+     2024,
+     1,
+     505
+    ],
+    [
+     2025,
+     1,
+     505
+    ],
+    [
+     2024,
+     2,
+     909
+    ],
+    [
+     2025,
+     2,
+     909
+    ],
+    [
+     2024,
+     3,
+     1413
+    ],
+    [
+     2025,
+     3,
+     1414
+    ],
+    [
+     2024,
+     4,
+     1818
+    ],
+    [
+     2025,
+     4,
+     1818
+    ],
+    [
+     2024,
+     5,
+     2222
+    ],
+    [
+     2025,
+     5,
+     2222
+    ],
+    [
+     2024,
+     6,
+     2726
+    ],
+    [
+     2025,
+     6,
+     2727
+    ],
+    [
+     2024,
+     7,
+     3131
+    ],
+    [
+     2025,
+     7,
+     3131
+    ],
+    [
+     2024,
+     8,
+     3535
+    ],
+    [
+     2025,
+     8,
+     3635
+    ],
+    [
+     2024,
+     9,
+     4040
+    ],
+    [
+     2025,
+     9,
+     4040
+    ],
+    [
+     2024,
+     10,
+     4444
+    ],
+    [
+     2025,
+     10,
+     4444
+    ],
+    [
+     2024,
+     11,
+     4848
+    ],
+    [
+     2025,
+     11,
+     4948
+    ],
+    [
+     2024,
+     12,
+     5301
+    ],
+    [
+     2025,
+     12,
+     5301
+    ]
+   ]
+  },
+  "Week Of Last Date / card": {
+   "hash": "f01fc97e5cb92a69",
+   "rows": [
+    [
+     5301
+    ]
+   ]
+  },
   "Weekday Sum / by category": {
    "hash": "98b2b01082c32810",
    "rows": [
@@ -94781,6 +98484,752 @@
    "rows": [
     [
      170
+    ]
+   ]
+  },
+  "Work Days / by category": {
+   "hash": "44018e1af838cf75",
+   "rows": [
+    [
+     "Camping",
+     501
+    ],
+    [
+     "Footwear",
+     501
+    ],
+    [
+     "Apparel",
+     501
+    ],
+    [
+     null,
+     501
+    ]
+   ]
+  },
+  "Work Days / by category and year": {
+   "hash": "13356d50411fd1c4",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     240
+    ],
+    [
+     "Footwear",
+     2024,
+     240
+    ],
+    [
+     "Apparel",
+     2024,
+     240
+    ],
+    [
+     null,
+     2024,
+     240
+    ],
+    [
+     "Camping",
+     2025,
+     239
+    ],
+    [
+     "Footwear",
+     2025,
+     239
+    ],
+    [
+     "Apparel",
+     2025,
+     239
+    ],
+    [
+     null,
+     2025,
+     239
+    ]
+   ]
+  },
+  "Work Days / by color, apparel and camping": {
+   "hash": "1d737a99792a7ea6",
+   "rows": [
+    [
+     null,
+     501
+    ],
+    [
+     "Green",
+     501
+    ],
+    [
+     "Black",
+     501
+    ],
+    [
+     "Red",
+     501
+    ]
+   ]
+  },
+  "Work Days / by month in 2025, camping": {
+   "hash": "85695f0447fc69c6",
+   "rows": [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     8,
+     0
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     10,
+     1
+    ],
+    [
+     11,
+     0
+    ],
+    [
+     12,
+     1
+    ]
+   ]
+  },
+  "Work Days / by month name": {
+   "hash": "aa91475b217bb6f3",
+   "rows": [
+    [
+     "January",
+     263
+    ],
+    [
+     "February",
+     262
+    ],
+    [
+     "March",
+     261
+    ],
+    [
+     "April",
+     262
+    ],
+    [
+     "May",
+     261
+    ],
+    [
+     "June",
+     261
+    ],
+    [
+     "July",
+     262
+    ],
+    [
+     "August",
+     260
+    ],
+    [
+     "September",
+     262
+    ],
+    [
+     "October",
+     262
+    ],
+    [
+     "November",
+     260
+    ],
+    [
+     "December",
+     262
+    ]
+   ]
+  },
+  "Work Days / by product, camping": {
+   "hash": "73b97c039d765861",
+   "rows": [
+    [
+     "Tent",
+     501
+    ],
+    [
+     "Stove",
+     501
+    ],
+    [
+     "Lamp",
+     501
+    ]
+   ]
+  },
+  "Work Days / by region in 2025": {
+   "hash": "ecf8eb37a5246de2",
+   "rows": [
+    [
+     "North",
+     239
+    ],
+    [
+     "South",
+     239
+    ],
+    [
+     "Online",
+     239
+    ]
+   ]
+  },
+  "Work Days / by year": {
+   "hash": "06ab4daca462de37",
+   "rows": [
+    [
+     2024,
+     240
+    ],
+    [
+     2025,
+     239
+    ]
+   ]
+  },
+  "Work Days / by year and month": {
+   "hash": "8a57148daf092736",
+   "rows": [
+    [
+     2024,
+     1,
+     1
+    ],
+    [
+     2025,
+     1,
+     1
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2025,
+     2,
+     1
+    ],
+    [
+     2024,
+     3,
+     0
+    ],
+    [
+     2025,
+     3,
+     1
+    ],
+    [
+     2024,
+     4,
+     1
+    ],
+    [
+     2025,
+     4,
+     1
+    ],
+    [
+     2024,
+     5,
+     1
+    ],
+    [
+     2025,
+     5,
+     0
+    ],
+    [
+     2024,
+     6,
+     0
+    ],
+    [
+     2025,
+     6,
+     1
+    ],
+    [
+     2024,
+     7,
+     1
+    ],
+    [
+     2025,
+     7,
+     1
+    ],
+    [
+     2024,
+     8,
+     0
+    ],
+    [
+     2025,
+     8,
+     0
+    ],
+    [
+     2024,
+     9,
+     1
+    ],
+    [
+     2025,
+     9,
+     1
+    ],
+    [
+     2024,
+     10,
+     1
+    ],
+    [
+     2025,
+     10,
+     1
+    ],
+    [
+     2024,
+     11,
+     0
+    ],
+    [
+     2025,
+     11,
+     0
+    ],
+    [
+     2024,
+     12,
+     1
+    ],
+    [
+     2025,
+     12,
+     1
+    ]
+   ]
+  },
+  "Work Days / card": {
+   "hash": "2f7c31f6177b164a",
+   "rows": [
+    [
+     501
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by category": {
+   "hash": "92985237fd51873c",
+   "rows": [
+    [
+     "Camping",
+     -501
+    ],
+    [
+     "Footwear",
+     -501
+    ],
+    [
+     "Apparel",
+     -501
+    ],
+    [
+     null,
+     -501
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by category and year": {
+   "hash": "6631c7928be63677",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     -240
+    ],
+    [
+     "Footwear",
+     2024,
+     -240
+    ],
+    [
+     "Apparel",
+     2024,
+     -240
+    ],
+    [
+     null,
+     2024,
+     -240
+    ],
+    [
+     "Camping",
+     2025,
+     -239
+    ],
+    [
+     "Footwear",
+     2025,
+     -239
+    ],
+    [
+     "Apparel",
+     2025,
+     -239
+    ],
+    [
+     null,
+     2025,
+     -239
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by color, apparel and camping": {
+   "hash": "e98ac733abb1d449",
+   "rows": [
+    [
+     null,
+     -501
+    ],
+    [
+     "Green",
+     -501
+    ],
+    [
+     "Black",
+     -501
+    ],
+    [
+     "Red",
+     -501
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by month in 2025, camping": {
+   "hash": "fb654f1ab74a3669",
+   "rows": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     7,
+     1
+    ],
+    [
+     8,
+     1
+    ],
+    [
+     9,
+     1
+    ],
+    [
+     10,
+     0
+    ],
+    [
+     11,
+     1
+    ],
+    [
+     12,
+     1
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by month name": {
+   "hash": "5140cb452f815e2a",
+   "rows": [
+    [
+     "January",
+     -262
+    ],
+    [
+     "February",
+     -261
+    ],
+    [
+     "March",
+     -262
+    ],
+    [
+     "April",
+     -262
+    ],
+    [
+     "May",
+     -260
+    ],
+    [
+     "June",
+     -262
+    ],
+    [
+     "July",
+     -262
+    ],
+    [
+     "August",
+     -261
+    ],
+    [
+     "September",
+     -262
+    ],
+    [
+     "October",
+     -261
+    ],
+    [
+     "November",
+     -261
+    ],
+    [
+     "December",
+     -262
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by product, camping": {
+   "hash": "71268a84e702b420",
+   "rows": [
+    [
+     "Tent",
+     -501
+    ],
+    [
+     "Stove",
+     -501
+    ],
+    [
+     "Lamp",
+     -501
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by region in 2025": {
+   "hash": "6e1229cf6d1cbbdd",
+   "rows": [
+    [
+     "North",
+     -239
+    ],
+    [
+     "South",
+     -239
+    ],
+    [
+     "Online",
+     -239
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by year": {
+   "hash": "25c1e3dfc5603ea6",
+   "rows": [
+    [
+     2024,
+     -240
+    ],
+    [
+     2025,
+     -239
+    ]
+   ]
+  },
+  "Work Days Fri Sat / by year and month": {
+   "hash": "8a508a047545fd99",
+   "rows": [
+    [
+     2024,
+     1,
+     1
+    ],
+    [
+     2025,
+     1,
+     0
+    ],
+    [
+     2024,
+     2,
+     1
+    ],
+    [
+     2025,
+     2,
+     0
+    ],
+    [
+     2024,
+     3,
+     1
+    ],
+    [
+     2025,
+     3,
+     1
+    ],
+    [
+     2024,
+     4,
+     1
+    ],
+    [
+     2025,
+     4,
+     1
+    ],
+    [
+     2024,
+     5,
+     0
+    ],
+    [
+     2025,
+     5,
+     0
+    ],
+    [
+     2024,
+     6,
+     1
+    ],
+    [
+     2025,
+     6,
+     1
+    ],
+    [
+     2024,
+     7,
+     1
+    ],
+    [
+     2025,
+     7,
+     1
+    ],
+    [
+     2024,
+     8,
+     0
+    ],
+    [
+     2025,
+     8,
+     1
+    ],
+    [
+     2024,
+     9,
+     1
+    ],
+    [
+     2025,
+     9,
+     1
+    ],
+    [
+     2024,
+     10,
+     1
+    ],
+    [
+     2025,
+     10,
+     0
+    ],
+    [
+     2024,
+     11,
+     0
+    ],
+    [
+     2025,
+     11,
+     1
+    ],
+    [
+     2024,
+     12,
+     1
+    ],
+    [
+     2025,
+     12,
+     1
+    ]
+   ]
+  },
+  "Work Days Fri Sat / card": {
+   "hash": "45ebab4203f11905",
+   "rows": [
+    [
+     -501
     ]
    ]
   },
@@ -95833,6 +100282,379 @@
    "rows": [
     [
      0
+    ]
+   ]
+  },
+  "Year Fraction / by category": {
+   "hash": "86df6b1e33485659",
+   "rows": [
+    [
+     "Camping",
+     3.834474885844749
+    ],
+    [
+     "Footwear",
+     3.834474885844749
+    ],
+    [
+     "Apparel",
+     3.834474885844749
+    ],
+    [
+     null,
+     3.834474885844749
+    ]
+   ]
+  },
+  "Year Fraction / by category and year": {
+   "hash": "6abbd40a79c80418",
+   "rows": [
+    [
+     "Camping",
+     2024,
+     1.8344748858447488
+    ],
+    [
+     "Footwear",
+     2024,
+     1.8344748858447488
+    ],
+    [
+     "Apparel",
+     2024,
+     1.8344748858447488
+    ],
+    [
+     null,
+     2024,
+     1.8344748858447488
+    ],
+    [
+     "Camping",
+     2025,
+     1.8317351598173515
+    ],
+    [
+     "Footwear",
+     2025,
+     1.8317351598173515
+    ],
+    [
+     "Apparel",
+     2025,
+     1.8317351598173515
+    ],
+    [
+     null,
+     2025,
+     1.8317351598173515
+    ]
+   ]
+  },
+  "Year Fraction / by color, apparel and camping": {
+   "hash": "a7477132e5cfa766",
+   "rows": [
+    [
+     null,
+     3.834474885844749
+    ],
+    [
+     "Green",
+     3.834474885844749
+    ],
+    [
+     "Black",
+     3.834474885844749
+    ],
+    [
+     "Red",
+     3.834474885844749
+    ]
+   ]
+  },
+  "Year Fraction / by month in 2025, camping": {
+   "hash": "440a5e60e8d95b46",
+   "rows": [
+    [
+     1,
+     0.0
+    ],
+    [
+     2,
+     0.0
+    ],
+    [
+     3,
+     0.0
+    ],
+    [
+     4,
+     0.0
+    ],
+    [
+     5,
+     0.0
+    ],
+    [
+     6,
+     0.0
+    ],
+    [
+     7,
+     0.0
+    ],
+    [
+     8,
+     0.0
+    ],
+    [
+     9,
+     0.0
+    ],
+    [
+     10,
+     0.0
+    ],
+    [
+     11,
+     0.0
+    ],
+    [
+     12,
+     0.0
+    ]
+   ]
+  },
+  "Year Fraction / by month name": {
+   "hash": "1c6656c2553401bb",
+   "rows": [
+    [
+     "January",
+     2.0027397260273974
+    ],
+    [
+     "February",
+     2.0
+    ],
+    [
+     "March",
+     2.0
+    ],
+    [
+     "April",
+     2.0
+    ],
+    [
+     "May",
+     2.0
+    ],
+    [
+     "June",
+     2.0
+    ],
+    [
+     "July",
+     2.0
+    ],
+    [
+     "August",
+     2.0
+    ],
+    [
+     "September",
+     2.0
+    ],
+    [
+     "October",
+     2.0
+    ],
+    [
+     "November",
+     2.0
+    ],
+    [
+     "December",
+     2.0
+    ]
+   ]
+  },
+  "Year Fraction / by product, camping": {
+   "hash": "81c5769e6a01f37d",
+   "rows": [
+    [
+     "Tent",
+     3.834474885844749
+    ],
+    [
+     "Stove",
+     3.834474885844749
+    ],
+    [
+     "Lamp",
+     3.834474885844749
+    ]
+   ]
+  },
+  "Year Fraction / by region in 2025": {
+   "hash": "b03715c67807d0fa",
+   "rows": [
+    [
+     "North",
+     1.8317351598173515
+    ],
+    [
+     "South",
+     1.8317351598173515
+    ],
+    [
+     "Online",
+     1.8317351598173515
+    ]
+   ]
+  },
+  "Year Fraction / by year": {
+   "hash": "99bc25aa2375bd37",
+   "rows": [
+    [
+     2024,
+     1.8344748858447488
+    ],
+    [
+     2025,
+     1.8317351598173515
+    ]
+   ]
+  },
+  "Year Fraction / by year and month": {
+   "hash": "c6b051b5f2c79816",
+   "rows": [
+    [
+     2024,
+     1,
+     0.0
+    ],
+    [
+     2025,
+     1,
+     0.0
+    ],
+    [
+     2024,
+     2,
+     0.0
+    ],
+    [
+     2025,
+     2,
+     0.0
+    ],
+    [
+     2024,
+     3,
+     0.0
+    ],
+    [
+     2025,
+     3,
+     0.0
+    ],
+    [
+     2024,
+     4,
+     0.0
+    ],
+    [
+     2025,
+     4,
+     0.0
+    ],
+    [
+     2024,
+     5,
+     0.0
+    ],
+    [
+     2025,
+     5,
+     0.0
+    ],
+    [
+     2024,
+     6,
+     0.0
+    ],
+    [
+     2025,
+     6,
+     0.0
+    ],
+    [
+     2024,
+     7,
+     0.0
+    ],
+    [
+     2025,
+     7,
+     0.0
+    ],
+    [
+     2024,
+     8,
+     0.0
+    ],
+    [
+     2025,
+     8,
+     0.0
+    ],
+    [
+     2024,
+     9,
+     0.0
+    ],
+    [
+     2025,
+     9,
+     0.0
+    ],
+    [
+     2024,
+     10,
+     0.0
+    ],
+    [
+     2025,
+     10,
+     0.0
+    ],
+    [
+     2024,
+     11,
+     0.0
+    ],
+    [
+     2025,
+     11,
+     0.0
+    ],
+    [
+     2024,
+     12,
+     0.0
+    ],
+    [
+     2025,
+     12,
+     0.0
+    ]
+   ]
+  },
+  "Year Fraction / card": {
+   "hash": "150be8551a7c2622",
+   "rows": [
+    [
+     3.834474885844749
     ]
    ]
   },

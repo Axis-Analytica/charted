@@ -178,6 +178,15 @@ fn lib(f: LibFn, a: &[String]) -> Option<String> {
         | LibFn::PathItem
         | LibFn::PathItemReverse
         | LibFn::PathContains
+        | LibFn::Hour
+        | LibFn::Minute
+        | LibFn::Second
+        | LibFn::Time
+        | LibFn::TimeValue
+        | LibFn::DateValue
+        | LibFn::WeekNum
+        | LibFn::YearFrac
+        | LibFn::NetworkDays
         | LibFn::Find
         | LibFn::Search
         | LibFn::ContainsString

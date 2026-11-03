@@ -1336,6 +1336,184 @@ error: An argument of function 'REPLACE' has an invalid value.
 ## Text Edge 15 — by category
 error: An argument of function 'REPLACE' has an invalid value.
 
+## Order Hour — card
+7
+
+## Order Hour — by category
+"Apparel" | 7
+"Camping" | 5
+"Footwear" | 10
+
+## Order Minute Second — card
+2400
+
+## Order Minute Second — by category
+"Apparel" | 1200
+"Camping" | 2400
+"Footwear" | 3600
+
+## Time Made — card
+"1899-12-30 18:30:15"
+
+## Time Made — by category
+∅ | "1899-12-30 01:30:15"
+"Apparel" | "1899-12-30 14:30:15"
+"Camping" | "1899-12-30 05:30:15"
+"Footwear" | "1899-12-30 22:30:15"
+
+## Week Of Last Date — card
+5301
+
+## Week Of Last Date — by category
+∅ | 5301
+"Apparel" | 5301
+"Camping" | 5301
+"Footwear" | 5301
+
+## Year Fraction — card
+3.8345
+
+## Year Fraction — by category
+∅ | 3.8345
+"Apparel" | 3.8345
+"Camping" | 3.8345
+"Footwear" | 3.8345
+
+## Work Days — card
+501
+
+## Work Days — by category
+∅ | 501
+"Apparel" | 501
+"Camping" | 501
+"Footwear" | 501
+
+## Work Days Fri Sat — card
+-501
+
+## Work Days Fri Sat — by category
+∅ | -501
+"Apparel" | -501
+"Camping" | -501
+"Footwear" | -501
+
+## Time Probes — card
+"h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+
+## Time Probes — by category
+∅ | "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+"Apparel" | "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+"Camping" | "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+"Footwear" | "h:12 m:59 s:59 h2:18 h3:6 m2:30 t1:0.041667 t2:0.083333 t3:0.020833 t4:0.062847 tv1:0.65625 tv2:0.65625 tv3:0.254954 tv4:0.020833 dv1:45306 dv2:45306 dv3:45306"
+
+## Date Probes — card
+"w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+
+## Date Probes — by category
+∅ | "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+"Apparel" | "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+"Camping" | "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+"Footwear" | "w1:1 w2:2 w3:1 w4:53 w5:1 w6:12 w7:1 w8:27 y1:0.166667 y2:1 y3:1.166667 y4:0.505556 y5:0.49863 y6:0.080556 y7:0.086111 n1:23 n2:-23 n3:27 n4:23 n5:0 n6:2"
+
+## Date Edge 1 — card
+∅
+
+## Date Edge 1 — by category
+
+
+## Date Edge 2 — card
+∅
+
+## Date Edge 2 — by category
+
+
+## Date Edge 3 — card
+0.5
+
+## Date Edge 3 — by category
+∅ | 0.5
+"Apparel" | 0.5
+"Camping" | 0.5
+"Footwear" | 0.5
+
+## Date Edge 4 — card
+8
+
+## Date Edge 4 — by category
+∅ | 8
+"Apparel" | 8
+"Camping" | 8
+"Footwear" | 8
+
+## Date Edge 5 — card
+∅
+
+## Date Edge 5 — by category
+
+
+## Date Edge 6 — card
+∅
+
+## Date Edge 6 — by category
+
+
+## Date Edge 7 — card
+∅
+
+## Date Edge 7 — by category
+
+
+## Date Edge 8 — card
+error: An argument of function 'WEEKNUM' has an invalid value.
+
+## Date Edge 8 — by category
+error: An argument of function 'WEEKNUM' has an invalid value.
+
+## Date Edge 9 — card
+error: An argument of function 'TIME' has an invalid value.
+
+## Date Edge 9 — by category
+error: An argument of function 'TIME' has an invalid value.
+
+## Date Edge 10 — card
+error: Cannot convert value 'abc' of type Text to type Date.
+
+## Date Edge 10 — by category
+error: Cannot convert value 'abc' of type Text to type Date.
+
+## Date Edge 11 — card
+error: Cannot convert value 'abc' of type Text to type Date.
+
+## Date Edge 11 — by category
+error: Cannot convert value 'abc' of type Text to type Date.
+
+## Date Edge 12 — card
+error: An argument of function 'NETWORKDAYS' has an invalid value.
+
+## Date Edge 12 — by category
+error: An argument of function 'NETWORKDAYS' has an invalid value.
+
+## Date Edge 13 — card
+error: An argument of function 'YEARFRAC' has an invalid value.
+
+## Date Edge 13 — by category
+error: An argument of function 'YEARFRAC' has an invalid value.
+
+## Date Edge 14 — card
+0.0847
+
+## Date Edge 14 — by category
+∅ | 0.0847
+"Apparel" | 0.0847
+"Camping" | 0.0847
+"Footwear" | 0.0847
+
+## Date Edge 15 — card
+error: Cannot convert value 'abc' of type Text to type Date.
+
+## Date Edge 15 — by category
+error: Cannot convert value 'abc' of type Text to type Date.
+
 ## Median Parent — card
 2
 

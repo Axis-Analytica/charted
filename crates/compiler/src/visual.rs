@@ -746,6 +746,23 @@ fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
         ArgKind::Text => text_sql(x),
         ArgKind::TextOrBlank => text_or_null(x),
         ArgKind::Any => x.0.clone(),
+        ArgKind::Moment | ArgKind::Day0 => {
+            let us = match x.1 {
+                ValueType::Text => format!(
+                    "coalesce(epoch_us(TRY_CAST({x} AS TIMESTAMP)) + 2209161600000000, CASE WHEN {x} IS NULL THEN NULL ELSE error('Cannot convert value ''' || {x} || ''' of type Text to type Date.') END)",
+                    x = x.0
+                ),
+                ValueType::Bool => {
+                    micros_sql(&(format!("CAST({} AS DOUBLE)", x.0), ValueType::Number))
+                }
+                _ => micros_sql(x),
+            };
+            if kind == ArgKind::Day0 {
+                format!("coalesce({us}, 0)")
+            } else {
+                us
+            }
+        }
     }
 }
 
@@ -793,6 +810,17 @@ fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
             math_template(f, &zero, &bad, true)
         );
     }
+    // A blank date makes the result blank.
+    let moments: Vec<String> = (0..a.len())
+        .filter(|&i| f.kind(i) == ArgKind::Moment)
+        .map(|i| format!("{} IS NULL", marker(i)))
+        .collect();
+    if !moments.is_empty() {
+        body = format!(
+            "(CASE WHEN {} THEN NULL ELSE {body} END)",
+            moments.join(" OR ")
+        );
+    }
     let mut fields = Vec::new();
     for (i, x) in a.iter().enumerate() {
         let (m, r) = (marker(i), raw(i));
@@ -817,6 +845,7 @@ fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
         Returns::Text => ValueType::Text,
         Returns::Bool => ValueType::Bool,
         Returns::Date => ValueType::Date,
+        Returns::DateTime => ValueType::DateTime,
     };
     (body, ty)
 }
@@ -901,6 +930,15 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
         | LibFn::Unichar
         | LibFn::Unicode
         | LibFn::CombineValues => text_template(f, a, &bad),
+        LibFn::Hour
+        | LibFn::Minute
+        | LibFn::Second
+        | LibFn::Time
+        | LibFn::TimeValue
+        | LibFn::DateValue
+        | LibFn::WeekNum
+        | LibFn::YearFrac
+        | LibFn::NetworkDays => time_template(f, a, &bad),
         // Math: the same formulas as the interpreter's (lib_fn), so the two agree to
         // the last bit. Ratios are snapped to 9 decimals before rounding them up or
         // down, so 3.2 * 10 isn't taken for 32.000000000000004.
@@ -957,6 +995,124 @@ fn wildcard_regex(p: &str) -> String {
     format!(
         "replace(replace(replace(replace(replace(replace(replace(replace(regexp_replace({p}, '([.^$+(){{}}\\[\\]|\\\\])', '\\\\\\1', 'g'), '~~', chr(1)), '~?', chr(2)), '~*', chr(3)), '?', '.'), '*', '.*'), chr(1), '~'), chr(2), '\\?'), chr(3), '\\*')"
     )
+}
+
+/// The serial day of microseconds since 1899-12-30 (`ArgKind::Moment`).
+fn day_sql(us: &str) -> String {
+    format!("CAST(floor({us} / 86400000000) AS BIGINT)")
+}
+
+/// NETWORKDAYS: the days from `lo` to `hi` (serial days, `lo` <= `hi`) that aren't
+/// weekend days under weekend code `w`, counted without a loop: whole weeks, then
+/// each weekend day that falls in the remaining days (the interpreter's
+/// `work_days`).
+fn work_days_sql(lo: &str, hi: &str, w: &str, bad: &str) -> String {
+    let n = format!("({hi} - {lo} + 1)");
+    // 1899-12-30 (serial 0) was a Saturday; Sunday is 0.
+    let dow = format!("(({lo} + 6) % 7)");
+    let hit =
+        |x: &str| format!("(CASE WHEN ((({x}) - {dow}) % 7 + 7) % 7 < {n} % 7 THEN 1 ELSE 0 END)");
+    format!(
+        "(CASE WHEN {w} BETWEEN 1 AND 7 THEN {n} - ({n} // 7) * 2 - {} - {} WHEN {w} BETWEEN 11 AND 17 THEN {n} - {n} // 7 - {} ELSE {bad} END)",
+        hit(&format!("({w} + 5) % 7")),
+        hit(&format!("({w} + 6) % 7")),
+        hit(&format!("{w} - 11")),
+    )
+}
+
+/// YEARFRAC basis 1 (actual/actual) of dates `_y.a` <= `_y.b`, as Excel does it:
+/// within a year, over 366 days if a 29 February is in reach; across years, over the
+/// average length of the years spanned (the interpreter's `actual_actual`).
+fn actual_actual_sql() -> String {
+    let leap = |y: &str| format!("(({y}) % 4 = 0 AND ({y}) % 100 <> 0 OR ({y}) % 400 = 0)");
+    let (y1, y2) = ("year(_y.a)", "year(_y.b)");
+    format!(
+        "(CASE WHEN {y1} = {y2} OR ({y2} = {y1} + 1 AND (month(_y.a) > month(_y.b) OR (month(_y.a) = month(_y.b) AND day(_y.a) >= day(_y.b)))) THEN (_y.b - _y.a) / (CASE WHEN {y1} = {y2} THEN CASE WHEN {l1} THEN 366 ELSE 365 END WHEN ({l1} AND month(_y.a) < 3) OR ({l2} AND (month(_y.b) > 2 OR (month(_y.b) = 2 AND day(_y.b) = 29))) THEN 366 ELSE 365 END) ELSE (_y.b - _y.a) / ((make_date({y2} + 1, 1, 1) - make_date({y1}, 1, 1)) / ({y2} - {y1} + 1)) END)",
+        l1 = leap(y1),
+        l2 = leap(y2),
+    )
+}
+
+/// The date and time functions; Moment arguments are microseconds since 1899-12-30.
+fn time_template(f: LibFn, a: &[String], bad: &str) -> String {
+    let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
+    // The time of day, in microseconds.
+    let tod = |u: &str| format!("({u} - {} * 86400000000)", day_sql(u));
+    let date = |u: &str| format!("(DATE '1899-12-30' + CAST({} AS INTEGER))", day_sql(u));
+    let not_date = |t: &str| {
+        format!("error('Cannot convert value ''' || {t} || ''' of type Text to type Date.')")
+    };
+    match f {
+        LibFn::Hour => format!("CAST(floor({} / 3600000000) AS DOUBLE)", tod(&a[0])),
+        LibFn::Minute => format!("CAST(floor({} / 60000000) % 60 AS DOUBLE)", tod(&a[0])),
+        LibFn::Second => format!("CAST(floor({} / 1000000) % 60 AS DOUBLE)", tod(&a[0])),
+        // Hours past 24 wrap round; a negative time is an error.
+        LibFn::Time => {
+            let total = format!("({} * 3600 + {} * 60 + {})", a[0], a[1], a[2]);
+            format!(
+                "(CASE WHEN {total} < 0 THEN {bad} ELSE TIMESTAMP '1899-12-30 00:00:00' + to_microseconds(CAST(({total} % 86400) * 1000000 AS BIGINT)) END)"
+            )
+        }
+        LibFn::TimeValue => {
+            let t = &a[0];
+            format!(
+                "(CASE WHEN {t} IS NULL THEN NULL ELSE DATE '1899-12-30' + coalesce(TRY_CAST(trim({t}) AS TIME), CAST(try_strptime(upper(trim({t})), '%I:%M %p') AS TIME), CAST(try_strptime(upper(trim({t})), '%I:%M:%S %p') AS TIME), CAST(TRY_CAST(trim({t}) AS TIMESTAMP) AS TIME), {}) END)",
+                not_date(t)
+            )
+        }
+        LibFn::DateValue => {
+            let t = &a[0];
+            format!(
+                "(CASE WHEN {t} IS NULL THEN NULL ELSE coalesce(CAST(TRY_CAST(trim({t}) AS TIMESTAMP) AS DATE), CAST(try_strptime(trim({t}), '%m/%d/%Y') AS DATE), {}) END)",
+                not_date(t)
+            )
+        }
+        // Week 1 holds 1 January, weeks starting on the type's day; 21 is ISO.
+        LibFn::WeekNum => {
+            let d = date(&a[0]);
+            let t = opt(1, "1");
+            format!(
+                "(CASE WHEN {t} = 21 THEN CAST(week({d}) AS DOUBLE) WHEN {t} IN (1, 2, 11, 12, 13, 14, 15, 16, 17) THEN CAST((dayofyear({d}) - 1 + (dayofweek(date_trunc('year', {d})) - (CASE {t} WHEN 1 THEN 0 WHEN 2 THEN 1 WHEN 17 THEN 0 ELSE {t} - 10 END) + 7) % 7) // 7 + 1 AS DOUBLE) ELSE {bad} END)"
+            )
+        }
+        // Basis 0 (US 30/360), 2 (actual/360), 3 (actual/365), 4 (European 30/360),
+        // in whole days, in either order; basis 1 (actual/actual) isn't done yet.
+        LibFn::YearFrac => {
+            let (d1, d2) = (day_sql(&a[0]), day_sql(&a[1]));
+            let b = opt(2, "0");
+            let last_feb = |x: &str| format!("(month({x}) = 2 AND day({x} + 1) = 1)");
+            let us = format!(
+                "(CASE WHEN {} THEN 30 WHEN day(_y.a) = 31 THEN 30 ELSE day(_y.a) END)",
+                last_feb("_y.a")
+            );
+            let us2 = format!(
+                "(CASE WHEN {} AND {} THEN 30 WHEN day(_y.b) = 31 AND day(_y.a) >= 30 THEN 30 ELSE day(_y.b) END)",
+                last_feb("_y.a"),
+                last_feb("_y.b")
+            );
+            let thirty = |e1: &str, e2: &str| {
+                format!(
+                    "((year(_y.b) - year(_y.a)) * 360 + (month(_y.b) - month(_y.a)) * 30 + ({e2} - {e1})) / 360"
+                )
+            };
+            format!(
+                "list_transform([struct_pack(a := DATE '1899-12-30' + CAST(least({d1}, {d2}) AS INTEGER), b := DATE '1899-12-30' + CAST(greatest({d1}, {d2}) AS INTEGER))], lambda _y: CASE {b} WHEN 0 THEN {} WHEN 2 THEN (_y.b - _y.a) / 360 WHEN 3 THEN (_y.b - _y.a) / 365 WHEN 4 THEN {} WHEN 1 THEN {} ELSE {bad} END)[1]",
+                thirty(&us, &us2),
+                thirty("least(day(_y.a), 30)", "least(day(_y.b), 30)"),
+                actual_actual_sql(),
+            )
+        }
+        LibFn::NetworkDays => {
+            let (d1, d2) = (day_sql(&a[0]), day_sql(&a[1]));
+            let w = opt(2, "1");
+            format!(
+                "CAST(CASE WHEN {d1} <= {d2} THEN {} ELSE -{} END AS DOUBLE)",
+                work_days_sql(&d1, &d2, &w, bad),
+                work_days_sql(&d2, &d1, &w, bad)
+            )
+        }
+        _ => unreachable!("{} isn't a date function", f.name()),
+    }
 }
 
 fn text_template(f: LibFn, a: &[String], bad: &str) -> String {
