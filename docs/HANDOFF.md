@@ -572,6 +572,11 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
     Comparisons with NaN are false, SUMX propagates it, ROUND and INT of Infinity error.
     Charted now matches (`/` in `visual.rs` and `interp.rs`; DIVIDE unchanged). The UI
     formatter shows ∞ and NaN.
+  - Statistical aggregates in Power BI (M11.5): MEDIAN(X) and PERCENTILE(X) keep blank
+    values in the sorted list, first: landing exactly on one gives blank, between a
+    blank and a value the blank is 0 (the 75th percentile of [blank, blank, 3] is 1.5,
+    the median blank). STDEV(X), VAR(X), GEOMEAN(X), PRODUCT(X) and AVERAGEA ignore
+    blanks. STDEV.S and VAR.S of a single value are NaN, of none blank.
   - Time intelligence, checked on a marked daily calendar too (a probe model
     `charted-probe` in My workspace): DATEADD and SAMEPERIODLASTYEAR move the visible
     range, not each date: the first date by n units (day clamped), the last too, or to

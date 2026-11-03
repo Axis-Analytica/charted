@@ -3,24 +3,38 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (114 functions)
+## Evaluated (138 functions)
 
 ### Aggregation
 
 | Function | Description |
 |---|---|
+| `APPROXIMATEDISTINCTCOUNT ( Column )` | The number of distinct values in a column, not counting blank (exact in charted). |
 | `AVERAGE ( Column )` | The arithmetic mean of a column's numbers. |
+| `AVERAGEA ( Column )` | The mean of a column, counting text as zero. |
 | `AVERAGEX ( Table, Expression )` | The mean of an expression evaluated for each row of a table. |
 | `COUNT ( Column )` | The number of non-blank values in a column. |
 | `COUNTA ( Column )` | The number of non-blank values in a column. |
+| `COUNTAX ( Table, Expression )` | The number of rows where an expression is not blank. |
 | `COUNTBLANK ( Column )` | The number of blank values in a column. |
 | `COUNTROWS ( [Table] )` | The number of rows in a table. |
 | `COUNTX ( Table, Expression )` | The number of rows for which an expression is not blank. |
 | `DISTINCTCOUNT ( Column )` | The number of distinct values in a column, counting blank. |
+| `DISTINCTCOUNTNOBLANK ( Column )` | The number of distinct values in a column, not counting blank. |
 | `MAX ( ColumnOrValue, [Value2] )` | The largest value in a column, or the larger of two values. |
+| `MAXA ( Column )` | The largest value, counting logical values. |
 | `MAXX ( Table, Expression )` | The largest value of an expression evaluated for each row. |
+| `MEDIAN ( Column )` | The median of a column's numbers. |
+| `MEDIANX ( Table, Expression )` | The median of an expression evaluated for each row. |
 | `MIN ( ColumnOrValue, [Value2] )` | The smallest value in a column, or the smaller of two values. |
+| `MINA ( Column )` | The smallest value, counting logical values. |
 | `MINX ( Table, Expression )` | The smallest value of an expression evaluated for each row. |
+| `PERCENTILE.EXC ( Column, K )` | The k-th percentile, exclusive: k must leave a value on each side. |
+| `PERCENTILE.INC ( Column, K )` | The k-th percentile, inclusive. |
+| `PERCENTILEX.EXC ( Table, Expression, K )` | The k-th percentile of an expression evaluated for each row, exclusive. |
+| `PERCENTILEX.INC ( Table, Expression, K )` | The k-th percentile of an expression evaluated for each row, inclusive. |
+| `PRODUCT ( Column )` | The product of a column's numbers. |
+| `PRODUCTX ( Table, Expression )` | The product of an expression evaluated for each row. |
 | `SUM ( Column )` | The sum of a column's numbers. |
 | `SUMX ( Table, Expression )` | The sum of an expression evaluated for each row of a table. |
 
@@ -120,7 +134,17 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 
 | Function | Description |
 |---|---|
+| `GEOMEAN ( Column )` | The geometric mean of a column's numbers. |
+| `GEOMEANX ( Table, Expression )` | The geometric mean of an expression evaluated for each row. |
 | `RANKX ( Table, Expression, [Value], [Order], [Ties] )` | The rank of a value among the values of an expression over a table. |
+| `STDEV.P ( Column )` | The standard deviation of a population. |
+| `STDEV.S ( Column )` | The standard deviation of a sample. |
+| `STDEVX.P ( Table, Expression )` | The standard deviation of a population, from an expression per row. |
+| `STDEVX.S ( Table, Expression )` | The standard deviation of a sample, from an expression per row. |
+| `VAR.P ( Column )` | The variance of a population. |
+| `VAR.S ( Column )` | The variance of a sample. |
+| `VARX.P ( Table, Expression )` | The variance of a population, from an expression per row. |
+| `VARX.S ( Table, Expression )` | The variance of a sample, from an expression per row. |
 
 ### Table
 
@@ -201,8 +225,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (36)
+## Recognised, not yet evaluated (25)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`AVERAGEA`, `CEILING`, `COUNTAX`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MAXA`, `MEDIAN`, `MEDIANX`, `MINA`, `MINUTE`, `PERCENTILE.INC`, `POWER`, `PRODUCT`, `PRODUCTX`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `STDEV.P`, `STDEV.S`, `TRUNC`, `WEEKNUM`, `YEARFRAC`
+`CEILING`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MINUTE`, `POWER`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `TRUNC`, `WEEKNUM`, `YEARFRAC`

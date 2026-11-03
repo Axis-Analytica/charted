@@ -29,6 +29,7 @@ ALL|[TableOrColumn]; [Column]…|Filter|Removes filters from a table or columns.
 ALLEXCEPT|Table; Column; [Column]…|Filter|Removes all filters on a table except those on the listed columns.
 ALLSELECTED|[TableOrColumn]; [Column]…|Filter|Removes filters from inside the visual, keeping the filters from outside it (slicers, page and report filters).
 AND|Logical1; Logical2|Logical|TRUE when both arguments are TRUE.
+APPROXIMATEDISTINCTCOUNT|Column|Aggregation|The number of distinct values in a column, not counting blank (exact in charted).
 AVERAGE|Column|Aggregation|The arithmetic mean of a column's numbers.
 AVERAGEA|Column|Aggregation|The mean of a column, counting text as zero.
 AVERAGEX|Table; Expression|Aggregation|The mean of an expression evaluated for each row of a table.
@@ -57,6 +58,7 @@ DATESQTD|Dates|Time intelligence|Dates from the start of the quarter to the last
 DATESYTD|Dates; [YearEndDate]|Time intelligence|Dates from the start of the year to the last date in context.
 DATEVALUE|DateText|Date and time|Converts text to a date.
 DAY|Date|Date and time|The day of the month.
+DISTINCTCOUNTNOBLANK|Column|Aggregation|The number of distinct values in a column, not counting blank.
 DISTINCT|ColumnOrTable|Table|The distinct values of a column (without the blank row), or the distinct rows of a table.
 DISTINCTCOUNT|Column|Aggregation|The number of distinct values in a column, counting blank.
 DIVIDE|Numerator; Denominator; [AlternateResult]|Math|Divides, returning the alternate result (blank by default) when the denominator is zero.
@@ -73,6 +75,8 @@ FLOOR|Number; Significance|Math|Rounds down to the nearest multiple of significa
 FORMAT|Value; FormatString|Text|Converts a value to text with a format string.
 GENERATE|Table1; Table2|Table|The cross join of each row of Table1 with Table2 evaluated in its context.
 GENERATESERIES|StartValue; EndValue; [IncrementValue]|Table|A table with one column, Value, of the numbers from the start value to the end value.
+GEOMEANX|Table; Expression|Statistical|The geometric mean of an expression evaluated for each row.
+GEOMEAN|Column|Statistical|The geometric mean of a column's numbers.
 HASONEVALUE|Column|Information|TRUE when the filter context leaves exactly one value of the column.
 HOUR|DateTime|Date and time|The hour of a time.
 IF|LogicalTest; ResultIfTrue; [ResultIfFalse]|Logical|Returns one value when a condition is TRUE and another when it is FALSE.
@@ -118,7 +122,10 @@ PATHCONTAINS|Path; Item|Parent and child|TRUE when an item is one of a path's id
 PATHITEM|Path; Position; [Type]|Parent and child|The id at a position of a path, counting from the top; Type INTEGER returns it as a number.
 PATHITEMREVERSE|Path; Position; [Type]|Parent and child|The id at a position of a path, counting from the end.
 PATHLENGTH|Path|Parent and child|How many ids a path has.
+PERCENTILE.EXC|Column; K|Aggregation|The k-th percentile, exclusive: k must leave a value on each side.
 PERCENTILE.INC|Column; K|Aggregation|The k-th percentile, inclusive.
+PERCENTILEX.EXC|Table; Expression; K|Aggregation|The k-th percentile of an expression evaluated for each row, exclusive.
+PERCENTILEX.INC|Table; Expression; K|Aggregation|The k-th percentile of an expression evaluated for each row, inclusive.
 PI||Math|The number π, 3.14159265358979.
 POWER|Number; Power|Math|A number raised to a power.
 PREVIOUSDAY|Dates|Time intelligence|The day before the first date.
@@ -148,6 +155,8 @@ SIGN|Number|Math|1, 0 or -1 for the sign of a number.
 SQRT|Number|Math|The square root.
 STDEV.P|Column|Statistical|The standard deviation of a population.
 STDEV.S|Column|Statistical|The standard deviation of a sample.
+STDEVX.P|Table; Expression|Statistical|The standard deviation of a population, from an expression per row.
+STDEVX.S|Table; Expression|Statistical|The standard deviation of a sample, from an expression per row.
 SUBSTITUTE|Text; OldText; NewText; [InstanceNumber]|Text|Replaces text by matching.
 SUM|Column|Aggregation|The sum of a column's numbers.
 SUMMARIZE|Table; GroupByColumn…; [Name; Expression]…|Table|A table grouped by columns, with optional expressions.
@@ -169,6 +178,10 @@ UTCNOW||Date and time|The current date and time in UTC.
 UTCTODAY||Date and time|The current date in UTC.
 VALUE|Text|Text|Converts text to a number.
 VALUES|TableOrColumn|Table|The distinct values of a column (with the blank row when unmatched rows exist), or a table's rows.
+VAR.P|Column|Statistical|The variance of a population.
+VAR.S|Column|Statistical|The variance of a sample.
+VARX.P|Table; Expression|Statistical|The variance of a population, from an expression per row.
+VARX.S|Table; Expression|Statistical|The variance of a sample, from an expression per row.
 WEEKDAY|Date; [ReturnType]|Date and time|The day of the week.
 WEEKNUM|Date; [ReturnType]|Date and time|The week number in the year.
 YEAR|Date|Date and time|The year of a date.

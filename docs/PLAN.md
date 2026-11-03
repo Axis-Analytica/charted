@@ -569,6 +569,14 @@ Time-of-day functions (HOUR, TIME…) and FORMAT's time codes stay in M11.6 and 
 
 #### M11.5 Aggregates (M)
 
+*Status 2026-11-03: done.* All of the list below, plus the X forms (STDEVX, VARX,
+GEOMEANX, PERCENTILEX.EXC). MEDIAN and PERCENTILE share one sorted-list path
+(`percentile_sql`), so k may be any expression. Checked against the Service (2434 of
+2480 agree, the other 46 known), which showed: MEDIAN(X) and PERCENTILE(X) keep blank
+values in the list; STDEV.S and VAR.S of one value are NaN; comparisons with NaN were
+wrong in both engines and are now false (only `<>` holds). GEOMEAN of a 0 is 0; a
+negative value is an error (not checked against Power BI: no negatives in the fixture).
+
 - `Bound::Aggregate` gains `param: Option<Box<Bound>>` (PERCENTILE's k may be a what-if
   parameter); `AggFunc` stays `Copy`. One `agg_sql` arm per function (`visual.rs:451`)
   and its interp arm (`interp.rs:1026`).

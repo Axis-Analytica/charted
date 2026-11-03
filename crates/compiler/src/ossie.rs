@@ -47,6 +47,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
             func,
             arg,
             source: TableExpr::Table(_),
+            param: None,
         } => {
             let x = match arg {
                 Some(a) => sql(model, a, stack)?,
@@ -60,6 +61,7 @@ fn sql(model: &Model, b: &Bound, stack: &mut Vec<Id>) -> Option<String> {
                 AggFunc::Count | AggFunc::CountRows => format!("COUNT({x})"),
                 AggFunc::DistinctCount => format!("COUNT(DISTINCT {x})"),
                 AggFunc::CountBlank => format!("SUM(CASE WHEN {x} IS NULL THEN 1 ELSE 0 END)"),
+                _ => return None,
             }
         }
         Bound::Call { func, args } => {

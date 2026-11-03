@@ -193,6 +193,99 @@ table Sales
 	measure 'A Week From Now' = UTCNOW () + 7
 		lineageTag: m:A Week From Now
 
+	measure 'Median Qty' = MEDIAN ( Sales[Qty] )
+		lineageTag: m:Median Qty
+
+	measure 'Median Line' = MEDIANX ( Sales, Sales[Qty] * Sales[Price] )
+		lineageTag: m:Median Line
+
+	measure 'P90 Price' = PERCENTILE.INC ( Sales[Price], 0.9 )
+		lineageTag: m:P90 Price
+
+	measure 'P50 Exc Qty' = PERCENTILE.EXC ( Sales[Qty], 0.5 )
+		lineageTag: m:P50 Exc Qty
+
+	measure 'P75 Product Qty' = PERCENTILEX.INC ( VALUES ( Product[Product] ), [Quantity], 0.75 )
+		lineageTag: m:P75 Product Qty
+
+	measure 'P Var K' = VAR k = 0.3 RETURN PERCENTILEX.EXC ( Sales, Sales[Qty] * 2, k + 0.2 )
+		lineageTag: m:P Var K
+
+	measure 'Stdev Qty' = STDEV.S ( Sales[Qty] )
+		lineageTag: m:Stdev Qty
+
+	measure 'Stdev P Price' = STDEV.P ( Sales[Price] )
+		lineageTag: m:Stdev P Price
+
+	measure 'Var Qty' = VAR.S ( Sales[Qty] )
+		lineageTag: m:Var Qty
+
+	measure 'Var P Line' = VARX.P ( Sales, Sales[Qty] * Sales[Price] )
+		lineageTag: m:Var P Line
+
+	measure 'Stdev Product Qty' = STDEVX.S ( VALUES ( Product[Product] ), [Quantity] )
+		lineageTag: m:Stdev Product Qty
+
+	measure 'Product Of Orders' = PRODUCTX ( VALUES ( Product[Category] ), [Orders] )
+		lineageTag: m:Product Of Orders
+
+	measure 'Geomean Price' = GEOMEAN ( Product[ListPrice] )
+		lineageTag: m:Geomean Price
+
+	measure 'Geomean Qty' = GEOMEANX ( Sales, Sales[Qty] )
+		lineageTag: m:Geomean Qty
+
+	measure 'Order Times' = DISTINCTCOUNTNOBLANK ( Sales[OrderedAt] )
+		lineageTag: m:Order Times
+
+	measure 'Order Times All' = DISTINCTCOUNT ( Sales[OrderedAt] )
+		lineageTag: m:Order Times All
+
+	measure 'Approx Products' = APPROXIMATEDISTINCTCOUNT ( Sales[ProductKey] )
+		lineageTag: m:Approx Products
+
+	measure 'Avg A Qty' = AVERAGEA ( Sales[Qty] )
+		lineageTag: m:Avg A Qty
+
+	measure 'Min A Price' = MINA ( Sales[Price] )
+		lineageTag: m:Min A Price
+
+	measure 'Max A Price' = MAXA ( Sales[Price] )
+		lineageTag: m:Max A Price
+
+	measure 'Timed Orders' = COUNTAX ( Sales, Sales[OrderedAt] )
+		lineageTag: m:Timed Orders
+
+	measure 'Median Parent' = MEDIAN ( Account[ParentKey] )
+		lineageTag: m:Median Parent
+
+	measure 'P50 Parent' = PERCENTILE.INC ( Account[ParentKey], 0.5 )
+		lineageTag: m:P50 Parent
+
+	measure 'P50X Parent' = PERCENTILEX.INC ( Account, Account[ParentKey], 0.5 )
+		lineageTag: m:P50X Parent
+
+	measure 'Stdev Parent' = STDEV.S ( Account[ParentKey] )
+		lineageTag: m:Stdev Parent
+
+	measure 'Avg A Parent' = AVERAGEA ( Account[ParentKey] )
+		lineageTag: m:Avg A Parent
+
+	measure 'Geomean Parent' = GEOMEAN ( Account[ParentKey] )
+		lineageTag: m:Geomean Parent
+
+	measure 'Median Product Qty' = MEDIANX ( VALUES ( Product[Product] ), [Quantity] )
+		lineageTag: m:Median Product Qty
+
+	measure 'Geomean Product Qty' = GEOMEANX ( VALUES ( Product[Product] ), [Quantity] )
+		lineageTag: m:Geomean Product Qty
+
+	measure 'Product Product Qty' = PRODUCTX ( VALUES ( Product[Product] ), [Quantity] )
+		lineageTag: m:Product Product Qty
+
+	measure 'Var Product Qty' = VARX.P ( VALUES ( Product[Product] ), [Quantity] )
+		lineageTag: m:Var Product Qty
+
 	measure 'All Products Qty' = SUMX ( ALL ( Product ), [Quantity] )
 		lineageTag: m:All Products Qty
 

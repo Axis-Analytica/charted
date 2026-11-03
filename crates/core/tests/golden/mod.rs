@@ -531,6 +531,73 @@ pub const MEASURES: &[(&str, &str)] = &[
     ),
     ("Days To Today", "UTCTODAY () - MAX ( 'Date'[Date] )"),
     ("A Week From Now", "UTCNOW () + 7"),
+    // Statistical aggregates (M11.5)
+    ("Median Qty", "MEDIAN ( Sales[Qty] )"),
+    (
+        "Median Line",
+        "MEDIANX ( Sales, Sales[Qty] * Sales[Price] )",
+    ),
+    ("P90 Price", "PERCENTILE.INC ( Sales[Price], 0.9 )"),
+    ("P50 Exc Qty", "PERCENTILE.EXC ( Sales[Qty], 0.5 )"),
+    (
+        "P75 Product Qty",
+        "PERCENTILEX.INC ( VALUES ( Product[Product] ), [Quantity], 0.75 )",
+    ),
+    (
+        "P Var K",
+        "VAR k = 0.3 RETURN PERCENTILEX.EXC ( Sales, Sales[Qty] * 2, k + 0.2 )",
+    ),
+    ("Stdev Qty", "STDEV.S ( Sales[Qty] )"),
+    ("Stdev P Price", "STDEV.P ( Sales[Price] )"),
+    ("Var Qty", "VAR.S ( Sales[Qty] )"),
+    ("Var P Line", "VARX.P ( Sales, Sales[Qty] * Sales[Price] )"),
+    (
+        "Stdev Product Qty",
+        "STDEVX.S ( VALUES ( Product[Product] ), [Quantity] )",
+    ),
+    (
+        "Product Of Orders",
+        "PRODUCTX ( VALUES ( Product[Category] ), [Orders] )",
+    ),
+    ("Geomean Price", "GEOMEAN ( Product[ListPrice] )"),
+    ("Geomean Qty", "GEOMEANX ( Sales, Sales[Qty] )"),
+    ("Order Times", "DISTINCTCOUNTNOBLANK ( Sales[OrderedAt] )"),
+    ("Order Times All", "DISTINCTCOUNT ( Sales[OrderedAt] )"),
+    (
+        "Approx Products",
+        "APPROXIMATEDISTINCTCOUNT ( Sales[ProductKey] )",
+    ),
+    ("Avg A Qty", "AVERAGEA ( Sales[Qty] )"),
+    ("Min A Price", "MINA ( Sales[Price] )"),
+    ("Max A Price", "MAXA ( Sales[Price] )"),
+    ("Timed Orders", "COUNTAX ( Sales, Sales[OrderedAt] )"),
+    // How blanks count: Account[ParentKey] has one, and products without sales in
+    // the context have a blank [Quantity].
+    ("Median Parent", "MEDIAN ( Account[ParentKey] )"),
+    ("P50 Parent", "PERCENTILE.INC ( Account[ParentKey], 0.5 )"),
+    (
+        "P50X Parent",
+        "PERCENTILEX.INC ( Account, Account[ParentKey], 0.5 )",
+    ),
+    ("Stdev Parent", "STDEV.S ( Account[ParentKey] )"),
+    ("Avg A Parent", "AVERAGEA ( Account[ParentKey] )"),
+    ("Geomean Parent", "GEOMEAN ( Account[ParentKey] )"),
+    (
+        "Median Product Qty",
+        "MEDIANX ( VALUES ( Product[Product] ), [Quantity] )",
+    ),
+    (
+        "Geomean Product Qty",
+        "GEOMEANX ( VALUES ( Product[Product] ), [Quantity] )",
+    ),
+    (
+        "Product Product Qty",
+        "PRODUCTX ( VALUES ( Product[Product] ), [Quantity] )",
+    ),
+    (
+        "Var Product Qty",
+        "VARX.P ( VALUES ( Product[Product] ), [Quantity] )",
+    ),
     ("All Products Qty", "SUMX ( ALL ( Product ), [Quantity] )"),
     (
         "Lines Per Product",

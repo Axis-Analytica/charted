@@ -1180,9 +1180,14 @@ impl<'a> Interp<'a> {
         func: AggFunc,
         source: &TableExpr,
         arg: Option<&Bound>,
+        param: Option<&Bound>,
         ctx: &Ctx,
         rows: &[Row],
     ) -> Result<Value> {
+        let k = match param {
+            Some(p) => self.eval(p, ctx, rows)?.numeric().unwrap_or(0.0),
+            None => 0.0,
+        };
         let src = self.eval_table(source, ctx, rows)?;
         if !src.is_empty() {
             self.touched = true;
@@ -1251,6 +1256,93 @@ impl<'a> Interp<'a> {
                     Value::Blank
                 } else {
                     Value::Num(set.len() as f64)
+                }
+            }
+            AggFunc::DistinctCountNoBlank => {
+                let set: HashSet<Option<String>> = nonblank.iter().map(|v| v.key()).collect();
+                if set.is_empty() {
+                    Value::Blank
+                } else {
+                    Value::Num(set.len() as f64)
+                }
+            }
+            AggFunc::Median | AggFunc::PercentileInc | AggFunc::PercentileExc => {
+                // Blanks are in the list, first, as in Power BI: landing on one is
+                // blank, and between values it is 0.
+                let mut ns: Vec<Option<f64>> = vals.iter().map(|v| v.numeric()).collect();
+                ns.sort_by(|a, b| match (a, b) {
+                    (Some(x), Some(y)) => x.total_cmp(y),
+                    _ => a.is_some().cmp(&b.is_some()),
+                });
+                let n = ns.len() as f64;
+                let (pos, ok, name) = match func {
+                    AggFunc::Median => ((n - 1.0) * 0.5, true, "MEDIAN"),
+                    AggFunc::PercentileInc => {
+                        (k * (n - 1.0), (0.0..=1.0).contains(&k), "PERCENTILE.INC")
+                    }
+                    _ => (
+                        k * (n + 1.0) - 1.0,
+                        k * (n + 1.0) >= 1.0 && k * (n + 1.0) <= n,
+                        "PERCENTILE.EXC",
+                    ),
+                };
+                if ns.is_empty() {
+                    Value::Blank
+                } else if !ok {
+                    return Err(format!(
+                        "An argument of function '{name}' has an invalid value."
+                    ));
+                } else {
+                    let f = pos.floor() as usize;
+                    let (lo, hi) = (ns[f], ns[(f + 1).min(ns.len() - 1)]);
+                    if pos == f as f64 {
+                        lo.map_or(Value::Blank, Value::Num)
+                    } else if lo.is_none() && hi.is_none() {
+                        Value::Blank
+                    } else {
+                        let (lo, hi) = (lo.unwrap_or(0.0), hi.unwrap_or(0.0));
+                        Value::Num(lo + (pos - f as f64) * (hi - lo))
+                    }
+                }
+            }
+            AggFunc::StdevS | AggFunc::StdevP | AggFunc::VarS | AggFunc::VarP => {
+                let ns: Vec<f64> = nonblank.iter().filter_map(|v| v.num()).collect();
+                let n = ns.len() as f64;
+                let sample = matches!(func, AggFunc::StdevS | AggFunc::VarS);
+                let d = if sample { n - 1.0 } else { n };
+                if n == 0.0 {
+                    Value::Blank
+                } else if d == 0.0 {
+                    // A sample of one is 0/0 in Power BI.
+                    Value::Num(f64::NAN)
+                } else {
+                    let mean = ns.iter().sum::<f64>() / n;
+                    let var = ns.iter().map(|x| (x - mean).powi(2)).sum::<f64>() / d;
+                    Value::Num(if matches!(func, AggFunc::StdevS | AggFunc::StdevP) {
+                        var.sqrt()
+                    } else {
+                        var
+                    })
+                }
+            }
+            AggFunc::Product => {
+                let ns: Vec<f64> = nonblank.iter().filter_map(|v| v.num()).collect();
+                if ns.is_empty() {
+                    Value::Blank
+                } else {
+                    Value::Num(ns.iter().product())
+                }
+            }
+            AggFunc::GeoMean => {
+                let ns: Vec<f64> = nonblank.iter().filter_map(|v| v.num()).collect();
+                if ns.is_empty() {
+                    Value::Blank
+                } else if ns.iter().any(|x| *x < 0.0) {
+                    return Err("An argument of function 'GEOMEAN' has an invalid value.".into());
+                } else if ns.contains(&0.0) {
+                    Value::Num(0.0)
+                } else {
+                    Value::Num((ns.iter().map(|x| x.ln()).sum::<f64>() / ns.len() as f64).exp())
                 }
             }
             AggFunc::CountRows => unreachable!(),
@@ -1365,9 +1457,12 @@ impl<'a> Interp<'a> {
                 self.dated_vars.pop();
                 out?
             }
-            Bound::Aggregate { func, source, arg } => {
-                self.aggregate(*func, source, arg.as_deref(), ctx, rows)?
-            }
+            Bound::Aggregate {
+                func,
+                source,
+                arg,
+                param,
+            } => self.aggregate(*func, source, arg.as_deref(), param.as_deref(), ctx, rows)?,
             Bound::ConcatX {
                 source,
                 expr,
@@ -1650,7 +1745,12 @@ fn binary(op: BinaryOp, l: &Value, r: &Value) -> Value {
         BinaryOp::Or => Value::Bool(l.truthy() || r.truthy()),
         BinaryOp::In => Value::Blank,
         cmpop => {
-            let o = cmp(&coerced(l, r), &coerced(r, l));
+            let (a, b) = (coerced(l, r), coerced(r, l));
+            // Comparing with NaN is false in Power BI (only <> holds).
+            if [&a, &b].iter().any(|v| v.num().is_some_and(f64::is_nan)) {
+                return Value::Bool(cmpop == BinaryOp::Ne);
+            }
+            let o = cmp(&a, &b);
             Value::Bool(match cmpop {
                 BinaryOp::Eq => o.is_eq(),
                 BinaryOp::Ne => !o.is_eq(),
@@ -2044,6 +2144,7 @@ fn projection_bound(model: &Model, p: &Projection) -> Result<Bound> {
                 table: table.clone(),
                 column: column.clone(),
             })),
+            param: None,
         }),
         (FieldRef::Column { .. }, None) => {
             let _ = model;

@@ -21,6 +21,40 @@ pub enum AggFunc {
     CountBlank,
     CountRows,
     DistinctCount,
+    /// DISTINCTCOUNTNOBLANK: distinct values, not counting blank.
+    DistinctCountNoBlank,
+    Median,
+    /// PERCENTILE.INC and .EXC: the k-th percentile, k in the aggregate's `param`.
+    PercentileInc,
+    PercentileExc,
+    StdevS,
+    StdevP,
+    VarS,
+    VarP,
+    Product,
+    /// GEOMEAN: an error for a negative value.
+    GeoMean,
+}
+
+impl AggFunc {
+    /// Whether it takes a k (PERCENTILE).
+    pub fn takes_k(self) -> bool {
+        matches!(self, AggFunc::PercentileInc | AggFunc::PercentileExc)
+    }
+
+    /// Whether it needs numbers, and gives a number.
+    pub fn numeric(self) -> bool {
+        !matches!(
+            self,
+            AggFunc::Min
+                | AggFunc::Max
+                | AggFunc::Count
+                | AggFunc::CountBlank
+                | AggFunc::CountRows
+                | AggFunc::DistinctCount
+                | AggFunc::DistinctCountNoBlank
+        )
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -437,6 +471,8 @@ pub enum Bound {
         func: AggFunc,
         source: TableExpr,
         arg: Option<Box<Bound>>,
+        /// PERCENTILE's k, evaluated in the outer context.
+        param: Option<Box<Bound>>,
     },
     /// CONCATENATEX: `expr` per row of `source` as text, joined by `delimiter`, in the
     /// order of `order` (`true` ascending) or else of the text.
@@ -492,9 +528,7 @@ pub enum Bound {
 
 /// DAX functions charted knows of but cannot evaluate yet, so their message can say so.
 pub const KNOWN: &[&str] = &[
-    "AVERAGEA",
     "CEILING",
-    "COUNTAX",
     "CROSSFILTER",
     "DATEVALUE",
     "EXP",
@@ -508,23 +542,14 @@ pub const KNOWN: &[&str] = &[
     "LASTNONBLANK",
     "LN",
     "LOG",
-    "MAXA",
-    "MEDIAN",
-    "MEDIANX",
-    "MINA",
     "MINUTE",
-    "PERCENTILE.INC",
     "POWER",
-    "PRODUCT",
-    "PRODUCTX",
     "REPLACE",
     "ROUNDDOWN",
     "ROUNDUP",
     "SEARCH",
     "SIGN",
     "SQRT",
-    "STDEV.P",
-    "STDEV.S",
     "TRUNC",
     "WEEKNUM",
     "YEARFRAC",
@@ -538,6 +563,30 @@ pub fn supported(name: &str) -> bool {
 /// Functions charted evaluates, for docs/dax-support.md, besides the library
 /// functions (library.rs).
 pub const SUPPORTED: &[&str] = &[
+    "APPROXIMATEDISTINCTCOUNT",
+    "AVERAGEA",
+    "COUNTAX",
+    "DISTINCTCOUNTNOBLANK",
+    "GEOMEAN",
+    "GEOMEANX",
+    "MAXA",
+    "MEDIAN",
+    "MEDIANX",
+    "MINA",
+    "PERCENTILE.EXC",
+    "PERCENTILE.INC",
+    "PERCENTILEX.EXC",
+    "PERCENTILEX.INC",
+    "PRODUCT",
+    "PRODUCTX",
+    "STDEV.P",
+    "STDEV.S",
+    "STDEVX.P",
+    "STDEVX.S",
+    "VAR.P",
+    "VAR.S",
+    "VARX.P",
+    "VARX.S",
     "ADDCOLUMNS",
     "ALL",
     "ALLEXCEPT",
@@ -1874,6 +1923,7 @@ impl<'a> Binder<'a> {
                             condition: Box::new(matches?),
                         },
                         arg: None,
+                        param: None,
                     }),
                     right: Box::new(Bound::Number(0.0)),
                 }
@@ -1892,20 +1942,33 @@ impl<'a> Binder<'a> {
         let upper = name.to_ascii_uppercase();
         let simple_agg = match upper.as_str() {
             "SUM" => Some(AggFunc::Sum),
-            "AVERAGE" => Some(AggFunc::Average),
-            "MIN" if args.len() == 1 => Some(AggFunc::Min),
-            "MAX" if args.len() == 1 => Some(AggFunc::Max),
+            "AVERAGE" | "AVERAGEA" => Some(AggFunc::Average),
+            "MIN" | "MINA" if args.len() == 1 => Some(AggFunc::Min),
+            "MAX" | "MAXA" if args.len() == 1 => Some(AggFunc::Max),
             "COUNT" | "COUNTA" => Some(AggFunc::Count),
             "COUNTBLANK" => Some(AggFunc::CountBlank),
             "DISTINCTCOUNT" => Some(AggFunc::DistinctCount),
+            "DISTINCTCOUNTNOBLANK" | "APPROXIMATEDISTINCTCOUNT" => {
+                Some(AggFunc::DistinctCountNoBlank)
+            }
+            "MEDIAN" => Some(AggFunc::Median),
+            "PERCENTILE.INC" => Some(AggFunc::PercentileInc),
+            "PERCENTILE.EXC" => Some(AggFunc::PercentileExc),
+            "STDEV.S" => Some(AggFunc::StdevS),
+            "STDEV.P" => Some(AggFunc::StdevP),
+            "VAR.S" => Some(AggFunc::VarS),
+            "VAR.P" => Some(AggFunc::VarP),
+            "PRODUCT" => Some(AggFunc::Product),
+            "GEOMEAN" => Some(AggFunc::GeoMean),
             _ => None,
         };
         if let Some(func) = simple_agg {
-            if !self.arity(&upper, args, span, 1, 1) {
+            let k = func.takes_k() as usize;
+            if !self.arity(&upper, args, span, 1 + k, 1 + k) {
                 return None;
             }
             let (t, col) = self.column_arg(&args[0])?;
-            if matches!(func, AggFunc::Sum | AggFunc::Average) && !col.data_type.is_numeric() {
+            if func.numeric() && !col.data_type.is_numeric() {
                 return self.err(
                     args[0].span,
                     format!(
@@ -1916,6 +1979,10 @@ impl<'a> Binder<'a> {
                     ),
                 );
             }
+            let param = match args.get(1) {
+                Some(a) => Some(Box::new(self.expr(a, rows)?)),
+                None => None,
+            };
             return Some(Bound::Aggregate {
                 func,
                 source: TableExpr::Table(t.id.clone()),
@@ -1923,6 +1990,7 @@ impl<'a> Binder<'a> {
                     table: t.id.clone(),
                     column: col.id.clone(),
                 })),
+                param,
             });
         }
         let iterator = match upper.as_str() {
@@ -1930,20 +1998,35 @@ impl<'a> Binder<'a> {
             "AVERAGEX" => Some(AggFunc::Average),
             "MINX" => Some(AggFunc::Min),
             "MAXX" => Some(AggFunc::Max),
-            "COUNTX" => Some(AggFunc::Count),
+            "COUNTX" | "COUNTAX" => Some(AggFunc::Count),
+            "MEDIANX" => Some(AggFunc::Median),
+            "PERCENTILEX.INC" => Some(AggFunc::PercentileInc),
+            "PERCENTILEX.EXC" => Some(AggFunc::PercentileExc),
+            "STDEVX.S" => Some(AggFunc::StdevS),
+            "STDEVX.P" => Some(AggFunc::StdevP),
+            "VARX.S" => Some(AggFunc::VarS),
+            "VARX.P" => Some(AggFunc::VarP),
+            "PRODUCTX" => Some(AggFunc::Product),
+            "GEOMEANX" => Some(AggFunc::GeoMean),
             _ => None,
         };
         if let Some(func) = iterator {
-            if !self.arity(&upper, args, span, 2, 2) {
+            let k = func.takes_k() as usize;
+            if !self.arity(&upper, args, span, 2 + k, 2 + k) {
                 return None;
             }
             let source = self.table_expr(&args[0], rows)?;
             let inner = self.inner_rows(&source, rows, args[0].span, &upper)?;
             let arg = self.with_row(&source, |b| b.expr(&args[1], &inner))?;
+            let param = match args.get(2) {
+                Some(a) => Some(Box::new(self.expr(a, rows)?)),
+                None => None,
+            };
             return Some(Bound::Aggregate {
                 func,
                 source,
                 arg: Some(Box::new(arg)),
+                param,
             });
         }
         match upper.as_str() {
@@ -2022,6 +2105,7 @@ impl<'a> Binder<'a> {
                     func: AggFunc::CountRows,
                     source,
                     arg: None,
+                    param: None,
                 })
             }
             "CALCULATE" => {
@@ -2381,6 +2465,7 @@ impl<'a> Binder<'a> {
                         table: t.id.clone(),
                         column: c.id.clone(),
                     })),
+                    param: None,
                 })
             }
             "VALUES" | "DISTINCT" | "ALL" | "FILTER" | "TOPN" | "CALCULATETABLE" | "RELATEDTABLE" | "ADDCOLUMNS" | "SELECTCOLUMNS" | "SUMMARIZE" | "SUMMARIZECOLUMNS" | "CALENDAR" | "GENERATESERIES" | "REMOVEFILTERS" | "ALLEXCEPT" | "ALLSELECTED" | "KEEPFILTERS"
@@ -2499,10 +2584,15 @@ pub fn walk(b: &Bound, f: &mut dyn FnMut(&Bound)) {
             walk(value, f);
             walk(body, f);
         }
-        Bound::Aggregate { source, arg, .. } => {
+        Bound::Aggregate {
+            source, arg, param, ..
+        } => {
             walk_table(source, f);
             if let Some(a) = arg {
                 walk(a, f);
+            }
+            if let Some(p) = param {
+                walk(p, f);
             }
         }
         Bound::ConcatX {

@@ -562,6 +562,282 @@ NaN
 "Camping" | "2026-01-22 10:30:00"
 "Footwear" | "2026-01-22 10:30:00"
 
+## Median Qty — card
+3
+
+## Median Qty — by category
+∅ | 3
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 4
+
+## Median Line — card
+180
+
+## Median Line — by category
+∅ | 81
+"Apparel" | 95
+"Camping" | 288
+"Footwear" | 255
+
+## P90 Price — card
+240
+
+## P90 Price — by category
+∅ | 27
+"Apparel" | 180
+"Camping" | 300
+"Footwear" | 135
+
+## P50 Exc Qty — card
+3
+
+## P50 Exc Qty — by category
+∅ | 3
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 4
+
+## P75 Product Qty — card
+38
+
+## P75 Product Qty — by category
+∅ | 3
+"Apparel" | 40.5
+"Camping" | 28.5
+"Footwear" | 37.25
+
+## P Var K — card
+6
+
+## P Var K — by category
+∅ | 6
+"Apparel" | 6
+"Camping" | 6
+"Footwear" | 8
+
+## Stdev Qty — card
+1.4649
+
+## Stdev Qty — by category
+∅ | NaN
+"Apparel" | 1.3829
+"Camping" | 1.5827
+"Footwear" | 1.4924
+
+## Stdev P Price — card
+84.1308
+
+## Stdev P Price — by category
+∅ | 0
+"Apparel" | 70.3491
+"Camping" | 101.711
+"Footwear" | 37.0438
+
+## Var Qty — card
+2.1459
+
+## Var Qty — by category
+∅ | NaN
+"Apparel" | 1.9125
+"Camping" | 2.5049
+"Footwear" | 2.2273
+
+## Var P Line — card
+81874.468
+
+## Var P Line — by category
+∅ | 0
+"Apparel" | 63791.0783
+"Camping" | 123745.8169
+"Footwear" | 32757.1178
+
+## Stdev Product Qty — card
+11.5806
+
+## Stdev Product Qty — by category
+∅ | NaN
+"Apparel" | 6.0828
+"Camping" | 2.5166
+"Footwear" | 2.1213
+
+## Product Of Orders — card
+24244
+
+## Product Of Orders — by category
+∅ | 1
+"Apparel" | 38
+"Camping" | 29
+"Footwear" | 22
+
+## Geomean Price — card
+81.4868
+
+## Geomean Price — by category
+"Apparel" | 53.1329
+"Camping" | 112.9243
+"Footwear" | 94.8683
+
+## Geomean Qty — card
+2.562
+
+## Geomean Qty — by category
+∅ | 3
+"Apparel" | 2.5407
+"Camping" | 2.3509
+"Footwear" | 2.8903
+
+## Order Times — card
+83
+
+## Order Times — by category
+"Apparel" | 37
+"Camping" | 25
+"Footwear" | 21
+
+## Order Times All — card
+84
+
+## Order Times All — by category
+∅ | 1
+"Apparel" | 38
+"Camping" | 26
+"Footwear" | 22
+
+## Approx Products — card
+9
+
+## Approx Products — by category
+∅ | 1
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 2
+
+## Avg A Qty — card
+2.9889
+
+## Avg A Qty — by category
+∅ | 3
+"Apparel" | 2.9211
+"Camping" | 2.8276
+"Footwear" | 3.3182
+
+## Min A Price — card
+20
+
+## Min A Price — by category
+∅ | 27
+"Apparel" | 20
+"Camping" | 32
+"Footwear" | 48
+
+## Max A Price — card
+300
+
+## Max A Price — by category
+∅ | 27
+"Apparel" | 200
+"Camping" | 300
+"Footwear" | 150
+
+## Timed Orders — card
+83
+
+## Timed Orders — by category
+"Apparel" | 37
+"Camping" | 25
+"Footwear" | 21
+
+## Median Parent — card
+2
+
+## Median Parent — by category
+∅ | 2
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## P50 Parent — card
+2
+
+## P50 Parent — by category
+∅ | 2
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## P50X Parent — card
+2
+
+## P50X Parent — by category
+∅ | 2
+"Apparel" | 2
+"Camping" | 2
+"Footwear" | 2
+
+## Stdev Parent — card
+3.2711
+
+## Stdev Parent — by category
+∅ | 3.2711
+"Apparel" | 3.2711
+"Camping" | 3.2711
+"Footwear" | 3.2711
+
+## Avg A Parent — card
+3.8
+
+## Avg A Parent — by category
+∅ | 3.8
+"Apparel" | 3.8
+"Camping" | 3.8
+"Footwear" | 3.8
+
+## Geomean Parent — card
+2.8252
+
+## Geomean Parent — by category
+∅ | 2.8252
+"Apparel" | 2.8252
+"Camping" | 2.8252
+"Footwear" | 2.8252
+
+## Median Product Qty — card
+30
+
+## Median Product Qty — by category
+∅ | 3
+"Apparel" | 40
+"Camping" | 27
+"Footwear" | 36.5
+
+## Geomean Product Qty — card
+25.1148
+
+## Geomean Product Qty — by category
+∅ | 3
+"Apparel" | 36.6428
+"Camping" | 27.2568
+"Footwear" | 36.4692
+
+## Product Product Qty — card
+3975237000000
+
+## Product Product Qty — by category
+∅ | 3
+"Apparel" | 49200
+"Camping" | 20250
+"Footwear" | 1330
+
+## Var Product Qty — card
+119.2099
+
+## Var Product Qty — by category
+∅ | 0
+"Apparel" | 24.6667
+"Camping" | 4.2222
+"Footwear" | 2.25
+
 ## All Products Qty — card
 269
 

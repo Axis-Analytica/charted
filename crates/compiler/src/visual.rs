@@ -466,7 +466,51 @@ fn agg_sql(func: AggFunc, arg: Option<(String, ValueType)>) -> (String, ValueTyp
             format!("nullif(count(DISTINCT {x}) + coalesce(max((({x}) IS NULL)::INTEGER), 0), 0)"),
             ValueType::Number,
         ),
+        AggFunc::DistinctCountNoBlank => {
+            (format!("nullif(count(DISTINCT {x}), 0)"), ValueType::Number)
+        }
+        // The sorted values, blanks first; percentile_sql picks the k-th.
+        AggFunc::Median | AggFunc::PercentileInc | AggFunc::PercentileExc => (
+            format!("list_sort(list(CAST({x} AS DOUBLE)), 'ASC', 'NULLS FIRST')"),
+            ValueType::Number,
+        ),
+        // A sample of one is 0/0 in Power BI.
+        AggFunc::StdevS => (
+            format!("(CASE WHEN count({x}) = 1 THEN 'NaN'::DOUBLE ELSE stddev_samp({x}) END)"),
+            ValueType::Number,
+        ),
+        AggFunc::StdevP => (format!("stddev_pop({x})"), ValueType::Number),
+        AggFunc::VarS => (
+            format!("(CASE WHEN count({x}) = 1 THEN 'NaN'::DOUBLE ELSE var_samp({x}) END)"),
+            ValueType::Number,
+        ),
+        AggFunc::VarP => (format!("var_pop({x})"), ValueType::Number),
+        AggFunc::Product => (format!("product({x})"), ValueType::Number),
+        AggFunc::GeoMean => (
+            format!(
+                "(CASE WHEN count({x}) = 0 THEN NULL WHEN min({x}) < 0 THEN error('An argument of function ''GEOMEAN'' has an invalid value.') WHEN min({x}) = 0 THEN 0 ELSE exp(avg(ln(CASE WHEN ({x}) > 0 THEN {x} END))) END)"
+            ),
+            ValueType::Number,
+        ),
     }
+}
+
+/// The k-th percentile of a sorted list (`agg_sql`), interpolating as Excel does:
+/// inclusive spans the values, exclusive leaves 1/(n+1) at each end. Blanks are in
+/// the list, as in Power BI: landing on one is blank, and between values it is 0.
+fn percentile_sql(list: &str, k: &str, exc: bool) -> String {
+    let (name, pos, bad) = if exc {
+        (
+            "PERCENTILE.EXC",
+            "k * (n + 1) - 1",
+            "k * (n + 1) < 1 OR k * (n + 1) > n",
+        )
+    } else {
+        ("PERCENTILE.INC", "k * (n - 1)", "k < 0 OR k > 1")
+    };
+    format!(
+        "(SELECT CASE WHEN n = 0 THEN NULL WHEN {bad} THEN error('An argument of function ''{name}'' has an invalid value.') ELSE (SELECT CASE WHEN p = f THEN l[f + 1] WHEN l[f + 1] IS NULL AND l[least(f + 2, n)] IS NULL THEN NULL ELSE coalesce(l[f + 1], 0) + (p - f) * (coalesce(l[least(f + 2, n)], 0) - coalesce(l[f + 1], 0)) END FROM (SELECT CAST(floor(p) AS BIGINT) AS f, p FROM (SELECT {pos} AS p))) END FROM (SELECT l, CAST(coalesce(len(l), 0) AS BIGINT) AS n, CAST(coalesce(k, 0) AS DOUBLE) AS k FROM (SELECT {list} AS l, {k} AS k)))"
+    )
 }
 
 /// Casts one side to text when a CASE or COALESCE mixes text with other types.
@@ -1051,8 +1095,26 @@ fn binary_sql(
         } else {
             (l, r)
         };
+        let (a, b) = (blank_as(l, like), blank_as(r, like));
+        if like != ValueType::Number {
+            return (format!("({a} {sym} {b})"), ValueType::Bool);
+        }
+        // Comparing with NaN is false in Power BI (only <> holds); DuckDB orders NaN
+        // above every number. A literal side can't be NaN.
+        let nan: Vec<String> = [&a, &b]
+            .into_iter()
+            .filter(|x| x.parse::<f64>().is_err())
+            .map(|x| format!("isnan(CAST({x} AS DOUBLE))"))
+            .collect();
+        if nan.is_empty() {
+            return (format!("({a} {sym} {b})"), ValueType::Bool);
+        }
         (
-            format!("({} {sym} {})", blank_as(l, like), blank_as(r, like)),
+            format!(
+                "(CASE WHEN {} THEN {} ELSE ({a} {sym} {b}) END)",
+                nan.join(" OR "),
+                if sym == "<>" { "TRUE" } else { "FALSE" }
+            ),
             ValueType::Bool,
         )
     };
@@ -2072,6 +2134,7 @@ impl<'a> Compiler<'a> {
                     table: table_id.to_string(),
                     column: column.to_string(),
                 })),
+                param: None,
             };
             let mut parts = vec![
                 self.scalar(&date_of(AggFunc::Min), outer, frame, rows)?,
@@ -3654,6 +3717,52 @@ impl<'a> Compiler<'a> {
         })
     }
 
+    /// An aggregate's value (for PERCENTILE, the sorted list of values).
+    fn aggregate_scalar(
+        &mut self,
+        func: AggFunc,
+        source: &TableExpr,
+        arg: Option<&Bound>,
+        ctx: &Ctx,
+        frame: &Frame,
+        rows: &[RowBinding],
+    ) -> Result<Scalar> {
+        let base = source.table().cloned().unwrap_or_default();
+        let local = |b: &Bound| row_local(b, &base);
+        let pure = arg.is_none_or(local) && {
+            let mut ok = true;
+            let mut t = source;
+            while let TableExpr::Filter { source, condition } = t {
+                ok &= local(condition);
+                t = source;
+            }
+            // Date sets are per frame row: they always take the frame path.
+            ok && matches!(
+                t,
+                TableExpr::Table(_)
+                    | TableExpr::Values { .. }
+                    | TableExpr::All { .. }
+                    | TableExpr::AllSelected { .. }
+            )
+        };
+        if pure {
+            self.simple_aggregate(func, source, arg, ctx)
+        } else {
+            match arg {
+                Some(a) => self.iterate(func, source, a, ctx, frame, rows),
+                // COUNTROWS: count the rows that pass.
+                None => self.iterate(
+                    AggFunc::Count,
+                    source,
+                    &Bound::Number(1.0),
+                    ctx,
+                    frame,
+                    rows,
+                ),
+            }
+        }
+    }
+
     /// Lowers a value in a filter context, over a frame.
     fn scalar(
         &mut self,
@@ -3827,41 +3936,36 @@ impl<'a> Compiler<'a> {
                 frame,
                 rows,
             ),
-            Bound::Aggregate { func, source, arg } => {
-                let base = source.table().cloned().unwrap_or_default();
-                let local = |b: &Bound| row_local(b, &base);
-                let pure = arg.as_deref().is_none_or(local) && {
-                    let mut ok = true;
-                    let mut t = source;
-                    while let TableExpr::Filter { source, condition } = t {
-                        ok &= local(condition);
-                        t = source;
-                    }
-                    // Date sets are per frame row: they always take the frame path.
-                    ok && matches!(
-                        t,
-                        TableExpr::Table(_)
-                            | TableExpr::Values { .. }
-                            | TableExpr::All { .. }
-                            | TableExpr::AllSelected { .. }
-                    )
-                };
-                if pure {
-                    self.simple_aggregate(*func, source, arg.as_deref(), ctx)
-                } else {
-                    match arg.as_deref() {
-                        Some(a) => self.iterate(*func, source, a, ctx, frame, rows),
-                        // COUNTROWS: count the rows that pass.
-                        None => self.iterate(
-                            AggFunc::Count,
-                            source,
-                            &Bound::Number(1.0),
-                            ctx,
-                            frame,
-                            rows,
-                        ),
-                    }
+            Bound::Aggregate {
+                func,
+                source,
+                arg,
+                param,
+            } => {
+                let list =
+                    self.aggregate_scalar(*func, source, arg.as_deref(), ctx, frame, rows)?;
+                if !matches!(
+                    func,
+                    AggFunc::Median | AggFunc::PercentileInc | AggFunc::PercentileExc
+                ) {
+                    return Ok(list);
                 }
+                let k = match param.as_deref() {
+                    Some(p) => self.scalar(p, ctx, frame, rows)?,
+                    None => Scalar {
+                        sql: "0.5".into(),
+                        ty: ValueType::Number,
+                    },
+                };
+                let k = if k.ty.is_date() {
+                    serial_sql(&(k.sql, k.ty))
+                } else {
+                    k.sql
+                };
+                Ok(Scalar {
+                    sql: percentile_sql(&list.sql, &k, *func == AggFunc::PercentileExc),
+                    ty: ValueType::Number,
+                })
             }
             Bound::Calculate { expr, filters } => {
                 let c = self.calculate_ctx(ctx, filters, frame, rows)?;
@@ -4054,6 +4158,7 @@ fn projection_bound(p: &Projection) -> Result<Bound> {
                 table: table.clone(),
                 column: column.clone(),
             })),
+            param: None,
         }),
         (FieldRef::Column { .. }, None) => Err(CompileError::Field(
             "a column used as a value needs an aggregation".into(),
