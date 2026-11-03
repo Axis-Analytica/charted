@@ -5742,6 +5742,3716 @@
       "shape": "by product, camping"
     },
     {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Ceiling Amount])\n",
+      "hash": "c93d9c3649720f90",
+      "id": "Ceiling Amount / card",
+      "measure": "Ceiling Amount",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Ceiling Amount])\n",
+      "hash": "a28559345c9f9a17",
+      "id": "Ceiling Amount / by category",
+      "measure": "Ceiling Amount",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Ceiling Amount])\n",
+      "hash": "44428da602992ed1",
+      "id": "Ceiling Amount / by year",
+      "measure": "Ceiling Amount",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Ceiling Amount])\n",
+      "hash": "18c989b01c79f262",
+      "id": "Ceiling Amount / by category and year",
+      "measure": "Ceiling Amount",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Ceiling Amount])\n",
+      "hash": "57cec4d2b7f0ff58",
+      "id": "Ceiling Amount / by region in 2025",
+      "measure": "Ceiling Amount",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Ceiling Amount])\n",
+      "hash": "82a9db46651a855c",
+      "id": "Ceiling Amount / by year and month",
+      "measure": "Ceiling Amount",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Ceiling Amount])\n",
+      "hash": "3dac1975bb854d9d",
+      "id": "Ceiling Amount / by month name",
+      "measure": "Ceiling Amount",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Ceiling Amount])\n",
+      "hash": "b461fd397c0fd86c",
+      "id": "Ceiling Amount / by color, apparel and camping",
+      "measure": "Ceiling Amount",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Ceiling Amount])\n",
+      "hash": "37e6613fca58db8c",
+      "id": "Ceiling Amount / by month in 2025, camping",
+      "measure": "Ceiling Amount",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Ceiling Amount])\n",
+      "hash": "3fe971bb433b8d03",
+      "id": "Ceiling Amount / by product, camping",
+      "measure": "Ceiling Amount",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Floor Neg])\n",
+      "hash": "b53a8c08898fc736",
+      "id": "Floor Neg / card",
+      "measure": "Floor Neg",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Floor Neg])\n",
+      "hash": "1f564df2d8e7bcb7",
+      "id": "Floor Neg / by category",
+      "measure": "Floor Neg",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Floor Neg])\n",
+      "hash": "18a1af0ce841ddbd",
+      "id": "Floor Neg / by year",
+      "measure": "Floor Neg",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Floor Neg])\n",
+      "hash": "b023ece2a46188a4",
+      "id": "Floor Neg / by category and year",
+      "measure": "Floor Neg",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Floor Neg])\n",
+      "hash": "59a518b4d3542e9e",
+      "id": "Floor Neg / by region in 2025",
+      "measure": "Floor Neg",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Floor Neg])\n",
+      "hash": "78e718181828699a",
+      "id": "Floor Neg / by year and month",
+      "measure": "Floor Neg",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Floor Neg])\n",
+      "hash": "bc69ebd6fbecbbe1",
+      "id": "Floor Neg / by month name",
+      "measure": "Floor Neg",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Floor Neg])\n",
+      "hash": "e6fe8b5a5d16e8ca",
+      "id": "Floor Neg / by color, apparel and camping",
+      "measure": "Floor Neg",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Floor Neg])\n",
+      "hash": "16ffc9207597a96a",
+      "id": "Floor Neg / by month in 2025, camping",
+      "measure": "Floor Neg",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Floor Neg])\n",
+      "hash": "1f2d1b4ee9aa148b",
+      "id": "Floor Neg / by product, camping",
+      "measure": "Floor Neg",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Iso Ceiling])\n",
+      "hash": "05ceb1628e44466b",
+      "id": "Iso Ceiling / card",
+      "measure": "Iso Ceiling",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Iso Ceiling])\n",
+      "hash": "86f66560cae4ef4a",
+      "id": "Iso Ceiling / by category",
+      "measure": "Iso Ceiling",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Iso Ceiling])\n",
+      "hash": "93c2adf84ff15370",
+      "id": "Iso Ceiling / by year",
+      "measure": "Iso Ceiling",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Iso Ceiling])\n",
+      "hash": "6688e26a26d83321",
+      "id": "Iso Ceiling / by category and year",
+      "measure": "Iso Ceiling",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Iso Ceiling])\n",
+      "hash": "9e84cc74974c94c3",
+      "id": "Iso Ceiling / by region in 2025",
+      "measure": "Iso Ceiling",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Iso Ceiling])\n",
+      "hash": "249a3e1bca37b477",
+      "id": "Iso Ceiling / by year and month",
+      "measure": "Iso Ceiling",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Iso Ceiling])\n",
+      "hash": "a8eda674ced15e5c",
+      "id": "Iso Ceiling / by month name",
+      "measure": "Iso Ceiling",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Iso Ceiling])\n",
+      "hash": "a060a2f621338427",
+      "id": "Iso Ceiling / by color, apparel and camping",
+      "measure": "Iso Ceiling",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Iso Ceiling])\n",
+      "hash": "35cb45d752c99247",
+      "id": "Iso Ceiling / by month in 2025, camping",
+      "measure": "Iso Ceiling",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Iso Ceiling])\n",
+      "hash": "356208a39519d716",
+      "id": "Iso Ceiling / by product, camping",
+      "measure": "Iso Ceiling",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Round Up Avg])\n",
+      "hash": "246f1fa03bd643fd",
+      "id": "Round Up Avg / card",
+      "measure": "Round Up Avg",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Round Up Avg])\n",
+      "hash": "b6bb23629fd1786a",
+      "id": "Round Up Avg / by category",
+      "measure": "Round Up Avg",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Round Up Avg])\n",
+      "hash": "5702d32e01348754",
+      "id": "Round Up Avg / by year",
+      "measure": "Round Up Avg",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Round Up Avg])\n",
+      "hash": "ddf6117536c33b4f",
+      "id": "Round Up Avg / by category and year",
+      "measure": "Round Up Avg",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Round Up Avg])\n",
+      "hash": "9fa845ae9476c1a5",
+      "id": "Round Up Avg / by region in 2025",
+      "measure": "Round Up Avg",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Round Up Avg])\n",
+      "hash": "4fbfb0845b985541",
+      "id": "Round Up Avg / by year and month",
+      "measure": "Round Up Avg",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Round Up Avg])\n",
+      "hash": "5047b1d109915c08",
+      "id": "Round Up Avg / by month name",
+      "measure": "Round Up Avg",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Round Up Avg])\n",
+      "hash": "f83d441ddeb3c231",
+      "id": "Round Up Avg / by color, apparel and camping",
+      "measure": "Round Up Avg",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Round Up Avg])\n",
+      "hash": "88ca64d5a04a5f51",
+      "id": "Round Up Avg / by month in 2025, camping",
+      "measure": "Round Up Avg",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Round Up Avg])\n",
+      "hash": "cba26cbc43fb92be",
+      "id": "Round Up Avg / by product, camping",
+      "measure": "Round Up Avg",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Round Down Avg])\n",
+      "hash": "87279bfdc3b473e5",
+      "id": "Round Down Avg / card",
+      "measure": "Round Down Avg",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Round Down Avg])\n",
+      "hash": "2ab6f8d8bb7ea904",
+      "id": "Round Down Avg / by category",
+      "measure": "Round Down Avg",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Round Down Avg])\n",
+      "hash": "c9ac46791396eb6e",
+      "id": "Round Down Avg / by year",
+      "measure": "Round Down Avg",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Round Down Avg])\n",
+      "hash": "ca3bc2f784c47487",
+      "id": "Round Down Avg / by category and year",
+      "measure": "Round Down Avg",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Round Down Avg])\n",
+      "hash": "65f1ccd58fd0642d",
+      "id": "Round Down Avg / by region in 2025",
+      "measure": "Round Down Avg",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Round Down Avg])\n",
+      "hash": "d5a73a0f605503d1",
+      "id": "Round Down Avg / by year and month",
+      "measure": "Round Down Avg",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Round Down Avg])\n",
+      "hash": "c5a8641313531d6a",
+      "id": "Round Down Avg / by month name",
+      "measure": "Round Down Avg",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Round Down Avg])\n",
+      "hash": "bba8e40ab0d86ac1",
+      "id": "Round Down Avg / by color, apparel and camping",
+      "measure": "Round Down Avg",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Round Down Avg])\n",
+      "hash": "cd6645b1868e6861",
+      "id": "Round Down Avg / by month in 2025, camping",
+      "measure": "Round Down Avg",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Round Down Avg])\n",
+      "hash": "59d78eb486ef3fd0",
+      "id": "Round Down Avg / by product, camping",
+      "measure": "Round Down Avg",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Trunc Avg])\n",
+      "hash": "9a380e31eafc3fc4",
+      "id": "Trunc Avg / card",
+      "measure": "Trunc Avg",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Trunc Avg])\n",
+      "hash": "c39cd77cfcfcf47b",
+      "id": "Trunc Avg / by category",
+      "measure": "Trunc Avg",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Trunc Avg])\n",
+      "hash": "c60084079fba8c61",
+      "id": "Trunc Avg / by year",
+      "measure": "Trunc Avg",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Trunc Avg])\n",
+      "hash": "08edf0d02fc231c2",
+      "id": "Trunc Avg / by category and year",
+      "measure": "Trunc Avg",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Trunc Avg])\n",
+      "hash": "81193d3a7aadaa5c",
+      "id": "Trunc Avg / by region in 2025",
+      "measure": "Trunc Avg",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Trunc Avg])\n",
+      "hash": "699a37c12e1dbd98",
+      "id": "Trunc Avg / by year and month",
+      "measure": "Trunc Avg",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Trunc Avg])\n",
+      "hash": "d655d93216bbe645",
+      "id": "Trunc Avg / by month name",
+      "measure": "Trunc Avg",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Trunc Avg])\n",
+      "hash": "cf0fb1c8e7111fe8",
+      "id": "Trunc Avg / by color, apparel and camping",
+      "measure": "Trunc Avg",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Trunc Avg])\n",
+      "hash": "a970fd117f08a5c8",
+      "id": "Trunc Avg / by month in 2025, camping",
+      "measure": "Trunc Avg",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Trunc Avg])\n",
+      "hash": "799cdc200700aeff",
+      "id": "Trunc Avg / by product, camping",
+      "measure": "Trunc Avg",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [MRound Qty])\n",
+      "hash": "db8c5f6a33dbf83d",
+      "id": "MRound Qty / card",
+      "measure": "MRound Qty",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [MRound Qty])\n",
+      "hash": "cf6a662988f374e6",
+      "id": "MRound Qty / by category",
+      "measure": "MRound Qty",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [MRound Qty])\n",
+      "hash": "77141f1f7b02e160",
+      "id": "MRound Qty / by year",
+      "measure": "MRound Qty",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [MRound Qty])\n",
+      "hash": "e9a4dc454b4251ef",
+      "id": "MRound Qty / by category and year",
+      "measure": "MRound Qty",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [MRound Qty])\n",
+      "hash": "96a370a8ea83c045",
+      "id": "MRound Qty / by region in 2025",
+      "measure": "MRound Qty",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [MRound Qty])\n",
+      "hash": "01bb878df23080a1",
+      "id": "MRound Qty / by year and month",
+      "measure": "MRound Qty",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [MRound Qty])\n",
+      "hash": "7dfc2e2f534a92e4",
+      "id": "MRound Qty / by month name",
+      "measure": "MRound Qty",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [MRound Qty])\n",
+      "hash": "9f053919f6c8de31",
+      "id": "MRound Qty / by color, apparel and camping",
+      "measure": "MRound Qty",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [MRound Qty])\n",
+      "hash": "9b995df951451d11",
+      "id": "MRound Qty / by month in 2025, camping",
+      "measure": "MRound Qty",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [MRound Qty])\n",
+      "hash": "0a68cf1c561c9d8a",
+      "id": "MRound Qty / by product, camping",
+      "measure": "MRound Qty",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Even Odd])\n",
+      "hash": "79d3775d20a7dfe5",
+      "id": "Even Odd / card",
+      "measure": "Even Odd",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Even Odd])\n",
+      "hash": "d47703cecf129460",
+      "id": "Even Odd / by category",
+      "measure": "Even Odd",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Even Odd])\n",
+      "hash": "1a6caf123f469862",
+      "id": "Even Odd / by year",
+      "measure": "Even Odd",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Even Odd])\n",
+      "hash": "78c5c6f6f7c213bf",
+      "id": "Even Odd / by category and year",
+      "measure": "Even Odd",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Even Odd])\n",
+      "hash": "ee90463aa9e9c94d",
+      "id": "Even Odd / by region in 2025",
+      "measure": "Even Odd",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Even Odd])\n",
+      "hash": "0f5378b14a1f31c1",
+      "id": "Even Odd / by year and month",
+      "measure": "Even Odd",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Even Odd])\n",
+      "hash": "4b887007d36a7bae",
+      "id": "Even Odd / by month name",
+      "measure": "Even Odd",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Even Odd])\n",
+      "hash": "fbb9f2ba14ef45d1",
+      "id": "Even Odd / by color, apparel and camping",
+      "measure": "Even Odd",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Even Odd])\n",
+      "hash": "02f2dfa53e670131",
+      "id": "Even Odd / by month in 2025, camping",
+      "measure": "Even Odd",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Even Odd])\n",
+      "hash": "09a2b0ee511093ac",
+      "id": "Even Odd / by product, camping",
+      "measure": "Even Odd",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Sqrt Qty])\n",
+      "hash": "f4aa1fc13b862bd3",
+      "id": "Sqrt Qty / card",
+      "measure": "Sqrt Qty",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Sqrt Qty])\n",
+      "hash": "b2fc72a5657c9354",
+      "id": "Sqrt Qty / by category",
+      "measure": "Sqrt Qty",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Sqrt Qty])\n",
+      "hash": "356e8e6820e76df2",
+      "id": "Sqrt Qty / by year",
+      "measure": "Sqrt Qty",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Sqrt Qty])\n",
+      "hash": "646eba9d28baaf09",
+      "id": "Sqrt Qty / by category and year",
+      "measure": "Sqrt Qty",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Sqrt Qty])\n",
+      "hash": "a09bd9dcfbbd9d7b",
+      "id": "Sqrt Qty / by region in 2025",
+      "measure": "Sqrt Qty",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Sqrt Qty])\n",
+      "hash": "9af20498a1325e4f",
+      "id": "Sqrt Qty / by year and month",
+      "measure": "Sqrt Qty",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Sqrt Qty])\n",
+      "hash": "fbfc5071644c2d0e",
+      "id": "Sqrt Qty / by month name",
+      "measure": "Sqrt Qty",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Sqrt Qty])\n",
+      "hash": "a6ac69dd384fe2df",
+      "id": "Sqrt Qty / by color, apparel and camping",
+      "measure": "Sqrt Qty",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Sqrt Qty])\n",
+      "hash": "a43a1fe5c71fe87f",
+      "id": "Sqrt Qty / by month in 2025, camping",
+      "measure": "Sqrt Qty",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Sqrt Qty])\n",
+      "hash": "5d9f9f9317d0a440",
+      "id": "Sqrt Qty / by product, camping",
+      "measure": "Sqrt Qty",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Power Qty])\n",
+      "hash": "9a178ff50e317865",
+      "id": "Power Qty / card",
+      "measure": "Power Qty",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Power Qty])\n",
+      "hash": "bba60861169197a0",
+      "id": "Power Qty / by category",
+      "measure": "Power Qty",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Power Qty])\n",
+      "hash": "ea956c550251d7a6",
+      "id": "Power Qty / by year",
+      "measure": "Power Qty",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Power Qty])\n",
+      "hash": "ffd2cbb92ed1e103",
+      "id": "Power Qty / by category and year",
+      "measure": "Power Qty",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Power Qty])\n",
+      "hash": "ce124fda3cb628cd",
+      "id": "Power Qty / by region in 2025",
+      "measure": "Power Qty",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Power Qty])\n",
+      "hash": "6282342f46f6dfb1",
+      "id": "Power Qty / by year and month",
+      "measure": "Power Qty",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Power Qty])\n",
+      "hash": "453f973c7aeca7b2",
+      "id": "Power Qty / by month name",
+      "measure": "Power Qty",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Power Qty])\n",
+      "hash": "e37681d28b168b21",
+      "id": "Power Qty / by color, apparel and camping",
+      "measure": "Power Qty",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Power Qty])\n",
+      "hash": "946e20769fa3ecc1",
+      "id": "Power Qty / by month in 2025, camping",
+      "measure": "Power Qty",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Power Qty])\n",
+      "hash": "54275251ccc4ff0c",
+      "id": "Power Qty / by product, camping",
+      "measure": "Power Qty",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Exp Ln])\n",
+      "hash": "6cab039f64fd5858",
+      "id": "Exp Ln / card",
+      "measure": "Exp Ln",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Exp Ln])\n",
+      "hash": "05780906bdd57139",
+      "id": "Exp Ln / by category",
+      "measure": "Exp Ln",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Exp Ln])\n",
+      "hash": "84ba050f84d6bf7f",
+      "id": "Exp Ln / by year",
+      "measure": "Exp Ln",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Exp Ln])\n",
+      "hash": "8e3c597b49d5c1e6",
+      "id": "Exp Ln / by category and year",
+      "measure": "Exp Ln",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Exp Ln])\n",
+      "hash": "687e31f6f33b43f0",
+      "id": "Exp Ln / by region in 2025",
+      "measure": "Exp Ln",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Exp Ln])\n",
+      "hash": "c477a88e811e1dec",
+      "id": "Exp Ln / by year and month",
+      "measure": "Exp Ln",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Exp Ln])\n",
+      "hash": "69869da67b690e43",
+      "id": "Exp Ln / by month name",
+      "measure": "Exp Ln",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Exp Ln])\n",
+      "hash": "ba1953a01940f3fc",
+      "id": "Exp Ln / by color, apparel and camping",
+      "measure": "Exp Ln",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Exp Ln])\n",
+      "hash": "add924360d84151c",
+      "id": "Exp Ln / by month in 2025, camping",
+      "measure": "Exp Ln",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Exp Ln])\n",
+      "hash": "b33a39d182aec2bd",
+      "id": "Exp Ln / by product, camping",
+      "measure": "Exp Ln",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Logs])\n",
+      "hash": "5ee8a1eecab78d28",
+      "id": "Logs / card",
+      "measure": "Logs",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Logs])\n",
+      "hash": "180765289499ceeb",
+      "id": "Logs / by category",
+      "measure": "Logs",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Logs])\n",
+      "hash": "70403715e7581b59",
+      "id": "Logs / by year",
+      "measure": "Logs",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Logs])\n",
+      "hash": "ccda7864972041e6",
+      "id": "Logs / by category and year",
+      "measure": "Logs",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Logs])\n",
+      "hash": "bbbdfce56ca69830",
+      "id": "Logs / by region in 2025",
+      "measure": "Logs",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Logs])\n",
+      "hash": "a41d13bc083d4214",
+      "id": "Logs / by year and month",
+      "measure": "Logs",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Logs])\n",
+      "hash": "c5fd7b7eaa521b25",
+      "id": "Logs / by month name",
+      "measure": "Logs",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Logs])\n",
+      "hash": "f38f20884697a704",
+      "id": "Logs / by color, apparel and camping",
+      "measure": "Logs",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Logs])\n",
+      "hash": "46854323ba0bd9a4",
+      "id": "Logs / by month in 2025, camping",
+      "measure": "Logs",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Logs])\n",
+      "hash": "e73e598d3c9c2697",
+      "id": "Logs / by product, camping",
+      "measure": "Logs",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Sign Qty])\n",
+      "hash": "e8c92f11a0d45f53",
+      "id": "Sign Qty / card",
+      "measure": "Sign Qty",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Sign Qty])\n",
+      "hash": "9c5e06f931148144",
+      "id": "Sign Qty / by category",
+      "measure": "Sign Qty",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Sign Qty])\n",
+      "hash": "cb423766a8ea47da",
+      "id": "Sign Qty / by year",
+      "measure": "Sign Qty",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Sign Qty])\n",
+      "hash": "721ae6a87290d919",
+      "id": "Sign Qty / by category and year",
+      "measure": "Sign Qty",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Sign Qty])\n",
+      "hash": "3ed387c3017279ab",
+      "id": "Sign Qty / by region in 2025",
+      "measure": "Sign Qty",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Sign Qty])\n",
+      "hash": "0f523ac4d54a59c7",
+      "id": "Sign Qty / by year and month",
+      "measure": "Sign Qty",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Sign Qty])\n",
+      "hash": "023df18b0657e5ce",
+      "id": "Sign Qty / by month name",
+      "measure": "Sign Qty",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Sign Qty])\n",
+      "hash": "dc366a30647b1b57",
+      "id": "Sign Qty / by color, apparel and camping",
+      "measure": "Sign Qty",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Sign Qty])\n",
+      "hash": "73f2720352152737",
+      "id": "Sign Qty / by month in 2025, camping",
+      "measure": "Sign Qty",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Sign Qty])\n",
+      "hash": "c4d8f3d7f6b83d18",
+      "id": "Sign Qty / by product, camping",
+      "measure": "Sign Qty",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Quotient Amount])\n",
+      "hash": "bfe4f3f0b3b1b7ce",
+      "id": "Quotient Amount / card",
+      "measure": "Quotient Amount",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Quotient Amount])\n",
+      "hash": "d717be1345ae72bb",
+      "id": "Quotient Amount / by category",
+      "measure": "Quotient Amount",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Quotient Amount])\n",
+      "hash": "07d690164a46d739",
+      "id": "Quotient Amount / by year",
+      "measure": "Quotient Amount",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Quotient Amount])\n",
+      "hash": "59f188b26e6efb04",
+      "id": "Quotient Amount / by category and year",
+      "measure": "Quotient Amount",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Quotient Amount])\n",
+      "hash": "ee1ff8bc237182c6",
+      "id": "Quotient Amount / by region in 2025",
+      "measure": "Quotient Amount",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Quotient Amount])\n",
+      "hash": "ad87e3e354a13202",
+      "id": "Quotient Amount / by year and month",
+      "measure": "Quotient Amount",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Quotient Amount])\n",
+      "hash": "2f3b0389da10e2ad",
+      "id": "Quotient Amount / by month name",
+      "measure": "Quotient Amount",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Quotient Amount])\n",
+      "hash": "96b65e390b970d52",
+      "id": "Quotient Amount / by color, apparel and camping",
+      "measure": "Quotient Amount",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Quotient Amount])\n",
+      "hash": "0c8da8314a0547b2",
+      "id": "Quotient Amount / by month in 2025, camping",
+      "measure": "Quotient Amount",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Quotient Amount])\n",
+      "hash": "394f104b580dddef",
+      "id": "Quotient Amount / by product, camping",
+      "measure": "Quotient Amount",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Fact Orders])\n",
+      "hash": "3210600c227eea63",
+      "id": "Fact Orders / card",
+      "measure": "Fact Orders",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Fact Orders])\n",
+      "hash": "5290336435a0b374",
+      "id": "Fact Orders / by category",
+      "measure": "Fact Orders",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Fact Orders])\n",
+      "hash": "c6024e346608d75e",
+      "id": "Fact Orders / by year",
+      "measure": "Fact Orders",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Fact Orders])\n",
+      "hash": "bcc8f99b006edd55",
+      "id": "Fact Orders / by category and year",
+      "measure": "Fact Orders",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Fact Orders])\n",
+      "hash": "30703c33455be3ab",
+      "id": "Fact Orders / by region in 2025",
+      "measure": "Fact Orders",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Fact Orders])\n",
+      "hash": "bca5182b57c2642f",
+      "id": "Fact Orders / by year and month",
+      "measure": "Fact Orders",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Fact Orders])\n",
+      "hash": "2579c18e01cb25fa",
+      "id": "Fact Orders / by month name",
+      "measure": "Fact Orders",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Fact Orders])\n",
+      "hash": "c071338f38a3297f",
+      "id": "Fact Orders / by color, apparel and camping",
+      "measure": "Fact Orders",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Fact Orders])\n",
+      "hash": "5fd650c854412ddf",
+      "id": "Fact Orders / by month in 2025, camping",
+      "measure": "Fact Orders",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Fact Orders])\n",
+      "hash": "e92c56bc072bb1f0",
+      "id": "Fact Orders / by product, camping",
+      "measure": "Fact Orders",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Gcd Lcm])\n",
+      "hash": "017ed8012bd6b675",
+      "id": "Gcd Lcm / card",
+      "measure": "Gcd Lcm",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Gcd Lcm])\n",
+      "hash": "5ab72f9b63b3d5b4",
+      "id": "Gcd Lcm / by category",
+      "measure": "Gcd Lcm",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Gcd Lcm])\n",
+      "hash": "f6b30b88c22e5e4e",
+      "id": "Gcd Lcm / by year",
+      "measure": "Gcd Lcm",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Gcd Lcm])\n",
+      "hash": "ad39d7ffa4a356a7",
+      "id": "Gcd Lcm / by category and year",
+      "measure": "Gcd Lcm",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Gcd Lcm])\n",
+      "hash": "c808d2863380c81d",
+      "id": "Gcd Lcm / by region in 2025",
+      "measure": "Gcd Lcm",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Gcd Lcm])\n",
+      "hash": "d9d2a93d61409a91",
+      "id": "Gcd Lcm / by year and month",
+      "measure": "Gcd Lcm",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Gcd Lcm])\n",
+      "hash": "2f78bd8b6a73471a",
+      "id": "Gcd Lcm / by month name",
+      "measure": "Gcd Lcm",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Gcd Lcm])\n",
+      "hash": "9f8715dd76d9fa01",
+      "id": "Gcd Lcm / by color, apparel and camping",
+      "measure": "Gcd Lcm",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Gcd Lcm])\n",
+      "hash": "3dd8dbefe1ef4621",
+      "id": "Gcd Lcm / by month in 2025, camping",
+      "measure": "Gcd Lcm",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Gcd Lcm])\n",
+      "hash": "edf599ca012e6d20",
+      "id": "Gcd Lcm / by product, camping",
+      "measure": "Gcd Lcm",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Angles])\n",
+      "hash": "64afaf55e3ea564f",
+      "id": "Angles / card",
+      "measure": "Angles",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Angles])\n",
+      "hash": "1b2a205a988bb848",
+      "id": "Angles / by category",
+      "measure": "Angles",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Angles])\n",
+      "hash": "5278491087b64e16",
+      "id": "Angles / by year",
+      "measure": "Angles",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Angles])\n",
+      "hash": "5e6e64bfcc2f1315",
+      "id": "Angles / by category and year",
+      "measure": "Angles",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Angles])\n",
+      "hash": "a657961de62f0ac7",
+      "id": "Angles / by region in 2025",
+      "measure": "Angles",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Angles])\n",
+      "hash": "3036a7cee8fe7773",
+      "id": "Angles / by year and month",
+      "measure": "Angles",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Angles])\n",
+      "hash": "a2adb0dee29998ba",
+      "id": "Angles / by month name",
+      "measure": "Angles",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Angles])\n",
+      "hash": "fc003282299fe023",
+      "id": "Angles / by color, apparel and camping",
+      "measure": "Angles",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Angles])\n",
+      "hash": "8a62989d861a56c3",
+      "id": "Angles / by month in 2025, camping",
+      "measure": "Angles",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Angles])\n",
+      "hash": "136a494d45e915cc",
+      "id": "Angles / by product, camping",
+      "measure": "Angles",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Trig])\n",
+      "hash": "815ae4486cbc4922",
+      "id": "Trig / card",
+      "measure": "Trig",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Trig])\n",
+      "hash": "e5ff81d19daec171",
+      "id": "Trig / by category",
+      "measure": "Trig",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Trig])\n",
+      "hash": "b62653ab4d7151ef",
+      "id": "Trig / by year",
+      "measure": "Trig",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Trig])\n",
+      "hash": "d36936e6b058cf48",
+      "id": "Trig / by category and year",
+      "measure": "Trig",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Trig])\n",
+      "hash": "da207138599226da",
+      "id": "Trig / by region in 2025",
+      "measure": "Trig",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Trig])\n",
+      "hash": "215e55ebae75845e",
+      "id": "Trig / by year and month",
+      "measure": "Trig",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Trig])\n",
+      "hash": "3a938bd58abc69ab",
+      "id": "Trig / by month name",
+      "measure": "Trig",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Trig])\n",
+      "hash": "b01a3b80395ff7ee",
+      "id": "Trig / by color, apparel and camping",
+      "measure": "Trig",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Trig])\n",
+      "hash": "f3f632ed8ec4338e",
+      "id": "Trig / by month in 2025, camping",
+      "measure": "Trig",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Trig])\n",
+      "hash": "2d8a50f10fbfcacd",
+      "id": "Trig / by product, camping",
+      "measure": "Trig",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Arcs])\n",
+      "hash": "25ff8d0342b6b2a4",
+      "id": "Arcs / card",
+      "measure": "Arcs",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Arcs])\n",
+      "hash": "aea7906ad5550885",
+      "id": "Arcs / by category",
+      "measure": "Arcs",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Arcs])\n",
+      "hash": "7fbd0b02b962ed2f",
+      "id": "Arcs / by year",
+      "measure": "Arcs",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Arcs])\n",
+      "hash": "19ccf086e38dc56e",
+      "id": "Arcs / by category and year",
+      "measure": "Arcs",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Arcs])\n",
+      "hash": "241ce0fb67a78cfc",
+      "id": "Arcs / by region in 2025",
+      "measure": "Arcs",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Arcs])\n",
+      "hash": "1e0d659865d45388",
+      "id": "Arcs / by year and month",
+      "measure": "Arcs",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Arcs])\n",
+      "hash": "1bbd8a4a05c542e3",
+      "id": "Arcs / by month name",
+      "measure": "Arcs",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Arcs])\n",
+      "hash": "9797c9cb1f01f378",
+      "id": "Arcs / by color, apparel and camping",
+      "measure": "Arcs",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Arcs])\n",
+      "hash": "b281f78fe91402d8",
+      "id": "Arcs / by month in 2025, camping",
+      "measure": "Arcs",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Arcs])\n",
+      "hash": "8504979bed1fa3f9",
+      "id": "Arcs / by product, camping",
+      "measure": "Arcs",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Hyperbolic])\n",
+      "hash": "4aee079331a348d0",
+      "id": "Hyperbolic / card",
+      "measure": "Hyperbolic",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Hyperbolic])\n",
+      "hash": "c5963f81192ad70b",
+      "id": "Hyperbolic / by category",
+      "measure": "Hyperbolic",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Hyperbolic])\n",
+      "hash": "e92ca55de4e102cd",
+      "id": "Hyperbolic / by year",
+      "measure": "Hyperbolic",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Hyperbolic])\n",
+      "hash": "6f6526034b37405a",
+      "id": "Hyperbolic / by category and year",
+      "measure": "Hyperbolic",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Hyperbolic])\n",
+      "hash": "a439c9daa6dcca38",
+      "id": "Hyperbolic / by region in 2025",
+      "measure": "Hyperbolic",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Hyperbolic])\n",
+      "hash": "5d1760939d39afe4",
+      "id": "Hyperbolic / by year and month",
+      "measure": "Hyperbolic",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Hyperbolic])\n",
+      "hash": "47008a9e0a2b9b91",
+      "id": "Hyperbolic / by month name",
+      "measure": "Hyperbolic",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Hyperbolic])\n",
+      "hash": "290598a4c735d114",
+      "id": "Hyperbolic / by color, apparel and camping",
+      "measure": "Hyperbolic",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Hyperbolic])\n",
+      "hash": "1912ec6f4f263b34",
+      "id": "Hyperbolic / by month in 2025, camping",
+      "measure": "Hyperbolic",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Hyperbolic])\n",
+      "hash": "1ddaf85d43f38d8f",
+      "id": "Hyperbolic / by product, camping",
+      "measure": "Hyperbolic",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Inverse Hyperbolic])\n",
+      "hash": "16bb3d388fc5648f",
+      "id": "Inverse Hyperbolic / card",
+      "measure": "Inverse Hyperbolic",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Inverse Hyperbolic])\n",
+      "hash": "8351684504ce02be",
+      "id": "Inverse Hyperbolic / by category",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Inverse Hyperbolic])\n",
+      "hash": "5867dcf85b9aa1f8",
+      "id": "Inverse Hyperbolic / by year",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Inverse Hyperbolic])\n",
+      "hash": "5a18ceddb06e0871",
+      "id": "Inverse Hyperbolic / by category and year",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Inverse Hyperbolic])\n",
+      "hash": "fdc727e259c88b07",
+      "id": "Inverse Hyperbolic / by region in 2025",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Inverse Hyperbolic])\n",
+      "hash": "5cbdc3bdf372f6eb",
+      "id": "Inverse Hyperbolic / by year and month",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Inverse Hyperbolic])\n",
+      "hash": "472a6041683ed764",
+      "id": "Inverse Hyperbolic / by month name",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Inverse Hyperbolic])\n",
+      "hash": "d98345fa49d06fbb",
+      "id": "Inverse Hyperbolic / by color, apparel and camping",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Inverse Hyperbolic])\n",
+      "hash": "acf0cb60abc1e59b",
+      "id": "Inverse Hyperbolic / by month in 2025, camping",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Inverse Hyperbolic])\n",
+      "hash": "61853fdf2647bdda",
+      "id": "Inverse Hyperbolic / by product, camping",
+      "measure": "Inverse Hyperbolic",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Currency Avg])\n",
+      "hash": "10b70b5c12a7c9ca",
+      "id": "Currency Avg / card",
+      "measure": "Currency Avg",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Currency Avg])\n",
+      "hash": "a1ce1cfc36d9e265",
+      "id": "Currency Avg / by category",
+      "measure": "Currency Avg",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Currency Avg])\n",
+      "hash": "7084ac7f5acf54e7",
+      "id": "Currency Avg / by year",
+      "measure": "Currency Avg",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Currency Avg])\n",
+      "hash": "ea1ea4e749670a3c",
+      "id": "Currency Avg / by category and year",
+      "measure": "Currency Avg",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Currency Avg])\n",
+      "hash": "c58eb9b759dd8332",
+      "id": "Currency Avg / by region in 2025",
+      "measure": "Currency Avg",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Currency Avg])\n",
+      "hash": "184d3ee5b2e4dea6",
+      "id": "Currency Avg / by year and month",
+      "measure": "Currency Avg",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Currency Avg])\n",
+      "hash": "83c8d3f24d9424f3",
+      "id": "Currency Avg / by month name",
+      "measure": "Currency Avg",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Currency Avg])\n",
+      "hash": "243c693a2786a2d6",
+      "id": "Currency Avg / by color, apparel and camping",
+      "measure": "Currency Avg",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Currency Avg])\n",
+      "hash": "d0f4470689727db6",
+      "id": "Currency Avg / by month in 2025, camping",
+      "measure": "Currency Avg",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Currency Avg])\n",
+      "hash": "277d876376084e91",
+      "id": "Currency Avg / by product, camping",
+      "measure": "Currency Avg",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Min With NaN])\n",
+      "hash": "add9348fc2a00a98",
+      "id": "Min With NaN / card",
+      "measure": "Min With NaN",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Min With NaN])\n",
+      "hash": "41b6692d1288f8c9",
+      "id": "Min With NaN / by category",
+      "measure": "Min With NaN",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Min With NaN])\n",
+      "hash": "9df9b814c8652f1b",
+      "id": "Min With NaN / by year",
+      "measure": "Min With NaN",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Min With NaN])\n",
+      "hash": "3322e8bc99035e52",
+      "id": "Min With NaN / by category and year",
+      "measure": "Min With NaN",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Min With NaN])\n",
+      "hash": "079a93f57bb12280",
+      "id": "Min With NaN / by region in 2025",
+      "measure": "Min With NaN",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Min With NaN])\n",
+      "hash": "e9965dfa357e7a6c",
+      "id": "Min With NaN / by year and month",
+      "measure": "Min With NaN",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Min With NaN])\n",
+      "hash": "a35dcedc4bde47ef",
+      "id": "Min With NaN / by month name",
+      "measure": "Min With NaN",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Min With NaN])\n",
+      "hash": "41f99b4840ab527c",
+      "id": "Min With NaN / by color, apparel and camping",
+      "measure": "Min With NaN",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Min With NaN])\n",
+      "hash": "60f2b85f468b8c9c",
+      "id": "Min With NaN / by month in 2025, camping",
+      "measure": "Min With NaN",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Min With NaN])\n",
+      "hash": "d32bcf500320e6cd",
+      "id": "Min With NaN / by product, camping",
+      "measure": "Min With NaN",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Max With NaN])\n",
+      "hash": "97edc3bac14ba886",
+      "id": "Max With NaN / card",
+      "measure": "Max With NaN",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Max With NaN])\n",
+      "hash": "6a16fd897d6d512f",
+      "id": "Max With NaN / by category",
+      "measure": "Max With NaN",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Max With NaN])\n",
+      "hash": "3e847add7123520d",
+      "id": "Max With NaN / by year",
+      "measure": "Max With NaN",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Max With NaN])\n",
+      "hash": "830dc0c80fff87ec",
+      "id": "Max With NaN / by category and year",
+      "measure": "Max With NaN",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Max With NaN])\n",
+      "hash": "ade28e1979e53e7e",
+      "id": "Max With NaN / by region in 2025",
+      "measure": "Max With NaN",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Max With NaN])\n",
+      "hash": "e22a0d4bd8703462",
+      "id": "Max With NaN / by year and month",
+      "measure": "Max With NaN",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Max With NaN])\n",
+      "hash": "a565987fedf86ac9",
+      "id": "Max With NaN / by month name",
+      "measure": "Max With NaN",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Max With NaN])\n",
+      "hash": "e521cef3eaf2d612",
+      "id": "Max With NaN / by color, apparel and camping",
+      "measure": "Max With NaN",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Max With NaN])\n",
+      "hash": "bb4839bac47bff32",
+      "id": "Max With NaN / by month in 2025, camping",
+      "measure": "Max With NaN",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Max With NaN])\n",
+      "hash": "e67fab1674310b6b",
+      "id": "Max With NaN / by product, camping",
+      "measure": "Max With NaN",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Of Blank])\n",
+      "hash": "dd77b293d11fe4b1",
+      "id": "Math Of Blank / card",
+      "measure": "Math Of Blank",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Of Blank])\n",
+      "hash": "2d576936e25a2784",
+      "id": "Math Of Blank / by category",
+      "measure": "Math Of Blank",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Of Blank])\n",
+      "hash": "39df46bf64ac271e",
+      "id": "Math Of Blank / by year",
+      "measure": "Math Of Blank",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Of Blank])\n",
+      "hash": "7b9eebafd185535b",
+      "id": "Math Of Blank / by category and year",
+      "measure": "Math Of Blank",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Of Blank])\n",
+      "hash": "feb8bee371783c69",
+      "id": "Math Of Blank / by region in 2025",
+      "measure": "Math Of Blank",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Of Blank])\n",
+      "hash": "eedb3afefd05d2ad",
+      "id": "Math Of Blank / by year and month",
+      "measure": "Math Of Blank",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Of Blank])\n",
+      "hash": "720605a805de086a",
+      "id": "Math Of Blank / by month name",
+      "measure": "Math Of Blank",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Of Blank])\n",
+      "hash": "e5293c58854ab03d",
+      "id": "Math Of Blank / by color, apparel and camping",
+      "measure": "Math Of Blank",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Of Blank])\n",
+      "hash": "0b5be2f08ca508dd",
+      "id": "Math Of Blank / by month in 2025, camping",
+      "measure": "Math Of Blank",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Of Blank])\n",
+      "hash": "8d715cf3e56cfe70",
+      "id": "Math Of Blank / by product, camping",
+      "measure": "Math Of Blank",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Blank Second])\n",
+      "hash": "ef874f2c1f76d358",
+      "id": "Math Blank Second / card",
+      "measure": "Math Blank Second",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Blank Second])\n",
+      "hash": "3f1cead855b3c0e7",
+      "id": "Math Blank Second / by category",
+      "measure": "Math Blank Second",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Blank Second])\n",
+      "hash": "b5eb0d6661977eb1",
+      "id": "Math Blank Second / by year",
+      "measure": "Math Blank Second",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Blank Second])\n",
+      "hash": "ff1987f1f4d4a0ba",
+      "id": "Math Blank Second / by category and year",
+      "measure": "Math Blank Second",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Blank Second])\n",
+      "hash": "d525fb454814cc10",
+      "id": "Math Blank Second / by region in 2025",
+      "measure": "Math Blank Second",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Blank Second])\n",
+      "hash": "7c883697465a772c",
+      "id": "Math Blank Second / by year and month",
+      "measure": "Math Blank Second",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Blank Second])\n",
+      "hash": "e0b4ac9547ef7fc5",
+      "id": "Math Blank Second / by month name",
+      "measure": "Math Blank Second",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Blank Second])\n",
+      "hash": "acafd9d6b578601c",
+      "id": "Math Blank Second / by color, apparel and camping",
+      "measure": "Math Blank Second",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Blank Second])\n",
+      "hash": "b791bed7355e9dfc",
+      "id": "Math Blank Second / by month in 2025, camping",
+      "measure": "Math Blank Second",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Blank Second])\n",
+      "hash": "5a28a5e63373bf6b",
+      "id": "Math Blank Second / by product, camping",
+      "measure": "Math Blank Second",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Signs])\n",
+      "hash": "4ef7434c127b094d",
+      "id": "Math Signs / card",
+      "measure": "Math Signs",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Signs])\n",
+      "hash": "374da8473ddc110c",
+      "id": "Math Signs / by category",
+      "measure": "Math Signs",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Signs])\n",
+      "hash": "d7696aa6626b5496",
+      "id": "Math Signs / by year",
+      "measure": "Math Signs",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Signs])\n",
+      "hash": "96efbe2b79d8e2ef",
+      "id": "Math Signs / by category and year",
+      "measure": "Math Signs",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Signs])\n",
+      "hash": "2d05f086168a5515",
+      "id": "Math Signs / by region in 2025",
+      "measure": "Math Signs",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Signs])\n",
+      "hash": "bb86e48fbfaf9909",
+      "id": "Math Signs / by year and month",
+      "measure": "Math Signs",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Signs])\n",
+      "hash": "22c4240b23742f02",
+      "id": "Math Signs / by month name",
+      "measure": "Math Signs",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Signs])\n",
+      "hash": "d89eddf23cfaf379",
+      "id": "Math Signs / by color, apparel and camping",
+      "measure": "Math Signs",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Signs])\n",
+      "hash": "7d7b3abb767e1719",
+      "id": "Math Signs / by month in 2025, camping",
+      "measure": "Math Signs",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Signs])\n",
+      "hash": "88d7010baee4a388",
+      "id": "Math Signs / by product, camping",
+      "measure": "Math Signs",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 1])\n",
+      "hash": "516ef0cf8b8fda21",
+      "id": "Math Edge 1 / card",
+      "measure": "Math Edge 1",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 1])\n",
+      "hash": "a07ec5fdd88c097c",
+      "id": "Math Edge 1 / by category",
+      "measure": "Math Edge 1",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 1])\n",
+      "hash": "058e1d0de46e24c6",
+      "id": "Math Edge 1 / by year",
+      "measure": "Math Edge 1",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 1])\n",
+      "hash": "8e350d4f6afb665b",
+      "id": "Math Edge 1 / by category and year",
+      "measure": "Math Edge 1",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 1])\n",
+      "hash": "ed5f2916e79d15b9",
+      "id": "Math Edge 1 / by region in 2025",
+      "measure": "Math Edge 1",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 1])\n",
+      "hash": "8122827b4e2ca975",
+      "id": "Math Edge 1 / by year and month",
+      "measure": "Math Edge 1",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 1])\n",
+      "hash": "595554e5a0af119a",
+      "id": "Math Edge 1 / by month name",
+      "measure": "Math Edge 1",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 1])\n",
+      "hash": "9f3acbfd1d254065",
+      "id": "Math Edge 1 / by color, apparel and camping",
+      "measure": "Math Edge 1",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 1])\n",
+      "hash": "ca49720b954660c5",
+      "id": "Math Edge 1 / by month in 2025, camping",
+      "measure": "Math Edge 1",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 1])\n",
+      "hash": "8259cbf7e9cf2c90",
+      "id": "Math Edge 1 / by product, camping",
+      "measure": "Math Edge 1",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 2])\n",
+      "hash": "a3cbe3f7b3ceac9d",
+      "id": "Math Edge 2 / card",
+      "measure": "Math Edge 2",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 2])\n",
+      "hash": "949cee32ea192a42",
+      "id": "Math Edge 2 / by category",
+      "measure": "Math Edge 2",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 2])\n",
+      "hash": "72c7e85df795bf04",
+      "id": "Math Edge 2 / by year",
+      "measure": "Math Edge 2",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 2])\n",
+      "hash": "89b0935f11b0ecaf",
+      "id": "Math Edge 2 / by category and year",
+      "measure": "Math Edge 2",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 2])\n",
+      "hash": "b9f9ad94e3d94e95",
+      "id": "Math Edge 2 / by region in 2025",
+      "measure": "Math Edge 2",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 2])\n",
+      "hash": "bd3d07fc3345ad79",
+      "id": "Math Edge 2 / by year and month",
+      "measure": "Math Edge 2",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 2])\n",
+      "hash": "fe5033513996b740",
+      "id": "Math Edge 2 / by month name",
+      "measure": "Math Edge 2",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 2])\n",
+      "hash": "36a99ccb5a3fe589",
+      "id": "Math Edge 2 / by color, apparel and camping",
+      "measure": "Math Edge 2",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 2])\n",
+      "hash": "8825e76959ec2669",
+      "id": "Math Edge 2 / by month in 2025, camping",
+      "measure": "Math Edge 2",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 2])\n",
+      "hash": "ef1924705fbead0e",
+      "id": "Math Edge 2 / by product, camping",
+      "measure": "Math Edge 2",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 3])\n",
+      "hash": "2f50f9d748c12970",
+      "id": "Math Edge 3 / card",
+      "measure": "Math Edge 3",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 3])\n",
+      "hash": "6a828406ef94aeb5",
+      "id": "Math Edge 3 / by category",
+      "measure": "Math Edge 3",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 3])\n",
+      "hash": "fa9269343479f1d7",
+      "id": "Math Edge 3 / by year",
+      "measure": "Math Edge 3",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 3])\n",
+      "hash": "82dc67d60a6c9f3a",
+      "id": "Math Edge 3 / by category and year",
+      "measure": "Math Edge 3",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 3])\n",
+      "hash": "108345d670e28808",
+      "id": "Math Edge 3 / by region in 2025",
+      "measure": "Math Edge 3",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 3])\n",
+      "hash": "23dd4b4b42c96bf4",
+      "id": "Math Edge 3 / by year and month",
+      "measure": "Math Edge 3",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 3])\n",
+      "hash": "6fe4743037050b8b",
+      "id": "Math Edge 3 / by month name",
+      "measure": "Math Edge 3",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 3])\n",
+      "hash": "7ddacec43768e384",
+      "id": "Math Edge 3 / by color, apparel and camping",
+      "measure": "Math Edge 3",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 3])\n",
+      "hash": "00af4329cc648fa4",
+      "id": "Math Edge 3 / by month in 2025, camping",
+      "measure": "Math Edge 3",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 3])\n",
+      "hash": "a592ecfacd7b80b9",
+      "id": "Math Edge 3 / by product, camping",
+      "measure": "Math Edge 3",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 4])\n",
+      "hash": "d02be878a98d225a",
+      "id": "Math Edge 4 / card",
+      "measure": "Math Edge 4",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 4])\n",
+      "hash": "6fb40c35aa1aed55",
+      "id": "Math Edge 4 / by category",
+      "measure": "Math Edge 4",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 4])\n",
+      "hash": "7fd370da64fffdc7",
+      "id": "Math Edge 4 / by year",
+      "measure": "Math Edge 4",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 4])\n",
+      "hash": "9ece18e09d314414",
+      "id": "Math Edge 4 / by category and year",
+      "measure": "Math Edge 4",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 4])\n",
+      "hash": "5939d08b58064522",
+      "id": "Math Edge 4 / by region in 2025",
+      "measure": "Math Edge 4",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 4])\n",
+      "hash": "ae19d9a8da23aefe",
+      "id": "Math Edge 4 / by year and month",
+      "measure": "Math Edge 4",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 4])\n",
+      "hash": "700be0a1ab597ddb",
+      "id": "Math Edge 4 / by month name",
+      "measure": "Math Edge 4",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 4])\n",
+      "hash": "ff1de397cd39756e",
+      "id": "Math Edge 4 / by color, apparel and camping",
+      "measure": "Math Edge 4",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 4])\n",
+      "hash": "c1f4e6f271d1704e",
+      "id": "Math Edge 4 / by month in 2025, camping",
+      "measure": "Math Edge 4",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 4])\n",
+      "hash": "0d13e7d4b8c91199",
+      "id": "Math Edge 4 / by product, camping",
+      "measure": "Math Edge 4",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 5])\n",
+      "hash": "53545a51cd8772b5",
+      "id": "Math Edge 5 / card",
+      "measure": "Math Edge 5",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 5])\n",
+      "hash": "049cbd145687b338",
+      "id": "Math Edge 5 / by category",
+      "measure": "Math Edge 5",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 5])\n",
+      "hash": "200b82bd6945bcce",
+      "id": "Math Edge 5 / by year",
+      "measure": "Math Edge 5",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 5])\n",
+      "hash": "3c738e20195752cb",
+      "id": "Math Edge 5 / by category and year",
+      "measure": "Math Edge 5",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 5])\n",
+      "hash": "af99c3d455dee4bd",
+      "id": "Math Edge 5 / by region in 2025",
+      "measure": "Math Edge 5",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 5])\n",
+      "hash": "98f08f386f890959",
+      "id": "Math Edge 5 / by year and month",
+      "measure": "Math Edge 5",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 5])\n",
+      "hash": "e1e95dc9e0e80352",
+      "id": "Math Edge 5 / by month name",
+      "measure": "Math Edge 5",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 5])\n",
+      "hash": "e04e5b73491a6689",
+      "id": "Math Edge 5 / by color, apparel and camping",
+      "measure": "Math Edge 5",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 5])\n",
+      "hash": "a1bcab707b92f169",
+      "id": "Math Edge 5 / by month in 2025, camping",
+      "measure": "Math Edge 5",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 5])\n",
+      "hash": "5b21861ee86742dc",
+      "id": "Math Edge 5 / by product, camping",
+      "measure": "Math Edge 5",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 6])\n",
+      "hash": "0f9901c811bb1255",
+      "id": "Math Edge 6 / card",
+      "measure": "Math Edge 6",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 6])\n",
+      "hash": "8a66ded139a4bd08",
+      "id": "Math Edge 6 / by category",
+      "measure": "Math Edge 6",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 6])\n",
+      "hash": "c0ccede6bc15a3ba",
+      "id": "Math Edge 6 / by year",
+      "measure": "Math Edge 6",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 6])\n",
+      "hash": "98f001956d62a357",
+      "id": "Math Edge 6 / by category and year",
+      "measure": "Math Edge 6",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 6])\n",
+      "hash": "2d4e9e352521064d",
+      "id": "Math Edge 6 / by region in 2025",
+      "measure": "Math Edge 6",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 6])\n",
+      "hash": "25204b885f736ba9",
+      "id": "Math Edge 6 / by year and month",
+      "measure": "Math Edge 6",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 6])\n",
+      "hash": "d78dfe8ea4ae9bce",
+      "id": "Math Edge 6 / by month name",
+      "measure": "Math Edge 6",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 6])\n",
+      "hash": "906cbe102f14b7d9",
+      "id": "Math Edge 6 / by color, apparel and camping",
+      "measure": "Math Edge 6",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 6])\n",
+      "hash": "012c39f57ea391f9",
+      "id": "Math Edge 6 / by month in 2025, camping",
+      "measure": "Math Edge 6",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 6])\n",
+      "hash": "f3b0a33f41e682dc",
+      "id": "Math Edge 6 / by product, camping",
+      "measure": "Math Edge 6",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 7])\n",
+      "hash": "5bd0046a4ada0a89",
+      "id": "Math Edge 7 / card",
+      "measure": "Math Edge 7",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 7])\n",
+      "hash": "af5248dd48dbfd0a",
+      "id": "Math Edge 7 / by category",
+      "measure": "Math Edge 7",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 7])\n",
+      "hash": "1009faa63ec24144",
+      "id": "Math Edge 7 / by year",
+      "measure": "Math Edge 7",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 7])\n",
+      "hash": "5c5260da5ba53de3",
+      "id": "Math Edge 7 / by category and year",
+      "measure": "Math Edge 7",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 7])\n",
+      "hash": "09ac511eecad18f1",
+      "id": "Math Edge 7 / by region in 2025",
+      "measure": "Math Edge 7",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 7])\n",
+      "hash": "3600b28544501aad",
+      "id": "Math Edge 7 / by year and month",
+      "measure": "Math Edge 7",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 7])\n",
+      "hash": "e068515f802db138",
+      "id": "Math Edge 7 / by month name",
+      "measure": "Math Edge 7",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 7])\n",
+      "hash": "fb096af85048c05d",
+      "id": "Math Edge 7 / by color, apparel and camping",
+      "measure": "Math Edge 7",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 7])\n",
+      "hash": "14806b9e0dfcfe3d",
+      "id": "Math Edge 7 / by month in 2025, camping",
+      "measure": "Math Edge 7",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 7])\n",
+      "hash": "0b1be6256ed01dce",
+      "id": "Math Edge 7 / by product, camping",
+      "measure": "Math Edge 7",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 8])\n",
+      "hash": "511d7d16bdd27e07",
+      "id": "Math Edge 8 / card",
+      "measure": "Math Edge 8",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 8])\n",
+      "hash": "dea3bde2e821740e",
+      "id": "Math Edge 8 / by category",
+      "measure": "Math Edge 8",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 8])\n",
+      "hash": "3a3b1b6c3fb13d10",
+      "id": "Math Edge 8 / by year",
+      "measure": "Math Edge 8",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 8])\n",
+      "hash": "0373bffddc62a669",
+      "id": "Math Edge 8 / by category and year",
+      "measure": "Math Edge 8",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 8])\n",
+      "hash": "db0b8a7726570fdf",
+      "id": "Math Edge 8 / by region in 2025",
+      "measure": "Math Edge 8",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 8])\n",
+      "hash": "7d4f27140d266ae3",
+      "id": "Math Edge 8 / by year and month",
+      "measure": "Math Edge 8",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 8])\n",
+      "hash": "7b08dfc2780a27ac",
+      "id": "Math Edge 8 / by month name",
+      "measure": "Math Edge 8",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 8])\n",
+      "hash": "a501af2f4033f4f3",
+      "id": "Math Edge 8 / by color, apparel and camping",
+      "measure": "Math Edge 8",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 8])\n",
+      "hash": "16276896b75d8353",
+      "id": "Math Edge 8 / by month in 2025, camping",
+      "measure": "Math Edge 8",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 8])\n",
+      "hash": "6752e51be7f5389a",
+      "id": "Math Edge 8 / by product, camping",
+      "measure": "Math Edge 8",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 9])\n",
+      "hash": "ecd32ea029dbc556",
+      "id": "Math Edge 9 / card",
+      "measure": "Math Edge 9",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 9])\n",
+      "hash": "e05fe7fe5a01b2c1",
+      "id": "Math Edge 9 / by category",
+      "measure": "Math Edge 9",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 9])\n",
+      "hash": "62c4706297645dd3",
+      "id": "Math Edge 9 / by year",
+      "measure": "Math Edge 9",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 9])\n",
+      "hash": "8a81525e256b8b08",
+      "id": "Math Edge 9 / by category and year",
+      "measure": "Math Edge 9",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 9])\n",
+      "hash": "e1d3a654b7b52c6e",
+      "id": "Math Edge 9 / by region in 2025",
+      "measure": "Math Edge 9",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 9])\n",
+      "hash": "af1b1526a72b1b7a",
+      "id": "Math Edge 9 / by year and month",
+      "measure": "Math Edge 9",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 9])\n",
+      "hash": "4ac5abfa835407c7",
+      "id": "Math Edge 9 / by month name",
+      "measure": "Math Edge 9",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 9])\n",
+      "hash": "9b1a9fb16b363fea",
+      "id": "Math Edge 9 / by color, apparel and camping",
+      "measure": "Math Edge 9",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 9])\n",
+      "hash": "e85e527505c7034a",
+      "id": "Math Edge 9 / by month in 2025, camping",
+      "measure": "Math Edge 9",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 9])\n",
+      "hash": "c3f982889ccdbad5",
+      "id": "Math Edge 9 / by product, camping",
+      "measure": "Math Edge 9",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 10])\n",
+      "hash": "da40efc6076b735a",
+      "id": "Math Edge 10 / card",
+      "measure": "Math Edge 10",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 10])\n",
+      "hash": "3e0e165396ed1df5",
+      "id": "Math Edge 10 / by category",
+      "measure": "Math Edge 10",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 10])\n",
+      "hash": "8526dc0546260cdf",
+      "id": "Math Edge 10 / by year",
+      "measure": "Math Edge 10",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 10])\n",
+      "hash": "7efe9fd50063ec0c",
+      "id": "Math Edge 10 / by category and year",
+      "measure": "Math Edge 10",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 10])\n",
+      "hash": "f36ee4105e25f692",
+      "id": "Math Edge 10 / by region in 2025",
+      "measure": "Math Edge 10",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 10])\n",
+      "hash": "cae86aff2603401e",
+      "id": "Math Edge 10 / by year and month",
+      "measure": "Math Edge 10",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 10])\n",
+      "hash": "4a692f4e20983933",
+      "id": "Math Edge 10 / by month name",
+      "measure": "Math Edge 10",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 10])\n",
+      "hash": "8764d7cce7abb30e",
+      "id": "Math Edge 10 / by color, apparel and camping",
+      "measure": "Math Edge 10",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 10])\n",
+      "hash": "6da7f796c0abb36e",
+      "id": "Math Edge 10 / by month in 2025, camping",
+      "measure": "Math Edge 10",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 10])\n",
+      "hash": "50548931751ddb39",
+      "id": "Math Edge 10 / by product, camping",
+      "measure": "Math Edge 10",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 11])\n",
+      "hash": "85682064d41f1ac2",
+      "id": "Math Edge 11 / card",
+      "measure": "Math Edge 11",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 11])\n",
+      "hash": "3d1733c41d44b91d",
+      "id": "Math Edge 11 / by category",
+      "measure": "Math Edge 11",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 11])\n",
+      "hash": "88665a7294084973",
+      "id": "Math Edge 11 / by year",
+      "measure": "Math Edge 11",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 11])\n",
+      "hash": "ffc6273cbc1f5268",
+      "id": "Math Edge 11 / by category and year",
+      "measure": "Math Edge 11",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 11])\n",
+      "hash": "a879456534865f4a",
+      "id": "Math Edge 11 / by region in 2025",
+      "measure": "Math Edge 11",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 11])\n",
+      "hash": "c04103576e0d088e",
+      "id": "Math Edge 11 / by year and month",
+      "measure": "Math Edge 11",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 11])\n",
+      "hash": "0a14ae1fc9555a7f",
+      "id": "Math Edge 11 / by month name",
+      "measure": "Math Edge 11",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 11])\n",
+      "hash": "0907e5886b90edbe",
+      "id": "Math Edge 11 / by color, apparel and camping",
+      "measure": "Math Edge 11",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 11])\n",
+      "hash": "41418bcc5f92b81e",
+      "id": "Math Edge 11 / by month in 2025, camping",
+      "measure": "Math Edge 11",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 11])\n",
+      "hash": "9b2575ae58356789",
+      "id": "Math Edge 11 / by product, camping",
+      "measure": "Math Edge 11",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 12])\n",
+      "hash": "fda7150a4f4de3ef",
+      "id": "Math Edge 12 / card",
+      "measure": "Math Edge 12",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 12])\n",
+      "hash": "a50900d7e213a45a",
+      "id": "Math Edge 12 / by category",
+      "measure": "Math Edge 12",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 12])\n",
+      "hash": "a91893e4a9f48388",
+      "id": "Math Edge 12 / by year",
+      "measure": "Math Edge 12",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 12])\n",
+      "hash": "21cea22fb5f448dd",
+      "id": "Math Edge 12 / by category and year",
+      "measure": "Math Edge 12",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 12])\n",
+      "hash": "ec7673c80d9f9397",
+      "id": "Math Edge 12 / by region in 2025",
+      "measure": "Math Edge 12",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 12])\n",
+      "hash": "e2f2b1bdd06f7c3b",
+      "id": "Math Edge 12 / by year and month",
+      "measure": "Math Edge 12",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 12])\n",
+      "hash": "92cc1fc45e515ad4",
+      "id": "Math Edge 12 / by month name",
+      "measure": "Math Edge 12",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 12])\n",
+      "hash": "516f54bc5930290b",
+      "id": "Math Edge 12 / by color, apparel and camping",
+      "measure": "Math Edge 12",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 12])\n",
+      "hash": "c07fcc24a0d1f62b",
+      "id": "Math Edge 12 / by month in 2025, camping",
+      "measure": "Math Edge 12",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 12])\n",
+      "hash": "27e89088e5d9b216",
+      "id": "Math Edge 12 / by product, camping",
+      "measure": "Math Edge 12",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 13])\n",
+      "hash": "10541252aa05f618",
+      "id": "Math Edge 13 / card",
+      "measure": "Math Edge 13",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 13])\n",
+      "hash": "e80b03ca4fd08ed3",
+      "id": "Math Edge 13 / by category",
+      "measure": "Math Edge 13",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 13])\n",
+      "hash": "f94f66173e0c81d1",
+      "id": "Math Edge 13 / by year",
+      "measure": "Math Edge 13",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 13])\n",
+      "hash": "ad5b08ed828887de",
+      "id": "Math Edge 13 / by category and year",
+      "measure": "Math Edge 13",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 13])\n",
+      "hash": "5fc45996c3c79930",
+      "id": "Math Edge 13 / by region in 2025",
+      "measure": "Math Edge 13",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 13])\n",
+      "hash": "faa8957bd7f33314",
+      "id": "Math Edge 13 / by year and month",
+      "measure": "Math Edge 13",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 13])\n",
+      "hash": "74ef6e2f976e5f7d",
+      "id": "Math Edge 13 / by month name",
+      "measure": "Math Edge 13",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 13])\n",
+      "hash": "5f67a6845db92aa4",
+      "id": "Math Edge 13 / by color, apparel and camping",
+      "measure": "Math Edge 13",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 13])\n",
+      "hash": "309570a919c4f944",
+      "id": "Math Edge 13 / by month in 2025, camping",
+      "measure": "Math Edge 13",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 13])\n",
+      "hash": "feff27d9260a533f",
+      "id": "Math Edge 13 / by product, camping",
+      "measure": "Math Edge 13",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 14])\n",
+      "hash": "dc7c4d4f5cdbb045",
+      "id": "Math Edge 14 / card",
+      "measure": "Math Edge 14",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 14])\n",
+      "hash": "4b7ef84a619dbf20",
+      "id": "Math Edge 14 / by category",
+      "measure": "Math Edge 14",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 14])\n",
+      "hash": "9aa3ad85b76b9086",
+      "id": "Math Edge 14 / by year",
+      "measure": "Math Edge 14",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 14])\n",
+      "hash": "2dd7de1d9fef628b",
+      "id": "Math Edge 14 / by category and year",
+      "measure": "Math Edge 14",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 14])\n",
+      "hash": "64228cd06a86466d",
+      "id": "Math Edge 14 / by region in 2025",
+      "measure": "Math Edge 14",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 14])\n",
+      "hash": "43c4722769ca5651",
+      "id": "Math Edge 14 / by year and month",
+      "measure": "Math Edge 14",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 14])\n",
+      "hash": "3899c331b46bbd82",
+      "id": "Math Edge 14 / by month name",
+      "measure": "Math Edge 14",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 14])\n",
+      "hash": "43cb82454ec09f81",
+      "id": "Math Edge 14 / by color, apparel and camping",
+      "measure": "Math Edge 14",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 14])\n",
+      "hash": "6a56df93d8a7d461",
+      "id": "Math Edge 14 / by month in 2025, camping",
+      "measure": "Math Edge 14",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 14])\n",
+      "hash": "9d559e4f47554cfc",
+      "id": "Math Edge 14 / by product, camping",
+      "measure": "Math Edge 14",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 15])\n",
+      "hash": "368a6b9012e36143",
+      "id": "Math Edge 15 / card",
+      "measure": "Math Edge 15",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 15])\n",
+      "hash": "a54a39eb02042be6",
+      "id": "Math Edge 15 / by category",
+      "measure": "Math Edge 15",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 15])\n",
+      "hash": "020399e7328171b0",
+      "id": "Math Edge 15 / by year",
+      "measure": "Math Edge 15",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 15])\n",
+      "hash": "6ec10a89a0405e7d",
+      "id": "Math Edge 15 / by category and year",
+      "measure": "Math Edge 15",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 15])\n",
+      "hash": "6ca803edf52bf5cb",
+      "id": "Math Edge 15 / by region in 2025",
+      "measure": "Math Edge 15",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 15])\n",
+      "hash": "d798727a6f8d28df",
+      "id": "Math Edge 15 / by year and month",
+      "measure": "Math Edge 15",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 15])\n",
+      "hash": "ac45ee9dfcf9d32c",
+      "id": "Math Edge 15 / by month name",
+      "measure": "Math Edge 15",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 15])\n",
+      "hash": "a88f4eee0dbed5af",
+      "id": "Math Edge 15 / by color, apparel and camping",
+      "measure": "Math Edge 15",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 15])\n",
+      "hash": "f3ea10e9283b510f",
+      "id": "Math Edge 15 / by month in 2025, camping",
+      "measure": "Math Edge 15",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 15])\n",
+      "hash": "2aee67870d5e0542",
+      "id": "Math Edge 15 / by product, camping",
+      "measure": "Math Edge 15",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 16])\n",
+      "hash": "817dbd253c17efc2",
+      "id": "Math Edge 16 / card",
+      "measure": "Math Edge 16",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 16])\n",
+      "hash": "8ceaed0b899dfd95",
+      "id": "Math Edge 16 / by category",
+      "measure": "Math Edge 16",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 16])\n",
+      "hash": "df2be3fcc55b09d3",
+      "id": "Math Edge 16 / by year",
+      "measure": "Math Edge 16",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 16])\n",
+      "hash": "d14a9941b32d0cd0",
+      "id": "Math Edge 16 / by category and year",
+      "measure": "Math Edge 16",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 16])\n",
+      "hash": "979219d4acf85faa",
+      "id": "Math Edge 16 / by region in 2025",
+      "measure": "Math Edge 16",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 16])\n",
+      "hash": "9e695438c94fe74e",
+      "id": "Math Edge 16 / by year and month",
+      "measure": "Math Edge 16",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 16])\n",
+      "hash": "b306455daea1f7cf",
+      "id": "Math Edge 16 / by month name",
+      "measure": "Math Edge 16",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 16])\n",
+      "hash": "9b14382062244a5e",
+      "id": "Math Edge 16 / by color, apparel and camping",
+      "measure": "Math Edge 16",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 16])\n",
+      "hash": "e2374d47bbfa917e",
+      "id": "Math Edge 16 / by month in 2025, camping",
+      "measure": "Math Edge 16",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 16])\n",
+      "hash": "d245cbb42a4a3e01",
+      "id": "Math Edge 16 / by product, camping",
+      "measure": "Math Edge 16",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 17])\n",
+      "hash": "0894ce0b53a76543",
+      "id": "Math Edge 17 / card",
+      "measure": "Math Edge 17",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 17])\n",
+      "hash": "a57275ddcfa9248a",
+      "id": "Math Edge 17 / by category",
+      "measure": "Math Edge 17",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 17])\n",
+      "hash": "eb4db89e57320d7c",
+      "id": "Math Edge 17 / by year",
+      "measure": "Math Edge 17",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 17])\n",
+      "hash": "9c4810777d375035",
+      "id": "Math Edge 17 / by category and year",
+      "measure": "Math Edge 17",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 17])\n",
+      "hash": "3ec45afde462b1bb",
+      "id": "Math Edge 17 / by region in 2025",
+      "measure": "Math Edge 17",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 17])\n",
+      "hash": "cc57d2ec49a065c7",
+      "id": "Math Edge 17 / by year and month",
+      "measure": "Math Edge 17",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 17])\n",
+      "hash": "b3200104cade44d0",
+      "id": "Math Edge 17 / by month name",
+      "measure": "Math Edge 17",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 17])\n",
+      "hash": "89a6132834e74557",
+      "id": "Math Edge 17 / by color, apparel and camping",
+      "measure": "Math Edge 17",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 17])\n",
+      "hash": "eae1814b9ed97bf7",
+      "id": "Math Edge 17 / by month in 2025, camping",
+      "measure": "Math Edge 17",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 17])\n",
+      "hash": "98926d8cd5651bee",
+      "id": "Math Edge 17 / by product, camping",
+      "measure": "Math Edge 17",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 18])\n",
+      "hash": "c4e0950ebd5833e4",
+      "id": "Math Edge 18 / card",
+      "measure": "Math Edge 18",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 18])\n",
+      "hash": "84cd791ca4268ecf",
+      "id": "Math Edge 18 / by category",
+      "measure": "Math Edge 18",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 18])\n",
+      "hash": "80646a1313d77b39",
+      "id": "Math Edge 18 / by year",
+      "measure": "Math Edge 18",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 18])\n",
+      "hash": "eaa6feee734b44de",
+      "id": "Math Edge 18 / by category and year",
+      "measure": "Math Edge 18",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 18])\n",
+      "hash": "c3ccb10420350cfc",
+      "id": "Math Edge 18 / by region in 2025",
+      "measure": "Math Edge 18",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 18])\n",
+      "hash": "38bd730e2bd61960",
+      "id": "Math Edge 18 / by year and month",
+      "measure": "Math Edge 18",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 18])\n",
+      "hash": "9425bf0b74685405",
+      "id": "Math Edge 18 / by month name",
+      "measure": "Math Edge 18",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 18])\n",
+      "hash": "3c41dec6f41def30",
+      "id": "Math Edge 18 / by color, apparel and camping",
+      "measure": "Math Edge 18",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 18])\n",
+      "hash": "988a837531c45d10",
+      "id": "Math Edge 18 / by month in 2025, camping",
+      "measure": "Math Edge 18",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 18])\n",
+      "hash": "e38a8187c2c42dcb",
+      "id": "Math Edge 18 / by product, camping",
+      "measure": "Math Edge 18",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 19])\n",
+      "hash": "848701770ee7f980",
+      "id": "Math Edge 19 / card",
+      "measure": "Math Edge 19",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 19])\n",
+      "hash": "ef219aa111d4b551",
+      "id": "Math Edge 19 / by category",
+      "measure": "Math Edge 19",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 19])\n",
+      "hash": "74f805cb84e674ff",
+      "id": "Math Edge 19 / by year",
+      "measure": "Math Edge 19",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 19])\n",
+      "hash": "78f4c553a42cf5ae",
+      "id": "Math Edge 19 / by category and year",
+      "measure": "Math Edge 19",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 19])\n",
+      "hash": "9bee0bbf5b4cbbf8",
+      "id": "Math Edge 19 / by region in 2025",
+      "measure": "Math Edge 19",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 19])\n",
+      "hash": "3a0ac58c12420424",
+      "id": "Math Edge 19 / by year and month",
+      "measure": "Math Edge 19",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 19])\n",
+      "hash": "ba4e2d95edcc1633",
+      "id": "Math Edge 19 / by month name",
+      "measure": "Math Edge 19",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 19])\n",
+      "hash": "4c2fa7157beea554",
+      "id": "Math Edge 19 / by color, apparel and camping",
+      "measure": "Math Edge 19",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 19])\n",
+      "hash": "ab8508c7e46e52f4",
+      "id": "Math Edge 19 / by month in 2025, camping",
+      "measure": "Math Edge 19",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 19])\n",
+      "hash": "560b6a97797c9cc5",
+      "id": "Math Edge 19 / by product, camping",
+      "measure": "Math Edge 19",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 20])\n",
+      "hash": "b8322185f72ac32b",
+      "id": "Math Edge 20 / card",
+      "measure": "Math Edge 20",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 20])\n",
+      "hash": "3a954b56a114411e",
+      "id": "Math Edge 20 / by category",
+      "measure": "Math Edge 20",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 20])\n",
+      "hash": "695c29f0127ff6e4",
+      "id": "Math Edge 20 / by year",
+      "measure": "Math Edge 20",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 20])\n",
+      "hash": "cbe88bac7abd1f19",
+      "id": "Math Edge 20 / by category and year",
+      "measure": "Math Edge 20",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 20])\n",
+      "hash": "e326324381ad8ed3",
+      "id": "Math Edge 20 / by region in 2025",
+      "measure": "Math Edge 20",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 20])\n",
+      "hash": "aa07d0e2fc394d3f",
+      "id": "Math Edge 20 / by year and month",
+      "measure": "Math Edge 20",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 20])\n",
+      "hash": "6c5905b878464518",
+      "id": "Math Edge 20 / by month name",
+      "measure": "Math Edge 20",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 20])\n",
+      "hash": "2eb08b374c0ee28f",
+      "id": "Math Edge 20 / by color, apparel and camping",
+      "measure": "Math Edge 20",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 20])\n",
+      "hash": "a25a7790c9810b2f",
+      "id": "Math Edge 20 / by month in 2025, camping",
+      "measure": "Math Edge 20",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 20])\n",
+      "hash": "48aaff7614709372",
+      "id": "Math Edge 20 / by product, camping",
+      "measure": "Math Edge 20",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 21])\n",
+      "hash": "c738f238cba95130",
+      "id": "Math Edge 21 / card",
+      "measure": "Math Edge 21",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 21])\n",
+      "hash": "7b60f43c370cb0fd",
+      "id": "Math Edge 21 / by category",
+      "measure": "Math Edge 21",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 21])\n",
+      "hash": "acfca6da9e1492d7",
+      "id": "Math Edge 21 / by year",
+      "measure": "Math Edge 21",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 21])\n",
+      "hash": "31fd89c3366c5aca",
+      "id": "Math Edge 21 / by category and year",
+      "measure": "Math Edge 21",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 21])\n",
+      "hash": "3ca3db0a10f2b8c8",
+      "id": "Math Edge 21 / by region in 2025",
+      "measure": "Math Edge 21",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 21])\n",
+      "hash": "d0cd386de23f917c",
+      "id": "Math Edge 21 / by year and month",
+      "measure": "Math Edge 21",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 21])\n",
+      "hash": "5ac45ff88e4149b3",
+      "id": "Math Edge 21 / by month name",
+      "measure": "Math Edge 21",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 21])\n",
+      "hash": "6dc2ab8cf3b73d2c",
+      "id": "Math Edge 21 / by color, apparel and camping",
+      "measure": "Math Edge 21",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 21])\n",
+      "hash": "377dc2c42ecccf4c",
+      "id": "Math Edge 21 / by month in 2025, camping",
+      "measure": "Math Edge 21",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 21])\n",
+      "hash": "733628f0ae50c769",
+      "id": "Math Edge 21 / by product, camping",
+      "measure": "Math Edge 21",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 22])\n",
+      "hash": "2cec7f525b3dbca0",
+      "id": "Math Edge 22 / card",
+      "measure": "Math Edge 22",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 22])\n",
+      "hash": "dd8841fbaa10305b",
+      "id": "Math Edge 22 / by category",
+      "measure": "Math Edge 22",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 22])\n",
+      "hash": "b348d470aa4ebff9",
+      "id": "Math Edge 22 / by year",
+      "measure": "Math Edge 22",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 22])\n",
+      "hash": "f3e557fb588051ce",
+      "id": "Math Edge 22 / by category and year",
+      "measure": "Math Edge 22",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 22])\n",
+      "hash": "5ac3f751bb81f768",
+      "id": "Math Edge 22 / by region in 2025",
+      "measure": "Math Edge 22",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 22])\n",
+      "hash": "e145dc67ea8bdc94",
+      "id": "Math Edge 22 / by year and month",
+      "measure": "Math Edge 22",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 22])\n",
+      "hash": "e797fd7b628061ad",
+      "id": "Math Edge 22 / by month name",
+      "measure": "Math Edge 22",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 22])\n",
+      "hash": "df1124a79a4cb924",
+      "id": "Math Edge 22 / by color, apparel and camping",
+      "measure": "Math Edge 22",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 22])\n",
+      "hash": "7048d04af5831584",
+      "id": "Math Edge 22 / by month in 2025, camping",
+      "measure": "Math Edge 22",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 22])\n",
+      "hash": "a84a2dfc5f613fbf",
+      "id": "Math Edge 22 / by product, camping",
+      "measure": "Math Edge 22",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 23])\n",
+      "hash": "99c6e6a60fe3f05e",
+      "id": "Math Edge 23 / card",
+      "measure": "Math Edge 23",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 23])\n",
+      "hash": "9438b31fcc10cd33",
+      "id": "Math Edge 23 / by category",
+      "measure": "Math Edge 23",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 23])\n",
+      "hash": "42fd0301ecca9bd1",
+      "id": "Math Edge 23 / by year",
+      "measure": "Math Edge 23",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 23])\n",
+      "hash": "946f9fc36583ae84",
+      "id": "Math Edge 23 / by category and year",
+      "measure": "Math Edge 23",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 23])\n",
+      "hash": "465ae0944261a026",
+      "id": "Math Edge 23 / by region in 2025",
+      "measure": "Math Edge 23",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 23])\n",
+      "hash": "5073a7bbba302c42",
+      "id": "Math Edge 23 / by year and month",
+      "measure": "Math Edge 23",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 23])\n",
+      "hash": "2282816f2192d165",
+      "id": "Math Edge 23 / by month name",
+      "measure": "Math Edge 23",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 23])\n",
+      "hash": "5d6a92a4999e9912",
+      "id": "Math Edge 23 / by color, apparel and camping",
+      "measure": "Math Edge 23",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 23])\n",
+      "hash": "ca280f6a1c4fa1b2",
+      "id": "Math Edge 23 / by month in 2025, camping",
+      "measure": "Math Edge 23",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 23])\n",
+      "hash": "fb9d308c448389a7",
+      "id": "Math Edge 23 / by product, camping",
+      "measure": "Math Edge 23",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 24])\n",
+      "hash": "4e84a358017dac0f",
+      "id": "Math Edge 24 / card",
+      "measure": "Math Edge 24",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 24])\n",
+      "hash": "daf75da17091cb34",
+      "id": "Math Edge 24 / by category",
+      "measure": "Math Edge 24",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 24])\n",
+      "hash": "1e832d18ba26c47e",
+      "id": "Math Edge 24 / by year",
+      "measure": "Math Edge 24",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 24])\n",
+      "hash": "c32a188e324c9729",
+      "id": "Math Edge 24 / by category and year",
+      "measure": "Math Edge 24",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 24])\n",
+      "hash": "51b9c3fe587e1b77",
+      "id": "Math Edge 24 / by region in 2025",
+      "measure": "Math Edge 24",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 24])\n",
+      "hash": "37281785aa7c07fb",
+      "id": "Math Edge 24 / by year and month",
+      "measure": "Math Edge 24",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 24])\n",
+      "hash": "3c1508f837d9994a",
+      "id": "Math Edge 24 / by month name",
+      "measure": "Math Edge 24",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 24])\n",
+      "hash": "a57c598d306f04cb",
+      "id": "Math Edge 24 / by color, apparel and camping",
+      "measure": "Math Edge 24",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 24])\n",
+      "hash": "aa9e8052541938ab",
+      "id": "Math Edge 24 / by month in 2025, camping",
+      "measure": "Math Edge 24",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 24])\n",
+      "hash": "48b3366494c29ef0",
+      "id": "Math Edge 24 / by product, camping",
+      "measure": "Math Edge 24",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 25])\n",
+      "hash": "ed061086b58dd2e8",
+      "id": "Math Edge 25 / card",
+      "measure": "Math Edge 25",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 25])\n",
+      "hash": "bb7c47c8b1627601",
+      "id": "Math Edge 25 / by category",
+      "measure": "Math Edge 25",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 25])\n",
+      "hash": "d1654872cc6a90c7",
+      "id": "Math Edge 25 / by year",
+      "measure": "Math Edge 25",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 25])\n",
+      "hash": "a3e4cb4109aadbb6",
+      "id": "Math Edge 25 / by category and year",
+      "measure": "Math Edge 25",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 25])\n",
+      "hash": "e90d4c5952105a40",
+      "id": "Math Edge 25 / by region in 2025",
+      "measure": "Math Edge 25",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 25])\n",
+      "hash": "29ac12211b5f0b34",
+      "id": "Math Edge 25 / by year and month",
+      "measure": "Math Edge 25",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 25])\n",
+      "hash": "fe9410e6b35c5703",
+      "id": "Math Edge 25 / by month name",
+      "measure": "Math Edge 25",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 25])\n",
+      "hash": "5e903832b959e824",
+      "id": "Math Edge 25 / by color, apparel and camping",
+      "measure": "Math Edge 25",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 25])\n",
+      "hash": "a72a9c44998ca744",
+      "id": "Math Edge 25 / by month in 2025, camping",
+      "measure": "Math Edge 25",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 25])\n",
+      "hash": "a5da0b292a9cf5bd",
+      "id": "Math Edge 25 / by product, camping",
+      "measure": "Math Edge 25",
+      "shape": "by product, camping"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Math Edge 26])\n",
+      "hash": "cace8b09f60a3912",
+      "id": "Math Edge 26 / card",
+      "measure": "Math Edge 26",
+      "shape": "card"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], \"M\", [Math Edge 26])\n",
+      "hash": "6e560eeea6aba1b7",
+      "id": "Math Edge 26 / by category",
+      "measure": "Math Edge 26",
+      "shape": "by category"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], \"M\", [Math Edge 26])\n",
+      "hash": "e132e22463d251c1",
+      "id": "Math Edge 26 / by year",
+      "measure": "Math Edge 26",
+      "shape": "by year"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Product'[Category], 'Date'[Year], \"M\", [Math Edge 26])\n",
+      "hash": "4d687ede845f892c",
+      "id": "Math Edge 26 / by category and year",
+      "measure": "Math Edge 26",
+      "shape": "by category and year"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Store'[Region], __DS0FilterTable, \"M\", [Math Edge 26])\n",
+      "hash": "987d382c19ccde1a",
+      "id": "Math Edge 26 / by region in 2025",
+      "measure": "Math Edge 26",
+      "shape": "by region in 2025"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[Year], 'Date'[MonthNumber], \"M\", [Math Edge 26])\n",
+      "hash": "c791f76f89eac5f6",
+      "id": "Math Edge 26 / by year and month",
+      "measure": "Math Edge 26",
+      "shape": "by year and month"
+    },
+    {
+      "dax": "EVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthName], \"M\", [Math Edge 26])\n",
+      "hash": "6a22968818db7695",
+      "id": "Math Edge 26 / by month name",
+      "measure": "Math Edge 26",
+      "shape": "by month name"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Apparel\", \"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Color], __DS0FilterTable, \"M\", [Math Edge 26])\n",
+      "hash": "6e625a588f4ffc86",
+      "id": "Math Edge 26 / by color, apparel and camping",
+      "measure": "Math Edge 26",
+      "shape": "by color, apparel and camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({2025}, 'Date'[Year])\n\tVAR __DS0FilterTable2 = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Date'[MonthNumber], __DS0FilterTable, __DS0FilterTable2, \"M\", [Math Edge 26])\n",
+      "hash": "6c7f0a901e8e1fe6",
+      "id": "Math Edge 26 / by month in 2025, camping",
+      "measure": "Math Edge 26",
+      "shape": "by month in 2025, camping"
+    },
+    {
+      "dax": "DEFINE\n\tVAR __DS0FilterTable = TREATAS({\"Camping\"}, 'Product'[Category])\n\nEVALUATE\n\tSUMMARIZECOLUMNS('Product'[Product], __DS0FilterTable, \"M\", [Math Edge 26])\n",
+      "hash": "4fb1e49db902585b",
+      "id": "Math Edge 26 / by product, camping",
+      "measure": "Math Edge 26",
+      "shape": "by product, camping"
+    },
+    {
       "dax": "EVALUATE\n\tSUMMARIZECOLUMNS(\"M\", [Median Parent])\n",
       "hash": "785c3402ad2dc8d1",
       "id": "Median Parent / card",

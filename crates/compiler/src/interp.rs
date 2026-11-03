@@ -93,7 +93,11 @@ fn cmp(a: &Value, b: &Value) -> std::cmp::Ordering {
         (Value::Blank, _) => Ordering::Less,
         (_, Value::Blank) => Ordering::Greater,
         _ => match (a.numeric(), b.numeric()) {
-            (Some(x), Some(y)) => x.partial_cmp(&y).unwrap_or(Ordering::Equal),
+            // NaN after every number, as DuckDB orders it.
+            (Some(x), Some(y)) => match (x.is_nan(), y.is_nan()) {
+                (false, false) => x.partial_cmp(&y).unwrap_or(Ordering::Equal),
+                (a, b) => a.cmp(&b),
+            },
             _ => a
                 .key()
                 .unwrap_or_default()
@@ -1225,6 +1229,16 @@ impl<'a> Interp<'a> {
                     Value::Num(ns.iter().sum::<f64>() / ns.len() as f64)
                 }
             }
+            // In Power BI a NaN among numbers makes MIN and MAX NaN; NaNs alone are blank.
+            AggFunc::Min | AggFunc::Max
+                if nonblank.iter().any(|v| v.num().is_some_and(f64::is_nan)) =>
+            {
+                if nonblank.iter().all(|v| v.num().is_some_and(f64::is_nan)) {
+                    Value::Blank
+                } else {
+                    Value::Num(f64::NAN)
+                }
+            }
             AggFunc::Min => nonblank
                 .into_iter()
                 .min_by(|a, b| cmp(a, b))
@@ -1825,7 +1839,7 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
     a.iter()
         .enumerate()
         .map(|(i, v)| match f.kind(i) {
-            ArgKind::Num => Some(Value::Num(v.numeric().unwrap_or(0.0))),
+            ArgKind::Num | ArgKind::NumBlank => Some(Value::Num(v.numeric().unwrap_or(0.0))),
             ArgKind::NumOrBlank => v.numeric().map(Value::Num),
             ArgKind::Int => Some(Value::Num(v.numeric().unwrap_or(0.0).round())),
             ArgKind::Text => Some(Value::Text(text(v))),
@@ -1837,8 +1851,220 @@ fn lib_args(f: LibFn, a: &[Value]) -> Option<Vec<Value>> {
         .collect()
 }
 
+/// DuckDB's `round(v, 9)`: ratios are snapped before rounding up or down.
+fn snap(v: f64) -> f64 {
+    (v * 1e9).round() / 1e9
+}
+
+/// DuckDB's `sign`: 0 for 0.
+fn sgn(v: f64) -> f64 {
+    if v > 0.0 {
+        1.0
+    } else if v < 0.0 {
+        -1.0
+    } else {
+        0.0
+    }
+}
+
+fn gcd(mut a: i64, mut b: i64) -> i64 {
+    while b != 0 {
+        (a, b) = (b, a % b);
+    }
+    a.abs()
+}
+
+/// A pseudo-random number in [0, 1) (RAND; never compared with SQL's).
+fn random() -> f64 {
+    use std::cell::Cell;
+    thread_local!(static STATE: Cell<u64> = Cell::new(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .unwrap_or(1)
+            | 1
+    ));
+    STATE.with(|s| {
+        let mut x = s.get();
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        s.set(x);
+        (x >> 11) as f64 / (1u64 << 53) as f64
+    })
+}
+
+/// The math library functions, with the same formulas as SQL's (math_template).
+/// `blank`: the first argument was blank (and is 0 here); LN of it is -Infinity, not
+/// an error, as in Power BI.
+fn math_fn(f: LibFn, a: &[f64], blank: bool) -> Result<Value> {
+    use std::f64::consts::PI;
+    let x = a.first().copied().unwrap_or(0.0);
+    let opt = |i: usize, default: f64| a.get(i).copied().unwrap_or(default);
+    let bad = || {
+        Err(format!(
+            "An argument of function '{}' has an invalid value.",
+            f.name()
+        ))
+    };
+    let div0 = || {
+        Err(format!(
+            "Division by zero has occurred when evaluating function '{}'.",
+            f.name()
+        ))
+    };
+    let sinh = |x: f64| (x.exp() - (-x).exp()) / 2.0;
+    let cosh = |x: f64| (x.exp() + (-x).exp()) / 2.0;
+    Ok(Value::Num(match f {
+        LibFn::Ceiling | LibFn::Floor => {
+            let s = a[1];
+            if s == 0.0 && f == LibFn::Floor {
+                return bad();
+            } else if s == 0.0 {
+                0.0
+            } else if x > 0.0 && s < 0.0 {
+                return bad();
+            } else if f == LibFn::Ceiling {
+                s * snap(x / s).ceil()
+            } else {
+                s * snap(x / s).floor()
+            }
+        }
+        LibFn::IsoCeiling => {
+            let s = opt(1, 1.0);
+            if s == 0.0 {
+                0.0
+            } else {
+                s.abs() * snap(x / s.abs()).ceil()
+            }
+        }
+        LibFn::RoundUp | LibFn::RoundDown | LibFn::Trunc => {
+            let m = 10f64.powf(opt(1, 0.0).trunc());
+            let v = snap(x.abs() * m);
+            let r = if f == LibFn::RoundUp {
+                v.ceil()
+            } else {
+                v.floor()
+            };
+            sgn(x) * r / m
+        }
+        LibFn::MRound => {
+            let m = a[1];
+            if m == 0.0 {
+                0.0
+            } else if (x > 0.0 && m < 0.0) || (x < 0.0 && m > 0.0) {
+                return bad();
+            } else {
+                m * snap(x / m).round()
+            }
+        }
+        LibFn::Even => sgn(x) * (x.abs() / 2.0).ceil() * 2.0,
+        LibFn::Odd => {
+            let v = ((x.abs() + 1.0) / 2.0).ceil() * 2.0 - 1.0;
+            if x < 0.0 { -v } else { v }
+        }
+        LibFn::Sqrt | LibFn::SqrtPi if x < 0.0 => return bad(),
+        LibFn::Sqrt => x.sqrt(),
+        LibFn::SqrtPi => (x * PI).sqrt(),
+        LibFn::Power => {
+            let y = a[1];
+            let root = 1.0 / y;
+            if x == 0.0 && y < 0.0 {
+                return bad();
+            } else if x < 0.0
+                && y != y.trunc()
+                && (root - root.round()).abs() < 1e-9
+                && (root.round() as i64) % 2 != 0
+            {
+                -(-x).powf(y)
+            } else {
+                x.powf(y)
+            }
+        }
+        LibFn::Ln | LibFn::Log10 if blank => f64::NEG_INFINITY,
+        LibFn::Log if blank => {
+            let b = opt(1, 10.0);
+            if b <= 0.0 || b == 1.0 {
+                return bad();
+            }
+            f64::NEG_INFINITY / b.ln()
+        }
+        LibFn::Exp => x.exp(),
+        LibFn::Ln | LibFn::Log10 if x <= 0.0 => return bad(),
+        LibFn::Ln => x.ln(),
+        LibFn::Log10 => x.log10(),
+        LibFn::Log => {
+            let b = opt(1, 10.0);
+            if x <= 0.0 || b <= 0.0 || b == 1.0 {
+                return bad();
+            }
+            x.ln() / b.ln()
+        }
+        LibFn::Sign => sgn(x),
+        LibFn::Quotient => {
+            if a[1] == 0.0 {
+                return div0();
+            }
+            (x / a[1]).trunc()
+        }
+        LibFn::Fact => {
+            if !(0.0..171.0).contains(&x) {
+                return bad();
+            }
+            (1..=x.trunc() as i64).fold(1.0, |p, i| p * i as f64)
+        }
+        LibFn::Gcd | LibFn::Lcm => {
+            let y = a[1];
+            if x < 0.0 || y < 0.0 {
+                return bad();
+            }
+            let (p, q) = (x.trunc() as i64, y.trunc() as i64);
+            let g = gcd(p, q);
+            if f == LibFn::Gcd {
+                g as f64
+            } else if p == 0 || q == 0 {
+                0.0
+            } else {
+                (p / g * q).abs() as f64
+            }
+        }
+        LibFn::Degrees => x * 180.0 / PI,
+        LibFn::Radians => x * PI / 180.0,
+        LibFn::Sin => x.sin(),
+        LibFn::Cos => x.cos(),
+        LibFn::Tan => x.tan(),
+        LibFn::Cot if x == 0.0 => return div0(),
+        LibFn::Cot => 1.0 / x.tan(),
+        LibFn::Asin | LibFn::Acos if x.abs() > 1.0 => return bad(),
+        LibFn::Asin => x.asin(),
+        LibFn::Acos => x.acos(),
+        LibFn::Atan => x.atan(),
+        LibFn::Acot => PI / 2.0 - x.atan(),
+        LibFn::Sinh => sinh(x),
+        LibFn::Cosh => cosh(x),
+        LibFn::Tanh | LibFn::Coth if x > 20.0 => 1.0,
+        LibFn::Tanh | LibFn::Coth if x < -20.0 => -1.0,
+        LibFn::Tanh => sinh(x) * 2.0 / (cosh(x) * 2.0),
+        LibFn::Coth if x == 0.0 => return div0(),
+        LibFn::Coth => cosh(x) * 2.0 / (sinh(x) * 2.0),
+        LibFn::Asinh => (x + (x * x + 1.0).sqrt()).ln(),
+        LibFn::Acosh if x < 1.0 => return bad(),
+        LibFn::Acosh => (x + (x * x - 1.0).sqrt()).ln(),
+        LibFn::Atanh if x.abs() >= 1.0 => return bad(),
+        LibFn::Atanh => 0.5 * ((1.0 + x) / (1.0 - x)).ln(),
+        LibFn::Acoth if x.abs() <= 1.0 => return bad(),
+        LibFn::Acoth => 0.5 * ((x + 1.0) / (x - 1.0)).ln(),
+        LibFn::Currency => (x * 1e4).round() / 1e4,
+        LibFn::Rand => random(),
+        LibFn::RandBetween => (random() * (a[1] - x + 1.0)).floor() + x,
+        _ => unreachable!("{} isn't a math function", f.name()),
+    }))
+}
+
 /// Each library function, its arguments read by `lib_args`.
 fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
+    // A blank first argument: the function of 0, and blank if that is 0.
+    let blank = f.kind(0) == ArgKind::NumBlank && a.first().is_some_and(Value::is_blank);
     let Some(a) = lib_args(f, a) else {
         return Ok(Value::Blank);
     };
@@ -1852,6 +2078,54 @@ fn lib_fn(f: LibFn, a: &[Value]) -> Result<Value> {
         ))
     };
     Ok(match f {
+        LibFn::Ceiling
+        | LibFn::Floor
+        | LibFn::IsoCeiling
+        | LibFn::RoundUp
+        | LibFn::RoundDown
+        | LibFn::Trunc
+        | LibFn::MRound
+        | LibFn::Even
+        | LibFn::Odd
+        | LibFn::Sqrt
+        | LibFn::SqrtPi
+        | LibFn::Power
+        | LibFn::Exp
+        | LibFn::Ln
+        | LibFn::Log
+        | LibFn::Log10
+        | LibFn::Sign
+        | LibFn::Quotient
+        | LibFn::Fact
+        | LibFn::Gcd
+        | LibFn::Lcm
+        | LibFn::Degrees
+        | LibFn::Radians
+        | LibFn::Sin
+        | LibFn::Cos
+        | LibFn::Tan
+        | LibFn::Cot
+        | LibFn::Asin
+        | LibFn::Acos
+        | LibFn::Atan
+        | LibFn::Acot
+        | LibFn::Sinh
+        | LibFn::Cosh
+        | LibFn::Tanh
+        | LibFn::Coth
+        | LibFn::Asinh
+        | LibFn::Acosh
+        | LibFn::Atanh
+        | LibFn::Acoth
+        | LibFn::Currency
+        | LibFn::Rand
+        | LibFn::RandBetween => {
+            let ns: Vec<f64> = (0..a.len()).map(num).collect();
+            return Ok(match math_fn(f, &ns, blank)? {
+                Value::Num(n) if blank && n == 0.0 => Value::Blank,
+                v => v,
+            });
+        }
         LibFn::Abs => Value::Num(num(0).abs()),
         LibFn::Int => Value::Num(num(0).floor()),
         LibFn::Round => {

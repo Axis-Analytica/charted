@@ -151,6 +151,10 @@ fn random_expr(r: &mut Rng, depth: usize) -> String {
         "VARX.S ( VALUES ( Store[Region] ), [Orders] )",
         "GEOMEAN ( Sales[Price] )",
         "DISTINCTCOUNTNOBLANK ( Sales[OrderedAt] )",
+        "ROUNDUP ( [Sales Amount] / 13, 1 )",
+        "SQRT ( [Quantity] )",
+        "MROUND ( [Orders], 3 )",
+        "LOG ( [Sales Amount] + 1, 2 )",
     ];
     const FILTERS: &[&str] = &[
         "Product[Category] = \"Camping\"",
@@ -701,6 +705,8 @@ const COLUMNS: &[(&str, &str)] = &[
         "PERCENTILEX.INC ( RELATEDTABLE ( Sales ), Sales[Price], 0.8 )",
     ),
     ("Product", "STDEVX.P ( RELATEDTABLE ( Sales ), Sales[Qty] )"),
+    ("Sales", "CEILING ( Sales[Price] * 1.07, 0.05 )"),
+    ("Sales", "POWER ( Sales[Qty], 2 ) + SIGN ( Sales[Qty] - 3 )"),
     // No transition: the whole table.
     ("Product", "SUM ( Sales[Amount] )"),
     ("Product", "COUNTROWS ( Product )"),

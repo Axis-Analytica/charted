@@ -3,7 +3,7 @@
 
 charted evaluates DAX by compiling each visual's measures to one SQL query for DuckDB. Every function below is checked against a reference interpreter on a fixture model (golden tests plus thousands of randomly generated measures).
 
-## Evaluated (138 functions)
+## Evaluated (180 functions)
 
 ### Aggregation
 
@@ -106,11 +106,58 @@ charted evaluates DAX by compiling each visual's measures to one SQL query for D
 | Function | Description |
 |---|---|
 | `ABS ( Number )` | The absolute value of a number. |
+| `ACOS ( Number )` | The arccosine of a number, in radians. |
+| `ACOSH ( Number )` | The inverse hyperbolic cosine of a number. |
+| `ACOT ( Number )` | The arccotangent of a number, in radians. |
+| `ACOTH ( Number )` | The inverse hyperbolic cotangent of a number. |
+| `ASIN ( Number )` | The arcsine of a number, in radians. |
+| `ASINH ( Number )` | The inverse hyperbolic sine of a number. |
+| `ATAN ( Number )` | The arctangent of a number, in radians. |
+| `ATANH ( Number )` | The inverse hyperbolic tangent of a number. |
+| `CEILING ( Number, Significance )` | Rounds up to the nearest multiple of significance. |
+| `COS ( Number )` | The cosine of an angle in radians. |
+| `COSH ( Number )` | The hyperbolic cosine of a number. |
+| `COT ( Number )` | The cotangent of an angle in radians. |
+| `COTH ( Number )` | The hyperbolic cotangent of a number. |
+| `DEGREES ( Angle )` | Converts radians to degrees. |
 | `DIVIDE ( Numerator, Denominator, [AlternateResult] )` | Divides, returning the alternate result (blank by default) when the denominator is zero. |
+| `EVEN ( Number )` | Rounds a number away from zero to the nearest even integer. |
+| `EXP ( Number )` | e raised to a power. |
+| `FACT ( Number )` | The factorial of a number. |
+| `FLOOR ( Number, Significance )` | Rounds down to the nearest multiple of significance. |
+| `GCD ( Number1, Number2 )` | The greatest common divisor of two integers. |
 | `INT ( Number )` | Rounds down to an integer. |
+| `ISO.CEILING ( Number, [Significance] )` | Rounds a number up to the nearest multiple of significance, whatever the signs. |
+| `LCM ( Number1, Number2 )` | The least common multiple of two integers. |
+| `LN ( Number )` | The natural logarithm. |
+| `LOG ( Number, [Base] )` | The logarithm in a base (10 by default). |
+| `LOG10 ( Number )` | The base-10 logarithm of a number. |
 | `MOD ( Number, Divisor )` | The remainder after division. |
+| `MROUND ( Number, Multiple )` | Rounds a number to the nearest multiple. |
+| `ODD ( Number )` | Rounds a number away from zero to the nearest odd integer. |
 | `PI (  )` | The number π, 3.14159265358979. |
+| `POWER ( Number, Power )` | A number raised to a power. |
+| `QUOTIENT ( Numerator, Denominator )` | The integer part of a division. |
+| `RADIANS ( Angle )` | Converts degrees to radians. |
+| `RAND (  )` | A random number from 0 up to 1. |
+| `RANDBETWEEN ( Bottom, Top )` | A random integer between two numbers. |
 | `ROUND ( Number, NumberOfDigits )` | Rounds a number to the given number of digits. |
+| `ROUNDDOWN ( Number, NumberOfDigits )` | Rounds towards zero. |
+| `ROUNDUP ( Number, NumberOfDigits )` | Rounds away from zero. |
+| `SIGN ( Number )` | 1, 0 or -1 for the sign of a number. |
+| `SIN ( Number )` | The sine of an angle in radians. |
+| `SINH ( Number )` | The hyperbolic sine of a number. |
+| `SQRT ( Number )` | The square root. |
+| `SQRTPI ( Number )` | The square root of a number times pi. |
+| `TAN ( Number )` | The tangent of an angle in radians. |
+| `TANH ( Number )` | The hyperbolic tangent of a number. |
+| `TRUNC ( Number, [NumberOfDigits] )` | Truncates to an integer or digits. |
+
+### Other
+
+| Function | Description |
+|---|---|
+| `CURRENCY ( Value )` | The value as a currency: rounded to 4 decimals. |
 
 ### Parent and child
 
@@ -225,8 +272,8 @@ Also: `VAR … RETURN`, `IN { … }`, arithmetic, comparison, `&&`, `||` and `&`
 - **Text functions** treat blank as empty text; MIN and MAX of two numbers treat blank as zero unless both are blank.
 - A measure that is never blank shows a row only where the visual's tables have data (Power BI shows every combination for some such measures).
 
-## Recognised, not yet evaluated (25)
+## Recognised, not yet evaluated (14)
 
 These parse, autocomplete and show their signatures in the editor; using one in a measure reports that it is not supported yet.
 
-`CEILING`, `CROSSFILTER`, `DATEVALUE`, `EXP`, `FIND`, `FIRSTNONBLANK`, `FLOOR`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `LN`, `LOG`, `MINUTE`, `POWER`, `REPLACE`, `ROUNDDOWN`, `ROUNDUP`, `SEARCH`, `SIGN`, `SQRT`, `TRUNC`, `WEEKNUM`, `YEARFRAC`
+`CROSSFILTER`, `DATEVALUE`, `FIND`, `FIRSTNONBLANK`, `GENERATE`, `HOUR`, `IFERROR`, `ISERROR`, `LASTNONBLANK`, `MINUTE`, `REPLACE`, `SEARCH`, `WEEKNUM`, `YEARFRAC`

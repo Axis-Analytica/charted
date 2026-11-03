@@ -177,6 +177,48 @@ fn lib(f: LibFn, a: &[String]) -> Option<String> {
         | LibFn::PathLength
         | LibFn::PathItem
         | LibFn::PathItemReverse
-        | LibFn::PathContains => return None,
+        | LibFn::PathContains
+        | LibFn::Ceiling
+        | LibFn::Floor
+        | LibFn::IsoCeiling
+        | LibFn::RoundUp
+        | LibFn::RoundDown
+        | LibFn::Trunc
+        | LibFn::MRound
+        | LibFn::Even
+        | LibFn::Odd
+        | LibFn::Sqrt
+        | LibFn::SqrtPi
+        | LibFn::Power
+        | LibFn::Exp
+        | LibFn::Ln
+        | LibFn::Log
+        | LibFn::Log10
+        | LibFn::Sign
+        | LibFn::Quotient
+        | LibFn::Fact
+        | LibFn::Gcd
+        | LibFn::Lcm
+        | LibFn::Degrees
+        | LibFn::Radians
+        | LibFn::Sin
+        | LibFn::Cos
+        | LibFn::Tan
+        | LibFn::Cot
+        | LibFn::Asin
+        | LibFn::Acos
+        | LibFn::Atan
+        | LibFn::Acot
+        | LibFn::Sinh
+        | LibFn::Cosh
+        | LibFn::Tanh
+        | LibFn::Coth
+        | LibFn::Asinh
+        | LibFn::Acosh
+        | LibFn::Atanh
+        | LibFn::Acoth
+        | LibFn::Currency
+        | LibFn::Rand
+        | LibFn::RandBetween => return None,
     })
 }

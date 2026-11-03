@@ -20,6 +20,10 @@ pub enum ArgKind {
     Num,
     /// A number (TRUE is 1); a blank argument makes the result blank.
     NumOrBlank,
+    /// A number (TRUE is 1); blank counts as zero, and then a result of zero is blank
+    /// (Power BI's math functions: SQRT ( BLANK () ) is blank, EXP ( BLANK () ) is 1).
+    /// Only for the first argument.
+    NumBlank,
     /// A whole number: decimals are rounded (half away from zero), blank counts as zero.
     Int,
     /// Text; blank counts as empty text, numbers and dates as they're written.
@@ -92,6 +96,49 @@ library! {
     PathItem = "PATHITEM" (Text, Int) -> Text;
     PathItemReverse = "PATHITEMREVERSE" (Text, Int) -> Text;
     PathContains = "PATHCONTAINS" (Text, Text) -> Bool;
+    // Math (M11.6 batch 1).
+    Ceiling = "CEILING" (NumBlank, Num) -> Num;
+    Floor = "FLOOR" (NumBlank, Num) -> Num;
+    IsoCeiling = "ISO.CEILING" (NumBlank; Num) -> Num;
+    RoundUp = "ROUNDUP" (NumBlank, Num) -> Num;
+    RoundDown = "ROUNDDOWN" (NumBlank, Num) -> Num;
+    Trunc = "TRUNC" (NumBlank; Num) -> Num;
+    MRound = "MROUND" (NumBlank, Num) -> Num;
+    Even = "EVEN" (NumBlank) -> Num;
+    Odd = "ODD" (NumBlank) -> Num;
+    Sqrt = "SQRT" (NumBlank) -> Num;
+    SqrtPi = "SQRTPI" (NumBlank) -> Num;
+    Power = "POWER" (NumBlank, Num) -> Num;
+    Exp = "EXP" (NumBlank) -> Num;
+    Ln = "LN" (NumBlank) -> Num;
+    Log = "LOG" (NumBlank; Num) -> Num;
+    Log10 = "LOG10" (NumBlank) -> Num;
+    Sign = "SIGN" (NumBlank) -> Num;
+    Quotient = "QUOTIENT" (NumBlank, Num) -> Num;
+    Fact = "FACT" (NumBlank) -> Num;
+    Gcd = "GCD" (Int, Int) -> Num;
+    Lcm = "LCM" (Int, Int) -> Num;
+    Degrees = "DEGREES" (NumBlank) -> Num;
+    Radians = "RADIANS" (NumBlank) -> Num;
+    Sin = "SIN" (NumBlank) -> Num;
+    Cos = "COS" (NumBlank) -> Num;
+    Tan = "TAN" (NumBlank) -> Num;
+    Cot = "COT" (NumBlank) -> Num;
+    Asin = "ASIN" (NumBlank) -> Num;
+    Acos = "ACOS" (NumBlank) -> Num;
+    Atan = "ATAN" (NumBlank) -> Num;
+    Acot = "ACOT" (NumBlank) -> Num;
+    Sinh = "SINH" (NumBlank) -> Num;
+    Cosh = "COSH" (NumBlank) -> Num;
+    Tanh = "TANH" (NumBlank) -> Num;
+    Coth = "COTH" (NumBlank) -> Num;
+    Asinh = "ASINH" (NumBlank) -> Num;
+    Acosh = "ACOSH" (NumBlank) -> Num;
+    Atanh = "ATANH" (NumBlank) -> Num;
+    Acoth = "ACOTH" (NumBlank) -> Num;
+    Currency = "CURRENCY" (NumBlank) -> Num;
+    Rand = "RAND" () -> Num;
+    RandBetween = "RANDBETWEEN" (Int, Int) -> Num;
 }
 
 impl LibFn {

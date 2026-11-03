@@ -24,12 +24,20 @@ impl FunctionDoc {
 /// `NAME | params; separated; by semicolons | category | description`.
 const TABLE: &str = "\
 ABS|Number|Math|The absolute value of a number.
+ACOSH|Number|Math|The inverse hyperbolic cosine of a number.
+ACOS|Number|Math|The arccosine of a number, in radians.
+ACOTH|Number|Math|The inverse hyperbolic cotangent of a number.
+ACOT|Number|Math|The arccotangent of a number, in radians.
 ADDCOLUMNS|Table; Name; Expression; [Name; Expression]…|Table|Adds calculated columns to a table.
 ALL|[TableOrColumn]; [Column]…|Filter|Removes filters from a table or columns. As a table, returns all rows or distinct values ignoring filters.
 ALLEXCEPT|Table; Column; [Column]…|Filter|Removes all filters on a table except those on the listed columns.
 ALLSELECTED|[TableOrColumn]; [Column]…|Filter|Removes filters from inside the visual, keeping the filters from outside it (slicers, page and report filters).
 AND|Logical1; Logical2|Logical|TRUE when both arguments are TRUE.
 APPROXIMATEDISTINCTCOUNT|Column|Aggregation|The number of distinct values in a column, not counting blank (exact in charted).
+ASINH|Number|Math|The inverse hyperbolic sine of a number.
+ASIN|Number|Math|The arcsine of a number, in radians.
+ATANH|Number|Math|The inverse hyperbolic tangent of a number.
+ATAN|Number|Math|The arctangent of a number, in radians.
 AVERAGE|Column|Aggregation|The arithmetic mean of a column's numbers.
 AVERAGEA|Column|Aggregation|The mean of a column, counting text as zero.
 AVERAGEX|Table; Expression|Aggregation|The mean of an expression evaluated for each row of a table.
@@ -41,6 +49,10 @@ CEILING|Number; Significance|Math|Rounds up to the nearest multiple of significa
 COALESCE|Value1; Value2; [Value]…|Logical|The first argument that is not blank.
 CONCATENATE|Text1; Text2|Text|Joins two text strings.
 CONCATENATEX|Table; Expression; [Delimiter]; [OrderBy]; [Order]|Text|Joins an expression evaluated for each row.
+COSH|Number|Math|The hyperbolic cosine of a number.
+COS|Number|Math|The cosine of an angle in radians.
+COTH|Number|Math|The hyperbolic cotangent of a number.
+COT|Number|Math|The cotangent of an angle in radians.
 COUNT|Column|Aggregation|The number of non-blank values in a column.
 COUNTA|Column|Aggregation|The number of non-blank values in a column.
 COUNTAX|Table; Expression|Aggregation|The number of rows where an expression is not blank.
@@ -48,6 +60,7 @@ COUNTBLANK|Column|Aggregation|The number of blank values in a column.
 COUNTROWS|[Table]|Aggregation|The number of rows in a table.
 COUNTX|Table; Expression|Aggregation|The number of rows for which an expression is not blank.
 CROSSFILTER|Column1; Column2; Direction|Relationships|Changes a relationship's cross-filter direction within a CALCULATE.
+CURRENCY|Value|Other|The value as a currency: rounded to 4 decimals.
 DATE|Year; Month; Day|Date and time|A date from its parts.
 DATEADD|Dates; NumberOfIntervals; Interval|Time intelligence|Dates shifted by a number of intervals.
 DATEDIFF|Date1; Date2; Interval|Date and time|The number of interval boundaries between two dates.
@@ -58,6 +71,7 @@ DATESQTD|Dates|Time intelligence|Dates from the start of the quarter to the last
 DATESYTD|Dates; [YearEndDate]|Time intelligence|Dates from the start of the year to the last date in context.
 DATEVALUE|DateText|Date and time|Converts text to a date.
 DAY|Date|Date and time|The day of the month.
+DEGREES|Angle|Math|Converts radians to degrees.
 DISTINCTCOUNTNOBLANK|Column|Aggregation|The number of distinct values in a column, not counting blank.
 DISTINCT|ColumnOrTable|Table|The distinct values of a column (without the blank row), or the distinct rows of a table.
 DISTINCTCOUNT|Column|Aggregation|The number of distinct values in a column, counting blank.
@@ -65,7 +79,9 @@ DIVIDE|Numerator; Denominator; [AlternateResult]|Math|Divides, returning the alt
 EARLIER|Column; [Number]|Filter|A column's value in an outer row context.
 EDATE|StartDate; Months|Date and time|The date a number of months before or after.
 EOMONTH|StartDate; Months|Date and time|The last day of the month a number of months away.
+EVEN|Number|Math|Rounds a number away from zero to the nearest even integer.
 EXP|Number|Math|e raised to a power.
+FACT|Number|Math|The factorial of a number.
 FALSE||Logical|The logical value FALSE.
 FILTER|Table; FilterExpression|Filter|The rows of a table for which the expression is TRUE.
 FIND|FindText; WithinText; [StartPosition]; [NotFoundValue]|Text|The position of text within text (case-sensitive).
@@ -73,6 +89,7 @@ FIRSTDATE|Dates|Time intelligence|The first date in context.
 FIRSTNONBLANK|Column; Expression|Filter|The first value of a column for which the expression is not blank.
 FLOOR|Number; Significance|Math|Rounds down to the nearest multiple of significance.
 FORMAT|Value; FormatString|Text|Converts a value to text with a format string.
+GCD|Number1; Number2|Math|The greatest common divisor of two integers.
 GENERATE|Table1; Table2|Table|The cross join of each row of Table1 with Table2 evaluated in its context.
 GENERATESERIES|StartValue; EndValue; [IncrementValue]|Table|A table with one column, Value, of the numbers from the start value to the end value.
 GEOMEANX|Table; Expression|Statistical|The geometric mean of an expression evaluated for each row.
@@ -86,13 +103,16 @@ ISBLANK|Value|Information|TRUE when the value is blank.
 ISERROR|Value|Information|TRUE when the value is an error.
 ISFILTERED|TableOrColumn|Information|TRUE when the column (or any column of the table) is filtered directly.
 ISINSCOPE|Column|Information|TRUE when the column is a grouping level of the current row in the visual.
+ISO.CEILING|Number; [Significance]|Math|Rounds a number up to the nearest multiple of significance, whatever the signs.
 ISSELECTEDMEASURE|Measure; [Measure]…|Information|In a calculation item, TRUE when the item is applied to one of these measures.
 KEEPFILTERS|Filter|Filter|Applies a CALCULATE filter on top of existing filters instead of replacing them.
 LASTDATE|Dates|Time intelligence|The last date in context.
 LASTNONBLANK|Column; Expression|Filter|The last value of a column for which the expression is not blank.
+LCM|Number1; Number2|Math|The least common multiple of two integers.
 LEFT|Text; [NumberOfCharacters]|Text|Characters from the start of text.
 LEN|Text|Text|The number of characters.
 LN|Number|Math|The natural logarithm.
+LOG10|Number|Math|The base-10 logarithm of a number.
 LOG|Number; [Base]|Math|The logarithm in a base (10 by default).
 LOOKUPVALUE|ResultColumn; SearchColumn; SearchValue; [SearchColumn; SearchValue]…; [AlternateResult]|Information|The value of a column in the row matching the search values.
 LOWER|Text|Text|Text in lower case.
@@ -108,6 +128,7 @@ MINUTE|DateTime|Date and time|The minute of a time.
 MINX|Table; Expression|Aggregation|The smallest value of an expression evaluated for each row.
 MOD|Number; Divisor|Math|The remainder after division.
 MONTH|Date|Date and time|The month, 1 to 12.
+MROUND|Number; Multiple|Math|Rounds a number to the nearest multiple.
 NAMEOF|Value|Information|The name of a column or measure, as 'Table'[Name] (field parameters use it).
 NEXTDAY|Dates|Time intelligence|The day after the last date.
 NEXTMONTH|Dates|Time intelligence|The dates of the next month.
@@ -115,6 +136,7 @@ NEXTQUARTER|Dates|Time intelligence|The dates of the next quarter.
 NEXTYEAR|Dates|Time intelligence|The dates of the next year.
 NOT|Logical|Logical|Reverses TRUE and FALSE.
 NOW||Date and time|The current date and time.
+ODD|Number|Math|Rounds a number away from zero to the nearest odd integer.
 OR|Logical1; Logical2|Logical|TRUE when either argument is TRUE.
 PARALLELPERIOD|Dates; NumberOfIntervals; Interval|Time intelligence|The whole period a number of intervals away.
 PATH|ID_ColumnName; Parent_ColumnName|Parent and child|The ids from the top of a parent-child hierarchy down to the current row's, joined by vertical bars (in a calculated column).
@@ -135,6 +157,10 @@ PREVIOUSYEAR|Dates|Time intelligence|The dates of the previous year.
 PRODUCT|Column|Aggregation|The product of a column's numbers.
 PRODUCTX|Table; Expression|Aggregation|The product of an expression evaluated for each row.
 QUARTER|Date|Date and time|The quarter, 1 to 4.
+QUOTIENT|Numerator; Denominator|Math|The integer part of a division.
+RADIANS|Angle|Math|Converts degrees to radians.
+RANDBETWEEN|Bottom; Top|Math|A random integer between two numbers.
+RAND||Math|A random number from 0 up to 1.
 RANKX|Table; Expression; [Value]; [Order]; [Ties]|Statistical|The rank of a value among the values of an expression over a table.
 RELATED|Column|Relationships|The value of a column in the related table on the one side of a relationship.
 RELATEDTABLE|Table|Relationships|The rows of a table on the many side related to the current row.
@@ -152,6 +178,9 @@ SELECTEDMEASUREFORMATSTRING||Information|In a calculation item, the format strin
 SELECTEDMEASURENAME||Information|In a calculation item, the name of the measure the item is applied to.
 SELECTEDVALUE|Column; [AlternateResult]|Information|The column's value when the filter context leaves exactly one, otherwise the alternate result.
 SIGN|Number|Math|1, 0 or -1 for the sign of a number.
+SINH|Number|Math|The hyperbolic sine of a number.
+SIN|Number|Math|The sine of an angle in radians.
+SQRTPI|Number|Math|The square root of a number times pi.
 SQRT|Number|Math|The square root.
 STDEV.P|Column|Statistical|The standard deviation of a population.
 STDEV.S|Column|Statistical|The standard deviation of a sample.
@@ -163,6 +192,8 @@ SUMMARIZE|Table; GroupByColumn…; [Name; Expression]…|Table|A table grouped b
 SUMMARIZECOLUMNS|GroupByColumn…; [Filter]…; [Name; Expression]…|Table|A table grouped by columns with expressions, as visuals use.
 SUMX|Table; Expression|Aggregation|The sum of an expression evaluated for each row of a table.
 SWITCH|Expression; Value; Result; [Value; Result]…; [Else]|Logical|Returns the result for the first value that matches the expression.
+TANH|Number|Math|The hyperbolic tangent of a number.
+TAN|Number|Math|The tangent of an angle in radians.
 TODAY||Date and time|The current date.
 TOPN|N; Table; [OrderBy]; [Order]…|Table|The top N rows of a table by an expression.
 TOTALMTD|Expression; Dates; [Filter]|Time intelligence|An expression over the month to date.

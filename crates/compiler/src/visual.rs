@@ -452,6 +452,14 @@ fn agg_sql(func: AggFunc, arg: Option<(String, ValueType)>) -> (String, ValueTyp
     match func {
         AggFunc::Sum => (format!("sum({x})"), ValueType::Number),
         AggFunc::Average => (format!("avg({x})"), ValueType::Number),
+        // In Power BI a NaN among numbers makes MIN and MAX NaN; NaNs alone are blank.
+        AggFunc::Min | AggFunc::Max if ty == ValueType::Number => (
+            format!(
+                "(CASE WHEN bool_and(isnan(CAST({x} AS DOUBLE))) THEN NULL WHEN bool_or(isnan(CAST({x} AS DOUBLE))) THEN 'NaN'::DOUBLE ELSE {}({x}) END)",
+                if func == AggFunc::Min { "min" } else { "max" }
+            ),
+            ty,
+        ),
         AggFunc::Min => (format!("min({x})"), ty),
         AggFunc::Max => (format!("max({x})"), ty),
         // Counting nothing is blank in DAX.
@@ -727,7 +735,9 @@ fn format_sql(spec: &FormatSpec, x: &(String, ValueType)) -> Result<String> {
 /// `lib_args` reads them the same way.
 fn lib_arg(kind: ArgKind, x: &(String, ValueType)) -> String {
     match kind {
-        ArgKind::Num => format!("coalesce(CAST({} AS DOUBLE), 0)", serial_sql(x)),
+        ArgKind::Num | ArgKind::NumBlank => {
+            format!("coalesce(CAST({} AS DOUBLE), 0)", serial_sql(x))
+        }
         ArgKind::NumOrBlank => format!("CAST({} AS DOUBLE)", serial_sql(x)),
         ArgKind::Int => format!(
             "CAST(round(coalesce(CAST({} AS DOUBLE), 0)) AS BIGINT)",
@@ -764,18 +774,36 @@ fn trivial_sql(x: &str) -> bool {
 fn lib_sql(f: LibFn, a: &[(String, ValueType)]) -> (String, ValueType) {
     // Not \u{1}…\u{1}: the measure placeholders use those.
     let marker = |i: usize| format!("\u{2}lib{i}\u{2}");
+    // The argument as given, before its kind reads it.
+    let raw = |i: usize| format!("\u{2}raw{i}\u{2}");
     let markers: Vec<String> = (0..a.len()).map(marker).collect();
     let mut body = lib_template(f, &markers);
+    if f.kind(0) == ArgKind::NumBlank && !a.is_empty() {
+        // A blank first argument: the function of 0, and blank if that is 0.
+        let mut zero = markers.clone();
+        zero[0] = "CAST(0 AS DOUBLE)".into();
+        let bad = format!(
+            "error('An argument of function ''{}'' has an invalid value.')",
+            f.name()
+        );
+        body = format!(
+            "(CASE WHEN {} IS NULL THEN nullif({}, 0) ELSE {body} END)",
+            raw(0),
+            math_template(f, &zero, &bad, true)
+        );
+    }
     let mut fields = Vec::new();
     for (i, x) in a.iter().enumerate() {
-        let m = marker(i);
-        let arg = if body.matches(&m).count() > 1 && !trivial_sql(&x.0) {
+        let (m, r) = (marker(i), raw(i));
+        let uses = body.matches(&m).count() + body.matches(&r).count();
+        let (arg, given) = if uses > 1 && !trivial_sql(&x.0) {
             fields.push(format!("a{i} := {}", x.0));
-            lib_arg(f.kind(i), &(format!("_l.a{i}"), x.1))
+            let bound = format!("_l.a{i}");
+            (lib_arg(f.kind(i), &(bound.clone(), x.1)), bound)
         } else {
-            lib_arg(f.kind(i), x)
+            (lib_arg(f.kind(i), x), x.0.clone())
         };
-        body = body.replace(&m, &arg);
+        body = body.replace(&m, &arg).replace(&r, &format!("({given})"));
     }
     if !fields.is_empty() {
         body = format!(
@@ -861,6 +889,180 @@ fn lib_template(f: LibFn, a: &[String]) -> String {
             n = a[1]
         ),
         LibFn::PathContains => format!("list_contains(string_split({}, '|'), {})", a[0], a[1]),
+        // Math: the same formulas as the interpreter's (lib_fn), so the two agree to
+        // the last bit. Ratios are snapped to 9 decimals before rounding them up or
+        // down, so 3.2 * 10 isn't taken for 32.000000000000004.
+        LibFn::Ceiling
+        | LibFn::Floor
+        | LibFn::IsoCeiling
+        | LibFn::RoundUp
+        | LibFn::RoundDown
+        | LibFn::Trunc
+        | LibFn::MRound
+        | LibFn::Even
+        | LibFn::Odd
+        | LibFn::Sqrt
+        | LibFn::SqrtPi
+        | LibFn::Power
+        | LibFn::Exp
+        | LibFn::Ln
+        | LibFn::Log
+        | LibFn::Log10
+        | LibFn::Sign
+        | LibFn::Quotient
+        | LibFn::Fact
+        | LibFn::Gcd
+        | LibFn::Lcm
+        | LibFn::Degrees
+        | LibFn::Radians
+        | LibFn::Sin
+        | LibFn::Cos
+        | LibFn::Tan
+        | LibFn::Cot
+        | LibFn::Asin
+        | LibFn::Acos
+        | LibFn::Atan
+        | LibFn::Acot
+        | LibFn::Sinh
+        | LibFn::Cosh
+        | LibFn::Tanh
+        | LibFn::Coth
+        | LibFn::Asinh
+        | LibFn::Acosh
+        | LibFn::Atanh
+        | LibFn::Acoth
+        | LibFn::Currency
+        | LibFn::Rand
+        | LibFn::RandBetween => math_template(f, a, &bad, false),
+    }
+}
+
+/// `blank`: the first argument was blank (and is 0 here); LN of it is -Infinity, not
+/// an error, as in Power BI.
+fn math_template(f: LibFn, a: &[String], bad: &str, blank: bool) -> String {
+    let x = a.first().cloned().unwrap_or_default();
+    let opt = |i: usize, default: &str| a.get(i).cloned().unwrap_or_else(|| default.into());
+    let div0 = format!(
+        "error('Division by zero has occurred when evaluating function ''{}''.')",
+        f.name()
+    );
+    let guard =
+        |cond: String, value: String| format!("(CASE WHEN {cond} THEN {bad} ELSE {value} END)");
+    match f {
+        LibFn::Ceiling | LibFn::Floor => {
+            let s = &a[1];
+            let (op, zero) = if f == LibFn::Ceiling {
+                ("ceil", "0")
+            } else {
+                ("floor", bad)
+            };
+            format!(
+                "(CASE WHEN {s} = 0 THEN {zero} WHEN {x} > 0 AND {s} < 0 THEN {bad} ELSE {s} * {op}(round({x} / {s}, 9)) END)"
+            )
+        }
+        LibFn::IsoCeiling => {
+            let s = opt(1, "1");
+            format!("(CASE WHEN {s} = 0 THEN 0 ELSE abs({s}) * ceil(round({x} / abs({s}), 9)) END)")
+        }
+        LibFn::RoundUp | LibFn::RoundDown | LibFn::Trunc => {
+            let d = opt(1, "0");
+            let op = if f == LibFn::RoundUp { "ceil" } else { "floor" };
+            format!(
+                "(sign({x}) * {op}(round(abs({x}) * pow(10, trunc({d})), 9)) / pow(10, trunc({d})))"
+            )
+        }
+        LibFn::MRound => {
+            let m = &a[1];
+            format!(
+                "(CASE WHEN {m} = 0 THEN 0 WHEN ({x} > 0 AND {m} < 0) OR ({x} < 0 AND {m} > 0) THEN {bad} ELSE {m} * round(round({x} / {m}, 9)) END)"
+            )
+        }
+        LibFn::Even => format!("(sign({x}) * ceil(abs({x}) / 2) * 2)"),
+        LibFn::Odd => format!(
+            "(CASE WHEN {x} < 0 THEN -(ceil((abs({x}) + 1) / 2) * 2 - 1) ELSE ceil((abs({x}) + 1) / 2) * 2 - 1 END)"
+        ),
+        LibFn::Sqrt => guard(format!("{x} < 0"), format!("sqrt({x})")),
+        LibFn::SqrtPi => guard(format!("{x} < 0"), format!("sqrt({x} * pi())")),
+        // 0 to a negative power is an error; an odd root of a negative number is
+        // negative (POWER ( -8, 1/3 ) is -2).
+        LibFn::Power => {
+            let y = &a[1];
+            format!(
+                "(CASE WHEN {x} = 0 AND {y} < 0 THEN {bad} WHEN {x} < 0 AND {y} <> trunc({y}) AND abs(1 / {y} - round(1 / {y})) < 1e-9 AND CAST(round(1 / {y}) AS BIGINT) % 2 <> 0 THEN -pow(-({x}), {y}) ELSE pow({x}, {y}) END)"
+            )
+        }
+        LibFn::Ln | LibFn::Log10 if blank => "'-inf'::DOUBLE".into(),
+        LibFn::Log if blank => {
+            let b = opt(1, "10");
+            format!("(CASE WHEN {b} <= 0 OR {b} = 1 THEN {bad} ELSE '-inf'::DOUBLE / ln({b}) END)")
+        }
+        LibFn::Exp => format!("exp({x})"),
+        LibFn::Ln => guard(format!("{x} <= 0"), format!("ln({x})")),
+        LibFn::Log => {
+            let b = opt(1, "10");
+            guard(
+                format!("{x} <= 0 OR {b} <= 0 OR {b} = 1"),
+                format!("(ln({x}) / ln({b}))"),
+            )
+        }
+        LibFn::Log10 => guard(format!("{x} <= 0"), format!("log10({x})")),
+        LibFn::Sign => format!("CAST(sign({x}) AS DOUBLE)"),
+        LibFn::Quotient => format!(
+            "(CASE WHEN {d} = 0 THEN {div0} ELSE trunc({x} / {d}) END)",
+            d = a[1]
+        ),
+        LibFn::Fact => guard(
+            format!("{x} < 0 OR {x} >= 171"),
+            format!(
+                "(CASE WHEN {x} < 1 THEN 1 ELSE list_product(list_transform(range(1, CAST(trunc({x}) AS BIGINT) + 1), lambda _i: CAST(_i AS DOUBLE))) END)"
+            ),
+        ),
+        LibFn::Gcd | LibFn::Lcm => {
+            let y = &a[1];
+            guard(
+                format!("{x} < 0 OR {y} < 0"),
+                format!(
+                    "CAST({}(CAST(trunc({x}) AS BIGINT), CAST(trunc({y}) AS BIGINT)) AS DOUBLE)",
+                    f.name().to_lowercase()
+                ),
+            )
+        }
+        LibFn::Degrees => format!("({x} * 180 / pi())"),
+        LibFn::Radians => format!("({x} * pi() / 180)"),
+        LibFn::Sin => format!("sin({x})"),
+        LibFn::Cos => format!("cos({x})"),
+        LibFn::Tan => format!("tan({x})"),
+        LibFn::Cot => format!("(CASE WHEN {x} = 0 THEN {div0} ELSE 1 / tan({x}) END)"),
+        LibFn::Asin => guard(format!("abs({x}) > 1"), format!("asin({x})")),
+        LibFn::Acos => guard(format!("abs({x}) > 1"), format!("acos({x})")),
+        LibFn::Atan => format!("atan({x})"),
+        LibFn::Acot => format!("(pi() / 2 - atan({x}))"),
+        LibFn::Sinh => format!("((exp({x}) - exp(-({x}))) / 2)"),
+        LibFn::Cosh => format!("((exp({x}) + exp(-({x}))) / 2)"),
+        LibFn::Tanh => format!(
+            "(CASE WHEN {x} > 20 THEN 1 WHEN {x} < -20 THEN -1 ELSE (exp({x}) - exp(-({x}))) / (exp({x}) + exp(-({x}))) END)"
+        ),
+        LibFn::Coth => format!(
+            "(CASE WHEN {x} = 0 THEN {div0} WHEN {x} > 20 THEN 1 WHEN {x} < -20 THEN -1 ELSE (exp({x}) + exp(-({x}))) / (exp({x}) - exp(-({x}))) END)"
+        ),
+        LibFn::Asinh => format!("ln({x} + sqrt({x} * {x} + 1))"),
+        LibFn::Acosh => guard(format!("{x} < 1"), format!("ln({x} + sqrt({x} * {x} - 1))")),
+        LibFn::Atanh => guard(
+            format!("abs({x}) >= 1"),
+            format!("(0.5 * ln((1 + {x}) / (1 - {x})))"),
+        ),
+        LibFn::Acoth => guard(
+            format!("abs({x}) <= 1"),
+            format!("(0.5 * ln(({x} + 1) / ({x} - 1)))"),
+        ),
+        LibFn::Currency => format!("round({x}, 4)"),
+        LibFn::Rand => "random()".into(),
+        LibFn::RandBetween => format!(
+            "CAST(floor(random() * ({b} - {lo} + 1)) + {lo} AS DOUBLE)",
+            lo = a[0],
+            b = a[1]
+        ),
+        _ => unreachable!("{} isn't a math function", f.name()),
     }
 }
 

@@ -577,6 +577,12 @@ a throwaway `XDG_DOCUMENTS_DIR`; use `CHROMIUM_PATH=/usr/bin/chromium` locally.
     blank and a value the blank is 0 (the 75th percentile of [blank, blank, 3] is 1.5,
     the median blank). STDEV(X), VAR(X), GEOMEAN(X), PRODUCT(X) and AVERAGEA ignore
     blanks. STDEV.S and VAR.S of a single value are NaN, of none blank.
+  - Math functions in Power BI (M11.6): a blank first argument is 0, and a result of 0
+    is then blank (`ArgKind::NumBlank`), so SQRT ( BLANK () ) is blank but
+    EXP ( BLANK () ) is 1; LN of a blank is -Infinity where LN ( 0 ) is an error. GCD and
+    LCM round their arguments. MIN/MAX(X) of numbers with a NaN are NaN, of NaNs alone
+    blank. The SQL and interpreter math use the same formulas (hyperbolics through
+    `exp`, ratios snapped to 9 decimals before CEILING/ROUNDUP…) so they agree exactly.
   - Time intelligence, checked on a marked daily calendar too (a probe model
     `charted-probe` in My workspace): DATEADD and SAMEPERIODLASTYEAR move the visible
     range, not each date: the first date by n units (day clamped), the last too, or to

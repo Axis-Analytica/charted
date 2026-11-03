@@ -593,6 +593,15 @@ negative value is an error (not checked against Power BI: no negatives in the fi
 
 #### M11.6 Functions in batches through the table (L; harness re-run per batch)
 
+*Batch 1 (math), 2026-11-03: done,* except CONVERT (it takes a type keyword; with
+the text batch). All 42 checked against the Service (2964 of 3010 queries agree, the
+other 46 known). What it showed: with a blank first argument a math function gives
+its value at 0, and blank if that is 0 (`ArgKind::NumBlank`: EXP ( BLANK () ) is 1,
+LN ( BLANK () ) -Infinity though LN ( 0 ) is an error, COT ( BLANK () ) an error);
+GCD and LCM round their arguments; FLOOR by 0 and POWER ( 0, -1 ) are errors;
+POWER ( -8, 1/3 ) is -2; MIN and MAX of numbers with a NaN are NaN, of NaNs alone
+blank.
+
 1. **Math:**
    - The 11 recognised ones: CEILING, FLOOR, ROUNDUP, ROUNDDOWN, TRUNC, SQRT, POWER, EXP,
      LN, LOG, SIGN.

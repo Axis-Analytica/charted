@@ -748,6 +748,423 @@ NaN
 "Camping" | 25
 "Footwear" | 21
 
+## Ceiling Amount — card
+3345
+
+## Ceiling Amount — by category
+∅ | 15
+"Apparel" | 955
+"Camping" | 1450
+"Footwear" | 935
+
+## Floor Neg — card
+-88
+
+## Floor Neg — by category
+∅ | -0
+"Apparel" | -36
+"Camping" | -26
+"Footwear" | -24
+
+## Iso Ceiling — card
+3
+
+## Iso Ceiling — by category
+∅ | 3
+"Apparel" | 3
+"Camping" | 3
+"Footwear" | 3
+
+## Round Up Avg — card
+285.7
+
+## Round Up Avg — by category
+∅ | 81
+"Apparel" | 200.6
+"Camping" | 388.9
+"Footwear" | 305.9
+
+## Round Down Avg — card
+280
+
+## Round Down Avg — by category
+∅ | 80
+"Apparel" | 200
+"Camping" | 380
+"Footwear" | 300
+
+## Trunc Avg — card
+-0.64
+
+## Trunc Avg — by category
+∅ | 0
+"Apparel" | -0.52
+"Camping" | -0.89
+"Footwear" | -0.86
+
+## MRound Qty — card
+268
+
+## MRound Qty — by category
+∅ | 4
+"Apparel" | 112
+"Camping" | 84
+"Footwear" | 72
+
+## Even Odd — card
+-1
+
+## Even Odd — by category
+∅ | 1
+"Apparel" | 1
+"Camping" | -1
+"Footwear" | 1
+
+## Sqrt Qty — card
+33.2162
+
+## Sqrt Qty — by category
+∅ | 3.5045
+"Apparel" | 21.4618
+"Camping" | 18.6003
+"Footwear" | 16.8575
+
+## Power Qty — card
+528.4012
+
+## Power Qty — by category
+∅ | 2.8038
+"Apparel" | 24.4645
+"Camping" | 16.5196
+"Footwear" | 13.1388
+
+## Exp Ln — card
+24.7927
+
+## Exp Ln — by category
+∅ | 5.4249
+"Apparel" | 11.8405
+"Camping" | 11.4945
+"Footwear" | 10.8576
+
+## Logs — card
+21.3142
+
+## Logs — by category
+∅ | 8.7255
+"Apparel" | 18.5743
+"Camping" | 19.2273
+"Footwear" | 18.3479
+
+## Sign Qty — card
+1
+
+## Sign Qty — by category
+∅ | -1
+"Apparel" | 1
+"Camping" | 1
+"Footwear" | 1
+
+## Quotient Amount — card
+3344
+
+## Quotient Amount — by category
+∅ | 11
+"Apparel" | 953
+"Camping" | 1448
+"Footwear" | 931
+
+## Fact Orders — card
+720
+
+## Fact Orders — by category
+∅ | 1
+"Apparel" | 2
+"Camping" | 120
+"Footwear" | 3628800
+
+## Gcd Lcm — card
+181
+
+## Gcd Lcm — by category
+∅ | 7
+"Apparel" | 79
+"Camping" | 118
+"Footwear" | 45
+
+## Angles — card
+15414.1355
+
+## Angles — by category
+∅ | 171.9048
+"Apparel" | 6360.4948
+"Camping" | 4698.7601
+"Footwear" | 4182.9759
+
+## Trig — card
+-2.3577
+
+## Trig — by category
+∅ | 1.3535
+"Apparel" | 5.3274
+"Camping" | 1.7641
+"Footwear" | 112.1914
+
+## Arcs — card
+4.5603
+
+## Arcs — by category
+∅ | 2.558
+"Apparel" | 4.4764
+"Camping" | 4.4413
+"Footwear" | 4.4027
+
+## Hyperbolic — card
+113.6724
+
+## Hyperbolic — by category
+∅ | 51.1268
+"Apparel" | 8.3889
+"Camping" | 6.4943
+"Footwear" | 6.4504
+
+## Inverse Hyperbolic — card
+14.091
+
+## Inverse Hyperbolic — by category
+∅ | 2.9171
+"Apparel" | 11.9308
+"Camping" | 11.2322
+"Footwear" | 10.7142
+
+## Currency Avg — card
+40.8063
+
+## Currency Avg — by category
+∅ | 11.5714
+"Apparel" | 28.6466
+"Camping" | 55.5567
+"Footwear" | 43.6948
+
+## Rand Check — card
+4
+
+## Rand Check — by category
+∅ | 4
+"Apparel" | 4
+"Camping" | 4
+"Footwear" | 4
+
+## Min With NaN — card
+NaN
+
+## Min With NaN — by category
+∅ | NaN
+"Apparel" | NaN
+"Camping" | NaN
+"Footwear" | NaN
+
+## Max With NaN — card
+NaN
+
+## Max With NaN — by category
+∅ | NaN
+"Apparel" | NaN
+"Camping" | NaN
+"Footwear" | NaN
+
+## Math Of Blank — card
+"ceil: floor: iso: up: down: trunc: mround: even: odd:1 sqrt: sqrtpi: pow: exp:1 sign: quot: fact:1 gcd:4 lcm:0 deg: rad: sin: cos:1 tan: asin: acos:1.570796 atan: acot:1.570796 sinh: cosh:1 tanh: asinh: atanh: cur: "
+
+## Math Of Blank — by category
+∅ | "ceil: floor: iso: up: down: trunc: mround: even: odd:1 sqrt: sqrtpi: pow: exp:1 sign: quot: fact:1 gcd:4 lcm:0 deg: rad: sin: cos:1 tan: asin: acos:1.570796 atan: acot:1.570796 sinh: cosh:1 tanh: asinh: atanh: cur: "
+"Apparel" | "ceil: floor: iso: up: down: trunc: mround: even: odd:1 sqrt: sqrtpi: pow: exp:1 sign: quot: fact:1 gcd:4 lcm:0 deg: rad: sin: cos:1 tan: asin: acos:1.570796 atan: acot:1.570796 sinh: cosh:1 tanh: asinh: atanh: cur: "
+"Camping" | "ceil: floor: iso: up: down: trunc: mround: even: odd:1 sqrt: sqrtpi: pow: exp:1 sign: quot: fact:1 gcd:4 lcm:0 deg: rad: sin: cos:1 tan: asin: acos:1.570796 atan: acot:1.570796 sinh: cosh:1 tanh: asinh: atanh: cur: "
+"Footwear" | "ceil: floor: iso: up: down: trunc: mround: even: odd:1 sqrt: sqrtpi: pow: exp:1 sign: quot: fact:1 gcd:4 lcm:0 deg: rad: sin: cos:1 tan: asin: acos:1.570796 atan: acot:1.570796 sinh: cosh:1 tanh: asinh: atanh: cur: "
+
+## Math Blank Second — card
+"ceil:0 floor0:3 pow:1 mround:0 gcd:12 lcm:0 iso:0 trunc:2 "
+
+## Math Blank Second — by category
+∅ | "ceil:0 floor0:3 pow:1 mround:0 gcd:12 lcm:0 iso:0 trunc:2 "
+"Apparel" | "ceil:0 floor0:3 pow:1 mround:0 gcd:12 lcm:0 iso:0 trunc:2 "
+"Camping" | "ceil:0 floor0:3 pow:1 mround:0 gcd:12 lcm:0 iso:0 trunc:2 "
+"Footwear" | "ceil:0 floor0:3 pow:1 mround:0 gcd:12 lcm:0 iso:0 trunc:2 "
+
+## Math Signs — card
+"c1:-4 f1:-6 c2:-6 f2:-4 c3:4.2 f3:4.2 iso:-4 odd0:1 even:-2 odd:-3 mr:1.4 mr2:-6 ru:3.2 rd:-3.141 ru2:1300 tr:-8 q:-3 fact:120 gcd:1 lcm:0 cur:1.2346 pow:-2 log:3 true:1 sinhbig:1 "
+
+## Math Signs — by category
+∅ | "c1:-4 f1:-6 c2:-6 f2:-4 c3:4.2 f3:4.2 iso:-4 odd0:1 even:-2 odd:-3 mr:1.4 mr2:-6 ru:3.2 rd:-3.141 ru2:1300 tr:-8 q:-3 fact:120 gcd:1 lcm:0 cur:1.2346 pow:-2 log:3 true:1 sinhbig:1 "
+"Apparel" | "c1:-4 f1:-6 c2:-6 f2:-4 c3:4.2 f3:4.2 iso:-4 odd0:1 even:-2 odd:-3 mr:1.4 mr2:-6 ru:3.2 rd:-3.141 ru2:1300 tr:-8 q:-3 fact:120 gcd:1 lcm:0 cur:1.2346 pow:-2 log:3 true:1 sinhbig:1 "
+"Camping" | "c1:-4 f1:-6 c2:-6 f2:-4 c3:4.2 f3:4.2 iso:-4 odd0:1 even:-2 odd:-3 mr:1.4 mr2:-6 ru:3.2 rd:-3.141 ru2:1300 tr:-8 q:-3 fact:120 gcd:1 lcm:0 cur:1.2346 pow:-2 log:3 true:1 sinhbig:1 "
+"Footwear" | "c1:-4 f1:-6 c2:-6 f2:-4 c3:4.2 f3:4.2 iso:-4 odd0:1 even:-2 odd:-3 mr:1.4 mr2:-6 ru:3.2 rd:-3.141 ru2:1300 tr:-8 q:-3 fact:120 gcd:1 lcm:0 cur:1.2346 pow:-2 log:3 true:1 sinhbig:1 "
+
+## Math Edge 1 — card
+error: An argument of function 'SQRT' has an invalid value.
+
+## Math Edge 1 — by category
+error: An argument of function 'SQRT' has an invalid value.
+
+## Math Edge 2 — card
+error: An argument of function 'LN' has an invalid value.
+
+## Math Edge 2 — by category
+error: An argument of function 'LN' has an invalid value.
+
+## Math Edge 3 — card
+-inf
+
+## Math Edge 3 — by category
+∅ | -inf
+"Apparel" | -inf
+"Camping" | -inf
+"Footwear" | -inf
+
+## Math Edge 4 — card
+-inf
+
+## Math Edge 4 — by category
+∅ | -inf
+"Apparel" | -inf
+"Camping" | -inf
+"Footwear" | -inf
+
+## Math Edge 5 — card
+error: An argument of function 'LOG' has an invalid value.
+
+## Math Edge 5 — by category
+error: An argument of function 'LOG' has an invalid value.
+
+## Math Edge 6 — card
+error: An argument of function 'LOG' has an invalid value.
+
+## Math Edge 6 — by category
+error: An argument of function 'LOG' has an invalid value.
+
+## Math Edge 7 — card
+-inf
+
+## Math Edge 7 — by category
+∅ | -inf
+"Apparel" | -inf
+"Camping" | -inf
+"Footwear" | -inf
+
+## Math Edge 8 — card
+error: An argument of function 'FACT' has an invalid value.
+
+## Math Edge 8 — by category
+error: An argument of function 'FACT' has an invalid value.
+
+## Math Edge 9 — card
+error: An argument of function 'FACT' has an invalid value.
+
+## Math Edge 9 — by category
+error: An argument of function 'FACT' has an invalid value.
+
+## Math Edge 10 — card
+error: An argument of function 'ASIN' has an invalid value.
+
+## Math Edge 10 — by category
+error: An argument of function 'ASIN' has an invalid value.
+
+## Math Edge 11 — card
+error: An argument of function 'MROUND' has an invalid value.
+
+## Math Edge 11 — by category
+error: An argument of function 'MROUND' has an invalid value.
+
+## Math Edge 12 — card
+error: An argument of function 'CEILING' has an invalid value.
+
+## Math Edge 12 — by category
+error: An argument of function 'CEILING' has an invalid value.
+
+## Math Edge 13 — card
+error: An argument of function 'FLOOR' has an invalid value.
+
+## Math Edge 13 — by category
+error: An argument of function 'FLOOR' has an invalid value.
+
+## Math Edge 14 — card
+error: An argument of function 'FLOOR' has an invalid value.
+
+## Math Edge 14 — by category
+error: An argument of function 'FLOOR' has an invalid value.
+
+## Math Edge 15 — card
+error: Division by zero has occurred when evaluating function 'QUOTIENT'.
+
+## Math Edge 15 — by category
+error: Division by zero has occurred when evaluating function 'QUOTIENT'.
+
+## Math Edge 16 — card
+error: Division by zero has occurred when evaluating function 'QUOTIENT'.
+
+## Math Edge 16 — by category
+error: Division by zero has occurred when evaluating function 'QUOTIENT'.
+
+## Math Edge 17 — card
+error: Division by zero has occurred when evaluating function 'COT'.
+
+## Math Edge 17 — by category
+error: Division by zero has occurred when evaluating function 'COT'.
+
+## Math Edge 18 — card
+error: Division by zero has occurred when evaluating function 'COT'.
+
+## Math Edge 18 — by category
+error: Division by zero has occurred when evaluating function 'COT'.
+
+## Math Edge 19 — card
+error: Division by zero has occurred when evaluating function 'COTH'.
+
+## Math Edge 19 — by category
+error: Division by zero has occurred when evaluating function 'COTH'.
+
+## Math Edge 20 — card
+error: An argument of function 'GCD' has an invalid value.
+
+## Math Edge 20 — by category
+error: An argument of function 'GCD' has an invalid value.
+
+## Math Edge 21 — card
+error: An argument of function 'ACOSH' has an invalid value.
+
+## Math Edge 21 — by category
+error: An argument of function 'ACOSH' has an invalid value.
+
+## Math Edge 22 — card
+error: An argument of function 'ACOSH' has an invalid value.
+
+## Math Edge 22 — by category
+error: An argument of function 'ACOSH' has an invalid value.
+
+## Math Edge 23 — card
+error: An argument of function 'ATANH' has an invalid value.
+
+## Math Edge 23 — by category
+error: An argument of function 'ATANH' has an invalid value.
+
+## Math Edge 24 — card
+error: An argument of function 'ACOTH' has an invalid value.
+
+## Math Edge 24 — by category
+error: An argument of function 'ACOTH' has an invalid value.
+
+## Math Edge 25 — card
+error: An argument of function 'POWER' has an invalid value.
+
+## Math Edge 25 — by category
+error: An argument of function 'POWER' has an invalid value.
+
+## Math Edge 26 — card
+error: An argument of function 'SQRTPI' has an invalid value.
+
+## Math Edge 26 — by category
+error: An argument of function 'SQRTPI' has an invalid value.
+
 ## Median Parent — card
 2
 
