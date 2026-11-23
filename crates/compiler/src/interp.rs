@@ -142,6 +142,8 @@ struct Filter {
     tuples: HashSet<Tuple>,
     /// A visual grouping or an iterator's row (what ALLSELECTED removes).
     grouping: bool,
+    /// A filter the visual query supplied (a SUMMARIZECOLUMNS filter table).
+    query: bool,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -542,6 +544,13 @@ impl<'a> Interp<'a> {
             TableExpr::AllSelected { table, columns } => {
                 let mut c = ctx.clone();
                 c.filters.retain(|f| !f.grouping);
+                // A filter on another column of a date table does not limit ALLSELECTED
+                // of its date column. The whole table keeps that filter.
+                c.filters.retain(|f| {
+                    crate::allselected_keeps_filter(
+                        self.model, table, columns, &f.table, &f.columns, f.query,
+                    )
+                });
                 // The whole table is its distinct rows, with the blank row (as in Power BI).
                 let t = if columns.is_empty() {
                     TableExpr::Values {
@@ -945,6 +954,7 @@ impl<'a> Interp<'a> {
                     columns: vec![col.clone()],
                     tuples: HashSet::from([vec![v.key()]]),
                     grouping: true,
+                    query: false,
                 });
             }
             // The row filters its expanded table: each table it reaches on the one side
@@ -980,6 +990,7 @@ impl<'a> Interp<'a> {
                     columns: vec![rel.to_column.clone()],
                     tuples: HashSet::from([vec![key]]),
                     grouping: true,
+                    query: false,
                 });
             }
         }
@@ -1037,6 +1048,7 @@ impl<'a> Interp<'a> {
                         columns,
                         tuples,
                         grouping: false,
+                        query: false,
                     },
                     keep,
                 ));
@@ -2953,6 +2965,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
                     columns: vec![column.clone()],
                     tuples,
                     grouping: false,
+                    query: true,
                 });
             }
         }
@@ -2992,6 +3005,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
             columns: vec![column.clone()],
             tuples: sub.iter().map(|r| vec![r[0].key()]).collect(),
             grouping: false,
+            query: true,
         });
     }
 
@@ -3049,6 +3063,7 @@ pub fn run(model: &Model, data: &Data, q: &VisualQuery) -> Result<Vec<Vec<Value>
                 columns: vec![c.clone()],
                 tuples: HashSet::from([vec![combo[i].key()]]),
                 grouping: true,
+                query: false,
             });
         }
         it.touched = false;

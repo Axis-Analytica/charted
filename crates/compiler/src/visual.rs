@@ -205,6 +205,9 @@ struct CFilter {
     /// The columns it filters (replaced by a later filter on any of them).
     columns: Vec<Id>,
     pred: Pred,
+    /// A filter the visual query supplied (a SUMMARIZECOLUMNS filter table), rather
+    /// than one the expression added.
+    query: bool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -362,30 +365,34 @@ fn row_pure(b: &Bound) -> bool {
 }
 
 /// ALLSELECTED as a table reads VALUES (or the table) under the context without its
-/// grouping keys; other sources are read as they are.
+/// grouping keys. A filter on another column of a date table does not limit
+/// ALLSELECTED of its date column (see `allselected_keeps_filter`). Other sources are
+/// read as they are.
 fn unselect(model: &Model, source: &TableExpr, ctx: &Ctx) -> Option<(TableExpr, Ctx)> {
     let TableExpr::AllSelected { table, columns } = source else {
         return None;
     };
     // The whole table is its distinct rows, with the blank row (as in Power BI).
-    let columns = if columns.is_empty() {
+    let requested = columns.clone();
+    let columns = if requested.is_empty() {
         model
             .table(table)
             .map(|t| t.columns.iter().map(|c| c.id.clone()).collect())
             .unwrap_or_default()
     } else {
-        columns.clone()
+        requested.clone()
     };
-    let t = TableExpr::Values {
-        table: table.clone(),
-        columns,
-    };
+    let mut ctx = ctx.clone();
+    ctx.keys.clear();
+    ctx.filters.retain(|f| {
+        crate::allselected_keeps_filter(model, table, &requested, &f.table, &f.columns, f.query)
+    });
     Some((
-        t,
-        Ctx {
-            keys: Vec::new(),
-            ..ctx.clone()
+        TableExpr::Values {
+            table: table.clone(),
+            columns,
         },
+        ctx,
     ))
 }
 
@@ -2586,6 +2593,7 @@ impl<'a> Compiler<'a> {
                 columns: columns.to_vec(),
                 keys,
             },
+            query: false,
         })
     }
 
@@ -2829,6 +2837,7 @@ impl<'a> Compiler<'a> {
                 columns: vec![column.to_string()],
                 keys: keys.into_iter().map(|(k, _)| k).collect(),
             },
+            query: false,
         })
     }
 
@@ -2879,6 +2888,7 @@ impl<'a> Compiler<'a> {
                             table: table.clone(),
                             columns: columns.clone(),
                             pred: Pred::Cond((**condition).clone()),
+                            query: false,
                         },
                         keep,
                     )),
@@ -2888,6 +2898,7 @@ impl<'a> Compiler<'a> {
                             table: table.clone(),
                             columns: Vec::new(),
                             pred: Pred::Cond((**condition).clone()),
+                            query: false,
                         },
                         true,
                     )),
@@ -2976,6 +2987,7 @@ impl<'a> Compiler<'a> {
                         columns.clone()
                     },
                     pred: Pred::Cond(Bound::Bool(true)),
+                    query: false,
                 },
                 keep,
             )),
@@ -3594,6 +3606,7 @@ impl<'a> Compiler<'a> {
                 columns,
                 keys: frame.keys.clone(),
             },
+            query: false,
         })
     }
 
@@ -4763,6 +4776,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
                             column.clone(),
                             format!("CAST(\u{7} AS VARCHAR) IN (SELECT CAST(g0 AS VARCHAR) FROM ({}) AS topn)", sub.sql),
                         ),
+                        query: true,
                     });
                 }
                 FilterKind::All => {}
@@ -4770,6 +4784,7 @@ pub fn compile(model: &Model, catalog: &dyn Catalog, q: &VisualQuery) -> Result<
                     table: t.clone(),
                     columns: vec![column.clone()],
                     pred: Pred::Kind(column.clone(), kind.clone()),
+                    query: true,
                 }),
             },
             _ => value_filters.push((projection_bound(&f.field)?, &f.filter)),
