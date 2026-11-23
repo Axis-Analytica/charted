@@ -521,7 +521,8 @@ blank handling, auto-exist, LOOKUPVALUE, expanded-table context transition, the 
 row, x/0 (IEEE, as in Power BI), and time intelligence (range shifts, date-row
 transition). Left by choice: CONCATENATEX storage order, Int64 arithmetic, float
 summation order, and DATEADD's error on a selection with gaps. Still open: TOPN ties
-and ALLSELECTED ( Date[Date] ) under a filter on Date[Year] (5 queries).
+(3 queries). ALLSELECTED ( Date[Date] ) under a visual filter table on Date[Year] is
+fixed (2 queries; a CALCULATE year filter still limits that set).
 
 Expected:
 - Blank handling (e.g. ROUND(BLANK())).
@@ -620,8 +621,8 @@ rule and matched the one case probed.
 
 *Batch 4 (information), 2026-11-03: done* for ISNUMBER, ISTEXT, ISNONTEXT, ISLOGICAL,
 ISEVEN, ISODD, ISEMPTY and the BIT functions; HASONEFILTER (needs FILTERS) and
-ISINSCOPE's edge cases wait. Checked against the Service (3504 of 3550 agree, the
-other 46 known): a date is a number to ISNUMBER; ISEVEN, ISODD and the BIT functions
+ISINSCOPE's edge cases wait. Checked against the Service (3506 of 3550 agree, the
+other 44 known): a date is a number to ISNUMBER; ISEVEN, ISODD and the BIT functions
 round their arguments. Text where a number is wanted is now an error in the
 interpreter too (SQL's cast already failed).
 

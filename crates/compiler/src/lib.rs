@@ -14,6 +14,39 @@ pub mod visual;
 
 use charted_model::{DataType, Model};
 
+/// Whether `ALLSELECTED` of `requested` columns of `table` still sees a filter on
+/// `filter_columns` of `filter_table`.
+///
+/// Power BI ignores a visual filter table on another column of a marked date table
+/// for `ALLSELECTED` of its date column (`ALLSELECTED ( Date[Date] )` under a
+/// filter table on `Date[Year]`), and keeps that filter for `ALLSELECTED` of the
+/// whole table. A filter on the requested columns themselves stays, as does a
+/// filter the expression added (`Date[Year] = 2025` inside `CALCULATE`). A date
+/// column that is only in a relationship, on a table that is not a date table,
+/// keeps every filter. `from_query` marks that visual filter table. `requested`
+/// empty means the whole table.
+pub fn allselected_keeps_filter(
+    model: &Model,
+    table: &str,
+    requested: &[String],
+    filter_table: &str,
+    filter_columns: &[String],
+    from_query: bool,
+) -> bool {
+    if !from_query || filter_table != table || requested.is_empty() || filter_columns.is_empty() {
+        return true;
+    }
+    if !model.table(table).is_some_and(|t| t.is_date_table) {
+        return true;
+    }
+    if !replaces_date_table(model, table, requested) {
+        return true;
+    }
+    filter_columns
+        .iter()
+        .any(|c| requested.iter().any(|r| r == c))
+}
+
 /// Whether a filter on these columns of a table replaces every filter on the table, as
 /// DAX does for the date column of a marked date table and for date columns used in
 /// relationships (an empty list stands for every column).

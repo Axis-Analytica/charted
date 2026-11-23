@@ -37,8 +37,6 @@
   "Region Quantities / by year": "CONCATENATEX without an order by: Power BI uses storage order, charted sorts",
   "Region Quantities / by year and month": "CONCATENATEX without an order by: Power BI uses storage order, charted sorts",
   "Region Quantities / card": "CONCATENATEX without an order by: Power BI uses storage order, charted sorts",
-  "Running Qty / by month in 2025, camping": "ALLSELECTED ( Date[Date] ) ignores the filter table on Date[Year] in Power BI (ALLSELECTED ( Date ) doesn't)",
-  "Running Qty / by region in 2025": "ALLSELECTED ( Date[Date] ) ignores the filter table on Date[Year] in Power BI (ALLSELECTED ( Date ) doesn't)",
   "Sales LY / by month name": "a selection of dates with gaps (a month name across years): Power BI's DATEADD and SAMEPERIODLASTYEAR error; charted gives no dates, since its SQL computes the set whether or not a branch uses it",
   "Target LY / by month name": "a selection of dates with gaps (a month name across years): Power BI's DATEADD and SAMEPERIODLASTYEAR error; charted gives no dates, since its SQL computes the set whether or not a branch uses it",
   "Top 2 Products Qty / by month in 2025, camping": "TOPN ties: Power BI keeps every tied row",

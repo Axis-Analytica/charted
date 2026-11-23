@@ -6,7 +6,7 @@
 mod golden;
 
 use charted_compiler::interp::{self, Value};
-use charted_compiler::visual::{self, OrderBy, OrderTarget, VisualQuery};
+use charted_compiler::visual::{self, OrderBy, OrderTarget, QueryFilter, VisualQuery};
 use charted_model::*;
 use golden::*;
 use std::collections::HashMap;
@@ -993,5 +993,215 @@ fn calculated_tables_agree_with_the_reference_interpreter() {
         failures.len(),
         TABLES.len(),
         failures.join("\n\n")
+    );
+}
+
+fn col_field(table: &str, name: &str) -> Projection {
+    Projection {
+        field: FieldRef::Column {
+            table: table.into(),
+            column: format!("{table}.{name}"),
+        },
+        aggregation: None,
+        display_name: None,
+    }
+}
+
+fn basic_filter(table: &str, name: &str, values: Vec<Option<String>>) -> QueryFilter {
+    QueryFilter {
+        field: col_field(table, name),
+        filter: FilterKind::Basic {
+            values,
+            exclude: false,
+        },
+    }
+}
+
+fn with_measure(model: &Model, name: &str, expression: &str) -> Model {
+    let mut model = model.clone();
+    model.table_mut("Sales").unwrap().measures.push(Measure {
+        id: format!("m:{name}"),
+        name: name.into(),
+        expression: expression.into(),
+        language: ExpressionLanguage::Dax,
+        description: None,
+        format_string: None,
+        display_folder: None,
+        hidden: false,
+        extras: Default::default(),
+    });
+    model
+}
+
+/// SQL and the interpreter, for one measure in one shape.
+fn both(f: &Fixture, model: &Model, measure: &str, query: VisualQuery) -> Vec<Vec<Value>> {
+    let q = VisualQuery {
+        values: vec![Projection {
+            field: FieldRef::Measure {
+                table: "Sales".into(),
+                measure: format!("m:{measure}"),
+            },
+            aggregation: None,
+            display_name: None,
+        }],
+        ..query
+    };
+    let schema = |source: &str, column: &str| -> Option<DataType> {
+        let t = model.tables.iter().find(|t| t.source == source)?;
+        t.columns
+            .iter()
+            .find(|c| matches!(&c.kind, ColumnKind::Data { source_column } if source_column == column))
+            .map(|c| c.data_type)
+    };
+    let expected = canonical(interp::run(model, &f.data, &q).unwrap());
+    let compiled = visual::compile(model, &schema, &q).unwrap();
+    let got = canonical(arrow_values(f.db.arrow(&compiled.sql).unwrap()));
+    assert_eq!(show(&got), show(&expected), "{measure}\n{}", compiled.sql);
+    got
+}
+
+/// `ALLSELECTED` of a date table's date column ignores a filter on another column of
+/// that table, as Power BI does. `ALLSELECTED` of the whole table keeps it, and a
+/// filter on the date column itself stays. A filter on another table stays too.
+#[test]
+fn allselected_of_the_date_column_ignores_a_filter_on_another_column() {
+    let f = fixture();
+    let shape = |name: &str| {
+        shapes(&f.model)
+            .into_iter()
+            .find(|(n, _)| *n == name)
+            .unwrap()
+            .1
+    };
+    let n = |x: f64| Value::Num(x);
+    let text = |s: &str| Value::Text(s.into());
+    let expect = |rows: Vec<Vec<Value>>| show(&canonical(rows));
+
+    // The two conformance queries. Power BI's running total matches ALL ( Date[Date] ),
+    // which already agreed: prior years are included up to the visible max date.
+    let region = shape("by region in 2025");
+    let running = both(&f, &f.model, "Running Qty", region.clone());
+    let all_time = both(&f, &f.model, "Running Qty All Time", region.clone());
+    assert_eq!(show(&running), show(&all_time));
+    assert_eq!(
+        show(&running),
+        expect(vec![
+            vec![text("North"), n(71.0)],
+            vec![text("South"), n(86.0)],
+            vec![text("Online"), n(112.0)],
+        ])
+    );
+
+    let month = shape("by month in 2025, camping");
+    let running = both(&f, &f.model, "Running Qty", month.clone());
+    let all_time = both(&f, &f.model, "Running Qty All Time", month);
+    assert_eq!(show(&running), show(&all_time));
+    assert_eq!(
+        show(&running),
+        expect(
+            [
+                33.0, 33.0, 41.0, 51.0, 51.0, 61.0, 72.0, 72.0, 78.0, 82.0, 82.0, 82.0
+            ]
+            .into_iter()
+            .enumerate()
+            .map(|(i, q)| vec![n(i as f64 + 1.0), n(q)])
+            .collect()
+        )
+    );
+
+    // Within the year, ALLSELECTED of the month column still sees the year filter.
+    let in_year = both(&f, &f.model, "Running Qty In Year", region);
+    assert_eq!(
+        show(&in_year),
+        expect(vec![
+            vec![text("North"), n(48.0)],
+            vec![text("South"), n(51.0)],
+            vec![text("Online"), n(88.0)],
+        ])
+    );
+
+    let year = basic_filter("Date", "Year", vec![Some("2025".into())]);
+    let card = |filters: Vec<QueryFilter>| VisualQuery {
+        filters,
+        ..VisualQuery::default()
+    };
+    let count = |model: &Model, measure: &str, filters: Vec<QueryFilter>| match &both(
+        &f,
+        model,
+        measure,
+        card(filters),
+    )[0][0]
+    {
+        Value::Num(x) => *x,
+        other => panic!("{measure}: {other:?}"),
+    };
+
+    let dates = with_measure(
+        &f.model,
+        "Selected Dates",
+        "COUNTROWS ( ALLSELECTED ( Date[Date] ) )",
+    );
+    let table = with_measure(
+        &f.model,
+        "Selected Date Table",
+        "COUNTROWS ( ALLSELECTED ( Date ) )",
+    );
+    let products = with_measure(
+        &f.model,
+        "Selected Product Names",
+        "COUNTROWS ( ALLSELECTED ( Product[Product] ) )",
+    );
+    // 24 month-end dates in the fixture, 12 of them in 2025.
+    assert_eq!(count(&dates, "Selected Dates", vec![year.clone()]), 24.0);
+    // A year filter written in the expression is not a visual filter table: it stays.
+    let explicit = with_measure(
+        &f.model,
+        "Dates In 2025",
+        "CALCULATE ( COUNTROWS ( ALLSELECTED ( Date[Date] ) ), Date[Year] = 2025 )",
+    );
+    assert_eq!(count(&explicit, "Dates In 2025", vec![]), 12.0);
+    assert_eq!(
+        count(&table, "Selected Date Table", vec![year.clone()]),
+        12.0
+    );
+    // A filter on the date column itself is an explicit filter ALLSELECTED keeps.
+    let days = basic_filter(
+        "Date",
+        "Date",
+        vec![Some("2025-01-31".into()), Some("2025-03-31".into())],
+    );
+    assert_eq!(count(&dates, "Selected Dates", vec![days]), 2.0);
+    // A filter on another table is kept: three camping products, not all eight.
+    let camping = basic_filter("Product", "Category", vec![Some("Camping".into())]);
+    assert_eq!(
+        count(&products, "Selected Product Names", vec![camping]),
+        3.0
+    );
+
+    // A DateTime column on a fact table keeps a sibling visual filter, even when the
+    // column is in a relationship. Only a marked date table drops that filter.
+    let mut linked = f.model.clone();
+    linked.relationships.push(rel(
+        "r-ordered-at",
+        ("Sales", "OrderedAt"),
+        ("Date", "Date"),
+        true,
+    ));
+    let ordered = with_measure(
+        &linked,
+        "Selected Order Times",
+        "COUNTROWS ( ALLSELECTED ( Sales[OrderedAt] ) )",
+    );
+    let every = with_measure(
+        &linked,
+        "Every Order Time",
+        "COUNTROWS ( ALL ( Sales[OrderedAt] ) )",
+    );
+    let store = basic_filter("Sales", "StoreKey", vec![Some("1".into())]);
+    let selected = count(&ordered, "Selected Order Times", vec![store]);
+    let all = count(&every, "Every Order Time", vec![]);
+    assert!(
+        selected < all,
+        "a relationship date column kept the store filter ({selected} of {all})"
     );
 }

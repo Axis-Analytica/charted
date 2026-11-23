@@ -42,9 +42,15 @@ fn float_division_by_zero_follows_ieee() {
     );
     assert_eq!(val(&c, "1/0"), Ok(Some("inf".into())));
     assert_eq!(val(&c, "-1.0/0"), Ok(Some("-inf".into())));
-    assert_eq!(val(&c, "0.0/0"), Ok(Some("nan".into())));
     assert_eq!(val(&c, "ln(0)"), Ok(Some("-inf".into())));
-    assert_eq!(val(&c, "sqrt(-1)"), Ok(Some("nan".into())));
+    // x86_64 prints the sign bit; arm and macOS print "nan".
+    for sql in ["0.0/0", "sqrt(-1)"] {
+        let got = val(&c, sql);
+        assert!(
+            matches!(got, Ok(Some(ref s)) if s == "nan" || s == "-nan"),
+            "{sql} is a NaN, got {got:?}"
+        );
+    }
     // Integer division still errors.
     assert!(val(&c, "1 // 0").is_err());
 }
